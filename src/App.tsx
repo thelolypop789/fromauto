@@ -1019,7 +1019,6 @@ export default function App() {
             <span className={`role-badge ${user.role==="admin"?"role-admin":"role-user"}`}>
               {user.role==="admin"?"👑 Admin":"👤 User"}
             </span>
-            <span style={{fontSize:12,color:"rgba(255,255,255,.7)",fontFamily:"monospace"}}>{user.key}</span>
             <button className="btn btn-icon" style={{borderColor:"rgba(255,255,255,.3)",color:"white"}} onClick={handleLogout}><LogoutIcon /></button>
           </div>
         </div>

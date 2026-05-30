@@ -915,8 +915,20 @@ function ResultView({ result, onReset, userRole, usageCount }: any) {
 
 // ============ MAIN APP ============
 export default function App() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any>(() => {
+    try { return JSON.parse(localStorage.getItem("fromauto_user") || "null"); } catch { return null; }
+  });
   const [usageCount, setUsageCount] = useState(0);
+
+  const handleLogin = (u: any) => {
+    localStorage.setItem("fromauto_user", JSON.stringify(u));
+    setUser(u);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("fromauto_user");
+    setUser(null);
+  };
   const [tab, setTab] = useState("create");
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -979,7 +991,7 @@ export default function App() {
       .then(({ data }) => setUsageCount(data?.requests ?? 0));
   }, [user]);
 
-  if (!user) return <><style>{css}</style><LoginPage onLogin={setUser}/></>;
+  if (!user) return <><style>{css}</style><LoginPage onLogin={handleLogin}/></>;
 
   return (
     <>
@@ -1008,7 +1020,7 @@ export default function App() {
               {user.role==="admin"?"👑 Admin":"👤 User"}
             </span>
             <span style={{fontSize:12,color:"rgba(255,255,255,.7)",fontFamily:"monospace"}}>{user.key}</span>
-            <button className="btn btn-icon" style={{borderColor:"rgba(255,255,255,.3)",color:"white"}} onClick={() => setUser(null)}><LogoutIcon /></button>
+            <button className="btn btn-icon" style={{borderColor:"rgba(255,255,255,.3)",color:"white"}} onClick={handleLogout}><LogoutIcon /></button>
           </div>
         </div>
 
@@ -1029,7 +1041,7 @@ export default function App() {
               </>
             )}
             <div className="sidebar-section">บัญชี</div>
-            <button className="sidebar-item" onClick={() => setUser(null)}><LogoutIcon /> ออกจากระบบ</button>
+            <button className="sidebar-item" onClick={handleLogout}><LogoutIcon /> ออกจากระบบ</button>
           </div>
 
           <div className="content">

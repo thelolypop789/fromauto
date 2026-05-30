@@ -226,7 +226,7 @@ function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
       if (err || !data) { setError("License Key ไม่ถูกต้องหรือถูกปิดใช้งาน"); setLoading(false); return; }
       if (data.expires_at && new Date(data.expires_at) < new Date()) { setError("License Key หมดอายุแล้ว"); setLoading(false); return; }
       setLoading(false);
-      onLogin({ key: data.key, role: data.role, note: data.note });
+      onLogin({ key: data.key, role: data.role, note: data.note, daily_limit: data.daily_limit ?? 10 });
     } catch { setError("เกิดข้อผิดพลาด กรุณาลองใหม่"); setLoading(false); }
   };
 
@@ -388,7 +388,7 @@ function AdminPanel() {
         ) : (
           <table className="license-table">
             <thead><tr>
-              <th>Key</th><th>Role</th><th>หมายเหตุ</th><th>หมดอายุ</th><th>วันนี้</th><th>สถานะ</th><th>จัดการ</th>
+              <th>Key</th><th>Role</th><th>หมายเหตุ</th><th>หมดอายุ</th><th>โควต้า/วัน</th><th>วันนี้</th><th>สถานะ</th><th>จัดการ</th>
             </tr></thead>
             <tbody>
               {licenses.map(l => (
@@ -405,8 +405,24 @@ function AdminPanel() {
                   <td>
                     {l.role === "admin"
                       ? <span className="badge badge-purple">∞</span>
-                      : <span className={`badge ${(usageToday[l.key]??0) >= USER_DAILY_LIMIT ? "badge-red" : "badge-blue"}`}>
-                          {usageToday[l.key]??0}/{USER_DAILY_LIMIT}
+                      : <input
+                          type="number" min={1} max={9999}
+                          defaultValue={l.daily_limit ?? 10}
+                          style={{width:60,padding:"3px 6px",border:"1.5px solid var(--gray-200)",borderRadius:6,fontSize:13,textAlign:"center",fontFamily:"inherit"}}
+                          onBlur={async e => {
+                            const val = parseInt(e.target.value);
+                            if (!val || val < 1) { e.target.value = String(l.daily_limit ?? 10); return; }
+                            await supabase.from("licenses").update({ daily_limit: val }).eq("id", l.id);
+                          }}
+                          onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                        />
+                    }
+                  </td>
+                  <td>
+                    {l.role === "admin"
+                      ? <span className="badge badge-purple">∞</span>
+                      : <span className={`badge ${(usageToday[l.key]??0) >= (l.daily_limit ?? USER_DAILY_LIMIT) ? "badge-red" : "badge-blue"}`}>
+                          {usageToday[l.key]??0}/{l.daily_limit ?? USER_DAILY_LIMIT}
                         </span>
                     }
                   </td>
@@ -862,7 +878,7 @@ function HistoryTab({ user }: any) {
   );
 }
 // ============ RESULT ============
-function ResultView({ result, onReset, userRole, usageCount }: any) {
+function ResultView({ result, onReset, userRole, usageCount, dailyLimit }: any) {
   const [copied, setCopied] = useState<Record<string,boolean>>({});
   const copy = (k: string, val: string) => {
     navigator.clipboard.writeText(val).catch(()=>{});
@@ -902,7 +918,7 @@ function ResultView({ result, onReset, userRole, usageCount }: any) {
       {userRole !== "admin" && (
         <div style={{marginTop:16,background:"linear-gradient(135deg,#7C3AED 0%,#9333EA 100%)",borderRadius:16,padding:"24px",color:"white",textAlign:"center"}}>
           <div style={{fontSize:16,fontWeight:700,marginBottom:6}}>🔥 ปลดล็อก Pro</div>
-          <div style={{fontSize:13,opacity:.85,marginBottom:4}}>คุณใช้ไปแล้ว <strong>{usageCount}/10</strong> ครั้งวันนี้</div>
+          <div style={{fontSize:13,opacity:.85,marginBottom:4}}>คุณใช้ไปแล้ว <strong>{usageCount}/{dailyLimit??10}</strong> ครั้งวันนี้</div>
           <div style={{fontSize:13,opacity:.75,marginBottom:16}}>อัปเกรด → สร้างได้ไม่จำกัด • ไม่มีวันหมดอายุ</div>
           <button className="btn" style={{background:"white",color:"#7C3AED",fontWeight:700,borderRadius:20,padding:"10px 28px",fontSize:14}}>
             ✨ อัปเกรด Pro
@@ -1010,9 +1026,9 @@ export default function App() {
             {user.role !== "admin" && (
               <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,.15)",borderRadius:20,padding:"4px 12px"}}>
                 <span style={{fontSize:12,color:"rgba(255,255,255,.85)"}}>วันนี้</span>
-                <span style={{fontSize:13,fontWeight:700,color:"white"}}>{usageCount}/10</span>
+                <span style={{fontSize:13,fontWeight:700,color:"white"}}>{usageCount}/{user.daily_limit??10}</span>
                 <div style={{width:36,height:4,background:"rgba(255,255,255,.3)",borderRadius:2,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${Math.min(100,usageCount/10*100)}%`,background:usageCount>=10?"#fca5a5":"white",borderRadius:2,transition:"width .3s"}}/>
+                  <div style={{height:"100%",width:`${Math.min(100,usageCount/(user.daily_limit??10)*100)}%`,background:usageCount>=(user.daily_limit??10)?"#fca5a5":"white",borderRadius:2,transition:"width .3s"}}/>
                 </div>
               </div>
             )}
@@ -1089,7 +1105,7 @@ export default function App() {
                     </button>
                   </div>
                 )}
-                {step===4 && result && <ResultView result={result} onReset={handleReset} userRole={user.role} usageCount={usageCount}/>}
+                {step===4 && result && <ResultView result={result} onReset={handleReset} userRole={user.role} usageCount={usageCount} dailyLimit={user.daily_limit??10}/>}
 
                 {step < 3 && (
                   <div className="nav-row">

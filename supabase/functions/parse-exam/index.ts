@@ -40,7 +40,7 @@ serve(async (req) => {
   // Validate license key
   const { data: license } = await sb
     .from("licenses")
-    .select("is_active, expires_at, role")
+    .select("is_active, expires_at, role, daily_limit")
     .eq("key", license_key)
     .eq("is_active", true)
     .single();
@@ -62,14 +62,15 @@ serve(async (req) => {
 
   // Per-user daily limit (admin exempt)
   if (license.role !== "admin") {
+    const limit = license.daily_limit ?? USER_DAILY_LIMIT;
     const { data: userRow } = await sb
       .from("usage_logs")
       .select("requests")
       .eq("license_key", license_key)
       .eq("date", today)
       .single();
-    if ((userRow?.requests ?? 0) >= USER_DAILY_LIMIT) {
-      return json({ error: `ใช้ครบ ${USER_DAILY_LIMIT} ครั้งแล้ววันนี้ กรุณาลองใหม่พรุ่งนี้` }, 429);
+    if ((userRow?.requests ?? 0) >= limit) {
+      return json({ error: `ใช้ครบ ${limit} ครั้งแล้ววันนี้ กรุณาลองใหม่พรุ่งนี้` }, 429);
     }
   }
 

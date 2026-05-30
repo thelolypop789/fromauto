@@ -688,6 +688,14 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
           </div>
         )}
 
+        {/* PDF image limitation warning */}
+        {fileName.endsWith(".pdf") && !parsing && (
+          <div style={{marginTop:12, padding:"10px 16px", background:"var(--yellow-light)", borderRadius:"var(--radius)", fontSize:13, color:"#92400e", display:"flex", alignItems:"flex-start", gap:8}}>
+            <span style={{flexShrink:0}}>⚠️</span>
+            <span>ถ้าโจทย์ข้อไหน <strong>ใช้รูปเป็นคำถามหลัก</strong> (เช่น "ดูรูปแล้วตอบ") — รูปจะ<strong>ไม่ถูกใส่ใน Google Form</strong> AI จะอ่านรูปแล้วแปลงเป็นข้อความแทน ซึ่งเปลืองโทเคนและอาจผิดพลาด แนะนำให้ตรวจสอบข้อสอบที่ได้อีกครั้ง</span>
+          </div>
+        )}
+
         {/* Error */}
         {parseError && (
           <div style={{marginTop:10, padding:"10px 14px", background:"var(--red-light)", borderRadius:"var(--radius)", fontSize:13, color:"var(--red)"}}>

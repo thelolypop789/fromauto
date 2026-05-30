@@ -1004,9 +1004,8 @@ export default function App() {
 
   useEffect(() => {
     if (!user || user.role === "admin") return;
-    const today = new Date().toISOString().split("T")[0];
-    supabase.from("usage_logs").select("requests").eq("license_key", user.key).eq("date", today).single()
-      .then(({ data }) => setUsageCount(data?.requests ?? 0));
+    supabase.rpc("get_my_usage", { p_key: user.key })
+      .then(({ data }) => setUsageCount(data ?? 0));
   }, [user]);
 
   if (!user) return <><style>{css}</style><LoginPage onLogin={handleLogin}/></>;

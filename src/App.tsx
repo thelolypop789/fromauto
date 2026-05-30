@@ -220,10 +220,8 @@ function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
     if (!key.trim()) { setError("กรุณากรอก License Key"); return; }
     setLoading(true); setError("");
     try {
-      const { data, error: err } = await supabase
-        .from("licenses").select("key, role, note, daily_limit, expires_at, is_active")
-        .eq("key", key.trim().toUpperCase())
-        .eq("is_active", true).single();
+      const { data: rows, error: err } = await supabase.rpc("validate_license", { p_key: key.trim().toUpperCase() });
+      const data = Array.isArray(rows) ? rows[0] ?? null : null;
       if (err || !data) { setError("License Key ไม่ถูกต้องหรือถูกปิดใช้งาน"); setLoading(false); return; }
       if (data.expires_at && new Date(data.expires_at) < new Date()) { setError("License Key หมดอายุแล้ว"); setLoading(false); return; }
       setLoading(false);
@@ -270,7 +268,7 @@ function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
 const GLOBAL_DAILY_LIMIT = 200;
 const USER_DAILY_LIMIT = 10;
 
-function AdminPanel() {
+function AdminPanel({ adminKey }: { adminKey: string }) {
   const [licenses, setLicenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -280,24 +278,29 @@ function AdminPanel() {
   const [usageToday, setUsageToday] = useState<Record<string, number>>({});
   const [totalToday, setTotalToday] = useState(0);
 
-  const fetchUsage = async () => {
-    const today = new Date().toISOString().split("T")[0];
-    const { data } = await supabase.from("usage_logs").select("license_key, requests").eq("date", today);
-    const map: Record<string, number> = {};
-    let total = 0;
-    for (const row of data ?? []) {
-      map[row.license_key] = row.requests;
-      total += row.requests;
-    }
-    setUsageToday(map);
-    setTotalToday(total);
+  const adminCall = async (action: string, params?: any) => {
+    const { data, error } = await supabase.functions.invoke("admin-action", {
+      body: { admin_key: adminKey, action, params },
+    });
+    if (error) throw new Error(error.message);
+    if (data?.error) throw new Error(data.error);
+    return data;
   };
 
   const fetchLicenses = async () => {
     setLoading(true);
-    const { data } = await supabase.from("licenses").select("*").order("created_at", { ascending:false });
-    setLicenses(data || []);
-    await fetchUsage();
+    try {
+      const [{ data: licenses }, { data: usage }] = await Promise.all([
+        adminCall("list_licenses"),
+        adminCall("get_usage"),
+      ]);
+      setLicenses(licenses || []);
+      const map: Record<string, number> = {};
+      let total = 0;
+      for (const row of usage ?? []) { map[row.license_key] = row.requests; total += row.requests; }
+      setUsageToday(map);
+      setTotalToday(total);
+    } catch (e: any) { alert("โหลดข้อมูลล้มเหลว: " + e.message); }
     setLoading(false);
   };
 
@@ -305,23 +308,21 @@ function AdminPanel() {
 
   const createLicense = async () => {
     const key = genKey(newKey.role);
-    await supabase.from("licenses").insert({ key, role:newKey.role, note:newKey.note||null, expires_at:newKey.expires_at||null, is_active:true });
+    await adminCall("create_license", { key, role: newKey.role, note: newKey.note, expires_at: newKey.expires_at });
     setGeneratedKey(key);
     fetchLicenses();
   };
 
- const toggleActive = async (id: string, current: boolean, role: string) => {
-  if (role === "admin" && current) {
-    alert("ไม่สามารถปิด Admin Key ได้ กรุณาลบแทน");
-    return;
-  }
-  await supabase.from("licenses").update({ is_active:!current }).eq("id", id);
-  fetchLicenses();
-};
+  const toggleActive = async (id: string, current: boolean, role: string) => {
+    try {
+      await adminCall("toggle_license", { id, is_active: current, role });
+      fetchLicenses();
+    } catch (e: any) { alert(e.message); }
+  };
 
   const deleteLicense = async (id: string) => {
     if (!confirm("ต้องการลบ Key นี้ไหม?")) return;
-    await supabase.from("licenses").delete().eq("id", id);
+    await adminCall("delete_license", { id });
     fetchLicenses();
   };
 
@@ -413,7 +414,7 @@ function AdminPanel() {
                           onBlur={async e => {
                             const val = parseInt(e.target.value);
                             if (!val || val < 1) { e.target.value = String(l.daily_limit ?? 10); return; }
-                            await supabase.from("licenses").update({ daily_limit: val }).eq("id", l.id);
+                            await adminCall("update_quota", { id: l.id, daily_limit: val });
                           }}
                           onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                         />
@@ -1061,7 +1062,7 @@ export default function App() {
           </div>
 
           <div className="content">
-           {tab==="admin" && user.role==="admin" ? <AdminPanel /> :
+           {tab==="admin" && user.role==="admin" ? <AdminPanel adminKey={user.key} /> :
  tab==="history" ? <HistoryTab user={user} /> : (
               <>
                 <div className="stepper">

@@ -8,7 +8,7 @@ const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"];
 const USER_DAILY_LIMIT = 10;
 const GLOBAL_DAILY_LIMIT = 200;
-const MAX_CONTENT_BYTES = 10 * 1024 * 1024; // 10MB
+const MAX_CONTENT_BYTES = 5 * 1024 * 1024; // 5MB
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -28,7 +28,7 @@ serve(async (req) => {
   // Input size guard
   const contentLength = parseInt(req.headers.get("content-length") ?? "0");
   if (contentLength > MAX_CONTENT_BYTES) {
-    return json({ error: "ไฟล์ใหญ่เกินไป (สูงสุด 10MB)" }, 413);
+    return json({ error: "ไฟล์ใหญ่เกินไป (สูงสุด 5 MB)" }, 413);
   }
 
   const { parts, license_key } = await req.json();

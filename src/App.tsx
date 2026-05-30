@@ -622,6 +622,10 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
 
   const handleFile = async (file: File | null) => {
     if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setParseError("ไฟล์ใหญ่เกินไป (สูงสุด 5 MB)");
+      return;
+    }
     setFileName(file.name);
     setParsing(true);
     setParseError("");
@@ -716,7 +720,7 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
           ) : (
             <>
               <div className="upload-text">คลิกหรือลากไฟล์มาวางที่นี่</div>
-              <div className="upload-hint">รองรับ .docx .pdf .txt</div>
+              <div className="upload-hint">รองรับ .docx .pdf .txt · ไม่เกิน 5 MB</div>
             </>
           )}
         </div>

@@ -4,7 +4,6 @@ import { createClient } from "@supabase/supabase-js";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL;
-const GEMINI_KEY = import.meta.env.VITE_GEMINI_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function genKey(role: string) {
@@ -512,48 +511,14 @@ function StepQuestions({ questions, setQuestions }: any) {
 - จับเฉลยจากเฉลยท้ายไฟล์ หรือสีตัวอักษร หรือไฮไลต์ หรือเครื่องหมายใดๆ
 - ตัดข้อความที่ไม่ใช่ข้อสอบออก เช่น คำชี้แจง หัวข้อ คำอวยพร`;
 
-  const MODELS = [
-  "gemini-2.5-flash-lite",
-  "gemini-2.5-flash",
-  "gemini-2.5-pro",
-];
-
-const callGemini = async (parts: any[]) => {
-  let lastError = "";
-  for (const model of MODELS) {
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contents: [{ parts }] })
-        }
-      );
-      const data = await res.json();
-      if (data.error) {
-        // ถ้า quota หมด ลอง model ถัดไป
-        if (data.error.code === 429 || data.error.code === 503) {
-          lastError = data.error.message;
-          continue;
-        }
-        throw new Error(data.error.message);
-      }
-      const content = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const start = content.indexOf("{");
-      const end = content.lastIndexOf("}");
-      if (start === -1 || end === -1) throw new Error("ไม่พบข้อมูลที่ถูกต้องจาก AI");
-      return JSON.parse(content.substring(start, end + 1));
-    } catch(err: any) {
-      if (err.message?.includes("quota") || err.message?.includes("429")) {
-        lastError = err.message;
-        continue;
-      }
-      throw err;
-    }
-  }
-  throw new Error("โควต้าหมดทุก Model กรุณาลองใหม่พรุ่งนี้ หรือเติมเครดิต: " + lastError);
-};
+  const callGemini = async (parts: any[]) => {
+    const { data, error } = await supabase.functions.invoke("parse-exam", {
+      body: { parts },
+    });
+    if (error) throw new Error(error.message);
+    if (data?.error) throw new Error(data.error);
+    return data;
+  };
 
   const handleFile = async (file: File | null) => {
     if (!file) return;

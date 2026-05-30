@@ -266,6 +266,9 @@ function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
 }
 
 // ============ ADMIN PANEL ============
+const GLOBAL_DAILY_LIMIT = 200;
+const USER_DAILY_LIMIT = 10;
+
 function AdminPanel() {
   const [licenses, setLicenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -273,11 +276,27 @@ function AdminPanel() {
   const [newKey, setNewKey] = useState({ role:"user", note:"", expires_at:"" });
   const [generatedKey, setGeneratedKey] = useState("");
   const [copied, setCopied] = useState(false);
+  const [usageToday, setUsageToday] = useState<Record<string, number>>({});
+  const [totalToday, setTotalToday] = useState(0);
+
+  const fetchUsage = async () => {
+    const today = new Date().toISOString().split("T")[0];
+    const { data } = await supabase.from("usage_logs").select("license_key, requests").eq("date", today);
+    const map: Record<string, number> = {};
+    let total = 0;
+    for (const row of data ?? []) {
+      map[row.license_key] = row.requests;
+      total += row.requests;
+    }
+    setUsageToday(map);
+    setTotalToday(total);
+  };
 
   const fetchLicenses = async () => {
     setLoading(true);
     const { data } = await supabase.from("licenses").select("*").order("created_at", { ascending:false });
     setLicenses(data || []);
+    await fetchUsage();
     setLoading(false);
   };
 
@@ -328,6 +347,30 @@ function AdminPanel() {
         </div>
       </div>
 
+      <div className="stats-grid" style={{marginBottom:24}}>
+        <div className="stat-card">
+          <div className="stat-number" style={{color:"var(--blue)"}}>{totalToday}</div>
+          <div className="stat-label">AI ใช้วันนี้</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-number" style={{color: GLOBAL_DAILY_LIMIT - totalToday <= 20 ? "var(--red)" : "var(--green)"}}>
+            {GLOBAL_DAILY_LIMIT - totalToday}
+          </div>
+          <div className="stat-label">เหลือวันนี้</div>
+        </div>
+        <div className="stat-card">
+          <div style={{position:"relative",height:8,background:"var(--gray-200)",borderRadius:4,margin:"8px 0 6px"}}>
+            <div style={{
+              position:"absolute",inset:0,right:"auto",
+              width:`${Math.min(100, Math.round(totalToday/GLOBAL_DAILY_LIMIT*100))}%`,
+              background: totalToday/GLOBAL_DAILY_LIMIT > 0.8 ? "var(--red)" : "var(--blue)",
+              borderRadius:4,transition:"width .3s"
+            }}/>
+          </div>
+          <div className="stat-label">{Math.round(totalToday/GLOBAL_DAILY_LIMIT*100)}% ของโควต้ารายวัน</div>
+        </div>
+      </div>
+
       <div className="card">
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
           <div className="card-title">🔑 จัดการ License Keys</div>
@@ -345,7 +388,7 @@ function AdminPanel() {
         ) : (
           <table className="license-table">
             <thead><tr>
-              <th>Key</th><th>Role</th><th>หมายเหตุ</th><th>หมดอายุ</th><th>สถานะ</th><th>จัดการ</th>
+              <th>Key</th><th>Role</th><th>หมายเหตุ</th><th>หมดอายุ</th><th>วันนี้</th><th>สถานะ</th><th>จัดการ</th>
             </tr></thead>
             <tbody>
               {licenses.map(l => (
@@ -359,6 +402,14 @@ function AdminPanel() {
                   <td><span className={`badge ${l.role==="admin"?"badge-purple":"badge-blue"}`}>{l.role==="admin"?"👑 Admin":"👤 User"}</span></td>
                   <td style={{fontSize:13,color:"var(--gray-600)"}}>{l.note||"-"}</td>
                   <td style={{fontSize:13,color:"var(--gray-600)"}}>{l.expires_at?new Date(l.expires_at).toLocaleDateString("th-TH"):"ไม่มีวันหมดอายุ"}</td>
+                  <td>
+                    {l.role === "admin"
+                      ? <span className="badge badge-purple">∞</span>
+                      : <span className={`badge ${(usageToday[l.key]??0) >= USER_DAILY_LIMIT ? "badge-red" : "badge-blue"}`}>
+                          {usageToday[l.key]??0}/{USER_DAILY_LIMIT}
+                        </span>
+                    }
+                  </td>
                   <td><span className={`badge ${l.is_active?"badge-green":"badge-red"}`}>{l.is_active?"✅ ใช้งานได้":"❌ ปิดแล้ว"}</span></td>
                   <td>
                     <div style={{display:"flex",gap:6}}>

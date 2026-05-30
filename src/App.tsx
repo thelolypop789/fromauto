@@ -17,19 +17,19 @@ const css = `
   @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=Prompt:wght@500;600;700&display=swap');
   * { box-sizing:border-box; margin:0; padding:0; }
   :root {
-    --blue:#1a73e8; --blue-dark:#1557b0; --blue-light:#e8f0fe;
+    --blue:#7C3AED; --blue-dark:#6D28D9; --blue-light:#EDE9FE;
     --green:#1e8e3e; --green-light:#e6f4ea;
     --red:#d93025; --red-light:#fce8e6;
     --yellow:#f9ab00; --yellow-light:#fef7e0;
-    --purple:#7c3aed; --purple-light:#ede9fe;
-    --gray-50:#f8f9fa; --gray-100:#f1f3f4; --gray-200:#e8eaed;
+    --purple:#9333EA; --purple-light:#F3E8FF;
+    --gray-50:#F5F3FF; --gray-100:#f1f3f4; --gray-200:#e8eaed;
     --gray-400:#9aa0a6; --gray-600:#5f6368; --gray-800:#3c4043; --gray-900:#202124;
     --shadow-sm:0 1px 3px rgba(60,64,67,.15); --shadow-lg:0 4px 12px rgba(60,64,67,.15);
     --radius:8px; --radius-lg:12px;
   }
   body { font-family:'Sarabun',sans-serif; background:var(--gray-50); color:var(--gray-900); }
   .app { min-height:100vh; display:flex; flex-direction:column; }
-  .login-page { min-height:100vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e8f0fe 0%,#f8f9fa 50%,#e6f4ea 100%); }
+  .login-page { min-height:100vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#EDE9FE 0%,#F5F3FF 50%,#F3E8FF 100%); }
   .login-card { background:white; border-radius:var(--radius-lg); padding:48px 40px; width:100%; max-width:420px; box-shadow:var(--shadow-lg); animation:slideUp .4s ease; }
   @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
   .login-logo { display:flex; align-items:center; gap:12px; margin-bottom:32px; }
@@ -59,9 +59,9 @@ const css = `
   .btn-icon { padding:7px; background:transparent; border:1px solid var(--gray-200); color:var(--gray-600); border-radius:6px; }
   .btn-icon:hover { background:var(--gray-100); }
   .btn:disabled { opacity:.5; cursor:not-allowed; }
-  .topbar { background:white; border-bottom:1px solid var(--gray-200); display:flex; align-items:center; padding:0 24px; height:60px; position:sticky; top:0; z-index:100; box-shadow:var(--shadow-sm); }
+  .topbar { background:linear-gradient(135deg,#7C3AED 0%,#6D28D9 100%); border-bottom:none; display:flex; align-items:center; padding:0 24px; height:60px; position:sticky; top:0; z-index:100; box-shadow:0 2px 12px rgba(124,58,237,.3); }
   .topbar-brand { display:flex; align-items:center; gap:10px; flex:1; }
-  .topbar-title { font-family:'Prompt',sans-serif; font-size:17px; font-weight:600; }
+  .topbar-title { font-family:'Prompt',sans-serif; font-size:17px; font-weight:600; color:white; }
   .topbar-user { display:flex; align-items:center; gap:10px; }
   .role-badge { font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; }
   .role-admin { background:var(--purple-light); color:var(--purple); }
@@ -77,7 +77,7 @@ const css = `
   .stepper { display:flex; align-items:center; margin-bottom:28px; }
   .step-dot { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; transition:all .2s; }
   .step-dot.done { background:var(--green); color:white; }
-  .step-dot.active { background:var(--blue); color:white; box-shadow:0 0 0 4px rgba(26,115,232,.2); }
+  .step-dot.active { background:var(--blue); color:white; box-shadow:0 0 0 4px rgba(124,58,237,.2); }
   .step-dot.pending { background:var(--gray-200); color:var(--gray-600); }
   .step-label { font-size:12px; font-weight:500; }
   .step-label.active { color:var(--blue); font-weight:600; }
@@ -266,6 +266,9 @@ function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
 }
 
 // ============ ADMIN PANEL ============
+const GLOBAL_DAILY_LIMIT = 200;
+const USER_DAILY_LIMIT = 10;
+
 function AdminPanel() {
   const [licenses, setLicenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -273,11 +276,27 @@ function AdminPanel() {
   const [newKey, setNewKey] = useState({ role:"user", note:"", expires_at:"" });
   const [generatedKey, setGeneratedKey] = useState("");
   const [copied, setCopied] = useState(false);
+  const [usageToday, setUsageToday] = useState<Record<string, number>>({});
+  const [totalToday, setTotalToday] = useState(0);
+
+  const fetchUsage = async () => {
+    const today = new Date().toISOString().split("T")[0];
+    const { data } = await supabase.from("usage_logs").select("license_key, requests").eq("date", today);
+    const map: Record<string, number> = {};
+    let total = 0;
+    for (const row of data ?? []) {
+      map[row.license_key] = row.requests;
+      total += row.requests;
+    }
+    setUsageToday(map);
+    setTotalToday(total);
+  };
 
   const fetchLicenses = async () => {
     setLoading(true);
     const { data } = await supabase.from("licenses").select("*").order("created_at", { ascending:false });
     setLicenses(data || []);
+    await fetchUsage();
     setLoading(false);
   };
 
@@ -328,6 +347,30 @@ function AdminPanel() {
         </div>
       </div>
 
+      <div className="stats-grid" style={{marginBottom:24}}>
+        <div className="stat-card">
+          <div className="stat-number" style={{color:"var(--blue)"}}>{totalToday}</div>
+          <div className="stat-label">AI ใช้วันนี้</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-number" style={{color: GLOBAL_DAILY_LIMIT - totalToday <= 20 ? "var(--red)" : "var(--green)"}}>
+            {GLOBAL_DAILY_LIMIT - totalToday}
+          </div>
+          <div className="stat-label">เหลือวันนี้</div>
+        </div>
+        <div className="stat-card">
+          <div style={{position:"relative",height:8,background:"var(--gray-200)",borderRadius:4,margin:"8px 0 6px"}}>
+            <div style={{
+              position:"absolute",inset:0,right:"auto",
+              width:`${Math.min(100, Math.round(totalToday/GLOBAL_DAILY_LIMIT*100))}%`,
+              background: totalToday/GLOBAL_DAILY_LIMIT > 0.8 ? "var(--red)" : "var(--blue)",
+              borderRadius:4,transition:"width .3s"
+            }}/>
+          </div>
+          <div className="stat-label">{Math.round(totalToday/GLOBAL_DAILY_LIMIT*100)}% ของโควต้ารายวัน</div>
+        </div>
+      </div>
+
       <div className="card">
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
           <div className="card-title">🔑 จัดการ License Keys</div>
@@ -345,7 +388,7 @@ function AdminPanel() {
         ) : (
           <table className="license-table">
             <thead><tr>
-              <th>Key</th><th>Role</th><th>หมายเหตุ</th><th>หมดอายุ</th><th>สถานะ</th><th>จัดการ</th>
+              <th>Key</th><th>Role</th><th>หมายเหตุ</th><th>หมดอายุ</th><th>วันนี้</th><th>สถานะ</th><th>จัดการ</th>
             </tr></thead>
             <tbody>
               {licenses.map(l => (
@@ -359,6 +402,14 @@ function AdminPanel() {
                   <td><span className={`badge ${l.role==="admin"?"badge-purple":"badge-blue"}`}>{l.role==="admin"?"👑 Admin":"👤 User"}</span></td>
                   <td style={{fontSize:13,color:"var(--gray-600)"}}>{l.note||"-"}</td>
                   <td style={{fontSize:13,color:"var(--gray-600)"}}>{l.expires_at?new Date(l.expires_at).toLocaleDateString("th-TH"):"ไม่มีวันหมดอายุ"}</td>
+                  <td>
+                    {l.role === "admin"
+                      ? <span className="badge badge-purple">∞</span>
+                      : <span className={`badge ${(usageToday[l.key]??0) >= USER_DAILY_LIMIT ? "badge-red" : "badge-blue"}`}>
+                          {usageToday[l.key]??0}/{USER_DAILY_LIMIT}
+                        </span>
+                    }
+                  </td>
                   <td><span className={`badge ${l.is_active?"badge-green":"badge-red"}`}>{l.is_active?"✅ ใช้งานได้":"❌ ปิดแล้ว"}</span></td>
                   <td>
                     <div style={{display:"flex",gap:6}}>
@@ -485,7 +536,7 @@ function StepHeaders({ headers, setHeaders }: any) {
 }
 
 // ============ STEP 2: QUESTIONS ============
-function StepQuestions({ questions, setQuestions }: any) {
+function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
   const [fileName, setFileName] = useState("");
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState("");
@@ -513,7 +564,7 @@ function StepQuestions({ questions, setQuestions }: any) {
 
   const callGemini = async (parts: any[]) => {
     const { data, error } = await supabase.functions.invoke("parse-exam", {
-      body: { parts },
+      body: { parts, license_key: licenseKey },
     });
     if (error) throw new Error(error.message);
     if (data?.error) throw new Error(data.error);
@@ -567,9 +618,10 @@ function StepQuestions({ questions, setQuestions }: any) {
 
       setHasAnswer(parsed.hasAnswer);
       setQuestions(qs);
+      onParsed?.();
 
     } catch(err: any) {
-      setParseError("อ่านไฟล์ไม่สำเร็จ: " + err.message);
+      setParseError(err.message);
     }
     setParsing(false);
   };
@@ -589,6 +641,10 @@ function StepQuestions({ questions, setQuestions }: any) {
       <div className="card">
         <div className="card-title">📁 อัปโหลดไฟล์ข้อสอบ</div>
         <div className="card-sub">รองรับ .docx .pdf .txt — AI จะอ่านและแปลงข้อสอบให้อัตโนมัติ</div>
+        <div style={{marginBottom:14, padding:"10px 14px", background:"var(--yellow-light)", borderRadius:"var(--radius)", fontSize:13, color:"#92400e", display:"flex", alignItems:"flex-start", gap:8}}>
+          <span style={{flexShrink:0}}>📌</span>
+          <span><strong>ข้อสอบที่มีรูปภาพ:</strong> รูปจะไม่ถูกส่งไปยัง Google Form — แนะนำให้ใช้เฉพาะข้อสอบที่เป็นข้อความเท่านั้น</span>
+        </div>
         <div
           className={`upload-zone ${fileName && !parsing ? "has-file" : ""} ${parsing ? "drag" : ""}`}
           onClick={() => !parsing && document.getElementById("file-input")?.click()}
@@ -628,6 +684,14 @@ function StepQuestions({ questions, setQuestions }: any) {
             ⚠️ ไม่พบเฉลยในไฟล์ — กรุณาคลิกวงกลมเพื่อเลือกเฉลยแต่ละข้อด้วยตัวเอง
           </div>
         )}
+
+        {/* DOCX image warning */}
+        {fileName.endsWith(".docx") && !parsing && (
+          <div style={{marginTop:12, padding:"10px 16px", background:"var(--blue-light)", borderRadius:"var(--radius)", fontSize:13, color:"var(--blue)", display:"flex", alignItems:"center", gap:8}}>
+            🖼️ ถ้าข้อสอบมีรูปภาพ กรุณาบันทึกเป็น .pdf ก่อนอัปโหลด <span style={{opacity:.7}}>(File → Save As → PDF)</span>
+          </div>
+        )}
+
 
         {/* Error */}
         {parseError && (
@@ -798,7 +862,7 @@ function HistoryTab({ user }: any) {
   );
 }
 // ============ RESULT ============
-function ResultView({ result, onReset }: any) {
+function ResultView({ result, onReset, userRole, usageCount }: any) {
   const [copied, setCopied] = useState<Record<string,boolean>>({});
   const copy = (k: string, val: string) => {
     navigator.clipboard.writeText(val).catch(()=>{});
@@ -834,13 +898,37 @@ function ResultView({ result, onReset }: any) {
       <div style={{textAlign:"center"}}>
         <button className="btn btn-secondary" onClick={onReset}>+ สร้างข้อสอบชุดใหม่</button>
       </div>
+
+      {userRole !== "admin" && (
+        <div style={{marginTop:16,background:"linear-gradient(135deg,#7C3AED 0%,#9333EA 100%)",borderRadius:16,padding:"24px",color:"white",textAlign:"center"}}>
+          <div style={{fontSize:16,fontWeight:700,marginBottom:6}}>🔥 ปลดล็อก Pro</div>
+          <div style={{fontSize:13,opacity:.85,marginBottom:4}}>คุณใช้ไปแล้ว <strong>{usageCount}/10</strong> ครั้งวันนี้</div>
+          <div style={{fontSize:13,opacity:.75,marginBottom:16}}>อัปเกรด → สร้างได้ไม่จำกัด • ไม่มีวันหมดอายุ</div>
+          <button className="btn" style={{background:"white",color:"#7C3AED",fontWeight:700,borderRadius:20,padding:"10px 28px",fontSize:14}}>
+            ✨ อัปเกรด Pro
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 // ============ MAIN APP ============
 export default function App() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any>(() => {
+    try { return JSON.parse(localStorage.getItem("fromauto_user") || "null"); } catch { return null; }
+  });
+  const [usageCount, setUsageCount] = useState(0);
+
+  const handleLogin = (u: any) => {
+    localStorage.setItem("fromauto_user", JSON.stringify(u));
+    setUser(u);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("fromauto_user");
+    setUser(null);
+  };
   const [tab, setTab] = useState("create");
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -896,7 +984,14 @@ export default function App() {
 
   const handleReset = () => { setStep(0); setResult(null); setQuestions([]); setFormTitle(""); setFormDesc(""); };
 
-  if (!user) return <><style>{css}</style><LoginPage onLogin={setUser}/></>;
+  useEffect(() => {
+    if (!user || user.role === "admin") return;
+    const today = new Date().toISOString().split("T")[0];
+    supabase.from("usage_logs").select("requests").eq("license_key", user.key).eq("date", today).single()
+      .then(({ data }) => setUsageCount(data?.requests ?? 0));
+  }, [user]);
+
+  if (!user) return <><style>{css}</style><LoginPage onLogin={handleLogin}/></>;
 
   return (
     <>
@@ -912,11 +1007,19 @@ export default function App() {
         <div className="topbar">
           <div className="topbar-brand"><Logo /><span className="topbar-title">FormAuto</span></div>
           <div className="topbar-user">
+            {user.role !== "admin" && (
+              <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,.15)",borderRadius:20,padding:"4px 12px"}}>
+                <span style={{fontSize:12,color:"rgba(255,255,255,.85)"}}>วันนี้</span>
+                <span style={{fontSize:13,fontWeight:700,color:"white"}}>{usageCount}/10</span>
+                <div style={{width:36,height:4,background:"rgba(255,255,255,.3)",borderRadius:2,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${Math.min(100,usageCount/10*100)}%`,background:usageCount>=10?"#fca5a5":"white",borderRadius:2,transition:"width .3s"}}/>
+                </div>
+              </div>
+            )}
             <span className={`role-badge ${user.role==="admin"?"role-admin":"role-user"}`}>
               {user.role==="admin"?"👑 Admin":"👤 User"}
             </span>
-            <span style={{fontSize:13,color:"var(--gray-600)",fontFamily:"monospace"}}>{user.key}</span>
-            <button className="btn btn-icon" onClick={() => setUser(null)}><LogoutIcon /></button>
+            <button className="btn btn-icon" style={{borderColor:"rgba(255,255,255,.3)",color:"white"}} onClick={handleLogout}><LogoutIcon /></button>
           </div>
         </div>
 
@@ -937,7 +1040,7 @@ export default function App() {
               </>
             )}
             <div className="sidebar-section">บัญชี</div>
-            <button className="sidebar-item" onClick={() => setUser(null)}><LogoutIcon /> ออกจากระบบ</button>
+            <button className="sidebar-item" onClick={handleLogout}><LogoutIcon /> ออกจากระบบ</button>
           </div>
 
           <div className="content">
@@ -960,7 +1063,7 @@ export default function App() {
 
                 {step===0 && <StepDetails formTitle={formTitle} setFormTitle={setFormTitle} formDesc={formDesc} setFormDesc={setFormDesc}/>}
                 {step===1 && <StepHeaders headers={headers} setHeaders={setHeaders}/>}
-                {step===2 && <StepQuestions questions={questions} setQuestions={setQuestions}/>}
+                {step===2 && <StepQuestions questions={questions} setQuestions={setQuestions} licenseKey={user.key} onParsed={() => setUsageCount(c => c + 1)}/>}
                 {step===3 && (
                   <div className="card">
                     <div className="card-title">🚀 พร้อมสร้าง Google Form</div>
@@ -986,7 +1089,7 @@ export default function App() {
                     </button>
                   </div>
                 )}
-                {step===4 && result && <ResultView result={result} onReset={handleReset}/>}
+                {step===4 && result && <ResultView result={result} onReset={handleReset} userRole={user.role} usageCount={usageCount}/>}
 
                 {step < 3 && (
                   <div className="nav-row">

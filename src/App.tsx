@@ -221,7 +221,7 @@ function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
     setLoading(true); setError("");
     try {
       const { data: rows, error: err } = await supabase.rpc("validate_license", { p_key: key.trim().toUpperCase() });
-      const data = Array.isArray(rows) ? rows[0] ?? null : null;
+      const data = Array.isArray(rows) ? (rows[0] ?? null) : (rows ?? null);
       if (err || !data) { setError("License Key ไม่ถูกต้องหรือถูกปิดใช้งาน"); setLoading(false); return; }
       if (data.expires_at && new Date(data.expires_at) < new Date()) { setError("License Key หมดอายุแล้ว"); setLoading(false); return; }
       setLoading(false);
@@ -335,9 +335,11 @@ function AdminPanel({ adminKey }: { adminKey: string }) {
 
   const createLicense = async () => {
     const key = genKey(newKey.role);
-    await adminCall("create_license", { key, role: newKey.role, note: newKey.note, expires_at: newKey.expires_at });
-    setGeneratedKey(key);
-    fetchLicenses();
+    try {
+      await adminCall("create_license", { key, role: newKey.role, note: newKey.note, expires_at: newKey.expires_at });
+      setGeneratedKey(key);
+      fetchLicenses();
+    } catch (e: any) { alert("สร้าง Key ไม่สำเร็จ: " + e.message); }
   };
 
   const toggleActive = async (id: string, current: boolean, role: string) => {
@@ -349,8 +351,10 @@ function AdminPanel({ adminKey }: { adminKey: string }) {
 
   const deleteLicense = async (id: string) => {
     if (!confirm("ต้องการลบ Key นี้ไหม?")) return;
-    await adminCall("delete_license", { id });
-    fetchLicenses();
+    try {
+      await adminCall("delete_license", { id });
+      fetchLicenses();
+    } catch (e: any) { alert("ลบ Key ไม่สำเร็จ: " + e.message); }
   };
 
   const copy = (text: string) => {
@@ -732,7 +736,7 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
         )}
 
         {/* DOCX image warning */}
-        {fileName.endsWith(".docx") && !parsing && (
+        {fileName.toLowerCase().endsWith(".docx") && !parsing && (
           <div style={{marginTop:12, padding:"10px 16px", background:"var(--blue-light)", borderRadius:"var(--radius)", fontSize:13, color:"var(--blue)", display:"flex", alignItems:"center", gap:8}}>
             🖼️ ถ้าข้อสอบมีรูปภาพ กรุณาบันทึกเป็น .pdf ก่อนอัปโหลด <span style={{opacity:.7}}>(File → Save As → PDF)</span>
           </div>
@@ -1029,8 +1033,17 @@ export default function App() {
         const count = seen.get(base) ?? 0;
         seen.set(base, count + 1);
         const text = count > 0 ? `${base} (${count + 1})` : base;
-        const uniqueChoices = Array.from(new Map(q.choices.map((c: string, idx: number) => [c.trim() || `ตัวเลือก ${idx+1}`, c])).values());
-        return { ...q, text, choices: uniqueChoices };
+        // Deduplicate choices, tracking new index of the correct answer
+        const choiceKey = (c: string, idx: number) => c.trim() || `ตัวเลือก ${idx + 1}`;
+        const keyToNewIdx = new Map<string, number>();
+        const uniqueChoices: string[] = [];
+        q.choices.forEach((c: string, idx: number) => {
+          const k = choiceKey(c, idx);
+          if (!keyToNewIdx.has(k)) { keyToNewIdx.set(k, uniqueChoices.length); uniqueChoices.push(c); }
+        });
+        const answerKey = choiceKey(q.choices[q.answer] ?? "", q.answer);
+        const newAnswer = keyToNewIdx.get(answerKey) ?? 0;
+        return { ...q, text, choices: uniqueChoices, answer: newAnswer };
       });
       const res = await fetch(SCRIPT_URL, {
         method:"POST",
@@ -1143,7 +1156,10 @@ export default function App() {
                         🚫 โควต้าวันนี้เต็มแล้ว ({usageCount}/{user.daily_limit ?? 10}) — ไม่สามารถอ่านไฟล์ใหม่ได้ กรุณาลองพรุ่งนี้
                       </div>
                     )}
-                    <StepQuestions questions={questions} setQuestions={setQuestions} licenseKey={user.key} onParsed={() => setUsageCount(c => c + 1)}/>
+                    <StepQuestions questions={questions} setQuestions={setQuestions} licenseKey={user.key} onParsed={async () => {
+                      const { data } = await supabase.rpc("get_my_usage", { p_key: user.key });
+                      setUsageCount(data ?? 0);
+                    }}/>
                   </>
                 )}
                 {step===3 && (

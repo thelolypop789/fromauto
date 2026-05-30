@@ -63,6 +63,8 @@ serve(async (req) => {
     }
     case "delete_license": {
       const { id } = params;
+      const { data: target } = await sb.from("licenses").select("key").eq("id", id).single();
+      if (target?.key === admin_key) return json({ error: "ไม่สามารถลบ Key ของตัวเองได้" }, 400);
       const { error } = await sb.from("licenses").delete().eq("id", id);
       if (error) return json({ error: error.message }, 500);
       return json({ success: true });

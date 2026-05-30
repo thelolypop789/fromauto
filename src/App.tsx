@@ -191,9 +191,9 @@ const css = `
 // ICONS
 const Logo = () => (
   <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-    <rect width="32" height="32" rx="8" fill="#1a73e8"/>
+    <rect width="32" height="32" rx="8" fill="#7C3AED"/>
     <path d="M8 10h16M8 16h10M8 22h12" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-    <circle cx="24" cy="22" r="4" fill="#34a853"/>
+    <circle cx="24" cy="22" r="4" fill="#A78BFA"/>
     <path d="M22 22l1.5 1.5L26 20" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
@@ -237,7 +237,7 @@ function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
           <Logo />
           <div>
             <div className="login-logo-title">FormAuto</div>
-            <div className="login-logo-sub">ระบบสร้าง Google Forms อัตโนมัติ</div>
+            <div className="login-logo-sub">สร้าง Google Form ข้อสอบ ใน 1 นาที</div>
           </div>
         </div>
         <div className="login-title">กรอก License Key</div>
@@ -918,7 +918,7 @@ function ResultView({ result, onReset, userRole, usageCount, dailyLimit }: any) 
       {userRole !== "admin" && (
         <div style={{marginTop:16,background:"linear-gradient(135deg,#7C3AED 0%,#9333EA 100%)",borderRadius:16,padding:"24px",color:"white",textAlign:"center"}}>
           <div style={{fontSize:16,fontWeight:700,marginBottom:6}}>🔥 ปลดล็อก Pro</div>
-          <div style={{fontSize:13,opacity:.85,marginBottom:4}}>คุณใช้ไปแล้ว <strong>{usageCount}/{dailyLimit??10}</strong> ครั้งวันนี้</div>
+          <div style={{fontSize:13,opacity:.85,marginBottom:4}}>อ่านไฟล์ข้อสอบวันนี้ <strong>{usageCount}/{dailyLimit??10}</strong> ครั้ง</div>
           <div style={{fontSize:13,opacity:.75,marginBottom:16}}>อัปเกรด → สร้างได้ไม่จำกัด • ไม่มีวันหมดอายุ</div>
           <button className="btn" style={{background:"white",color:"#7C3AED",fontWeight:700,borderRadius:20,padding:"10px 28px",fontSize:14}}>
             ✨ อัปเกรด Pro
@@ -1025,7 +1025,7 @@ export default function App() {
           <div className="topbar-user">
             {user.role !== "admin" && (
               <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,.15)",borderRadius:20,padding:"4px 12px"}}>
-                <span style={{fontSize:12,color:"rgba(255,255,255,.85)"}}>วันนี้</span>
+                <span style={{fontSize:12,color:"rgba(255,255,255,.85)"}}>อ่านไฟล์วันนี้</span>
                 <span style={{fontSize:13,fontWeight:700,color:"white"}}>{usageCount}/{user.daily_limit??10}</span>
                 <div style={{width:36,height:4,background:"rgba(255,255,255,.3)",borderRadius:2,overflow:"hidden"}}>
                   <div style={{height:"100%",width:`${Math.min(100,usageCount/(user.daily_limit??10)*100)}%`,background:usageCount>=(user.daily_limit??10)?"#fca5a5":"white",borderRadius:2,transition:"width .3s"}}/>

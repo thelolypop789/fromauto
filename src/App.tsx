@@ -621,7 +621,7 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
       onParsed?.();
 
     } catch(err: any) {
-      setParseError("อ่านไฟล์ไม่สำเร็จ: " + err.message);
+      setParseError(err.message);
     }
     setParsing(false);
   };
@@ -678,6 +678,13 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
         {hasAnswer === false && !parsing && (
           <div style={{marginTop:12, padding:"10px 16px", background:"var(--yellow-light)", borderRadius:"var(--radius)", fontSize:13, color:"#92400e", fontWeight:600, display:"flex", alignItems:"center", gap:8}}>
             ⚠️ ไม่พบเฉลยในไฟล์ — กรุณาคลิกวงกลมเพื่อเลือกเฉลยแต่ละข้อด้วยตัวเอง
+          </div>
+        )}
+
+        {/* DOCX image warning */}
+        {fileName.endsWith(".docx") && !parsing && (
+          <div style={{marginTop:12, padding:"10px 16px", background:"var(--blue-light)", borderRadius:"var(--radius)", fontSize:13, color:"var(--blue)", display:"flex", alignItems:"center", gap:8}}>
+            🖼️ ถ้าข้อสอบมีรูปภาพ กรุณาบันทึกเป็น .pdf ก่อนอัปโหลด <span style={{opacity:.7}}>(File → Save As → PDF)</span>
           </div>
         )}
 

@@ -485,7 +485,7 @@ function StepHeaders({ headers, setHeaders }: any) {
 }
 
 // ============ STEP 2: QUESTIONS ============
-function StepQuestions({ questions, setQuestions }: any) {
+function StepQuestions({ questions, setQuestions, licenseKey }: any) {
   const [fileName, setFileName] = useState("");
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState("");
@@ -513,7 +513,7 @@ function StepQuestions({ questions, setQuestions }: any) {
 
   const callGemini = async (parts: any[]) => {
     const { data, error } = await supabase.functions.invoke("parse-exam", {
-      body: { parts },
+      body: { parts, license_key: licenseKey },
     });
     if (error) throw new Error(error.message);
     if (data?.error) throw new Error(data.error);
@@ -960,7 +960,7 @@ export default function App() {
 
                 {step===0 && <StepDetails formTitle={formTitle} setFormTitle={setFormTitle} formDesc={formDesc} setFormDesc={setFormDesc}/>}
                 {step===1 && <StepHeaders headers={headers} setHeaders={setHeaders}/>}
-                {step===2 && <StepQuestions questions={questions} setQuestions={setQuestions}/>}
+                {step===2 && <StepQuestions questions={questions} setQuestions={setQuestions} licenseKey={user.key}/>}
                 {step===3 && (
                   <div className="card">
                     <div className="card-title">🚀 พร้อมสร้าง Google Form</div>

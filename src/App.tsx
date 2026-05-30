@@ -8,9 +8,10 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function genKey(role: string) {
   const prefix = role === "admin" ? "ADMIN" : "USER";
-  const r1 = Math.random().toString(36).substring(2,8).toUpperCase();
-  const r2 = Math.random().toString(36).substring(2,6).toUpperCase();
-  return `${prefix}-${r1}-${r2}`;
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  const hex = Array.from(bytes).map(b => b.toString(36).padStart(2,"0")).join("").toUpperCase();
+  return `${prefix}-${hex.slice(0,6)}-${hex.slice(6,10)}`;
 }
 
 const css = `
@@ -220,7 +221,7 @@ function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
     setLoading(true); setError("");
     try {
       const { data, error: err } = await supabase
-        .from("licenses").select("*")
+        .from("licenses").select("key, role, note, daily_limit, expires_at, is_active")
         .eq("key", key.trim().toUpperCase())
         .eq("is_active", true).single();
       if (err || !data) { setError("License Key ไม่ถูกต้องหรือถูกปิดใช้งาน"); setLoading(false); return; }

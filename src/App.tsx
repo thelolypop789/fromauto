@@ -976,9 +976,19 @@ export default function App() {
     setLoading(true); setLoadingMsg(msgs[0]);
     const iv = setInterval(() => { i++; if(i<msgs.length) setLoadingMsg(msgs[i]); }, 800);
     try {
+      // Deduplicate question text and choices to prevent Google Forms API rejection
+      const seen = new Map<string, number>();
+      const cleanedQuestions = questions.map((q: any) => {
+        const base = q.text.trim() || "คำถาม";
+        const count = seen.get(base) ?? 0;
+        seen.set(base, count + 1);
+        const text = count > 0 ? `${base} (${count + 1})` : base;
+        const uniqueChoices = Array.from(new Map(q.choices.map((c: string, idx: number) => [c.trim() || `ตัวเลือก ${idx+1}`, c])).values());
+        return { ...q, text, choices: uniqueChoices };
+      });
       const res = await fetch(SCRIPT_URL, {
         method:"POST",
-        body: JSON.stringify({ title:formTitle, description:formDesc, headers, questions }),
+        body: JSON.stringify({ title:formTitle, description:formDesc, headers, questions: cleanedQuestions }),
       });
       const data = await res.json();
       clearInterval(iv); setLoading(false);

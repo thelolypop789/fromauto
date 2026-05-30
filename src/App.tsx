@@ -733,14 +733,29 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
           </div>
         ) : (
           <div className="question-list">
-            {questions.map((q: any, qi: number) => (
-              <div className="question-card" key={q.id}>
+            {(() => {
+              const allTexts = questions.map((q: any) => q.text.trim());
+              const dupSet = new Set(allTexts.filter((t: string, i: number) => t !== "" && allTexts.indexOf(t) !== i));
+              return questions.map((q: any, qi: number) => {
+              const isEmpty = !q.text.trim();
+              const isDup = dupSet.has(q.text.trim());
+              const warn = isEmpty || isDup;
+              return (
+              <div className="question-card" key={q.id} style={warn ? {borderColor:"var(--yellow)"} : {}}>
                 <div className="q-header">
                   <span className="q-num">ข้อ {qi+1}</span>
+                  {warn && (
+                    <div style={{width:20,height:20,borderRadius:"50%",background:"var(--yellow)",color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,flexShrink:0}}>!</div>
+                  )}
                   <input className="q-text-input" placeholder="กรอกคำถาม..." value={q.text}
                     onChange={e => updateQ(q.id, "text", e.target.value)} style={{flex:1}}/>
                   <button className="btn btn-icon" onClick={() => removeQ(q.id)}><TrashIcon /></button>
                 </div>
+                {warn && (
+                  <div style={{fontSize:12,color:"#92400e",background:"var(--yellow-light)",borderRadius:6,padding:"4px 10px",marginBottom:8}}>
+                    ⚠️ {isEmpty ? "คำถามว่างเปล่า" : "ข้อความซ้ำกับข้ออื่น — จะเติม (2), (3) ให้อัตโนมัติตอนสร้างฟอร์ม"}
+                  </div>
+                )}
                 <div style={{fontSize:11, color:"var(--gray-500)", marginBottom:8}}>
                   คลิกวงกลมเพื่อเลือกเฉลย {q.answer >= 0 ? `(เฉลย: ${labels[q.answer]})` : "(ยังไม่มีเฉลย)"}
                 </div>
@@ -761,7 +776,9 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
                   ))}
                 </div>
               </div>
-            ))}
+              );
+            });
+            })()}
           </div>
         )}
       </div>

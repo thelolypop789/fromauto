@@ -231,34 +231,61 @@ function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
 
   return (
     <div className="login-page">
-      <div className="login-card">
-        <div className="login-logo">
-          <Logo />
-          <div>
-            <div className="login-logo-title">FormAuto</div>
-            <div className="login-logo-sub">สร้าง Google Form ข้อสอบ ใน 1 นาที</div>
+      {/* Decorative bg circles */}
+      <div style={{position:"fixed",inset:0,overflow:"hidden",pointerEvents:"none",zIndex:0}}>
+        <div style={{position:"absolute",top:"-8%",right:"-4%",width:420,height:420,borderRadius:"50%",background:"rgba(124,58,237,.07)"}}/>
+        <div style={{position:"absolute",bottom:"-8%",left:"-4%",width:320,height:320,borderRadius:"50%",background:"rgba(147,51,234,.05)"}}/>
+        <div style={{position:"absolute",top:"40%",left:"5%",width:180,height:180,borderRadius:"50%",background:"rgba(167,139,250,.06)"}}/>
+      </div>
+
+      <div className="login-card" style={{position:"relative",zIndex:1}}>
+        {/* Brand */}
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <div style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:72,height:72,background:"linear-gradient(135deg,#7C3AED 0%,#9333EA 100%)",borderRadius:20,marginBottom:14,boxShadow:"0 8px 28px rgba(124,58,237,.35)"}}>
+            <svg width="38" height="38" viewBox="0 0 32 32" fill="none">
+              <path d="M8 10h16M8 16h10M8 22h12" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+              <circle cx="24" cy="22" r="4" fill="#A78BFA"/>
+              <path d="M22 22l1.5 1.5L26 20" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
+          <div style={{fontFamily:"'Prompt',sans-serif",fontSize:28,fontWeight:700,color:"var(--gray-900)",lineHeight:1.2}}>FormAuto</div>
+          <div style={{fontSize:14,color:"var(--gray-500)",marginTop:6}}>สร้าง Google Form ข้อสอบ ใน 1 นาที</div>
         </div>
-        <div className="login-title">กรอก License Key</div>
-        <div className="login-sub">รับ Key ได้จากกลุ่ม Facebook ของเรา</div>
+
+        {/* Feature chips */}
+        <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:28,flexWrap:"wrap"}}>
+          <span style={{fontSize:11,background:"var(--blue-light)",color:"var(--blue)",padding:"4px 11px",borderRadius:20,fontWeight:600}}>⚡ AI อ่านข้อสอบ</span>
+          <span style={{fontSize:11,background:"var(--green-light)",color:"var(--green)",padding:"4px 11px",borderRadius:20,fontWeight:600}}>✅ มีเฉลยอัตโนมัติ</span>
+          <span style={{fontSize:11,background:"var(--purple-light)",color:"var(--purple)",padding:"4px 11px",borderRadius:20,fontWeight:600}}>📋 .docx .pdf .txt</span>
+        </div>
+
+        {/* Input */}
         <div className="field">
-          <label>License Key</label>
+          <label style={{fontWeight:600}}>License Key</label>
           <div style={{position:"relative"}}>
-            <input type={showKey?"text":"password"} placeholder="XXXX-XXXX-XXXX" value={key}
+            <input type={showKey?"text":"password"} placeholder="XXXX-XXXXXX-XXXX" value={key}
               onChange={e => { setKey(e.target.value); setError(""); }}
               onKeyDown={e => e.key==="Enter" && handleLogin()}
               className={error?"error":""}
-              style={{paddingRight:44,letterSpacing:showKey?"normal":"0.15em",fontFamily:"monospace",fontSize:16}}/>
+              style={{paddingRight:52,letterSpacing:showKey?"normal":"0.12em",fontFamily:"monospace",fontSize:15}}/>
             <button onClick={() => setShowKey(v => !v)}
-              style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:18,padding:0}}>
+              style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"6px 10px",minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center",borderRadius:6}}>
               {showKey?"🙈":"👁️"}
             </button>
           </div>
           {error && <div className="error-msg">⚠️ {error}</div>}
         </div>
-        <button className="btn btn-primary" onClick={handleLogin} disabled={loading}>
-          {loading?"กำลังตรวจสอบ...":"🔓 เข้าใช้งาน"}
+
+        <button className="btn btn-primary" onClick={handleLogin} disabled={loading}
+          style={{borderRadius:12,fontSize:15,padding:"13px",marginTop:4}}>
+          {loading
+            ? <><span style={{display:"inline-block",width:15,height:15,border:"2px solid rgba(255,255,255,.35)",borderTopColor:"white",borderRadius:"50%",animation:"spin .7s linear infinite",marginRight:8,verticalAlign:"middle"}}/>กำลังตรวจสอบ...</>
+            : "🔓 เข้าใช้งาน"}
         </button>
+
+        <div style={{textAlign:"center",marginTop:18,fontSize:12,color:"var(--gray-400)"}}>
+          กรุณาติดต่อผู้ดูแลระบบเพื่อรับ Key
+        </div>
       </div>
     </div>
   );
@@ -600,9 +627,10 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
     try {
       let parsed: any;
 
-      if (file.name.endsWith(".docx") || file.name.endsWith(".txt")) {
+      const fname = file.name.toLowerCase();
+      if (fname.endsWith(".docx") || fname.endsWith(".txt")) {
         let text = "";
-        if (file.name.endsWith(".docx")) {
+        if (fname.endsWith(".docx")) {
           const mammoth = await import("mammoth");
           const arrayBuffer = await file.arrayBuffer();
           const result = await mammoth.extractRawText({ arrayBuffer });
@@ -612,7 +640,7 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
         }
         parsed = await callGemini([{ text: PROMPT + "\n\nข้อสอบ:\n" + text }]);
 
-      } else if (file.name.endsWith(".pdf")) {
+      } else if (fname.endsWith(".pdf")) {
         const base64 = await new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onload = () => resolve((reader.result as string).split(",")[1]);
@@ -977,13 +1005,14 @@ export default function App() {
     {id:3,label:"เลขที่",required:true},
   ]);
   const [questions, setQuestions] = useState<any[]>([]);
+  const [submitError, setSubmitError] = useState("");
 
   const steps = ["รายละเอียด","ส่วนหัว","ข้อสอบ","สร้าง Form","ผลลัพธ์"];
 
   const canNext = () => {
     if (step===0) return formTitle.trim().length > 0;
     if (step===1) return headers.length>0 && headers.every((h: any) => h.label.trim());
-    if (step===2) return questions.length>0;
+    if (step===2) return questions.length>0 && questions.every((q: any) => q.text.trim().length > 0);
     return false;
   };
 
@@ -1023,11 +1052,11 @@ export default function App() {
       setStep(4);
     } catch(err: any) {
       clearInterval(iv); setLoading(false);
-      alert("เกิดข้อผิดพลาด: " + err.message);
+      setSubmitError(err.message);
     }
   };
 
-  const handleReset = () => { setStep(0); setResult(null); setQuestions([]); setFormTitle(""); setFormDesc(""); };
+  const handleReset = () => { setStep(0); setResult(null); setQuestions([]); setFormTitle(""); setFormDesc(""); setSubmitError(""); };
 
   useEffect(() => {
     if (!user || user.role === "admin") return;
@@ -1107,7 +1136,16 @@ export default function App() {
 
                 {step===0 && <StepDetails formTitle={formTitle} setFormTitle={setFormTitle} formDesc={formDesc} setFormDesc={setFormDesc}/>}
                 {step===1 && <StepHeaders headers={headers} setHeaders={setHeaders}/>}
-                {step===2 && <StepQuestions questions={questions} setQuestions={setQuestions} licenseKey={user.key} onParsed={() => setUsageCount(c => c + 1)}/>}
+                {step===2 && (
+                  <>
+                    {user.role !== "admin" && usageCount >= (user.daily_limit ?? 10) && (
+                      <div style={{marginBottom:16,padding:"12px 16px",background:"var(--red-light)",borderRadius:"var(--radius)",fontSize:13,color:"var(--red)",fontWeight:600}}>
+                        🚫 โควต้าวันนี้เต็มแล้ว ({usageCount}/{user.daily_limit ?? 10}) — ไม่สามารถอ่านไฟล์ใหม่ได้ กรุณาลองพรุ่งนี้
+                      </div>
+                    )}
+                    <StepQuestions questions={questions} setQuestions={setQuestions} licenseKey={user.key} onParsed={() => setUsageCount(c => c + 1)}/>
+                  </>
+                )}
                 {step===3 && (
                   <div className="card">
                     <div className="card-title">🚀 พร้อมสร้าง Google Form</div>
@@ -1128,7 +1166,12 @@ export default function App() {
                         📋 ส่วนหัว: <strong>{headers.map((h: any) => h.label).join(", ")}</strong>
                       </div>
                     </div>
-                    <button className="btn btn-green" style={{width:"100%",padding:14,fontSize:16}} onClick={handleSubmit}>
+                    {submitError && (
+                      <div style={{marginBottom:14,padding:"12px 16px",background:"var(--red-light)",borderRadius:"var(--radius)",fontSize:13,color:"var(--red)"}}>
+                        ⚠️ {submitError}
+                      </div>
+                    )}
+                    <button className="btn btn-green" style={{width:"100%",padding:14,fontSize:16}} onClick={handleSubmit} disabled={loading}>
                       🚀 สร้าง Google Form เลย!
                     </button>
                   </div>

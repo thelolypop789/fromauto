@@ -641,6 +641,10 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
       <div className="card">
         <div className="card-title">📁 อัปโหลดไฟล์ข้อสอบ</div>
         <div className="card-sub">รองรับ .docx .pdf .txt — AI จะอ่านและแปลงข้อสอบให้อัตโนมัติ</div>
+        <div style={{marginBottom:14, padding:"10px 14px", background:"var(--yellow-light)", borderRadius:"var(--radius)", fontSize:13, color:"#92400e", display:"flex", alignItems:"flex-start", gap:8}}>
+          <span style={{flexShrink:0}}>📌</span>
+          <span><strong>ข้อสอบที่มีรูปภาพ:</strong> รูปจะไม่ถูกส่งไปยัง Google Form — แนะนำให้ใช้เฉพาะข้อสอบที่เป็นข้อความเท่านั้น</span>
+        </div>
         <div
           className={`upload-zone ${fileName && !parsing ? "has-file" : ""} ${parsing ? "drag" : ""}`}
           onClick={() => !parsing && document.getElementById("file-input")?.click()}
@@ -688,13 +692,6 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
           </div>
         )}
 
-        {/* PDF image limitation warning */}
-        {fileName.endsWith(".pdf") && !parsing && (
-          <div style={{marginTop:12, padding:"10px 16px", background:"var(--yellow-light)", borderRadius:"var(--radius)", fontSize:13, color:"#92400e", display:"flex", alignItems:"flex-start", gap:8}}>
-            <span style={{flexShrink:0}}>⚠️</span>
-            <span>ถ้าโจทย์ข้อไหน <strong>ใช้รูปเป็นคำถามหลัก</strong> (เช่น "ดูรูปแล้วตอบ") — รูปจะ<strong>ไม่ถูกใส่ใน Google Form</strong> AI จะอ่านรูปแล้วแปลงเป็นข้อความแทน ซึ่งเปลืองโทเคนและอาจผิดพลาด แนะนำให้ตรวจสอบข้อสอบที่ได้อีกครั้ง</span>
-          </div>
-        )}
 
         {/* Error */}
         {parseError && (

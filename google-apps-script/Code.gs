@@ -13,6 +13,7 @@ function doPost(e) {
     // 1. ตั้งค่าให้เป็นแบบทดสอบ (Quiz) และตั้งค่าไม่เก็บอีเมลเด็ดขาด
     form.setIsQuiz(true);
     form.setCollectEmail(false); // ปิดการบังคับเก็บอีเมล เพื่อให้นักเรียนทำได้ทันทีโดยไม่ต้องกรอกเมล
+    form.setLimitOneResponsePerUser(false); // ปิดการจำกัดสิทธิ์ 1 คนต่อ 1 ครั้ง (เพื่อไม่ให้บังคับล็อกอินกูเกิล)
     try {
       form.setRequireLogin(false); // ปิดการบังคับล็อกอินเมลองค์กร (ถ้าโดเมนอนุญาต)
     } catch (loginErr) {
@@ -253,18 +254,24 @@ function doPost(e) {
     }
 
     // 5. โอนสิทธิ์ / แชร์ฟอร์มเข้า Google Drive ของคุณครูโดยอัตโนมัติ
-    if (data.teacherEmail) {
+    try {
+      var formFile = DriveApp.getFileById(formId);
       try {
-        var formFile = DriveApp.getFileById(formId);
+        formFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      } catch (shareErr) {
+        Logger.log("Form setSharing note: " + shareErr.message);
+      }
+
+      if (data.teacherEmail) {
         formFile.addEditor(data.teacherEmail);
         try {
           formFile.setOwner(data.teacherEmail);
         } catch (ownerErr) {
           Logger.log("Form owner transfer note: " + ownerErr.message);
         }
-      } catch (driveErr) {
-        Logger.log("Form share error: " + driveErr.message);
       }
+    } catch (driveErr) {
+      Logger.log("Form share error: " + driveErr.message);
     }
 
     return ContentService.createTextOutput(JSON.stringify({

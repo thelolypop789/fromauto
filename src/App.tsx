@@ -216,6 +216,40 @@ function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
   const [loading, setLoading] = useState(false);
   const [showKey, setShowKey] = useState(false);
 
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) handleGoogleUser(session.user);
+    });
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session?.user) handleGoogleUser(session.user);
+    });
+    return () => { authListener.subscription.unsubscribe(); };
+  }, []);
+
+  const handleGoogleUser = (user: any) => {
+    if (user.email && user.email.endsWith("@wangluangpitt.ac.th")) {
+      onLogin({
+        key: user.email, // Use email as tracking key
+        role: "user", // Normal user role, NOT admin
+        note: user.user_metadata?.full_name || user.email,
+        daily_limit: 999999, // Unlimited quota
+        is_google: true
+      });
+    } else {
+      setError("ขออภัย! อนุญาตเฉพาะอีเมล @wangluangpitt.ac.th เท่านั้น");
+      supabase.auth.signOut();
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setLoading(true); setError("");
+    const { error: err } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin }
+    });
+    if (err) { setError(err.message); setLoading(false); }
+  };
+
   const handleLogin = async () => {
     if (!key.trim()) { setError("กรุณากรอก License Key"); return; }
     setLoading(true); setError("");
@@ -257,6 +291,19 @@ function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
           <span style={{fontSize:11,background:"var(--blue-light)",color:"var(--blue)",padding:"4px 11px",borderRadius:20,fontWeight:600}}>⚡ AI อ่านข้อสอบ</span>
           <span style={{fontSize:11,background:"var(--green-light)",color:"var(--green)",padding:"4px 11px",borderRadius:20,fontWeight:600}}>✅ มีเฉลยอัตโนมัติ</span>
           <span style={{fontSize:11,background:"var(--purple-light)",color:"var(--purple)",padding:"4px 11px",borderRadius:20,fontWeight:600}}>📋 .docx .pdf .txt</span>
+        </div>
+
+        {/* Google Login for Teachers */}
+        <button className="btn btn-secondary" onClick={handleGoogleLogin} disabled={loading}
+          style={{borderRadius:12,fontSize:15,padding:"13px",marginBottom:16,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:"white",border:"1.5px solid var(--gray-200)"}}>
+          <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          เข้าสู่ระบบด้วยอีเมลโรงเรียน
+        </button>
+
+        <div style={{display:"flex",alignItems:"center",margin:"20px 0",color:"var(--gray-400)",fontSize:13}}>
+          <div style={{flex:1,height:1,background:"var(--gray-200)"}}></div>
+          <span style={{padding:"0 10px"}}>หรือใช้ License Key</span>
+          <div style={{flex:1,height:1,background:"var(--gray-200)"}}></div>
         </div>
 
         {/* Input */}
@@ -612,10 +659,26 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
 - ตัดข้อความที่ไม่ใช่ข้อสอบออก เช่น คำชี้แจง หัวข้อ คำอวยพร`;
 
   const callGemini = async (parts: any[]) => {
+    // If user is google authenticated, attach their JWT token
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (session?.access_token) {
+      headers["Authorization"] = `Bearer ${session.access_token}`;
+    }
+
     const { data, error } = await supabase.functions.invoke("parse-exam", {
       body: { parts, license_key: licenseKey },
+      headers,
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      try {
+        const body = await (error as any).context?.json();
+        if (body?.error) throw new Error(body.error);
+      } catch (e: any) {
+        if (e.message && e.message !== error.message) throw e;
+      }
+      throw new Error(error.message);
+    }
     if (data?.error) throw new Error(data.error);
     return data;
   };
@@ -996,9 +1059,10 @@ export default function App() {
     setUser(u);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     localStorage.removeItem("fromauto_user");
     setUser(null);
+    await supabase.auth.signOut();
   };
   const [tab, setTab] = useState("create");
   const [step, setStep] = useState(0);
@@ -1051,7 +1115,13 @@ export default function App() {
       });
       const res = await fetch(SCRIPT_URL, {
         method:"POST",
-        body: JSON.stringify({ title:formTitle, description:formDesc, headers, questions: cleanedQuestions }),
+        body: JSON.stringify({
+          title: formTitle,
+          description: formDesc,
+          headers,
+          questions: cleanedQuestions,
+          teacherEmail: user.is_google ? user.key : undefined
+        }),
       });
       const data = await res.json();
       clearInterval(iv); setLoading(false);
@@ -1077,6 +1147,7 @@ export default function App() {
 
   useEffect(() => {
     if (!user || user.role === "admin") return;
+    if (user.is_google) return; // Google users are unlimited admins, handled above
     supabase.rpc("get_my_usage", { p_key: user.key })
       .then(({ data }) => setUsageCount(data ?? 0));
   }, [user]);
@@ -1097,7 +1168,11 @@ export default function App() {
         <div className="topbar">
           <div className="topbar-brand"><Logo /><span className="topbar-title">FormAuto</span></div>
           <div className="topbar-user">
-            {user.role !== "admin" && (
+            {user.is_google ? (
+              <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,.2)",borderRadius:20,padding:"4px 12px"}}>
+                <span style={{fontSize:12,fontWeight:600,color:"white"}}>✨ ใช้งานไม่จำกัด</span>
+              </div>
+            ) : user.role !== "admin" && (
               <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,.15)",borderRadius:20,padding:"4px 12px"}}>
                 <span style={{fontSize:12,color:"rgba(255,255,255,.85)"}}>อ่านไฟล์วันนี้</span>
                 <span style={{fontSize:13,fontWeight:700,color:"white"}}>{usageCount}/{user.daily_limit??10}</span>
@@ -1106,8 +1181,8 @@ export default function App() {
                 </div>
               </div>
             )}
-            <span className={`role-badge ${user.role==="admin"?"role-admin":"role-user"}`}>
-              {user.role==="admin"?"👑 Admin":"👤 User"}
+            <span className={`role-badge ${user.is_google ? "role-user" : user.role==="admin"?"role-admin":"role-user"}`} style={user.is_google ? {background:"rgba(255,255,255,.2)",color:"white"} : undefined}>
+              {user.is_google ? "🏫 คุณครู ว.พ." : user.role==="admin"?"👑 Admin":"👤 User"}
             </span>
             <button className="btn btn-icon" style={{borderColor:"rgba(255,255,255,.3)",color:"white"}} onClick={handleLogout}><LogoutIcon /></button>
           </div>
@@ -1155,7 +1230,7 @@ export default function App() {
                 {step===1 && <StepHeaders headers={headers} setHeaders={setHeaders}/>}
                 {step===2 && (
                   <>
-                    {user.role !== "admin" && usageCount >= (user.daily_limit ?? 10) && (
+                    {user.role !== "admin" && !user.is_google && usageCount >= (user.daily_limit ?? 10) && (
                       <div style={{marginBottom:16,padding:"12px 16px",background:"var(--red-light)",borderRadius:"var(--radius)",fontSize:13,color:"var(--red)",fontWeight:600}}>
                         🚫 โควต้าวันนี้เต็มแล้ว ({usageCount}/{user.daily_limit ?? 10}) — ไม่สามารถอ่านไฟล์ใหม่ได้ กรุณาลองพรุ่งนี้
                       </div>

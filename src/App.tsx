@@ -228,9 +228,10 @@ function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
 
   const handleGoogleUser = (user: any) => {
     if (user.email && user.email.endsWith("@wangluangpitt.ac.th")) {
+      const isAdmin = user.email.toLowerCase() === "pongsarkon@wangluangpitt.ac.th";
       onLogin({
         key: user.email, // Use email as tracking key
-        role: "user", // Normal user role, NOT admin
+        role: isAdmin ? "admin" : "user", // Admin for pongsarkon, User for other teachers
         note: user.user_metadata?.full_name || user.email,
         daily_limit: 999999, // Unlimited quota
         is_google: true
@@ -1181,8 +1182,8 @@ export default function App() {
                 </div>
               </div>
             )}
-            <span className={`role-badge ${user.is_google ? "role-user" : user.role==="admin"?"role-admin":"role-user"}`} style={user.is_google ? {background:"rgba(255,255,255,.2)",color:"white"} : undefined}>
-              {user.is_google ? "🏫 คุณครู ว.พ." : user.role==="admin"?"👑 Admin":"👤 User"}
+            <span className={`role-badge ${user.role==="admin"?"role-admin":"role-user"}`} style={user.role==="admin" ? undefined : user.is_google ? {background:"rgba(255,255,255,.2)",color:"white"} : undefined}>
+              {user.role==="admin" ? "👑 Admin" : user.is_google ? "🏫 คุณครู ว.พ." : "👤 User"}
             </span>
             <button className="btn btn-icon" style={{borderColor:"rgba(255,255,255,.3)",color:"white"}} onClick={handleLogout}><LogoutIcon /></button>
           </div>

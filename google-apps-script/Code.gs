@@ -1,6 +1,7 @@
 /**
  * Google Apps Script สำหรับ FormAuto
  * ทำหน้าที่สร้าง Google Form อัตโนมัติ พร้อมตั้งค่าเป็นแบบทดสอบ (Quiz) มีเฉลย
+ * รองรับส่วนหัวแบบ Dropdown (เช่น เมนูเลือกห้องเรียน)
  * และสร้าง Google Sheet ซิงค์คำตอบ/คะแนนอัตโนมัติ พร้อมโอนสิทธิ์ให้คุณครู
  */
 
@@ -15,12 +16,19 @@ function doPost(e) {
       form.setDescription(data.description);
     }
 
-    // 2. สร้างคำถามส่วนหัว (เช่น ชื่อ-สกุล, ชั้น, เลขที่)
+    // 2. สร้างคำถามส่วนหัว (รองรับทั้งแบบพิมพ์ข้อความ และแบบเมนู Dropdown เลือกห้อง/ชั้น)
     if (data.headers && Array.isArray(data.headers)) {
       data.headers.forEach(function(h) {
-        var item = form.addTextItem();
-        item.setTitle(h.label);
-        item.setRequired(h.required !== false);
+        if (h.type === "dropdown" && h.choices && h.choices.length > 0) {
+          var item = form.addListItem();
+          item.setTitle(h.label);
+          item.setChoiceValues(h.choices);
+          item.setRequired(h.required !== false);
+        } else {
+          var item = form.addTextItem();
+          item.setTitle(h.label);
+          item.setRequired(h.required !== false);
+        }
       });
     }
 

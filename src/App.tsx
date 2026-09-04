@@ -208,6 +208,7 @@ const KeyIcon = () => <svg width="16" height="16" viewBox="0 0 16 16" fill="none
 const FormIcon = () => <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="M5 5.5h6M5 8h6M5 10.5h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>;
 const UploadIcon = () => <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M14 18V8M10 12l4-4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M6 20h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>;
 const RefreshIcon = () => <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 8A5 5 0 113 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><path d="M13 4v4h-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+const SheetIcon = () => <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2.5" y="2" width="11" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><path d="M2.5 6h11M6.5 6v8M10.5 6v8" stroke="currentColor" strokeWidth="1.2"/></svg>;
 
 // ============ LOGIN ============
 function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
@@ -594,40 +595,140 @@ function StepDetails({ formTitle, setFormTitle, formDesc, setFormDesc }: any) {
 
 // ============ STEP 1: HEADERS ============
 function StepHeaders({ headers, setHeaders }: any) {
-  const defaults = ["ชื่อ-สกุล","ชั้น","เลขที่","เลขประจำตัว"];
-  const addHeader = () => setHeaders([...headers, {id:Date.now(),label:"",required:true}]);
-  const removeHeader = (id: number) => setHeaders(headers.filter((h: any) => h.id!==id));
-  const updateHeader = (id: number, val: string) => setHeaders(headers.map((h: any) => h.id===id?{...h,label:val}:h));
-  const toggleRequired = (id: number) => setHeaders(headers.map((h: any) => h.id===id?{...h,required:!h.required}:h));
-  const addDefault = (label: string) => { if (!headers.find((h: any) => h.label===label)) setHeaders([...headers,{id:Date.now(),label,required:true}]); };
+  const defaults = ["ชื่อ-สกุล", "ชั้น", "เลขที่", "เลขประจำตัว"];
+  const presets: Record<string, string[]> = {
+    "ม.1 (1-10)": Array.from({ length: 10 }, (_, i) => `ม.1/${i + 1}`),
+    "ม.2 (1-10)": Array.from({ length: 10 }, (_, i) => `ม.2/${i + 1}`),
+    "ม.3 (1-10)": Array.from({ length: 10 }, (_, i) => `ม.3/${i + 1}`),
+    "ม.4 (1-6)": Array.from({ length: 6 }, (_, i) => `ม.4/${i + 1}`),
+    "ม.5 (1-6)": Array.from({ length: 6 }, (_, i) => `ม.5/${i + 1}`),
+    "ม.6 (1-6)": Array.from({ length: 6 }, (_, i) => `ม.6/${i + 1}`),
+  };
+
+  const addHeader = (type = "text", label = "") =>
+    setHeaders([...headers, { id: Date.now(), label, required: true, type, choices: type === "dropdown" ? presets["ม.1 (1-10)"] : [] }]);
+
+  const removeHeader = (id: number) => setHeaders(headers.filter((h: any) => h.id !== id));
+  const updateHeader = (id: number, patch: any) =>
+    setHeaders(headers.map((h: any) => h.id === id ? { ...h, ...patch } : h));
+  const toggleRequired = (id: number) =>
+    setHeaders(headers.map((h: any) => h.id === id ? { ...h, required: !h.required } : h));
+
+  const addDefault = (label: string) => {
+    if (!headers.find((h: any) => h.label === label)) {
+      if (label === "ชั้น") {
+        setHeaders([...headers, { id: Date.now(), label: "ชั้น", required: true, type: "dropdown", choices: presets["ม.1 (1-10)"] }]);
+      } else {
+        setHeaders([...headers, { id: Date.now(), label, required: true, type: "text", choices: [] }]);
+      }
+    }
+  };
 
   return (
     <div className="card">
       <div className="card-title">📋 กำหนดส่วนหัวของฟอร์ม</div>
-      <div className="card-sub">ช่องข้อมูลที่ต้องการให้ผู้ทำข้อสอบกรอก</div>
-      <div style={{marginBottom:14}}>
-        <div style={{fontSize:13,color:"var(--gray-600)",marginBottom:8}}>เพิ่มรายการบ่อยใช้:</div>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+      <div className="card-sub">กำหนดช่องข้อมูลที่ต้องการให้นักเรียนกรอก เช่น ชื่อ เลขที่ และเลือกห้องเรียน (Dropdown)</div>
+
+      <div style={{marginBottom:16}}>
+        <div style={{fontSize:13, color:"var(--gray-600)", marginBottom:8}}>เพิ่มช่องข้อมูลที่ใช้บ่อย:</div>
+        <div style={{display:"flex", gap:6, flexWrap:"wrap"}}>
           {defaults.map(d => (
             <button key={d} className="btn btn-secondary btn-sm" onClick={() => addDefault(d)}
-              style={{opacity:headers.find((h: any) => h.label===d)?".4":"1"}}>+ {d}</button>
+              style={{opacity: headers.find((h: any) => h.label === d) ? ".4" : "1"}}>
+              + {d} {d === "ชั้น" ? "(เมนูเลือกห้อง)" : ""}
+            </button>
           ))}
         </div>
       </div>
+
       <div className="header-list">
         {headers.map((h: any, i: number) => (
-          <div className="header-row" key={h.id}>
-            <span style={{fontSize:12,color:"var(--gray-400)",width:20,textAlign:"center"}}>{i+1}</span>
-            <input className="header-input" placeholder="เช่น ชื่อ-สกุล, ชั้น, เลขที่..."
-              value={h.label} onChange={e => updateHeader(h.id,e.target.value)}/>
-            <span className={`header-badge ${h.required?"required":""}`} onClick={() => toggleRequired(h.id)}>
-              {h.required?"จำเป็น":"ไม่จำเป็น"}
-            </span>
-            <button className="btn btn-icon" onClick={() => removeHeader(h.id)}><TrashIcon /></button>
+          <div key={h.id} style={{
+            background: "var(--gray-50)",
+            borderRadius: "var(--radius)",
+            padding: "12px 14px",
+            border: "1px solid var(--gray-200)",
+            marginBottom: 8
+          }}>
+            <div className="header-row" style={{marginBottom: h.type === "dropdown" ? 10 : 0}}>
+              <span style={{fontSize:12, color:"var(--gray-400)", width:20, textAlign:"center", fontWeight:700}}>{i+1}</span>
+              <input
+                className="header-input"
+                placeholder="เช่น ชื่อ-สกุล, ชั้น, เลขที่..."
+                value={h.label}
+                onChange={e => updateHeader(h.id, { label: e.target.value })}
+              />
+              <select
+                value={h.type || "text"}
+                onChange={e => updateHeader(h.id, {
+                  type: e.target.value,
+                  choices: e.target.value === "dropdown" && (!h.choices || h.choices.length === 0) ? presets["ม.1 (1-10)"] : (h.choices || [])
+                })}
+                style={{
+                  padding: "7px 10px",
+                  borderRadius: "var(--radius)",
+                  border: "1.5px solid var(--gray-200)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  background: "white"
+                }}>
+                <option value="text">✏️ ข้อความสั้น</option>
+                <option value="dropdown">🔽 เมนูเลื่อนลง (Dropdown)</option>
+              </select>
+              <span
+                className={`header-badge ${h.required ? "required" : ""}`}
+                onClick={() => toggleRequired(h.id)}
+                title="คลิกเพื่อสลับ จำเป็น / ไม่จำเป็น">
+                {h.required ? "จำเป็น" : "ไม่จำเป็น"}
+              </span>
+              <button className="btn btn-icon" onClick={() => removeHeader(h.id)}><TrashIcon /></button>
+            </div>
+
+            {h.type === "dropdown" && (
+              <div style={{paddingLeft:28, borderTop:"1px dashed var(--gray-200)", paddingTop:10, marginTop:6}}>
+                <div style={{display:"flex", alignItems:"center", gap:6, marginBottom:6, flexWrap:"wrap"}}>
+                  <span style={{fontSize:12, color:"var(--gray-600)", fontWeight:600}}>⚡ ตัวเลือกด่วน:</span>
+                  {Object.entries(presets).map(([k, vals]) => (
+                    <button
+                      key={k}
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{padding:"2px 8px", fontSize:11}}
+                      onClick={() => updateHeader(h.id, { choices: vals })}>
+                      {k}
+                    </button>
+                  ))}
+                </div>
+                <div style={{fontSize:12, color:"var(--gray-500)", marginBottom:4}}>
+                  ตัวเลือก (คั่นด้วยจุลภาค <code>,</code>):
+                </div>
+                <input
+                  type="text"
+                  className="header-input"
+                  style={{width:"100%", fontSize:13, background:"white"}}
+                  placeholder="เช่น ม.1/1, ม.1/2, ม.1/3"
+                  value={Array.isArray(h.choices) ? h.choices.join(", ") : (h.choices || "")}
+                  onChange={e => updateHeader(h.id, {
+                    choices: e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean)
+                  })}
+                />
+                <div style={{fontSize:11, color:"var(--gray-400)", marginTop:4}}>
+                  จะปรากฏใน Google Form เป็นเมนูเลื่อนลงให้นักเรียนเลือกห้อง {Array.isArray(h.choices) && h.choices.length > 0 && `(ทั้งหมด ${h.choices.length} ตัวเลือก)`}
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
-      <button className="btn btn-secondary" onClick={addHeader}><PlusIcon /> เพิ่มช่องข้อมูล</button>
+
+      <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
+        <button className="btn btn-secondary" onClick={() => addHeader("text")}>
+          <PlusIcon /> เพิ่มช่องข้อความสั้น
+        </button>
+        <button className="btn btn-secondary" onClick={() => addHeader("dropdown", "ชั้น")}>
+          <PlusIcon /> เพิ่มเมนูเลื่อนลง (Dropdown)
+        </button>
+      </div>
     </div>
   );
 }
@@ -982,6 +1083,19 @@ function HistoryTab({ user }: any) {
                         onClick={() => window.open(h.view_url,"_blank")}>
                         <ExternalIcon/> เปิด
                       </button>
+                      {h.sheet_url && (
+                        <>
+                          <button className={`copy-btn ${copied[h.id+"s"]?"copied":""}`}
+                            style={{background:copied[h.id+"s"]?"#1e8e3e":"#0F9D58",color:"white"}}
+                            onClick={() => copy(h.id+"s", h.sheet_url)}>
+                            {copied[h.id+"s"]?<><CheckIcon/>คัดลอก</>:<><CopyIcon/>ชีต</>}
+                          </button>
+                          <button className="copy-btn" style={{background:"#0F9D58",color:"white"}}
+                            onClick={() => window.open(h.sheet_url,"_blank")}>
+                            <SheetIcon/> ชีตคะแนน
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                   <td>
@@ -991,6 +1105,199 @@ function HistoryTab({ user }: any) {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============ SHEETS & RESULTS TAB ============
+function SheetsTab({ user }: any) {
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [copied, setCopied] = useState<Record<string, boolean>>({});
+
+  const fetchHistory = async () => {
+    setLoading(true);
+    let query = supabase.from("form_history").select("*").order("created_at", { ascending: false });
+    if (user.role !== "admin") query = query.eq("license_key", user.key);
+    const { data } = await query;
+    setHistory(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchHistory(); }, []);
+
+  const copy = (k: string, val: string) => {
+    navigator.clipboard.writeText(val).catch(() => {});
+    setCopied(c => ({ ...c, [k]: true }));
+    setTimeout(() => setCopied(c => ({ ...c, [k]: false })), 2000);
+  };
+
+  const filtered = history.filter(h =>
+    !search ||
+    h.form_title?.toLowerCase().includes(search.toLowerCase()) ||
+    h.form_desc?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div>
+      {/* Top Banner */}
+      <div style={{
+        background: "linear-gradient(135deg, #0F9D58 0%, #0B8043 100%)",
+        borderRadius: "var(--radius-lg)",
+        padding: "24px 28px",
+        color: "white",
+        marginBottom: 24,
+        boxShadow: "0 4px 16px rgba(15,157,88,.25)",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: 16
+      }}>
+        <div>
+          <div style={{display:"flex", alignItems:"center", gap:10, marginBottom: 6}}>
+            <div style={{background:"rgba(255,255,255,.2)", borderRadius:8, padding:6, display:"flex", alignItems:"center", justifyContent:"center"}}>
+              <SheetIcon />
+            </div>
+            <h2 style={{fontFamily:"'Prompt',sans-serif", fontSize:22, fontWeight:700, margin:0}}>
+              📊 ผลการสอบ & ชีตคะแนน (Google Sheets)
+            </h2>
+          </div>
+          <p style={{fontSize:14, opacity:.9, margin:0, maxWidth:600}}>
+            ชีตคะแนนและคำตอบของนักเรียนจะซิงค์อัตโนมัติแบบเรียลไทม์ คุณครูสามารถคลิกเปิดดูคะแนน ตรวจคำตอบ หรือดาวน์โหลดเป็นไฟล์ Excel ได้ทันที
+          </p>
+        </div>
+        <div style={{display:"flex", gap:12, alignItems:"center"}}>
+          <div style={{background:"rgba(255,255,255,.18)", borderRadius:12, padding:"10px 18px", textAlign:"center"}}>
+            <div style={{fontSize:20, fontWeight:700}}>{history.length}</div>
+            <div style={{fontSize:11, opacity:.85}}>ชุดข้อสอบทั้งหมด</div>
+          </div>
+          <button className="btn btn-sm" onClick={fetchHistory} style={{background:"white", color:"#0F9D58", fontWeight:600}}>
+            <RefreshIcon /> รีเฟรช
+          </button>
+        </div>
+      </div>
+
+      {/* Search and Filter */}
+      <div style={{display:"flex", gap:12, marginBottom:18, alignItems:"center"}}>
+        <input
+          type="text"
+          placeholder="🔍 ค้นหาชื่อข้อสอบ..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{
+            flex:1,
+            padding:"10px 16px",
+            border:"1.5px solid var(--gray-200)",
+            borderRadius:"var(--radius)",
+            fontSize:14,
+            outline:"none",
+            background:"white"
+          }}
+        />
+        {search && (
+          <button className="btn btn-secondary btn-sm" onClick={() => setSearch("")}>
+            ล้างค้นหา
+          </button>
+        )}
+      </div>
+
+      {/* List / Cards */}
+      {loading ? (
+        <div className="empty-state"><div className="spinner" style={{margin:"0 auto"}}/></div>
+      ) : filtered.length === 0 ? (
+        <div className="card" style={{textAlign:"center", padding:"48px 20px"}}>
+          <div style={{fontSize:44, marginBottom:12}}>📊</div>
+          <div style={{fontSize:16, fontWeight:600, color:"var(--gray-800)", marginBottom:4}}>
+            {search ? "ไม่พบข้อสอบที่ตรงกับการค้นหา" : "ยังไม่มีข้อมูลผลการสอบ"}
+          </div>
+          <div style={{fontSize:13, color:"var(--gray-500)", maxWidth:420, margin:"0 auto 16px"}}>
+            {search ? "ลองค้นหาด้วยคำอื่น" : "เมื่อคุณครูสร้าง Google Form ข้อสอบใหม่ ระบบจะสร้าง Google Sheet บันทึกคะแนนและคำตอบให้อัตโนมัติ"}
+          </div>
+        </div>
+      ) : (
+        <div style={{display:"grid", gap:16}}>
+          {filtered.map((item, idx) => (
+            <div key={item.id} className="card" style={{margin:0, borderLeft:"5px solid #0F9D58"}}>
+              <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12}}>
+                <div style={{flex:1, minWidth:260}}>
+                  <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:4}}>
+                    <span style={{fontSize:12, fontWeight:700, color:"#0F9D58", background:"#E6F4EA", padding:"2px 8px", borderRadius:20}}>
+                      #{filtered.length - idx}
+                    </span>
+                    <span style={{fontSize:16, fontWeight:700, color:"var(--gray-900)"}}>
+                      {item.form_title}
+                    </span>
+                  </div>
+                  {item.form_desc && (
+                    <div style={{fontSize:13, color:"var(--gray-600)", marginBottom:8}}>
+                      {item.form_desc}
+                    </div>
+                  )}
+                  <div style={{display:"flex", gap:14, flexWrap:"wrap", fontSize:12, color:"var(--gray-500)", marginTop:6}}>
+                    <span>❓ <strong>{item.question_count}</strong> ข้อ</span>
+                    <span>📋 <strong>{item.header_count || 0}</strong> ช่องข้อมูล</span>
+                    <span>🕒 {new Date(item.created_at).toLocaleDateString("th-TH", { day:"numeric", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" })}</span>
+                    {user.role === "admin" && (
+                      <span style={{fontFamily:"monospace", color:"var(--gray-600)"}}>👤 {item.license_key}</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div style={{display:"flex", flexDirection:"column", gap:8, alignItems:"flex-end"}}>
+                  {item.sheet_url ? (
+                    <button
+                      className="btn"
+                      onClick={() => window.open(item.sheet_url, "_blank")}
+                      style={{
+                        background:"#0F9D58",
+                        color:"white",
+                        fontWeight:600,
+                        fontSize:14,
+                        padding:"9px 18px",
+                        boxShadow:"0 2px 8px rgba(15,157,88,.25)"
+                      }}>
+                      <SheetIcon /> 📊 เปิด Google Sheet สรุปคะแนน
+                    </button>
+                  ) : (
+                    <div style={{fontSize:12, color:"var(--gray-500)", textAlign:"right"}}>
+                      <span>⚠️ ฟอร์มนี้สร้างก่อนระบบเชื่อมต่อชีต</span>
+                      <br/>
+                      <a href={item.edit_url} target="_blank" rel="noreferrer" style={{color:"var(--blue)", textDecoration:"underline"}}>
+                        คลิกที่นี่เพื่อไปดูคะแนนใน Google Form
+                      </a>
+                    </div>
+                  )}
+
+                  <div style={{display:"flex", gap:6, flexWrap:"wrap"}}>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => window.open(item.edit_url, "_blank")}
+                      title="เปิดหน้าแก้ไข Google Form">
+                      <ExternalIcon /> ✏️ แก้ไขฟอร์ม
+                    </button>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => window.open(item.view_url, "_blank")}
+                      title="เปิดหน้าทำข้อสอบสำหรับนักเรียน">
+                      <ExternalIcon /> 👁️ หน้าสอบนักเรียน
+                    </button>
+                    {item.sheet_url && (
+                      <button
+                        className={`btn btn-secondary btn-sm ${copied[item.id] ? "btn-green" : ""}`}
+                        onClick={() => copy(item.id, item.sheet_url)}>
+                        {copied[item.id] ? <><CheckIcon /> คัดลอกแล้ว</> : <><CopyIcon /> คัดลอกลิงก์ชีต</>}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -1073,10 +1380,10 @@ export default function App() {
   const [result, setResult] = useState<any>(null);
   const [formTitle, setFormTitle] = useState("");
   const [formDesc, setFormDesc] = useState("");
-  const [headers, setHeaders] = useState([
-    {id:1,label:"ชื่อ-สกุล",required:true},
-    {id:2,label:"ชั้น",required:true},
-    {id:3,label:"เลขที่",required:true},
+  const [headers, setHeaders] = useState<any[]>([
+    {id:1,label:"ชื่อ-สกุล",required:true,type:"text"},
+    {id:2,label:"ชั้น",required:true,type:"dropdown",choices:Array.from({length:10},(_,i)=>`ม.1/${i+1}`)},
+    {id:3,label:"เลขที่",required:true,type:"text"},
   ]);
   const [questions, setQuestions] = useState<any[]>([]);
   const [submitError, setSubmitError] = useState("");
@@ -1129,14 +1436,15 @@ export default function App() {
       clearInterval(iv); setLoading(false);
       if (!data.success) throw new Error(data.error);
       await supabase.from("form_history").insert({
-  license_key: user.key,
-  form_title: formTitle,
-  form_desc: formDesc || null,
-  edit_url: data.editUrl?.trim(),
-  view_url: data.viewUrl?.trim(),
-  question_count: questions.length,
-  header_count: headers.length,
-});
+        license_key: user.key,
+        form_title: formTitle,
+        form_desc: formDesc || null,
+        edit_url: data.editUrl?.trim(),
+        view_url: data.viewUrl?.trim(),
+        sheet_url: data.sheetUrl?.trim() || null,
+        question_count: questions.length,
+        header_count: headers.length,
+      });
       setResult({ title:formTitle, questionCount:questions.length, headerCount:headers.length, links:{ edit:data.editUrl?.trim(), view:data.viewUrl?.trim(), sheet:data.sheetUrl?.trim() } });
       setStep(4);
     } catch(err: any) {
@@ -1193,11 +1501,14 @@ export default function App() {
         <div className="main-layout">
           <div className="sidebar">
             <button className={`sidebar-item ${tab==="create"?"active":""}`} onClick={() => { setTab("create"); }}>
-            <FormIcon /> สร้างข้อสอบใหม่
-          </button>
-          <button className={`sidebar-item ${tab==="history"?"active":""}`} onClick={() => setTab("history")}>
-            <FormIcon /> ประวัติฟอร์ม
-          </button>
+              <FormIcon /> สร้างข้อสอบใหม่
+            </button>
+            <button className={`sidebar-item ${tab==="sheets"?"active":""}`} onClick={() => setTab("sheets")} style={tab==="sheets"?{background:"#E6F4EA",color:"#0F9D58",fontWeight:600}:{}}>
+              <SheetIcon /> 📊 ผลการสอบ & ชีตคะแนน
+            </button>
+            <button className={`sidebar-item ${tab==="history"?"active":""}`} onClick={() => setTab("history")}>
+              <FormIcon /> ประวัติฟอร์ม
+            </button>
             {user.role==="admin" && (
               <>
                 <div className="sidebar-section">Admin</div>
@@ -1212,7 +1523,8 @@ export default function App() {
 
           <div className="content">
            {tab==="admin" && user.role==="admin" ? <AdminPanel adminKey={user.key} /> :
- tab==="history" ? <HistoryTab user={user} /> : (
+            tab==="sheets" ? <SheetsTab user={user} /> :
+            tab==="history" ? <HistoryTab user={user} /> : (
               <>
                 <div className="stepper">
                   {steps.map((s,i) => (

@@ -1014,6 +1014,7 @@ function ResultView({ result, onReset, userRole, usageCount, dailyLimit }: any) 
           {[
             {k:"edit",label:"✏️ Edit Link (สำหรับครู)",url:result.links.edit,cls:"edit"},
             {k:"view",label:"👁️ View Link (สำหรับนักเรียน)",url:result.links.view,cls:"view"},
+            ...(result.links.sheet ? [{k:"sheet",label:"📊 Google Sheet สรุปคะแนนและคำตอบ",url:result.links.sheet,cls:"view"}] : []),
           ].map(({k,label,url,cls}) => (
             <div className="link-box" key={k}>
               <div style={{flex:1,overflow:"hidden"}}>
@@ -1136,7 +1137,7 @@ export default function App() {
   question_count: questions.length,
   header_count: headers.length,
 });
-      setResult({ title:formTitle, questionCount:questions.length, headerCount:headers.length, links:{ edit:data.editUrl?.trim(), view:data.viewUrl?.trim() } });
+      setResult({ title:formTitle, questionCount:questions.length, headerCount:headers.length, links:{ edit:data.editUrl?.trim(), view:data.viewUrl?.trim(), sheet:data.sheetUrl?.trim() } });
       setStep(4);
     } catch(err: any) {
       clearInterval(iv); setLoading(false);

@@ -1,6 +1,7 @@
 /**
  * Google Apps Script สำหรับ FormAuto
- * ทำหน้าที่สร้าง Google Form อัตโนมัติ พร้อมตั้งค่าเป็นแบบทดสอบ (Quiz) มีเฉลย และโอนสิทธิ์ให้คุณครู
+ * ทำหน้าที่สร้าง Google Form อัตโนมัติ พร้อมตั้งค่าเป็นแบบทดสอบ (Quiz) มีเฉลย
+ * และสร้าง Google Sheet ซิงค์คำตอบ/คะแนนอัตโนมัติ พร้อมโอนสิทธิ์ให้คุณครู
  */
 
 function doPost(e) {
@@ -44,16 +45,26 @@ function doPost(e) {
     var editUrl = form.getEditUrl();
     var publishedUrl = form.getPublishedUrl();
 
-    // 4. โอนสิทธิ์ / แชร์ฟอร์มข้อสอบเข้า Google Drive ของคุณครูโดยอัตโนมัติ
+    // 4. สร้าง Google Sheet สำหรับซิงค์คะแนนและคำตอบแบบ Real-time
+    var sheetTitle = "ผลการสอบ - " + (data.title || "แบบทดสอบออนไลน์");
+    var ss = SpreadsheetApp.create(sheetTitle);
+    form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
+    var sheetUrl = ss.getUrl();
+
+    // 5. โอนสิทธิ์ / แชร์ฟอร์มและชีตผลลัพธ์เข้า Google Drive ของคุณครูโดยอัตโนมัติ
     if (data.teacherEmail) {
       try {
-        var file = DriveApp.getFileById(formId);
-        // เพิ่มครูเป็น Editor เพื่อให้เปิดแก้ไขและเห็นใน Drive
-        file.addEditor(data.teacherEmail);
+        var formFile = DriveApp.getFileById(formId);
+        var sheetFile = DriveApp.getFileById(ss.getId());
+
+        // เพิ่มครูเป็น Editor
+        formFile.addEditor(data.teacherEmail);
+        sheetFile.addEditor(data.teacherEmail);
 
         // หากใช้อีเมลองค์กรเดียวกัน (@wangluangpitt.ac.th) โอนสิทธิ์เป็น Owner ให้ครูทันที
         try {
-          file.setOwner(data.teacherEmail);
+          formFile.setOwner(data.teacherEmail);
+          sheetFile.setOwner(data.teacherEmail);
         } catch (ownerErr) {
           Logger.log("Note on ownership transfer: " + ownerErr.message);
         }
@@ -65,7 +76,8 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({
       success: true,
       editUrl: editUrl,
-      viewUrl: publishedUrl
+      viewUrl: publishedUrl,
+      sheetUrl: sheetUrl
     })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (error) {

@@ -1326,13 +1326,13 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [roomFilter, setRoomFilter] = useState("all");
+  const [sortBy, setSortBy] = useState<"no" | "score_desc" | "score_asc" | "time">("no");
 
   const loadData = async () => {
     if (!exam.sheet_url) return;
     setLoading(true);
     setError("");
     try {
-      // ใช้ POST ส่ง action: get_summary เหมือนตอนสร้างฟอร์ม เพื่อหลีกเลี่ยง CORS ของ GET redirect
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         body: JSON.stringify({
@@ -1357,15 +1357,73 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
     loadData();
   }, [exam.sheet_url]);
 
+  // Safe helper functions to prevent any type crash
+  const getSafeStr = (val: any): string => {
+    if (val === undefined || val === null) return "";
+    if (val instanceof Date) return val.toLocaleString("th-TH");
+    return String(val).trim();
+  };
+
+  const getStudentField = (s: any, keys: string[]): string => {
+    if (!s || typeof s !== "object") return "";
+    for (const k of keys) {
+      if (s[k] !== undefined && s[k] !== null && s[k] !== "") {
+        return getSafeStr(s[k]);
+      }
+    }
+    const entries = Object.entries(s);
+    for (const k of keys) {
+      const kLower = k.toLowerCase();
+      const found = entries.find(([key]) => key.toLowerCase().includes(kLower));
+      if (found && found[1] !== undefined && found[1] !== null && found[1] !== "") {
+        return getSafeStr(found[1]);
+      }
+    }
+    return "";
+  };
+
+  const totalMax = exam.question_count || 20;
+
+  const parseScore = (s: any, defaultTotal: number = 20) => {
+    const raw = getStudentField(s, ["คะแนน", "score", "total score", "points"]);
+    if (!raw) return { str: "-", earned: 0, total: defaultTotal, isPass: false };
+    const rawStr = String(raw).trim();
+    if (rawStr.includes("/")) {
+      const parts = rawStr.split("/");
+      const earned = parseFloat(parts[0]) || 0;
+      const total = parseFloat(parts[1]) || defaultTotal;
+      return {
+        str: `${earned} / ${total}`,
+        earned,
+        total,
+        isPass: earned >= Math.ceil(total * 0.5)
+      };
+    }
+    const earned = parseFloat(rawStr) || 0;
+    return {
+      str: `${earned} / ${defaultTotal}`,
+      earned,
+      total: defaultTotal,
+      isPass: earned >= Math.ceil(defaultTotal * 0.5)
+    };
+  };
+
+  const getStudentNo = (s: any): number => {
+    const raw = getStudentField(s, ["เลขที่", "no.", "no", "number"]);
+    if (!raw) return 9999;
+    const match = raw.match(/\d+/);
+    return match ? parseInt(match[0], 10) : 9999;
+  };
+
+  const getStudentRoom = (s: any): string => {
+    const r = getStudentField(s, ["ชั้น", "ห้องเรียน", "ห้อง", "ระดับชั้น", "room", "class"]);
+    return r || "ไม่ระบุห้อง";
+  };
+
   const rawStudents: any[] = data?.students || [];
 
   // คำนวณสถิติจากคะแนนนักเรียนจริงโดยตรง (Real-time Calculation)
-  const studentScores = rawStudents.map(s => {
-    const scoreVal = s["คะแนน"] || s["Score"] || "";
-    return parseFloat(scoreVal.toString().split("/")[0]);
-  }).filter(n => !isNaN(n));
-
-  const totalMax = exam.question_count || 20;
+  const studentScores = rawStudents.map(s => parseScore(s, totalMax).earned).filter(n => !isNaN(n));
   const passThresh = Math.ceil(totalMax * 0.5);
   const totalCount = studentScores.length;
   const computedAvg = totalCount > 0 ? (studentScores.reduce((a, b) => a + b, 0) / totalCount).toFixed(2) + " คะแนน" : "-";
@@ -1374,6 +1432,34 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
   const computedPass = studentScores.filter(s => s >= passThresh).length;
   const computedFail = totalCount - computedPass;
   const computedPassRate = totalCount > 0 ? ((computedPass / totalCount) * 100).toFixed(1) + "%" : "0%";
+
+  // รวบรวมรายชื่อห้องทั้งหมด
+  const roomSet = new Set<string>();
+  rawStudents.forEach(s => {
+    const r = getStudentRoom(s);
+    if (r && r !== "ไม่ระบุห้อง") roomSet.add(r);
+  });
+  if (data?.stats?.rooms && Array.isArray(data.stats.rooms)) {
+    data.stats.rooms.forEach((r: any) => {
+      if (r?.room) roomSet.add(String(r.room).trim());
+    });
+  }
+  const roomList = Array.from(roomSet).sort((a, b) => a.localeCompare(b, "th-TH", { numeric: true }));
+
+  // ข้อมูลสถิติแต่ละห้องสำหรับแท็บ Overview
+  const roomStatsComputed = (roomList.length > 0 ? roomList : ["ม.1/1", "ม.1/2", "ม.1/3", "ม.1/4"]).map(rm => {
+    const rmStudents = rawStudents.filter(s => getStudentRoom(s) === rm || getStudentRoom(s).includes(rm));
+    const rmCount = rmStudents.length;
+    const rmScores = rmStudents.map(s => parseScore(s, totalMax).earned);
+    const rmAvg = rmCount > 0 ? (rmScores.reduce((a, b) => a + b, 0) / rmCount).toFixed(1) : "-";
+    const rmPass = rmStudents.filter(s => parseScore(s, totalMax).isPass).length;
+    return {
+      room: rm,
+      count: `${rmCount} คน`,
+      status: rmCount > 0 ? `ส่งแล้ว (ผ่าน ${rmPass}/${rmCount})` : "ยังไม่มีผู้ส่ง",
+      avg: rmAvg
+    };
+  });
 
   const stats = {
     totalStudents: totalCount > 0 ? `${totalCount} คน` : (data?.stats?.totalStudents || "0 คน"),
@@ -1384,24 +1470,136 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
     passCount: totalCount > 0 ? `${computedPass} คน` : (data?.stats?.passCount || "0 คน"),
     failCount: totalCount > 0 ? `${computedFail} คน` : (data?.stats?.failCount || "0 คน"),
     passRate: totalCount > 0 ? computedPassRate : (data?.stats?.passRate || "0%"),
-    rooms: data?.stats?.rooms && data.stats.rooms.length > 0 ? data.stats.rooms : []
+    rooms: roomStatsComputed
   };
 
-  const students = rawStudents;
-
-  // Extract rooms from stats or students
-  const roomList: string[] = stats?.rooms?.map((r: any) => r.room) ||
-    Array.from(new Set(students.map(s => s["ชั้น"] || s["ห้องเรียน"] || s["ห้อง"]).filter(Boolean)));
-
-  const filteredStudents = students.filter(s => {
-    const text = Object.values(s).join(" ").toLowerCase();
+  // กรองตามการค้นหาและห้องเรียน
+  const filteredStudents = rawStudents.filter(s => {
+    const text = Object.values(s).map(v => getSafeStr(v)).join(" ").toLowerCase();
     const matchSearch = !searchTerm || text.includes(searchTerm.toLowerCase());
-    const studentRoom = (s["ชั้น"] || s["ห้องเรียน"] || s["ห้อง"] || "").toString();
-    const matchR = roomFilter === "all" || studentRoom.includes(roomFilter);
+    const studentRoom = getStudentRoom(s);
+    const matchR = roomFilter === "all" || studentRoom === roomFilter || studentRoom.includes(roomFilter);
     return matchSearch && matchR;
   });
 
+  // เรียงลำดับนักเรียน
+  const sortStudentList = (list: any[]) => {
+    return [...list].sort((a, b) => {
+      if (sortBy === "no") {
+        const noA = getStudentNo(a);
+        const noB = getStudentNo(b);
+        if (noA !== noB) return noA - noB;
+        const nameA = getStudentField(a, ["ชื่อ-สกุล", "ชื่อ-นามสกุล", "ชื่อ", "Name"]);
+        const nameB = getStudentField(b, ["ชื่อ-สกุล", "ชื่อ-นามสกุล", "ชื่อ", "Name"]);
+        return nameA.localeCompare(nameB, "th-TH");
+      }
+      if (sortBy === "score_desc") {
+        const diff = parseScore(b, totalMax).earned - parseScore(a, totalMax).earned;
+        if (diff !== 0) return diff;
+        return getStudentNo(a) - getStudentNo(b);
+      }
+      if (sortBy === "score_asc") {
+        const diff = parseScore(a, totalMax).earned - parseScore(b, totalMax).earned;
+        if (diff !== 0) return diff;
+        return getStudentNo(a) - getStudentNo(b);
+      }
+      // sortBy === "time"
+      const tA = getStudentField(a, ["ประทับเวลา", "timestamp", "time"]);
+      const tB = getStudentField(b, ["ประทับเวลา", "timestamp", "time"]);
+      return tB.localeCompare(tA);
+    });
+  };
+
+  const sortedStudents = sortStudentList(filteredStudents);
+
   const embedUrl = exam.sheet_url?.replace(/\/edit.*$/, "/preview") || exam.sheet_url;
+
+  // ตารางแสดงรายชื่อนักเรียน
+  const renderStudentTable = (list: any[]) => (
+    <div style={{overflowX: "auto"}}>
+      <table style={{width: "100%", borderCollapse: "collapse", fontSize: 13}}>
+        <thead>
+          <tr style={{background: "var(--gray-50)", borderBottom: "2px solid var(--gray-200)"}}>
+            <th style={{padding: "10px 12px", textAlign: "left", width: 45}}>#</th>
+            <th style={{padding: "10px 12px", textAlign: "center", width: 75}}>เลขที่</th>
+            <th style={{padding: "10px 12px", textAlign: "left"}}>ชื่อ-นามสกุล</th>
+            <th style={{padding: "10px 12px", textAlign: "center", width: 85}}>ห้อง</th>
+            <th style={{padding: "10px 12px", textAlign: "center", width: 110}}>คะแนน</th>
+            <th style={{padding: "10px 12px", textAlign: "center", width: 110}}>ผลประเมิน</th>
+            <th style={{padding: "10px 12px", textAlign: "left", width: 150}}>วัน-เวลาส่ง</th>
+          </tr>
+        </thead>
+        <tbody>
+          {list.map((s, idx) => {
+            const parsed = parseScore(s, totalMax);
+            const studentNo = getStudentNo(s);
+            const studentRoom = getStudentRoom(s);
+            const studentName = getStudentField(s, ["ชื่อ-สกุล", "ชื่อ-นามสกุล", "ชื่อ", "Name"]) || "-";
+            const timeStr = getStudentField(s, ["ประทับเวลา", "Timestamp", "time"]) || "-";
+
+            return (
+              <tr key={idx} style={{borderBottom: "1px solid var(--gray-100)"}}>
+                <td style={{padding: "10px 12px", color: "var(--gray-500)"}}>{idx + 1}</td>
+                <td style={{padding: "10px 12px", textAlign: "center"}}>
+                  <span style={{
+                    display: "inline-block",
+                    minWidth: 26,
+                    padding: "2px 8px",
+                    borderRadius: 12,
+                    background: "#EEF2FF",
+                    color: "#4338CA",
+                    fontWeight: 700,
+                    fontSize: 12
+                  }}>
+                    {studentNo !== 9999 ? studentNo : "-"}
+                  </span>
+                </td>
+                <td style={{padding: "10px 12px", fontWeight: 600, color: "var(--gray-900)"}}>
+                  {studentName}
+                </td>
+                <td style={{padding: "10px 12px", textAlign: "center"}}>
+                  <span style={{
+                    padding: "2px 8px",
+                    borderRadius: 10,
+                    background: "#F1F5F9",
+                    color: "#475569",
+                    fontWeight: 600,
+                    fontSize: 12
+                  }}>
+                    {studentRoom}
+                  </span>
+                </td>
+                <td style={{
+                  padding: "10px 12px",
+                  textAlign: "center",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  color: parsed.isPass ? "#059669" : "#DC2626"
+                }}>
+                  {parsed.str}
+                </td>
+                <td style={{padding: "10px 12px", textAlign: "center"}}>
+                  <span style={{
+                    padding: "3px 10px",
+                    borderRadius: 12,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    background: parsed.isPass ? "#DEF7EC" : "#FDE8E8",
+                    color: parsed.isPass ? "#03543F" : "#9B1C1C"
+                  }}>
+                    {parsed.isPass ? "✅ ผ่าน" : "❌ ปรับปรุง"}
+                  </span>
+                </td>
+                <td style={{padding: "10px 12px", color: "var(--gray-600)", fontSize: 12}}>
+                  {timeStr}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
 
   return (
     <div>
@@ -1461,7 +1659,7 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
         }}>
           {[
             { id: "overview", label: "📊 ภาพรวมสถิติคะแนน", count: null },
-            { id: "students", label: "👥 รายชื่อและคะแนนรายคน", count: students.length },
+            { id: "students", label: "👥 รายชื่อและคะแนนรายคน", count: rawStudents.length },
             { id: "sheet", label: "📑 แผ่นงาน Google Sheets ตัวจริง", count: null }
           ].map(t => (
             <button
@@ -1514,10 +1712,10 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
                     <span style={{fontSize: 20}}>📝</span>
                   </div>
                   <div style={{fontSize: 26, fontWeight: 800, color: "#1E3A8A"}}>
-                    {stats?.totalStudents || `${students.length} คน`}
+                    {stats?.totalStudents || `${rawStudents.length} คน`}
                   </div>
                   <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
-                    จากข้อสอบทั้งหมด {stats?.totalScore || `${exam.question_count} คะแนน`}
+                    จากคะแนนเต็ม {stats?.totalScore}
                   </div>
                 </div>
 
@@ -1530,7 +1728,7 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
                     {stats?.average || "-"}
                   </div>
                   <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
-                    ระดับชั้น ม.1/1-1/4
+                    เกณฑ์ผ่าน ≥ {passThresh} คะแนน (50%)
                   </div>
                 </div>
 
@@ -1543,20 +1741,20 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
                     {stats?.maxScore || "-"} / {stats?.minScore || "-"}
                   </div>
                   <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
-                    คะแนนสูงสุด / คะแนนต่ำสุด
+                    คะแนนสูงสุด / ต่ำสุด
                   </div>
                 </div>
 
                 <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #8B5CF6", background: "linear-gradient(135deg, #FFFFFF 0%, #F5F3FF 100%)"}}>
                   <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8}}>
-                    <span style={{fontSize: 13, fontWeight: 600, color: "var(--gray-600)"}}>✅ อัตราการผ่านเกณฑ์</span>
-                    <span style={{fontSize: 20}}>📊</span>
+                    <span style={{fontSize: 13, fontWeight: 600, color: "var(--gray-600)"}}>📊 อัตราการสอบผ่าน</span>
+                    <span style={{fontSize: 20}}>🏅</span>
                   </div>
                   <div style={{fontSize: 26, fontWeight: 800, color: "#6D28D9"}}>
                     {stats?.passRate || "0%"}
                   </div>
                   <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
-                    ผ่าน: {stats?.passCount || 0} • ไม่ผ่าน: {stats?.failCount || 0}
+                    ผ่าน {stats?.passCount} • ปรับปรุง {stats?.failCount}
                   </div>
                 </div>
               </div>
@@ -1567,10 +1765,11 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
                   <div className="card-title" style={{display: "flex", alignItems: "center", gap: 8}}>
                     <span>🏫 สรุปผลแยกตามห้องเรียน</span>
                   </div>
-                  <div className="card-sub">ติดตามจำนวนนักเรียนที่ส่งข้อสอบในแต่ละห้องเรียน</div>
+                  <div className="card-sub">ติดตามจำนวนนักเรียนและคะแนนเฉลี่ยในแต่ละห้องเรียน</div>
                   <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginTop: 14}}>
                     {stats.rooms.map((rm: any, idx: number) => {
-                      const hasSubmitted = parseInt(rm.count) > 0 || rm.status?.includes("มีผู้ส่ง");
+                      const countNum = parseInt(rm.count) || 0;
+                      const hasSubmitted = countNum > 0;
                       return (
                         <div
                           key={idx}
@@ -1616,9 +1815,9 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
           <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 16}}>
             <div>
               <div className="card-title">👥 รายชื่อและคะแนนสอบรายบุคคล</div>
-              <div className="card-sub">คำตอบและคะแนนของนักเรียนทั้งหมด {students.length} คน</div>
+              <div className="card-sub">คำตอบและคะแนนของนักเรียนทั้งหมด {rawStudents.length} คน (แบ่งตามห้องและเรียงเลขที่)</div>
             </div>
-            {/* Search & Filter */}
+            {/* Search & Sort Controls */}
             <div style={{display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap"}}>
               <input
                 type="text"
@@ -1630,82 +1829,173 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
                   borderRadius: "var(--radius)",
                   border: "1px solid var(--gray-200)",
                   fontSize: 13,
-                  outline: "none"
+                  outline: "none",
+                  width: 170
                 }}
               />
-              {roomList.length > 0 && (
-                <select
-                  value={roomFilter}
-                  onChange={e => setRoomFilter(e.target.value)}
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: "var(--radius)",
-                    border: "1px solid var(--gray-200)",
-                    fontSize: 13,
-                    background: "white"
-                  }}>
-                  <option value="all">ทุกห้องเรียน</option>
-                  {roomList.map((r: string) => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </select>
-              )}
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value as any)}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: "var(--radius)",
+                  border: "1px solid var(--gray-200)",
+                  fontSize: 13,
+                  background: "white",
+                  cursor: "pointer"
+                }}>
+                <option value="no">🔢 เรียงตามเลขที่ (1, 2, 3...)</option>
+                <option value="score_desc">🏆 เรียงตามคะแนน (มาก → น้อย)</option>
+                <option value="score_asc">📉 เรียงตามคะแนน (น้อย → มาก)</option>
+                <option value="time">🕒 เรียงตามเวลาส่ง (ล่าสุด)</option>
+              </select>
             </div>
           </div>
 
+          {/* Quick Room Filter Pills */}
+          {roomList.length > 0 && (
+            <div style={{
+              display: "flex",
+              gap: 8,
+              overflowX: "auto",
+              paddingBottom: 10,
+              marginBottom: 16,
+              borderBottom: "1px dashed var(--gray-200)"
+            }}>
+              <button
+                type="button"
+                onClick={() => setRoomFilter("all")}
+                style={{
+                  padding: "7px 14px",
+                  borderRadius: 20,
+                  border: roomFilter === "all" ? "2px solid #0F9D58" : "1px solid var(--gray-200)",
+                  background: roomFilter === "all" ? "#E6F4EA" : "white",
+                  color: roomFilter === "all" ? "#0F9D58" : "var(--gray-700)",
+                  fontWeight: roomFilter === "all" ? 700 : 500,
+                  fontSize: 13,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  whiteSpace: "nowrap"
+                }}>
+                🏫 ทุกห้องเรียน
+                <span style={{
+                  background: roomFilter === "all" ? "#0F9D58" : "var(--gray-100)",
+                  color: roomFilter === "all" ? "white" : "var(--gray-600)",
+                  padding: "1px 7px",
+                  borderRadius: 10,
+                  fontSize: 11
+                }}>
+                  {rawStudents.length}
+                </span>
+              </button>
+
+              {roomList.map(rm => {
+                const count = rawStudents.filter(s => getStudentRoom(s) === rm || getStudentRoom(s).includes(rm)).length;
+                const isSelected = roomFilter === rm;
+                return (
+                  <button
+                    key={rm}
+                    type="button"
+                    onClick={() => setRoomFilter(rm)}
+                    style={{
+                      padding: "7px 14px",
+                      borderRadius: 20,
+                      border: isSelected ? "2px solid #2563EB" : "1px solid var(--gray-200)",
+                      background: isSelected ? "#EFF6FF" : "white",
+                      color: isSelected ? "#2563EB" : "var(--gray-700)",
+                      fontWeight: isSelected ? 700 : 500,
+                      fontSize: 13,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      whiteSpace: "nowrap"
+                    }}>
+                    🚪 {rm}
+                    <span style={{
+                      background: isSelected ? "#2563EB" : "var(--gray-100)",
+                      color: isSelected ? "white" : "var(--gray-600)",
+                      padding: "1px 7px",
+                      borderRadius: 10,
+                      fontSize: 11
+                    }}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {filteredStudents.length === 0 ? (
             <div style={{textAlign: "center", padding: "40px 20px", color: "var(--gray-500)"}}>
-              {students.length === 0 ? "⏳ ยังไม่มีนักเรียนส่งข้อสอบ" : "ไม่พบนักเรียนตามคำค้นหา"}
+              {rawStudents.length === 0 ? "⏳ ยังไม่มีนักเรียนส่งข้อสอบ" : "ไม่พบข้อมูลนักเรียนตามคำค้นหา"}
+            </div>
+          ) : roomFilter === "all" && roomList.length > 1 ? (
+            /* ถ้าเลือกทุกห้อง และมีหลายห้อง ให้จัดกลุ่มแสดงแยกห้องพร้อมเรียงเลขที่ */
+            <div>
+              {roomList.map(rm => {
+                const roomStudents = sortStudentList(
+                  filteredStudents.filter(s => getStudentRoom(s) === rm || getStudentRoom(s).includes(rm))
+                );
+                if (roomStudents.length === 0) return null;
+                const scores = roomStudents.map(s => parseScore(s, totalMax).earned);
+                const avg = (scores.reduce((a, b) => a + b, 0) / roomStudents.length).toFixed(1);
+                const pass = roomStudents.filter(s => parseScore(s, totalMax).isPass).length;
+
+                return (
+                  <div key={rm} style={{marginBottom: 20, border: "1px solid var(--gray-200)", borderRadius: "var(--radius)", overflow: "hidden"}}>
+                    <div style={{
+                      background: "#F8FAFC",
+                      padding: "10px 16px",
+                      borderBottom: "1px solid var(--gray-200)",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      gap: 8
+                    }}>
+                      <div style={{fontWeight: 700, fontSize: 14, color: "#1E3A8A", display: "flex", alignItems: "center", gap: 8}}>
+                        <span>🏫 {rm}</span>
+                        <span style={{fontSize: 12, fontWeight: 500, color: "var(--gray-600)", background: "#E2E8F0", padding: "2px 8px", borderRadius: 10}}>
+                          {roomStudents.length} คน (เรียงตามเลขที่)
+                        </span>
+                      </div>
+                      <div style={{fontSize: 12, color: "var(--gray-600)", display: "flex", gap: 12}}>
+                        <span>เฉลี่ย: <b style={{color: "#0F9D58"}}>{avg}</b> / {totalMax}</span>
+                        <span style={{color: "#059669"}}>ผ่าน: <b>{pass}</b></span>
+                        <span style={{color: "#DC2626"}}>ปรับปรุง: <b>{roomStudents.length - pass}</b></span>
+                      </div>
+                    </div>
+                    {renderStudentTable(roomStudents)}
+                  </div>
+                );
+              })}
+
+              {/* นักเรียนที่ไม่ได้ระบุห้อง (ถ้ามี) */}
+              {(() => {
+                const unassigned = sortStudentList(
+                  filteredStudents.filter(s => {
+                    const r = getStudentRoom(s);
+                    return !roomList.some(rm => r === rm || r.includes(rm));
+                  })
+                );
+                if (unassigned.length === 0) return null;
+                return (
+                  <div style={{marginBottom: 20, border: "1px solid var(--gray-200)", borderRadius: "var(--radius)", overflow: "hidden"}}>
+                    <div style={{background: "#F8FAFC", padding: "10px 16px", borderBottom: "1px solid var(--gray-200)", fontWeight: 700, fontSize: 14, color: "var(--gray-700)"}}>
+                      📌 อื่นๆ / ไม่ระบุห้อง ({unassigned.length} คน)
+                    </div>
+                    {renderStudentTable(unassigned)}
+                  </div>
+                );
+              })()}
             </div>
           ) : (
-            <div style={{overflowX: "auto"}}>
-              <table style={{width: "100%", borderCollapse: "collapse", fontSize: 13}}>
-                <thead>
-                  <tr style={{background: "var(--gray-50)", borderBottom: "2px solid var(--gray-200)"}}>
-                    <th style={{padding: "10px 12px", textAlign: "left", width: 50}}>#</th>
-                    <th style={{padding: "10px 12px", textAlign: "left"}}>วัน-เวลา</th>
-                    <th style={{padding: "10px 12px", textAlign: "left"}}>ชื่อ-นามสกุล</th>
-                    <th style={{padding: "10px 12px", textAlign: "center", width: 90}}>ห้อง</th>
-                    <th style={{padding: "10px 12px", textAlign: "center", width: 70}}>เลขที่</th>
-                    <th style={{padding: "10px 12px", textAlign: "center", width: 110}}>คะแนน</th>
-                    <th style={{padding: "10px 12px", textAlign: "center", width: 110}}>ผลประเมิน</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredStudents.map((s, idx) => {
-                    const scoreStr = s["คะแนน"] || s["Score"] || "";
-                    const scoreNum = parseInt(scoreStr.split("/")[0]) || 0;
-                    const totalNum = parseInt(scoreStr.split("/")[1]) || (exam.question_count || 20);
-                    const isPass = scoreNum >= Math.ceil(totalNum * 0.5);
-
-                    return (
-                      <tr key={idx} style={{borderBottom: "1px solid var(--gray-100)"}}>
-                        <td style={{padding: "10px 12px", color: "var(--gray-500)"}}>{idx + 1}</td>
-                        <td style={{padding: "10px 12px", color: "var(--gray-600)"}}>{s["ประทับเวลา"] || s["Timestamp"] || "-"}</td>
-                        <td style={{padding: "10px 12px", fontWeight: 600, color: "var(--gray-900)"}}>{s["ชื่อ-สกุล"] || s["ชื่อ-นามสกุล"] || s["ชื่อ"] || "-"}</td>
-                        <td style={{padding: "10px 12px", textAlign: "center"}}>{s["ชั้น"] || s["ห้องเรียน"] || s["ห้อง"] || "-"}</td>
-                        <td style={{padding: "10px 12px", textAlign: "center"}}>{s["เลขที่"] || "-"}</td>
-                        <td style={{padding: "10px 12px", textAlign: "center", fontWeight: 700, fontSize: 14, color: isPass ? "#059669" : "#DC2626"}}>
-                          {scoreStr || "-"}
-                        </td>
-                        <td style={{padding: "10px 12px", textAlign: "center"}}>
-                          <span style={{
-                            padding: "3px 10px",
-                            borderRadius: 12,
-                            fontSize: 11,
-                            fontWeight: 700,
-                            background: isPass ? "#DEF7EC" : "#FDE8E8",
-                            color: isPass ? "#03543F" : "#9B1C1C"
-                          }}>
-                            {isPass ? "✅ ผ่าน" : "❌ ปรับปรุง"}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            /* ถ้าเลือกห้องเจาะจง หรือมีห้องเดียว แสดงตารางเดี่ยว */
+            renderStudentTable(sortedStudents)
           )}
         </div>
       )}

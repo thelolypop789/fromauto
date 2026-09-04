@@ -574,16 +574,58 @@ function AdminPanel({ adminKey }: { adminKey: string }) {
 }
 
 // ============ STEP 0: DETAILS ============
-function StepDetails({ formTitle, setFormTitle, formDesc, setFormDesc }: any) {
+function StepDetails({ formTitle, setFormTitle, formDesc, setFormDesc, targetGrade, setTargetGrade, targetRoom, setTargetRoom }: any) {
+  const grades = [
+    { id: "", label: "ทั่วไป / ไม่ระบุ" },
+    { id: "ม.1", label: "ม.1" },
+    { id: "ม.2", label: "ม.2" },
+    { id: "ม.3", label: "ม.3" },
+    { id: "ม.4", label: "ม.4" },
+    { id: "ม.5", label: "ม.5" },
+    { id: "ม.6", label: "ม.6" },
+  ];
+
   return (
     <div className="card">
       <div className="card-title">📄 รายละเอียดชุดข้อสอบ</div>
-      <div className="card-sub">กรอกข้อมูลพื้นฐานของแบบทดสอบ</div>
+      <div className="card-sub">กรอกข้อมูลพื้นฐานของแบบทดสอบ พร้อมเลือกระดับชั้นเพื่อจัดหมวดหมู่ชีตคะแนนในเมนูด้านซ้าย</div>
       <div className="field">
         <label>ชื่อชุดข้อสอบ *</label>
-        <input type="text" placeholder="เช่น แบบทดสอบวิชาภาษาไทย ม.3/1"
+        <input type="text" placeholder="เช่น แบบทดสอบวิชาภาษาไทย ม.3/1 กลางภาค"
           value={formTitle} onChange={e => setFormTitle(e.target.value)}/>
       </div>
+
+      <div className="field">
+        <label>ระดับชั้น / ห้องเรียน (สำหรับจัดหมวดหมู่ในเมนูด้านซ้าย)</label>
+        <div style={{display:"flex", gap:6, flexWrap:"wrap", marginBottom:8}}>
+          {grades.map(g => (
+            <button
+              key={g.id}
+              type="button"
+              className={`btn btn-sm ${targetGrade === g.id ? "btn-green" : "btn-secondary"}`}
+              onClick={() => {
+                setTargetGrade(g.id);
+                setTargetRoom("");
+              }}>
+              {g.label}
+            </button>
+          ))}
+        </div>
+        {targetGrade && (
+          <div style={{display:"flex", alignItems:"center", gap:8, marginTop:6, flexWrap:"wrap"}}>
+            <span style={{fontSize:13, color:"var(--gray-600)"}}>ระบุห้องเฉพาะ:</span>
+            <input
+              type="text"
+              placeholder={`เช่น ${targetGrade}/1 หรือ ${targetGrade}/2`}
+              value={targetRoom}
+              onChange={e => setTargetRoom(e.target.value)}
+              style={{maxWidth:160, padding:"6px 10px", fontSize:13, borderRadius:6, border:"1.5px solid var(--gray-200)"}}
+            />
+            <span style={{fontSize:12, color:"var(--gray-500)"}}>เช่น <strong>{targetRoom || targetGrade}</strong></span>
+          </div>
+        )}
+      </div>
+
       <div className="field" style={{marginBottom:0}}>
         <label>คำอธิบาย / คำชี้แจง</label>
         <textarea placeholder="เช่น ให้นักเรียนเลือกคำตอบที่ถูกที่สุดเพียงข้อเดียว เวลา 30 นาที"
@@ -1111,8 +1153,52 @@ function HistoryTab({ user }: any) {
   );
 }
 
+// ============ SHEETS & CLASSROOM HELPERS ============
+const getRoomsForGrade = (grade: string) => {
+  const counts: Record<string, number> = {
+    m1: 10, m2: 10, m3: 10, m4: 6, m5: 6, m6: 6
+  };
+  const count = counts[grade] || 10;
+  const num = grade.replace("m", "");
+  return Array.from({ length: count }, (_, i) => `ม.${num}/${i + 1}`);
+};
+
+const GRADE_LABELS: Record<string, string> = {
+  all: "ทุกระดับชั้น",
+  m1: "ม.1 (มัธยมศึกษาปีที่ 1)",
+  m2: "ม.2 (มัธยมศึกษาปีที่ 2)",
+  m3: "ม.3 (มัธยมศึกษาปีที่ 3)",
+  m4: "ม.4 (มัธยมศึกษาปีที่ 4)",
+  m5: "ม.5 (มัธยมศึกษาปีที่ 5)",
+  m6: "ม.6 (มัธยมศึกษาปีที่ 6)",
+};
+
+function matchRoom(item: any, grade: string, room: string) {
+  if (grade === "all" && room === "all") return true;
+  const text = `${item.form_title || ""} ${item.form_desc || ""}`.toLowerCase();
+
+  if (room !== "all") {
+    const rLower = room.toLowerCase();
+    const rShort = room.replace("ม.", "").toLowerCase();
+    return text.includes(rLower) || text.includes(rShort);
+  }
+
+  const gradeMap: Record<string, string[]> = {
+    m1: ["ม.1", "ม1", "ม 1", "ม. 1", "grade 7", "g7"],
+    m2: ["ม.2", "ม2", "ม 2", "ม. 2", "grade 8", "g8"],
+    m3: ["ม.3", "ม3", "ม 3", "ม. 3", "grade 9", "g9"],
+    m4: ["ม.4", "ม4", "ม 4", "ม. 4", "grade 10", "g10"],
+    m5: ["ม.5", "ม5", "ม 5", "ม. 5", "grade 11", "g11"],
+    m6: ["ม.6", "ม6", "ม 6", "ม. 6", "grade 12", "g12"],
+  };
+
+  const keywords = gradeMap[grade] || [];
+  if (keywords.length === 0) return true;
+  return keywords.some(kw => text.includes(kw));
+}
+
 // ============ SHEETS & RESULTS TAB ============
-function SheetsTab({ user }: any) {
+function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSelectedRoom }: any) {
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -1135,11 +1221,23 @@ function SheetsTab({ user }: any) {
     setTimeout(() => setCopied(c => ({ ...c, [k]: false })), 2000);
   };
 
-  const filtered = history.filter(h =>
-    !search ||
-    h.form_title?.toLowerCase().includes(search.toLowerCase()) ||
-    h.form_desc?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = history.filter(h => {
+    const matchSearch = !search ||
+      h.form_title?.toLowerCase().includes(search.toLowerCase()) ||
+      h.form_desc?.toLowerCase().includes(search.toLowerCase());
+    const matchR = matchRoom(h, selectedGrade, selectedRoom);
+    return matchSearch && matchR;
+  });
+
+  const gradeList = [
+    { id: "all", label: "ทุกระดับชั้น" },
+    { id: "m1", label: "ม.1" },
+    { id: "m2", label: "ม.2" },
+    { id: "m3", label: "ม.3" },
+    { id: "m4", label: "ม.4" },
+    { id: "m5", label: "ม.5" },
+    { id: "m6", label: "ม.6" },
+  ];
 
   return (
     <div>
@@ -1149,7 +1247,7 @@ function SheetsTab({ user }: any) {
         borderRadius: "var(--radius-lg)",
         padding: "24px 28px",
         color: "white",
-        marginBottom: 24,
+        marginBottom: 20,
         boxShadow: "0 4px 16px rgba(15,157,88,.25)",
         display: "flex",
         justifyContent: "space-between",
@@ -1167,13 +1265,13 @@ function SheetsTab({ user }: any) {
             </h2>
           </div>
           <p style={{fontSize:14, opacity:.9, margin:0, maxWidth:600}}>
-            ชีตคะแนนและคำตอบของนักเรียนจะซิงค์อัตโนมัติแบบเรียลไทม์ คุณครูสามารถคลิกเปิดดูคะแนน ตรวจคำตอบ หรือดาวน์โหลดเป็นไฟล์ Excel ได้ทันที
+            ชีตคะแนนและคำตอบของนักเรียนจะซิงค์อัตโนมัติแบบเรียลไทม์ คุณครูสามารถเลือกดูตามระดับชั้นและห้องเรียนจากแถบเมนูด้านซ้ายได้ทันที
           </p>
         </div>
         <div style={{display:"flex", gap:12, alignItems:"center"}}>
           <div style={{background:"rgba(255,255,255,.18)", borderRadius:12, padding:"10px 18px", textAlign:"center"}}>
-            <div style={{fontSize:20, fontWeight:700}}>{history.length}</div>
-            <div style={{fontSize:11, opacity:.85}}>ชุดข้อสอบทั้งหมด</div>
+            <div style={{fontSize:20, fontWeight:700}}>{filtered.length}</div>
+            <div style={{fontSize:11, opacity:.85}}>แสดง {filtered.length}/{history.length} ชีต</div>
           </div>
           <button className="btn btn-sm" onClick={fetchHistory} style={{background:"white", color:"#0F9D58", fontWeight:600}}>
             <RefreshIcon /> รีเฟรช
@@ -1181,11 +1279,70 @@ function SheetsTab({ user }: any) {
         </div>
       </div>
 
-      {/* Search and Filter */}
+      {/* Grade & Room Quick Filter Bar */}
+      <div className="card" style={{padding: "16px 20px", marginBottom: 16}}>
+        <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10, marginBottom: selectedGrade !== "all" ? 12 : 0}}>
+          <div style={{display:"flex", alignItems:"center", gap:8, flexWrap:"wrap"}}>
+            <span style={{fontSize:13, fontWeight:700, color:"var(--gray-700)"}}>🏫 ระดับชั้น:</span>
+            {gradeList.map(g => (
+              <button
+                key={g.id}
+                type="button"
+                className={`btn btn-sm ${selectedGrade === g.id ? "btn-green" : "btn-secondary"}`}
+                style={{fontSize: 12, padding: "4px 12px", borderRadius: 20}}
+                onClick={() => {
+                  setSelectedGrade(g.id);
+                  setSelectedRoom("all");
+                }}>
+                {g.label}
+              </button>
+            ))}
+          </div>
+
+          {(selectedGrade !== "all" || selectedRoom !== "all") && (
+            <button
+              type="button"
+              className="btn btn-sm btn-secondary"
+              style={{fontSize: 12, color: "var(--red)"}}
+              onClick={() => {
+                setSelectedGrade("all");
+                setSelectedRoom("all");
+              }}>
+              ✕ ดูทั้งหมด
+            </button>
+          )}
+        </div>
+
+        {/* Room sub-filter when a grade is selected */}
+        {selectedGrade !== "all" && (
+          <div style={{display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", paddingTop: 10, borderTop: "1px dashed var(--gray-200)"}}>
+            <span style={{fontSize:12, fontWeight:600, color:"#0F9D58"}}>📍 ห้องเรียน:</span>
+            <button
+              type="button"
+              className={`btn btn-sm ${selectedRoom === "all" ? "btn-green" : "btn-secondary"}`}
+              style={{fontSize: 11, padding: "3px 10px", borderRadius: 16}}
+              onClick={() => setSelectedRoom("all")}>
+              ทุกห้อง ({selectedGrade.replace("m", "ม.")})
+            </button>
+            {getRoomsForGrade(selectedGrade).map(r => (
+              <button
+                key={r}
+                type="button"
+                className={`btn btn-sm ${selectedRoom === r ? "btn-green" : "btn-secondary"}`}
+                style={{fontSize: 11, padding: "3px 10px", borderRadius: 16}}
+                onClick={() => setSelectedRoom(r)}>
+                {r}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Search box */}
       <div style={{display:"flex", gap:12, marginBottom:18, alignItems:"center"}}>
         <input
           type="text"
-          placeholder="🔍 ค้นหาชื่อข้อสอบ..."
+          placeholder="🔍 ค้นหาชื่อข้อสอบเพิ่มเติม..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{
@@ -1212,11 +1369,18 @@ function SheetsTab({ user }: any) {
         <div className="card" style={{textAlign:"center", padding:"48px 20px"}}>
           <div style={{fontSize:44, marginBottom:12}}>📊</div>
           <div style={{fontSize:16, fontWeight:600, color:"var(--gray-800)", marginBottom:4}}>
-            {search ? "ไม่พบข้อสอบที่ตรงกับการค้นหา" : "ยังไม่มีข้อมูลผลการสอบ"}
+            ไม่พบข้อสอบในห้องที่เลือก
           </div>
           <div style={{fontSize:13, color:"var(--gray-500)", maxWidth:420, margin:"0 auto 16px"}}>
-            {search ? "ลองค้นหาด้วยคำอื่น" : "เมื่อคุณครูสร้าง Google Form ข้อสอบใหม่ ระบบจะสร้าง Google Sheet บันทึกคะแนนและคำตอบให้อัตโนมัติ"}
+            {selectedGrade !== "all" || selectedRoom !== "all"
+              ? `ไม่พบชีตข้อสอบที่ตรงกับ ${selectedRoom !== "all" ? selectedRoom : GRADE_LABELS[selectedGrade] || selectedGrade}`
+              : "เมื่อคุณครูสร้าง Google Form ข้อสอบใหม่ ระบบจะสร้าง Google Sheet บันทึกคะแนนและคำตอบให้อัตโนมัติ"}
           </div>
+          {(selectedGrade !== "all" || selectedRoom !== "all" || search) && (
+            <button className="btn btn-secondary btn-sm" onClick={() => { setSelectedGrade("all"); setSelectedRoom("all"); setSearch(""); }}>
+              ดูชีตข้อสอบทั้งหมด ({history.length} ชุด)
+            </button>
+          )}
         </div>
       ) : (
         <div style={{display:"grid", gap:16}}>
@@ -1224,7 +1388,7 @@ function SheetsTab({ user }: any) {
             <div key={item.id} className="card" style={{margin:0, borderLeft:"5px solid #0F9D58"}}>
               <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12}}>
                 <div style={{flex:1, minWidth:260}}>
-                  <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:4}}>
+                  <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:4, flexWrap:"wrap"}}>
                     <span style={{fontSize:12, fontWeight:700, color:"#0F9D58", background:"#E6F4EA", padding:"2px 8px", borderRadius:20}}>
                       #{filtered.length - idx}
                     </span>
@@ -1374,6 +1538,10 @@ export default function App() {
     await supabase.auth.signOut();
   };
   const [tab, setTab] = useState("create");
+  const [selectedGrade, setSelectedGrade] = useState("all");
+  const [selectedRoom, setSelectedRoom] = useState("all");
+  const [targetGrade, setTargetGrade] = useState("");
+  const [targetRoom, setTargetRoom] = useState("");
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState("");
@@ -1422,11 +1590,17 @@ export default function App() {
         const newAnswer = keyToNewIdx.get(answerKey) ?? 0;
         return { ...q, text, choices: uniqueChoices, answer: newAnswer };
       });
+      const finalDesc = targetRoom
+        ? `${formDesc ? formDesc + " " : ""}[ห้อง ${targetRoom}]`
+        : targetGrade
+        ? `${formDesc ? formDesc + " " : ""}[${targetGrade}]`
+        : formDesc;
+
       const res = await fetch(SCRIPT_URL, {
         method:"POST",
         body: JSON.stringify({
           title: formTitle,
-          description: formDesc,
+          description: finalDesc,
           headers,
           questions: cleanedQuestions,
           teacherEmail: user.is_google ? user.key : undefined
@@ -1438,7 +1612,7 @@ export default function App() {
       await supabase.from("form_history").insert({
         license_key: user.key,
         form_title: formTitle,
-        form_desc: formDesc || null,
+        form_desc: finalDesc || null,
         edit_url: data.editUrl?.trim(),
         view_url: data.viewUrl?.trim(),
         sheet_url: data.sheetUrl?.trim() || null,
@@ -1453,7 +1627,7 @@ export default function App() {
     }
   };
 
-  const handleReset = () => { setStep(0); setResult(null); setQuestions([]); setFormTitle(""); setFormDesc(""); setSubmitError(""); };
+  const handleReset = () => { setStep(0); setResult(null); setQuestions([]); setFormTitle(""); setFormDesc(""); setTargetGrade(""); setTargetRoom(""); setSubmitError(""); };
 
   useEffect(() => {
     if (!user || user.role === "admin") return;
@@ -1503,9 +1677,100 @@ export default function App() {
             <button className={`sidebar-item ${tab==="create"?"active":""}`} onClick={() => { setTab("create"); }}>
               <FormIcon /> สร้างข้อสอบใหม่
             </button>
-            <button className={`sidebar-item ${tab==="sheets"?"active":""}`} onClick={() => setTab("sheets")} style={tab==="sheets"?{background:"#E6F4EA",color:"#0F9D58",fontWeight:600}:{}}>
-              <SheetIcon /> 📊 ผลการสอบ & ชีตคะแนน
-            </button>
+
+            <div style={{marginTop: 2, marginBottom: 4}}>
+              <button
+                className={`sidebar-item ${tab==="sheets"?"active":""}`}
+                onClick={() => { setTab("sheets"); setSelectedGrade("all"); setSelectedRoom("all"); }}
+                style={tab==="sheets"?{background:"#E6F4EA",color:"#0F9D58",fontWeight:600}:{}}>
+                <SheetIcon /> 📊 ผลการสอบ & ชีตคะแนน
+              </button>
+
+              {/* Classroom Sub-Menu in Sidebar */}
+              <div style={{
+                marginLeft: 10,
+                paddingLeft: 8,
+                borderLeft: "2px solid #A7F3D0",
+                marginTop: 4,
+                marginBottom: 6,
+                display: "flex",
+                flexDirection: "column",
+                gap: 2
+              }}>
+                <div style={{fontSize: 10, fontWeight: 700, color: "var(--gray-400)", padding: "2px 6px", textTransform: "uppercase", letterSpacing: ".5px"}}>
+                  เลือกระดับชั้น / ห้อง:
+                </div>
+
+                {[
+                  { id: "all", label: "🏫 ทุกระดับชั้น" },
+                  { id: "m1", label: "🟢 ม.1 (มัธยม 1)" },
+                  { id: "m2", label: "🟢 ม.2 (มัธยม 2)" },
+                  { id: "m3", label: "🟢 ม.3 (มัธยม 3)" },
+                  { id: "m4", label: "🔵 ม.4 (มัธยม 4)" },
+                  { id: "m5", label: "🔵 ม.5 (มัธยม 5)" },
+                  { id: "m6", label: "🔵 ม.6 (มัธยม 6)" },
+                ].map(g => {
+                  const isSelected = tab === "sheets" && selectedGrade === g.id;
+                  return (
+                    <button
+                      key={g.id}
+                      className={`sidebar-item ${isSelected ? "active" : ""}`}
+                      style={{
+                        padding: "5px 8px",
+                        fontSize: "12px",
+                        borderRadius: "6px",
+                        margin: 0,
+                        background: isSelected ? "#E6F4EA" : "transparent",
+                        color: isSelected ? "#0F9D58" : "var(--gray-600)",
+                        fontWeight: isSelected ? 700 : 500,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between"
+                      }}
+                      onClick={() => {
+                        setTab("sheets");
+                        setSelectedGrade(g.id);
+                        setSelectedRoom("all");
+                      }}>
+                      <span>{g.label}</span>
+                      {isSelected && <span style={{fontSize: 9, color: "#0F9D58"}}>●</span>}
+                    </button>
+                  );
+                })}
+
+                {/* Specific Room Dropdown inside Left Sidebar */}
+                {selectedGrade !== "all" && (
+                  <div style={{marginTop: 4, padding: "4px 2px"}}>
+                    <div style={{fontSize: 10.5, fontWeight: 600, color: "#0F9D58", marginBottom: 3}}>
+                      📍 เลือกห้องเฉพาะ:
+                    </div>
+                    <select
+                      value={selectedRoom}
+                      onChange={e => {
+                        setTab("sheets");
+                        setSelectedRoom(e.target.value);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "5px 6px",
+                        borderRadius: "6px",
+                        border: "1.5px solid #0F9D58",
+                        fontSize: "11.5px",
+                        background: "white",
+                        color: "#0F9D58",
+                        fontWeight: 600,
+                        outline: "none"
+                      }}>
+                      <option value="all">ทุกห้อง ({selectedGrade.replace("m", "ม.")})</option>
+                      {getRoomsForGrade(selectedGrade).map(r => (
+                        <option key={r} value={r}>ห้อง {r}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <button className={`sidebar-item ${tab==="history"?"active":""}`} onClick={() => setTab("history")}>
               <FormIcon /> ประวัติฟอร์ม
             </button>
@@ -1523,7 +1788,7 @@ export default function App() {
 
           <div className="content">
            {tab==="admin" && user.role==="admin" ? <AdminPanel adminKey={user.key} /> :
-            tab==="sheets" ? <SheetsTab user={user} /> :
+            tab==="sheets" ? <SheetsTab user={user} selectedGrade={selectedGrade} setSelectedGrade={setSelectedGrade} selectedRoom={selectedRoom} setSelectedRoom={setSelectedRoom} /> :
             tab==="history" ? <HistoryTab user={user} /> : (
               <>
                 <div className="stepper">
@@ -1540,7 +1805,7 @@ export default function App() {
                   ))}
                 </div>
 
-                {step===0 && <StepDetails formTitle={formTitle} setFormTitle={setFormTitle} formDesc={formDesc} setFormDesc={setFormDesc}/>}
+                {step===0 && <StepDetails formTitle={formTitle} setFormTitle={setFormTitle} formDesc={formDesc} setFormDesc={setFormDesc} targetGrade={targetGrade} setTargetGrade={setTargetGrade} targetRoom={targetRoom} setTargetRoom={setTargetRoom}/>}
                 {step===1 && <StepHeaders headers={headers} setHeaders={setHeaders}/>}
                 {step===2 && (
                   <>

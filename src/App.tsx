@@ -304,13 +304,6 @@ function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
           </div>
         </div>
 
-        {/* Feature chips */}
-        <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:22,flexWrap:"wrap"}}>
-          <span style={{fontSize:11,background:"var(--crimson-light)",color:"var(--crimson)",border:"1px solid var(--crimson-light)",padding:"3px 10px",borderRadius:20,fontWeight:600}}>⚡ AI ช่วยคิดข้อสอบ</span>
-          <span style={{fontSize:11,background:"var(--gold-light)",color:"var(--gold-dark)",border:"1px solid var(--gold-light)",padding:"3px 10px",borderRadius:20,fontWeight:600}}>🏫 แยกห้อง & เรียงเลขที่</span>
-          <span style={{fontSize:11,background:"var(--green-light)",color:"var(--green)",border:"1px solid var(--green-light)",padding:"3px 10px",borderRadius:20,fontWeight:600}}>📊 สรุปคะแนนสด</span>
-        </div>
-
         {/* Google Login for Teachers */}
         <button
           className="btn"

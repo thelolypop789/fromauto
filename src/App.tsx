@@ -574,7 +574,13 @@ function AdminPanel({ adminKey }: { adminKey: string }) {
 }
 
 // ============ STEP 0: DETAILS ============
-function StepDetails({ formTitle, setFormTitle, formDesc, setFormDesc, targetGrade, setTargetGrade, targetRoom, setTargetRoom }: any) {
+function StepDetails({
+  formTitle, setFormTitle,
+  formDesc, setFormDesc,
+  targetGrade, setTargetGrade,
+  targetRooms, setTargetRooms,
+  onRoomsChange
+}: any) {
   const grades = [
     { id: "", label: "ทั่วไป / ไม่ระบุ" },
     { id: "ม.1", label: "ม.1" },
@@ -585,51 +591,166 @@ function StepDetails({ formTitle, setFormTitle, formDesc, setFormDesc, targetGra
     { id: "ม.6", label: "ม.6" },
   ];
 
+  const getAvailableRooms = (g: string) => {
+    if (!g) return [];
+    const counts: Record<string, number> = { "ม.1": 10, "ม.2": 10, "ม.3": 10, "ม.4": 6, "ม.5": 6, "ม.6": 6 };
+    const count = counts[g] || 10;
+    return Array.from({ length: count }, (_, i) => `${g}/${i + 1}`);
+  };
+
+  const handleSelectGrade = (g: string) => {
+    setTargetGrade(g);
+    if (!g) {
+      setTargetRooms([]);
+      onRoomsChange?.([]);
+    } else {
+      const allRooms = getAvailableRooms(g);
+      setTargetRooms(allRooms);
+      onRoomsChange?.(allRooms);
+    }
+  };
+
+  const toggleRoom = (room: string) => {
+    let updated: string[];
+    if (targetRooms.includes(room)) {
+      updated = targetRooms.filter((r: string) => r !== room);
+    } else {
+      updated = [...targetRooms, room].sort();
+    }
+    setTargetRooms(updated);
+    onRoomsChange?.(updated);
+  };
+
+  const selectAllRooms = () => {
+    const all = getAvailableRooms(targetGrade);
+    setTargetRooms(all);
+    onRoomsChange?.(all);
+  };
+
+  const clearAllRooms = () => {
+    setTargetRooms([]);
+    onRoomsChange?.([]);
+  };
+
+  const availableRooms = getAvailableRooms(targetGrade);
+  const isAllSelected = availableRooms.length > 0 && availableRooms.every(r => targetRooms.includes(r));
+
   return (
     <div className="card">
       <div className="card-title">📄 รายละเอียดชุดข้อสอบ</div>
-      <div className="card-sub">กรอกข้อมูลพื้นฐานของแบบทดสอบ พร้อมเลือกระดับชั้นเพื่อจัดหมวดหมู่ชีตคะแนนในเมนูด้านซ้าย</div>
-      <div className="field">
-        <label>ชื่อชุดข้อสอบ *</label>
-        <input type="text" placeholder="เช่น แบบทดสอบวิชาภาษาไทย ม.3/1 กลางภาค"
-          value={formTitle} onChange={e => setFormTitle(e.target.value)}/>
-      </div>
+      <div className="card-sub">กรอกข้อมูลพื้นฐาน และเลือกห้องเรียนที่ใช้ข้อสอบชุดนี้ (สามารถเลือกได้หลายห้อง)</div>
 
       <div className="field">
-        <label>ระดับชั้น / ห้องเรียน (สำหรับจัดหมวดหมู่ในเมนูด้านซ้าย)</label>
-        <div style={{display:"flex", gap:6, flexWrap:"wrap", marginBottom:8}}>
+        <label>ชื่อชุดข้อสอบ *</label>
+        <input
+          type="text"
+          placeholder="เช่น แบบทดสอบวิชาภาษาไทย ม.1 กลางภาค"
+          value={formTitle}
+          onChange={e => setFormTitle(e.target.value)}
+        />
+      </div>
+
+      <div className="field" style={{background:"var(--gray-50)", padding:"16px", borderRadius:"var(--radius)", border:"1px solid var(--gray-200)"}}>
+        <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8, flexWrap:"wrap", gap:6}}>
+          <label style={{fontWeight:700, margin:0, color:"var(--gray-800)"}}>
+            🏫 เลือกระดับชั้น & ห้องเรียนที่ใช้ข้อสอบชุดนี้ (เลือกได้หลายห้อง):
+          </label>
+          {targetGrade && (
+            <div style={{display:"flex", gap:6}}>
+              <button
+                type="button"
+                className="btn btn-sm btn-secondary"
+                style={{fontSize:11, padding:"3px 8px"}}
+                onClick={selectAllRooms}>
+                ✓ เลือกทุกห้อง ({availableRooms.length})
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm btn-secondary"
+                style={{fontSize:11, padding:"3px 8px", color:"var(--gray-500)"}}
+                onClick={clearAllRooms}>
+                ✕ ล้าง
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Grade buttons */}
+        <div style={{display:"flex", gap:6, flexWrap:"wrap", marginBottom:12}}>
           {grades.map(g => (
             <button
               key={g.id}
               type="button"
               className={`btn btn-sm ${targetGrade === g.id ? "btn-green" : "btn-secondary"}`}
-              onClick={() => {
-                setTargetGrade(g.id);
-                setTargetRoom("");
-              }}>
+              style={{padding:"6px 14px", fontWeight: targetGrade === g.id ? 700 : 500}}
+              onClick={() => handleSelectGrade(g.id)}>
               {g.label}
             </button>
           ))}
         </div>
-        {targetGrade && (
-          <div style={{display:"flex", alignItems:"center", gap:8, marginTop:6, flexWrap:"wrap"}}>
-            <span style={{fontSize:13, color:"var(--gray-600)"}}>ระบุห้องเฉพาะ:</span>
-            <input
-              type="text"
-              placeholder={`เช่น ${targetGrade}/1 หรือ ${targetGrade}/2`}
-              value={targetRoom}
-              onChange={e => setTargetRoom(e.target.value)}
-              style={{maxWidth:160, padding:"6px 10px", fontSize:13, borderRadius:6, border:"1.5px solid var(--gray-200)"}}
-            />
-            <span style={{fontSize:12, color:"var(--gray-500)"}}>เช่น <strong>{targetRoom || targetGrade}</strong></span>
+
+        {/* Multi-room selector chips */}
+        {targetGrade && availableRooms.length > 0 && (
+          <div style={{borderTop:"1px dashed var(--gray-200)", paddingTop:12}}>
+            <div style={{fontSize:12, color:"var(--gray-600)", marginBottom:8, display:"flex", alignItems:"center", gap:6}}>
+              <span>👉 คลิกเลือกห้องที่ใช้ข้อสอบชุดนี้:</span>
+              <span style={{color:"#0F9D58", fontWeight:700}}>
+                {targetRooms.length === 0
+                  ? "(ยังไม่ได้เลือกห้อง)"
+                  : isAllSelected
+                  ? `(เลือกครบทุกห้อง ${availableRooms.length} ห้อง)`
+                  : `(เลือกแล้ว ${targetRooms.length} ห้อง)`}
+              </span>
+            </div>
+
+            <div style={{display:"flex", gap:6, flexWrap:"wrap"}}>
+              {availableRooms.map(r => {
+                const checked = targetRooms.includes(r);
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => toggleRoom(r)}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: "20px",
+                      fontSize: "13px",
+                      cursor: "pointer",
+                      border: checked ? "1.5px solid #0F9D58" : "1.5px solid var(--gray-300)",
+                      background: checked ? "#E6F4EA" : "white",
+                      color: checked ? "#0F9D58" : "var(--gray-700)",
+                      fontWeight: checked ? 700 : 500,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      transition: "all .15s"
+                    }}>
+                    <span>{checked ? "✓" : "+"}</span>
+                    <span>ห้อง {r}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {targetRooms.length > 0 && (
+              <div style={{fontSize:12, color:"var(--gray-600)", marginTop:10, background:"white", padding:"8px 12px", borderRadius:6, border:"1px solid var(--gray-200)"}}>
+                📌 <strong>ห้องที่ใช้ข้อสอบนี้:</strong> {targetRooms.join(", ")}
+                <div style={{fontSize:11, color:"var(--gray-400)", marginTop:2}}>
+                  (ระบบจะนำห้องเหล่านี้ไปใส่ในเมนูตัวเลือกของนักเรียนในฟอร์ม และจัดเข้าเมนูผลสอบของทุกห้องที่เลือก)
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
       <div className="field" style={{marginBottom:0}}>
         <label>คำอธิบาย / คำชี้แจง</label>
-        <textarea placeholder="เช่น ให้นักเรียนเลือกคำตอบที่ถูกที่สุดเพียงข้อเดียว เวลา 30 นาที"
-          value={formDesc} onChange={e => setFormDesc(e.target.value)}/>
+        <textarea
+          placeholder="เช่น ให้นักเรียนเลือกคำตอบที่ถูกที่สุดเพียงข้อเดียว เวลา 30 นาที"
+          value={formDesc}
+          onChange={e => setFormDesc(e.target.value)}
+        />
       </div>
     </div>
   );
@@ -1541,7 +1662,7 @@ export default function App() {
   const [selectedGrade, setSelectedGrade] = useState("all");
   const [selectedRoom, setSelectedRoom] = useState("all");
   const [targetGrade, setTargetGrade] = useState("");
-  const [targetRoom, setTargetRoom] = useState("");
+  const [targetRooms, setTargetRooms] = useState<string[]>([]);
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState("");
@@ -1557,6 +1678,17 @@ export default function App() {
   const [submitError, setSubmitError] = useState("");
 
   const steps = ["รายละเอียด","ส่วนหัว","ข้อสอบ","สร้าง Form","ผลลัพธ์"];
+
+  const handleRoomsChange = (rooms: string[]) => {
+    if (rooms.length > 0) {
+      setHeaders(prev => prev.map(h => {
+        if (h.label === "ชั้น") {
+          return { ...h, type: "dropdown", choices: rooms };
+        }
+        return h;
+      }));
+    }
+  };
 
   const canNext = () => {
     if (step===0) return formTitle.trim().length > 0;
@@ -1590,10 +1722,13 @@ export default function App() {
         const newAnswer = keyToNewIdx.get(answerKey) ?? 0;
         return { ...q, text, choices: uniqueChoices, answer: newAnswer };
       });
-      const finalDesc = targetRoom
-        ? `${formDesc ? formDesc + " " : ""}[ห้อง ${targetRoom}]`
+      const roomsTag = targetRooms.length > 0
+        ? `[ห้อง: ${targetRooms.join(", ")}]`
         : targetGrade
-        ? `${formDesc ? formDesc + " " : ""}[${targetGrade}]`
+        ? `[ระดับชั้น: ${targetGrade}]`
+        : "";
+      const finalDesc = roomsTag
+        ? `${formDesc ? formDesc + " " : ""}${roomsTag}`
         : formDesc;
 
       const res = await fetch(SCRIPT_URL, {
@@ -1627,7 +1762,7 @@ export default function App() {
     }
   };
 
-  const handleReset = () => { setStep(0); setResult(null); setQuestions([]); setFormTitle(""); setFormDesc(""); setTargetGrade(""); setTargetRoom(""); setSubmitError(""); };
+  const handleReset = () => { setStep(0); setResult(null); setQuestions([]); setFormTitle(""); setFormDesc(""); setTargetGrade(""); setTargetRooms([]); setSubmitError(""); };
 
   useEffect(() => {
     if (!user || user.role === "admin") return;
@@ -1805,7 +1940,19 @@ export default function App() {
                   ))}
                 </div>
 
-                {step===0 && <StepDetails formTitle={formTitle} setFormTitle={setFormTitle} formDesc={formDesc} setFormDesc={setFormDesc} targetGrade={targetGrade} setTargetGrade={setTargetGrade} targetRoom={targetRoom} setTargetRoom={setTargetRoom}/>}
+                {step===0 && (
+                  <StepDetails
+                    formTitle={formTitle}
+                    setFormTitle={setFormTitle}
+                    formDesc={formDesc}
+                    setFormDesc={setFormDesc}
+                    targetGrade={targetGrade}
+                    setTargetGrade={setTargetGrade}
+                    targetRooms={targetRooms}
+                    setTargetRooms={setTargetRooms}
+                    onRoomsChange={handleRoomsChange}
+                  />
+                )}
                 {step===1 && <StepHeaders headers={headers} setHeaders={setHeaders}/>}
                 {step===2 && (
                   <>

@@ -313,35 +313,20 @@ function handleGetSummary(sheetUrlOrId) {
 
     var ss = SpreadsheetApp.openById(sheetId);
     var sheets = ss.getSheets();
-    var summarySheet = sheets[0];
-    var responseSheet = sheets.length > 1 ? sheets[1] : null;
-
-    var stats = {
-      title: summarySheet ? summarySheet.getRange("A1").getValue().toString().replace("📊 สรุปภาพรวมผลการสอบ: ", "") : "",
-      totalStudents: summarySheet ? summarySheet.getRange("C5").getValue().toString() : "0 คน",
-      totalScore: summarySheet ? summarySheet.getRange("C6").getValue().toString() : "0 คะแนน",
-      average: summarySheet ? summarySheet.getRange("C7").getValue().toString() : "-",
-      maxScore: summarySheet ? summarySheet.getRange("C8").getValue().toString() : "-",
-      minScore: summarySheet ? summarySheet.getRange("C9").getValue().toString() : "-",
-      passCount: summarySheet ? summarySheet.getRange("C10").getValue().toString() : "0 คน",
-      failCount: summarySheet ? summarySheet.getRange("C11").getValue().toString() : "0 คน",
-      passRate: summarySheet ? summarySheet.getRange("C12").getValue().toString() : "0%",
-      rooms: []
-    };
-
-    if (summarySheet) {
-      var roomData = summarySheet.getRange("E6:G20").getValues();
-      for (var r = 0; r < roomData.length; r++) {
-        if (roomData[r][0]) {
-          stats.rooms.push({
-            room: roomData[r][0].toString(),
-            count: roomData[r][1].toString(),
-            status: roomData[r][2].toString()
-          });
-        }
+    var summarySheet = null;
+    var responseSheet = null;
+    for (var s = 0; s < sheets.length; s++) {
+      var sName = sheets[s].getName();
+      if (sName.indexOf("สรุป") !== -1) {
+        summarySheet = sheets[s];
+      } else {
+        responseSheet = sheets[s];
       }
     }
+    if (!summarySheet) summarySheet = sheets[0];
+    if (!responseSheet) responseSheet = sheets.length > 1 ? sheets[1] : sheets[0];
 
+    // 1. อ่านข้อมูลคำตอบนักเรียนทั้งหมดจากแท็บคะแนนดิบ
     var students = [];
     if (responseSheet) {
       var lastRow = responseSheet.getLastRow();
@@ -359,6 +344,81 @@ function handleGetSummary(sheetUrlOrId) {
         }
       }
     }
+
+    // 2. คำนวณสถิติจากคะแนนนักเรียนจริงโดยตรง (ไม่พึ่งพาสูตรในชีต เพื่อความแม่นยำ 100%)
+    var studentScores = [];
+    var totalMaxPoints = 20;
+    var roomCounts = {};
+
+    for (var i = 0; i < students.length; i++) {
+      var scoreVal = students[i]["คะแนน"] || students[i]["Score"] || "";
+      if (scoreVal) {
+        var parts = scoreVal.toString().split("/");
+        var num = parseFloat(parts[0]);
+        if (!isNaN(num)) {
+          studentScores.push(num);
+          if (parts.length > 1) {
+            var denom = parseFloat(parts[1]);
+            if (!isNaN(denom) && denom > 0) totalMaxPoints = denom;
+          }
+        }
+      }
+
+      var rName = students[i]["ชั้น"] || students[i]["ห้องเรียน"] || students[i]["ห้อง"] || "";
+      if (rName) {
+        var rTrim = rName.toString().trim();
+        roomCounts[rTrim] = (roomCounts[rTrim] || 0) + 1;
+      }
+    }
+
+    var totalStudentsCount = studentScores.length;
+    var avgScore = totalStudentsCount > 0 ? (studentScores.reduce(function(a, b) { return a + b; }, 0) / totalStudentsCount).toFixed(2) : "-";
+    var maxS = totalStudentsCount > 0 ? Math.max.apply(null, studentScores) : "-";
+    var minS = totalStudentsCount > 0 ? Math.min.apply(null, studentScores) : "-";
+    var passThreshold = Math.ceil(totalMaxPoints * 0.5);
+    var passCountNum = studentScores.filter(function(s) { return s >= passThreshold; }).length;
+    var failCountNum = totalStudentsCount - passCountNum;
+    var passRatePct = totalStudentsCount > 0 ? ((passCountNum / totalStudentsCount) * 100).toFixed(1) + "%" : "0%";
+
+    var roomsList = [];
+    if (summarySheet) {
+      var roomData = summarySheet.getRange("E6:G20").getValues();
+      for (var r = 0; r < roomData.length; r++) {
+        if (roomData[r][0]) {
+          var rm = roomData[r][0].toString().trim();
+          var count = roomCounts[rm] || 0;
+          roomsList.push({
+            room: rm,
+            count: count + " คน",
+            status: count > 0 ? "✅ มีผู้ส่งแล้ว" : "⏳ รอนักเรียน"
+          });
+        }
+      }
+    }
+
+    // ถ้าไม่มีห้องใน summary ให้สร้างจากห้องที่มีนักเรียนตอบ
+    if (roomsList.length === 0) {
+      for (var rmKey in roomCounts) {
+        roomsList.push({
+          room: rmKey,
+          count: roomCounts[rmKey] + " คน",
+          status: "✅ มีผู้ส่งแล้ว"
+        });
+      }
+    }
+
+    var stats = {
+      title: summarySheet ? summarySheet.getRange("A1").getValue().toString().replace("📊 สรุปภาพรวมผลการสอบ: ", "") : "",
+      totalStudents: totalStudentsCount + " คน",
+      totalScore: totalMaxPoints + " คะแนน",
+      average: avgScore !== "-" ? avgScore + " คะแนน" : "-",
+      maxScore: maxS !== "-" ? maxS + " คะแนน" : "-",
+      minScore: minS !== "-" ? minS + " คะแนน" : "-",
+      passCount: passCountNum + " คน",
+      failCount: failCountNum + " คน",
+      passRate: passRatePct,
+      rooms: roomsList
+    };
 
     return ContentService.createTextOutput(JSON.stringify({
       success: true,

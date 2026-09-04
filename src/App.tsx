@@ -1357,8 +1357,37 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
     loadData();
   }, [exam.sheet_url]);
 
-  const stats = data?.stats;
-  const students: any[] = data?.students || [];
+  const rawStudents: any[] = data?.students || [];
+
+  // คำนวณสถิติจากคะแนนนักเรียนจริงโดยตรง (Real-time Calculation)
+  const studentScores = rawStudents.map(s => {
+    const scoreVal = s["คะแนน"] || s["Score"] || "";
+    return parseFloat(scoreVal.toString().split("/")[0]);
+  }).filter(n => !isNaN(n));
+
+  const totalMax = exam.question_count || 20;
+  const passThresh = Math.ceil(totalMax * 0.5);
+  const totalCount = studentScores.length;
+  const computedAvg = totalCount > 0 ? (studentScores.reduce((a, b) => a + b, 0) / totalCount).toFixed(2) + " คะแนน" : "-";
+  const computedMax = totalCount > 0 ? Math.max(...studentScores) + " คะแนน" : "-";
+  const computedMin = totalCount > 0 ? Math.min(...studentScores) + " คะแนน" : "-";
+  const computedPass = studentScores.filter(s => s >= passThresh).length;
+  const computedFail = totalCount - computedPass;
+  const computedPassRate = totalCount > 0 ? ((computedPass / totalCount) * 100).toFixed(1) + "%" : "0%";
+
+  const stats = {
+    totalStudents: totalCount > 0 ? `${totalCount} คน` : (data?.stats?.totalStudents || "0 คน"),
+    totalScore: data?.stats?.totalScore || `${totalMax} คะแนน`,
+    average: totalCount > 0 ? computedAvg : (data?.stats?.average || "-"),
+    maxScore: totalCount > 0 ? computedMax : (data?.stats?.maxScore || "-"),
+    minScore: totalCount > 0 ? computedMin : (data?.stats?.minScore || "-"),
+    passCount: totalCount > 0 ? `${computedPass} คน` : (data?.stats?.passCount || "0 คน"),
+    failCount: totalCount > 0 ? `${computedFail} คน` : (data?.stats?.failCount || "0 คน"),
+    passRate: totalCount > 0 ? computedPassRate : (data?.stats?.passRate || "0%"),
+    rooms: data?.stats?.rooms && data.stats.rooms.length > 0 ? data.stats.rooms : []
+  };
+
+  const students = rawStudents;
 
   // Extract rooms from stats or students
   const roomList: string[] = stats?.rooms?.map((r: any) => r.room) ||

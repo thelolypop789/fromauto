@@ -8,6 +8,12 @@
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
+
+    // ถ้าเป็นการขอข้อมูลสรุปคะแนนของแบบทดสอบ
+    if (data && data.action === "get_summary") {
+      return handleGetSummary(data.sheetUrl || data.sheetId);
+    }
+
     var form = FormApp.create(data.title || "แบบทดสอบออนไลน์");
 
     // 1. ตั้งค่าให้เป็นแบบทดสอบ (Quiz) และตั้งค่าไม่เก็บอีเมลเด็ดขาด
@@ -290,19 +296,13 @@ function doPost(e) {
 }
 
 /**
- * ฟังก์ชัน doGet สำหรับดึงข้อมูลสรุปผลคะแนนและรายชื่อนักเรียนกลับมาแสดงใน Web App FormAuto
+ * ฟังก์ชันกลางสำหรับดึงข้อมูลสรุปผลคะแนนและรายชื่อนักเรียน
  */
-function doGet(e) {
+function handleGetSummary(sheetUrlOrId) {
   try {
-    if (!e || !e.parameter) {
-      return ContentService.createTextOutput(JSON.stringify({ success: true, message: "FormAuto GAS API Ready" }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-
-    var sheetUrl = e.parameter.sheetUrl;
-    var sheetId = e.parameter.sheetId;
-    if (!sheetId && sheetUrl) {
-      var match = sheetUrl.match(/[-\w]{25,}/);
+    var sheetId = sheetUrlOrId;
+    if (sheetId && typeof sheetId === "string" && sheetId.indexOf("http") !== -1) {
+      var match = sheetId.match(/[-\w]{25,}/);
       if (match) sheetId = match[0];
     }
 
@@ -318,27 +318,18 @@ function doGet(e) {
 
     var stats = {
       title: summarySheet ? summarySheet.getRange("A1").getValue().toString().replace("📊 สรุปภาพรวมผลการสอบ: ", "") : "",
-      totalStudents: 0,
-      totalScore: 0,
-      average: "-",
-      maxScore: "-",
-      minScore: "-",
-      passCount: 0,
-      failCount: 0,
-      passRate: "0%",
+      totalStudents: summarySheet ? summarySheet.getRange("C5").getValue().toString() : "0 คน",
+      totalScore: summarySheet ? summarySheet.getRange("C6").getValue().toString() : "0 คะแนน",
+      average: summarySheet ? summarySheet.getRange("C7").getValue().toString() : "-",
+      maxScore: summarySheet ? summarySheet.getRange("C8").getValue().toString() : "-",
+      minScore: summarySheet ? summarySheet.getRange("C9").getValue().toString() : "-",
+      passCount: summarySheet ? summarySheet.getRange("C10").getValue().toString() : "0 คน",
+      failCount: summarySheet ? summarySheet.getRange("C11").getValue().toString() : "0 คน",
+      passRate: summarySheet ? summarySheet.getRange("C12").getValue().toString() : "0%",
       rooms: []
     };
 
     if (summarySheet) {
-      stats.totalStudents = summarySheet.getRange("C5").getValue();
-      stats.totalScore = summarySheet.getRange("C6").getValue();
-      stats.average = summarySheet.getRange("C7").getValue();
-      stats.maxScore = summarySheet.getRange("C8").getValue();
-      stats.minScore = summarySheet.getRange("C9").getValue();
-      stats.passCount = summarySheet.getRange("C10").getValue();
-      stats.failCount = summarySheet.getRange("C11").getValue();
-      stats.passRate = summarySheet.getRange("C12").getValue();
-
       var roomData = summarySheet.getRange("E6:G20").getValues();
       for (var r = 0; r < roomData.length; r++) {
         if (roomData[r][0]) {
@@ -376,6 +367,24 @@ function doGet(e) {
       students: students
     })).setMimeType(ContentService.MimeType.JSON);
 
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * ฟังก์ชัน doGet สำหรับดึงข้อมูลสรุปผลคะแนนและรายชื่อนักเรียนกลับมาแสดงใน Web App FormAuto
+ */
+function doGet(e) {
+  try {
+    if (!e || !e.parameter) {
+      return ContentService.createTextOutput(JSON.stringify({ success: true, message: "FormAuto GAS API Ready" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    return handleGetSummary(e.parameter.sheetUrl || e.parameter.sheetId);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({
       success: false,

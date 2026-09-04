@@ -1332,7 +1332,14 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${SCRIPT_URL}?action=get_summary&sheetUrl=${encodeURIComponent(exam.sheet_url)}`);
+      // ใช้ POST ส่ง action: get_summary เหมือนตอนสร้างฟอร์ม เพื่อหลีกเลี่ยง CORS ของ GET redirect
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "get_summary",
+          sheetUrl: exam.sheet_url
+        })
+      });
       const json = await res.json();
       if (json.success) {
         setData(json);

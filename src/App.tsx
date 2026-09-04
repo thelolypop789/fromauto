@@ -1318,12 +1318,399 @@ function matchRoom(item: any, grade: string, room: string) {
   return keywords.some(kw => text.includes(kw));
 }
 
+// ============ EXAM SCORE DASHBOARD (IN-APP) ============
+function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void }) {
+  const [activeTab, setActiveTab] = useState<"overview" | "students" | "sheet">("overview");
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roomFilter, setRoomFilter] = useState("all");
+
+  const loadData = async () => {
+    if (!exam.sheet_url) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`${SCRIPT_URL}?action=get_summary&sheetUrl=${encodeURIComponent(exam.sheet_url)}`);
+      const json = await res.json();
+      if (json.success) {
+        setData(json);
+      } else {
+        setError(json.error || "ไม่สามารถอ่านข้อมูลสรุปคะแนนได้");
+      }
+    } catch (err: any) {
+      setError(err.message || "เกิดข้อผิดพลาดในการเชื่อมต่อ");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [exam.sheet_url]);
+
+  const stats = data?.stats;
+  const students: any[] = data?.students || [];
+
+  // Extract rooms from stats or students
+  const roomList: string[] = stats?.rooms?.map((r: any) => r.room) ||
+    Array.from(new Set(students.map(s => s["ชั้น"] || s["ห้องเรียน"] || s["ห้อง"]).filter(Boolean)));
+
+  const filteredStudents = students.filter(s => {
+    const text = Object.values(s).join(" ").toLowerCase();
+    const matchSearch = !searchTerm || text.includes(searchTerm.toLowerCase());
+    const studentRoom = (s["ชั้น"] || s["ห้องเรียน"] || s["ห้อง"] || "").toString();
+    const matchR = roomFilter === "all" || studentRoom.includes(roomFilter);
+    return matchSearch && matchR;
+  });
+
+  const embedUrl = exam.sheet_url?.replace(/\/edit.*$/, "/preview") || exam.sheet_url;
+
+  return (
+    <div>
+      {/* Top Navigation & Header */}
+      <div style={{
+        background: "white",
+        borderRadius: "var(--radius-lg)",
+        padding: "20px 24px",
+        marginBottom: 20,
+        boxShadow: "0 2px 12px rgba(0,0,0,.06)",
+        border: "1px solid var(--gray-200)"
+      }}>
+        <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 16}}>
+          <button className="btn btn-secondary btn-sm" onClick={onBack} style={{fontWeight: 600}}>
+            ← กลับไปหน้ารายการข้อสอบ
+          </button>
+          <div style={{display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap"}}>
+            <button className="btn btn-secondary btn-sm" onClick={loadData} disabled={loading}>
+              <RefreshIcon /> รีเฟรชคะแนน
+            </button>
+            <button className="btn btn-sm" onClick={() => window.open(exam.sheet_url, "_blank")} style={{background:"#0F9D58", color:"white", fontWeight:600}}>
+              <SheetIcon /> เปิดใน Google Sheets
+            </button>
+          </div>
+        </div>
+
+        <div style={{display: "flex", alignItems: "flex-start", gap: 12}}>
+          <div style={{
+            background: "#E6F4EA",
+            color: "#0F9D58",
+            borderRadius: 12,
+            padding: "10px 14px",
+            fontSize: 24,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center"
+          }}>
+            📊
+          </div>
+          <div style={{flex: 1}}>
+            <h2 style={{margin: 0, fontSize: 20, fontWeight: 700, color: "var(--gray-900)"}}>
+              {exam.form_title}
+            </h2>
+            <div style={{fontSize: 13, color: "var(--gray-600)", marginTop: 4}}>
+              {exam.form_desc || "ข้อสอบออนไลน์"} • คำถาม {exam.question_count} ข้อ • อัปเดตล่าสุด {new Date().toLocaleTimeString("th-TH")}
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Switcher */}
+        <div style={{
+          display: "flex",
+          gap: 8,
+          marginTop: 20,
+          borderBottom: "1px solid var(--gray-200)",
+          paddingBottom: 2
+        }}>
+          {[
+            { id: "overview", label: "📊 ภาพรวมสถิติคะแนน", count: null },
+            { id: "students", label: "👥 รายชื่อและคะแนนรายคน", count: students.length },
+            { id: "sheet", label: "📑 แผ่นงาน Google Sheets ตัวจริง", count: null }
+          ].map(t => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id as any)}
+              style={{
+                background: "transparent",
+                border: "none",
+                borderBottom: activeTab === t.id ? "3px solid #0F9D58" : "3px solid transparent",
+                padding: "8px 16px",
+                fontSize: 14,
+                fontWeight: activeTab === t.id ? 700 : 500,
+                color: activeTab === t.id ? "#0F9D58" : "var(--gray-600)",
+                cursor: "pointer",
+                transition: "all .2s"
+              }}>
+              {t.label} {t.count !== null && <span style={{
+                background: activeTab === t.id ? "#0F9D58" : "var(--gray-200)",
+                color: activeTab === t.id ? "white" : "var(--gray-700)",
+                padding: "2px 8px",
+                borderRadius: 12,
+                fontSize: 11,
+                marginLeft: 4
+              }}>{t.count}</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab 1: Overview Dashboard */}
+      {activeTab === "overview" && (
+        <div>
+          {error && (
+            <div style={{marginBottom: 16, padding: "12px 16px", background: "var(--red-light)", borderRadius: "var(--radius)", color: "var(--red)", fontSize: 13}}>
+              ⚠️ {error} — สามารถคลิกแท็บ "แผ่นงาน Google Sheets ตัวจริง" เพื่อดูชีตโดยตรงได้ครับ
+            </div>
+          )}
+          {loading ? (
+            <div className="card" style={{textAlign:"center", padding: "40px 20px"}}>
+              <div className="spinner" style={{margin: "0 auto 12px"}}/>
+              <div style={{fontSize: 14, color: "var(--gray-600)"}}>กำลังดึงข้อมูลสถิติคะแนนล่าสุดจาก Google Sheets...</div>
+            </div>
+          ) : (
+            <>
+              {/* 4 Hero KPI Cards */}
+              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 20}}>
+                <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #2563EB", background: "linear-gradient(135deg, #FFFFFF 0%, #F0F7FF 100%)"}}>
+                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8}}>
+                    <span style={{fontSize: 13, fontWeight: 600, color: "var(--gray-600)"}}>👥 ส่งข้อสอบแล้ว</span>
+                    <span style={{fontSize: 20}}>📝</span>
+                  </div>
+                  <div style={{fontSize: 26, fontWeight: 800, color: "#1E3A8A"}}>
+                    {stats?.totalStudents || `${students.length} คน`}
+                  </div>
+                  <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
+                    จากข้อสอบทั้งหมด {stats?.totalScore || `${exam.question_count} คะแนน`}
+                  </div>
+                </div>
+
+                <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #0F9D58", background: "linear-gradient(135deg, #FFFFFF 0%, #F0FDF4 100%)"}}>
+                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8}}>
+                    <span style={{fontSize: 13, fontWeight: 600, color: "var(--gray-600)"}}>📈 คะแนนเฉลี่ย (Mean)</span>
+                    <span style={{fontSize: 20}}>🎯</span>
+                  </div>
+                  <div style={{fontSize: 26, fontWeight: 800, color: "#0F9D58"}}>
+                    {stats?.average || "-"}
+                  </div>
+                  <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
+                    ระดับชั้น ม.1/1-1/4
+                  </div>
+                </div>
+
+                <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #F59E0B", background: "linear-gradient(135deg, #FFFFFF 0%, #FEFCE8 100%)"}}>
+                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8}}>
+                    <span style={{fontSize: 13, fontWeight: 600, color: "var(--gray-600)"}}>🏆 สูงสุด / ต่ำสุด</span>
+                    <span style={{fontSize: 20}}>🥇</span>
+                  </div>
+                  <div style={{fontSize: 22, fontWeight: 800, color: "#D97706"}}>
+                    {stats?.maxScore || "-"} / {stats?.minScore || "-"}
+                  </div>
+                  <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
+                    คะแนนสูงสุด / คะแนนต่ำสุด
+                  </div>
+                </div>
+
+                <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #8B5CF6", background: "linear-gradient(135deg, #FFFFFF 0%, #F5F3FF 100%)"}}>
+                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8}}>
+                    <span style={{fontSize: 13, fontWeight: 600, color: "var(--gray-600)"}}>✅ อัตราการผ่านเกณฑ์</span>
+                    <span style={{fontSize: 20}}>📊</span>
+                  </div>
+                  <div style={{fontSize: 26, fontWeight: 800, color: "#6D28D9"}}>
+                    {stats?.passRate || "0%"}
+                  </div>
+                  <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
+                    ผ่าน: {stats?.passCount || 0} • ไม่ผ่าน: {stats?.failCount || 0}
+                  </div>
+                </div>
+              </div>
+
+              {/* Classroom breakdown table */}
+              {stats?.rooms && stats.rooms.length > 0 && (
+                <div className="card" style={{marginBottom: 20}}>
+                  <div className="card-title" style={{display: "flex", alignItems: "center", gap: 8}}>
+                    <span>🏫 สรุปผลแยกตามห้องเรียน</span>
+                  </div>
+                  <div className="card-sub">ติดตามจำนวนนักเรียนที่ส่งข้อสอบในแต่ละห้องเรียน</div>
+                  <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginTop: 14}}>
+                    {stats.rooms.map((rm: any, idx: number) => {
+                      const hasSubmitted = parseInt(rm.count) > 0 || rm.status?.includes("มีผู้ส่ง");
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            border: "1.5px solid",
+                            borderColor: hasSubmitted ? "#A7F3D0" : "var(--gray-200)",
+                            background: hasSubmitted ? "#ECFDF5" : "#F9FAFB",
+                            borderRadius: "var(--radius)",
+                            padding: "14px 16px",
+                            textAlign: "center"
+                          }}>
+                          <div style={{fontSize: 16, fontWeight: 700, color: hasSubmitted ? "#065F46" : "var(--gray-700)"}}>
+                            {rm.room}
+                          </div>
+                          <div style={{fontSize: 20, fontWeight: 800, color: hasSubmitted ? "#059669" : "var(--gray-500)", margin: "4px 0"}}>
+                            {rm.count}
+                          </div>
+                          <span style={{
+                            display: "inline-block",
+                            fontSize: 11,
+                            fontWeight: 600,
+                            padding: "2px 8px",
+                            borderRadius: 12,
+                            background: hasSubmitted ? "#10B981" : "var(--gray-300)",
+                            color: "white"
+                          }}>
+                            {rm.status}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Tab 2: Individual Student Scores */}
+      {activeTab === "students" && (
+        <div className="card">
+          <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 16}}>
+            <div>
+              <div className="card-title">👥 รายชื่อและคะแนนสอบรายบุคคล</div>
+              <div className="card-sub">คำตอบและคะแนนของนักเรียนทั้งหมด {students.length} คน</div>
+            </div>
+            {/* Search & Filter */}
+            <div style={{display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap"}}>
+              <input
+                type="text"
+                placeholder="🔍 ค้นหาชื่อ หรือเลขที่..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: "var(--radius)",
+                  border: "1px solid var(--gray-200)",
+                  fontSize: 13,
+                  outline: "none"
+                }}
+              />
+              {roomList.length > 0 && (
+                <select
+                  value={roomFilter}
+                  onChange={e => setRoomFilter(e.target.value)}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: "var(--radius)",
+                    border: "1px solid var(--gray-200)",
+                    fontSize: 13,
+                    background: "white"
+                  }}>
+                  <option value="all">ทุกห้องเรียน</option>
+                  {roomList.map((r: string) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
+
+          {filteredStudents.length === 0 ? (
+            <div style={{textAlign: "center", padding: "40px 20px", color: "var(--gray-500)"}}>
+              {students.length === 0 ? "⏳ ยังไม่มีนักเรียนส่งข้อสอบ" : "ไม่พบนักเรียนตามคำค้นหา"}
+            </div>
+          ) : (
+            <div style={{overflowX: "auto"}}>
+              <table style={{width: "100%", borderCollapse: "collapse", fontSize: 13}}>
+                <thead>
+                  <tr style={{background: "var(--gray-50)", borderBottom: "2px solid var(--gray-200)"}}>
+                    <th style={{padding: "10px 12px", textAlign: "left", width: 50}}>#</th>
+                    <th style={{padding: "10px 12px", textAlign: "left"}}>วัน-เวลา</th>
+                    <th style={{padding: "10px 12px", textAlign: "left"}}>ชื่อ-นามสกุล</th>
+                    <th style={{padding: "10px 12px", textAlign: "center", width: 90}}>ห้อง</th>
+                    <th style={{padding: "10px 12px", textAlign: "center", width: 70}}>เลขที่</th>
+                    <th style={{padding: "10px 12px", textAlign: "center", width: 110}}>คะแนน</th>
+                    <th style={{padding: "10px 12px", textAlign: "center", width: 110}}>ผลประเมิน</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredStudents.map((s, idx) => {
+                    const scoreStr = s["คะแนน"] || s["Score"] || "";
+                    const scoreNum = parseInt(scoreStr.split("/")[0]) || 0;
+                    const totalNum = parseInt(scoreStr.split("/")[1]) || (exam.question_count || 20);
+                    const isPass = scoreNum >= Math.ceil(totalNum * 0.5);
+
+                    return (
+                      <tr key={idx} style={{borderBottom: "1px solid var(--gray-100)"}}>
+                        <td style={{padding: "10px 12px", color: "var(--gray-500)"}}>{idx + 1}</td>
+                        <td style={{padding: "10px 12px", color: "var(--gray-600)"}}>{s["ประทับเวลา"] || s["Timestamp"] || "-"}</td>
+                        <td style={{padding: "10px 12px", fontWeight: 600, color: "var(--gray-900)"}}>{s["ชื่อ-สกุล"] || s["ชื่อ-นามสกุล"] || s["ชื่อ"] || "-"}</td>
+                        <td style={{padding: "10px 12px", textAlign: "center"}}>{s["ชั้น"] || s["ห้องเรียน"] || s["ห้อง"] || "-"}</td>
+                        <td style={{padding: "10px 12px", textAlign: "center"}}>{s["เลขที่"] || "-"}</td>
+                        <td style={{padding: "10px 12px", textAlign: "center", fontWeight: 700, fontSize: 14, color: isPass ? "#059669" : "#DC2626"}}>
+                          {scoreStr || "-"}
+                        </td>
+                        <td style={{padding: "10px 12px", textAlign: "center"}}>
+                          <span style={{
+                            padding: "3px 10px",
+                            borderRadius: 12,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            background: isPass ? "#DEF7EC" : "#FDE8E8",
+                            color: isPass ? "#03543F" : "#9B1C1C"
+                          }}>
+                            {isPass ? "✅ ผ่าน" : "❌ ปรับปรุง"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab 3: Embedded Google Sheet Preview */}
+      {activeTab === "sheet" && (
+        <div className="card" style={{padding: 12}}>
+          <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "4px 8px"}}>
+            <span style={{fontSize: 13, color: "var(--gray-600)"}}>
+              💡 นี่คือหน้าจอ Google Sheets ที่อัปเดตแบบสดๆ สามารถเลื่อนดูแท็บคะแนนดิบและแท็บสรุปผลได้โดยตรง
+            </span>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => window.open(exam.sheet_url, "_blank")}>
+              <ExternalIcon /> ขยายเปิดในแท็บใหม่
+            </button>
+          </div>
+          <iframe
+            src={embedUrl}
+            style={{
+              width: "100%",
+              height: "680px",
+              border: "1px solid var(--gray-200)",
+              borderRadius: "var(--radius)",
+              background: "white"
+            }}
+            title="Google Sheets Preview"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ============ SHEETS & RESULTS TAB ============
 function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSelectedRoom }: any) {
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [copied, setCopied] = useState<Record<string, boolean>>({});
+  const [viewingExam, setViewingExam] = useState<any>(null);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -1335,6 +1722,10 @@ function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSel
   };
 
   useEffect(() => { fetchHistory(); }, []);
+
+  if (viewingExam) {
+    return <ExamScoreDashboard exam={viewingExam} onBack={() => setViewingExam(null)} />;
+  }
 
   const copy = (k: string, val: string) => {
     navigator.clipboard.writeText(val).catch(() => {});
@@ -1535,19 +1926,28 @@ function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSel
                 {/* Actions */}
                 <div style={{display:"flex", flexDirection:"column", gap:8, alignItems:"flex-end"}}>
                   {item.sheet_url ? (
-                    <button
-                      className="btn"
-                      onClick={() => window.open(item.sheet_url, "_blank")}
-                      style={{
-                        background:"#0F9D58",
-                        color:"white",
-                        fontWeight:600,
-                        fontSize:14,
-                        padding:"9px 18px",
-                        boxShadow:"0 2px 8px rgba(15,157,88,.25)"
-                      }}>
-                      <SheetIcon /> 📊 เปิด Google Sheet สรุปคะแนน
-                    </button>
+                    <div style={{display:"flex", gap:8, flexWrap:"wrap", justifyContent:"flex-end"}}>
+                      <button
+                        className="btn"
+                        onClick={() => setViewingExam(item)}
+                        style={{
+                          background:"#0F9D58",
+                          color:"white",
+                          fontWeight:700,
+                          fontSize:14,
+                          padding:"9px 18px",
+                          boxShadow:"0 2px 8px rgba(15,157,88,.25)"
+                        }}>
+                        📊 ดูสรุปคะแนนในระบบ
+                      </button>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => window.open(item.sheet_url, "_blank")}
+                        style={{fontWeight:600, fontSize:13, padding:"8px 14px"}}
+                        title="เปิดใน Google Sheets">
+                        <SheetIcon /> Google Sheets
+                      </button>
+                    </div>
                   ) : (
                     <div style={{fontSize:12, color:"var(--gray-500)", textAlign:"right"}}>
                       <span>⚠️ ฟอร์มนี้สร้างก่อนระบบเชื่อมต่อชีต</span>

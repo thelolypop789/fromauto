@@ -2681,7 +2681,7 @@ export default function App() {
                 <img src="/school-logo.png" alt="Logo" style={{height: 36, width: "auto", objectFit: "contain"}} />
                 <div style={{fontSize: 12, lineHeight: 1.25}}>
                   <div style={{fontWeight: 700, color: "var(--crimson)"}}>วังหลวงพิทยาสรรพ์</div>
-                  <div style={{color: "var(--gray-600)", fontSize: 11}}>สพม.ร้อยเอ็ด</div>
+                  <div style={{color: "var(--gray-600)", fontSize: 11}}>สพม.หนองคาย</div>
                 </div>
               </div>
             )}

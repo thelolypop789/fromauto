@@ -15,126 +15,131 @@ function genKey(role: string) {
 }
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=Prompt:wght@500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Prompt:wght@400;500;600;700;800&family=Sarabun:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
   * { box-sizing:border-box; margin:0; padding:0; }
   :root {
-    --blue:#7C3AED; --blue-dark:#6D28D9; --blue-light:#EDE9FE;
-    --green:#1e8e3e; --green-light:#e6f4ea;
-    --red:#d93025; --red-light:#fce8e6;
-    --yellow:#f9ab00; --yellow-light:#fef7e0;
-    --purple:#9333EA; --purple-light:#F3E8FF;
-    --gray-50:#F5F3FF; --gray-100:#f1f3f4; --gray-200:#e8eaed;
-    --gray-400:#9aa0a6; --gray-600:#5f6368; --gray-800:#3c4043; --gray-900:#202124;
-    --shadow-sm:0 1px 3px rgba(60,64,67,.15); --shadow-lg:0 4px 12px rgba(60,64,67,.15);
-    --radius:8px; --radius-lg:12px;
+    /* Royal Crimson & Amber Gold (Wang Luang Pittayasarn School Identity) */
+    --crimson:#991B1B; --crimson-dark:#7F1D1D; --crimson-light:#FEF2F2;
+    --gold:#F59E0B; --gold-dark:#D97706; --gold-light:#FEF3C7;
+    --blue:#991B1B; --blue-dark:#7F1D1D; --blue-light:#FEF2F2;
+    --green:#059669; --green-dark:#047857; --green-light:#ECFDF5;
+    --red:#DC2626; --red-light:#FEE2E2;
+    --yellow:#F59E0B; --yellow-light:#FEF3C7;
+    --purple:#991B1B; --purple-light:#FEF2F2;
+    --gray-50:#F8FAFC; --gray-100:#F1F5F9; --gray-200:#E2E8F0;
+    --gray-300:#CBD5E1; --gray-400:#94A3B8; --gray-600:#475569; --gray-800:#1E293B; --gray-900:#0F172A;
+    --shadow-sm:0 1px 3px rgba(15,23,42,.06); --shadow-md:0 4px 12px -2px rgba(15,23,42,.08); --shadow-lg:0 12px 28px -4px rgba(127,29,29,.14);
+    --radius:10px; --radius-lg:14px; --radius-xl:20px;
   }
   body { font-family:'Sarabun',sans-serif; background:var(--gray-50); color:var(--gray-900); }
   .app { min-height:100vh; display:flex; flex-direction:column; }
-  .login-page { min-height:100vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#EDE9FE 0%,#F5F3FF 50%,#F3E8FF 100%); }
-  .login-card { background:white; border-radius:var(--radius-lg); padding:48px 40px; width:100%; max-width:420px; box-shadow:var(--shadow-lg); animation:slideUp .4s ease; }
-  @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-  .login-logo { display:flex; align-items:center; gap:12px; margin-bottom:32px; }
-  .login-logo-title { font-family:'Prompt',sans-serif; font-size:20px; font-weight:600; }
+  .login-page { min-height:100vh; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle at 50% 20%, #FEF2F2 0%, #FFFBEB 45%, #F8FAFC 100%); }
+  .login-card { background:white; border-radius:var(--radius-xl); padding:44px 38px; width:100%; max-width:440px; box-shadow:var(--shadow-lg); animation:slideUp .4s ease; border:1px solid var(--gray-200); border-top:4.5px solid var(--crimson); }
+  @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  .login-logo { display:flex; align-items:center; gap:12px; margin-bottom:28px; }
+  .login-logo-title { font-family:'Prompt',sans-serif; font-size:20px; font-weight:700; color:var(--gray-900); }
   .login-logo-sub { font-size:12px; color:var(--gray-600); }
-  .login-title { font-size:24px; font-weight:600; margin-bottom:8px; }
-  .login-sub { font-size:14px; color:var(--gray-600); margin-bottom:28px; }
+  .login-title { font-size:24px; font-weight:700; margin-bottom:8px; font-family:'Prompt',sans-serif; }
+  .login-sub { font-size:14px; color:var(--gray-600); margin-bottom:24px; }
   .field { margin-bottom:18px; }
-  .field label { display:block; font-size:13px; font-weight:500; color:var(--gray-800); margin-bottom:6px; }
+  .field label { display:block; font-size:13px; font-weight:600; color:var(--gray-800); margin-bottom:6px; }
   .field input, .field textarea, .field select { width:100%; padding:10px 14px; border:1.5px solid var(--gray-200); border-radius:var(--radius); font-size:14px; font-family:'Sarabun',sans-serif; outline:none; transition:border-color .2s; background:white; color:var(--gray-900); }
-  .field input:focus, .field textarea:focus, .field select:focus { border-color:var(--blue); }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color:var(--crimson); box-shadow:0 0 0 3px rgba(153,27,27,.12); }
   .field input.error { border-color:var(--red); }
   .field textarea { resize:vertical; min-height:80px; }
   .error-msg { font-size:12px; color:var(--red); margin-top:4px; }
   .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 20px; border-radius:var(--radius); border:none; cursor:pointer; font-family:'Sarabun',sans-serif; font-size:14px; font-weight:600; transition:all .15s; white-space:nowrap; }
-  .btn-primary { background:var(--blue); color:white; width:100%; padding:12px; font-size:15px; }
-  .btn-primary:hover { background:var(--blue-dark); }
-  .btn-secondary { background:var(--gray-100); color:var(--gray-800); }
+  .btn-primary { background:linear-gradient(135deg, var(--crimson) 0%, var(--crimson-dark) 100%); color:white; width:100%; padding:12px; font-size:15px; box-shadow:0 2px 8px rgba(153,27,27,.25); }
+  .btn-primary:hover { background:var(--crimson-dark); transform:translateY(-1px); box-shadow:0 4px 12px rgba(153,27,27,.35); }
+  .btn-secondary { background:var(--gray-100); color:var(--gray-800); border:1px solid var(--gray-200); }
   .btn-secondary:hover { background:var(--gray-200); }
-  .btn-green { background:var(--green); color:white; }
-  .btn-green:hover { background:#1a7a35; }
+  .btn-gold { background:linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color:white; box-shadow:0 2px 8px rgba(217,119,6,.25); }
+  .btn-gold:hover { background:#B45309; transform:translateY(-1px); }
+  .btn-green { background:var(--green); color:white; box-shadow:0 2px 8px rgba(5,150,105,.25); }
+  .btn-green:hover { background:var(--green-dark); }
   .btn-red { background:var(--red-light); color:var(--red); }
-  .btn-red:hover { background:#f5c6c3; }
-  .btn-purple { background:var(--purple); color:white; }
-  .btn-purple:hover { background:#6d28d9; }
+  .btn-red:hover { background:#FEE2E2; }
+  .btn-purple { background:var(--crimson); color:white; }
+  .btn-purple:hover { background:var(--crimson-dark); }
   .btn-sm { padding:6px 14px; font-size:13px; }
-  .btn-icon { padding:7px; background:transparent; border:1px solid var(--gray-200); color:var(--gray-600); border-radius:6px; }
-  .btn-icon:hover { background:var(--gray-100); }
+  .btn-icon { padding:7px; background:transparent; border:1px solid rgba(255,255,255,.35); color:white; border-radius:8px; }
+  .btn-icon:hover { background:rgba(255,255,255,.15); }
   .btn:disabled { opacity:.5; cursor:not-allowed; }
-  .topbar { background:linear-gradient(135deg,#7C3AED 0%,#6D28D9 100%); border-bottom:none; display:flex; align-items:center; padding:0 24px; height:60px; position:sticky; top:0; z-index:100; box-shadow:0 2px 12px rgba(124,58,237,.3); }
-  .topbar-brand { display:flex; align-items:center; gap:10px; flex:1; }
-  .topbar-title { font-family:'Prompt',sans-serif; font-size:17px; font-weight:600; color:white; }
+  .topbar { background:linear-gradient(135deg, #7F1D1D 0%, #991B1B 55%, #B91C1C 100%); border-bottom:2.5px solid #F59E0B; display:flex; align-items:center; padding:0 24px; height:64px; position:sticky; top:0; z-index:100; box-shadow:0 4px 20px rgba(127,29,29,.22); }
+  .topbar-brand { display:flex; align-items:center; gap:12px; flex:1; }
+  .topbar-title { font-family:'Prompt',sans-serif; font-size:17px; font-weight:700; color:white; }
   .topbar-user { display:flex; align-items:center; gap:10px; }
   .role-badge { font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; }
-  .role-admin { background:var(--purple-light); color:var(--purple); }
-  .role-user { background:var(--blue-light); color:var(--blue); }
-  .main-layout { display:flex; flex:1; min-height:calc(100vh - 60px); }
-  .sidebar { width:220px; background:white; border-right:1px solid var(--gray-200); padding:16px 12px; flex-shrink:0; }
-  .sidebar-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:var(--radius); cursor:pointer; font-size:14px; font-weight:500; color:var(--gray-600); transition:all .15s; margin-bottom:2px; border:none; background:none; width:100%; text-align:left; }
+  .role-admin { background:rgba(245,158,11,.9); color:#7F1D1D; font-weight:800; box-shadow:0 2px 6px rgba(0,0,0,.15); }
+  .role-user { background:rgba(255,255,255,.2); color:white; border:1px solid rgba(255,255,255,.3); }
+  .main-layout { display:flex; flex:1; min-height:calc(100vh - 64px); }
+  .sidebar { width:230px; background:white; border-right:1px solid var(--gray-200); padding:16px 12px; flex-shrink:0; }
+  .sidebar-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:var(--radius); cursor:pointer; font-size:13.5px; font-weight:500; color:var(--gray-600); transition:all .15s; margin-bottom:2px; border:none; background:none; width:100%; text-align:left; }
   .sidebar-item:hover { background:var(--gray-100); color:var(--gray-900); }
-  .sidebar-item.active { background:var(--blue-light); color:var(--blue); font-weight:600; }
-  .sidebar-item.admin-active { background:var(--purple-light); color:var(--purple); font-weight:600; }
-  .sidebar-section { font-size:11px; font-weight:600; color:var(--gray-400); padding:8px 12px 4px; text-transform:uppercase; letter-spacing:.8px; margin-top:8px; }
+  .sidebar-item.active { background:var(--crimson-light); color:var(--crimson); font-weight:700; border-left:3.5px solid var(--crimson); }
+  .sidebar-item.admin-active { background:var(--gold-light); color:var(--gold-dark); font-weight:700; border-left:3.5px solid var(--gold); }
+  .sidebar-section { font-size:11px; font-weight:700; color:var(--gray-400); padding:10px 12px 4px; text-transform:uppercase; letter-spacing:.8px; margin-top:6px; }
   .content { flex:1; padding:28px; overflow-y:auto; }
-  .stepper { display:flex; align-items:center; margin-bottom:28px; }
-  .step-dot { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; transition:all .2s; }
+  .stepper { display:flex; align-items:center; margin-bottom:28px; background:white; padding:16px 20px; border-radius:var(--radius-lg); border:1px solid var(--gray-200); box-shadow:var(--shadow-sm); }
+  .step-dot { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; transition:all .2s; }
   .step-dot.done { background:var(--green); color:white; }
-  .step-dot.active { background:var(--blue); color:white; box-shadow:0 0 0 4px rgba(124,58,237,.2); }
+  .step-dot.active { background:var(--crimson); color:white; box-shadow:0 0 0 4px rgba(245,158,11,.35); }
   .step-dot.pending { background:var(--gray-200); color:var(--gray-600); }
-  .step-label { font-size:12px; font-weight:500; }
-  .step-label.active { color:var(--blue); font-weight:600; }
-  .step-label.done { color:var(--green); }
+  .step-label { font-size:13px; font-weight:500; font-family:'Prompt',sans-serif; }
+  .step-label.active { color:var(--crimson); font-weight:700; }
+  .step-label.done { color:var(--green); font-weight:600; }
   .step-label.pending { color:var(--gray-400); }
-  .step-line { flex:1; height:2px; background:var(--gray-200); margin:0 6px; min-width:16px; }
+  .step-line { flex:1; height:2px; background:var(--gray-200); margin:0 8px; min-width:16px; }
   .step-line.done { background:var(--green); }
   .card { background:white; border-radius:var(--radius-lg); padding:24px; box-shadow:var(--shadow-sm); border:1px solid var(--gray-200); margin-bottom:20px; }
-  .card-title { font-family:'Prompt',sans-serif; font-size:16px; font-weight:600; margin-bottom:4px; }
+  .card-title { font-family:'Prompt',sans-serif; font-size:17px; font-weight:700; color:var(--gray-900); margin-bottom:4px; }
   .card-sub { font-size:13px; color:var(--gray-600); margin-bottom:20px; }
   .header-list { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
   .header-row { display:flex; align-items:center; gap:8px; }
   .header-input { flex:1; padding:8px 12px; border:1.5px solid var(--gray-200); border-radius:var(--radius); font-size:14px; font-family:'Sarabun',sans-serif; outline:none; }
-  .header-input:focus { border-color:var(--blue); }
-  .header-badge { font-size:11px; font-weight:600; padding:3px 8px; border-radius:20px; background:var(--blue-light); color:var(--blue); cursor:pointer; white-space:nowrap; }
+  .header-input:focus { border-color:var(--crimson); }
+  .header-badge { font-size:11px; font-weight:700; padding:3px 8px; border-radius:20px; background:var(--crimson-light); color:var(--crimson); cursor:pointer; white-space:nowrap; }
   .header-badge.required { background:var(--red-light); color:var(--red); }
-  .upload-zone { border:2px dashed var(--gray-200); border-radius:var(--radius-lg); padding:40px; text-align:center; cursor:pointer; transition:all .2s; background:var(--gray-50); }
-  .upload-zone:hover { border-color:var(--blue); background:var(--blue-light); }
+  .upload-zone { border:2px dashed var(--gray-300); border-radius:var(--radius-lg); padding:36px; text-align:center; cursor:pointer; transition:all .2s; background:var(--gray-50); }
+  .upload-zone:hover { border-color:var(--crimson); background:var(--crimson-light); }
   .upload-zone.has-file { border-color:var(--green); background:var(--green-light); border-style:solid; }
-  .upload-text { font-size:15px; font-weight:500; color:var(--gray-700); margin-bottom:4px; margin-top:12px; }
+  .upload-text { font-size:15px; font-weight:600; color:var(--gray-800); margin-bottom:4px; margin-top:12px; }
   .upload-hint { font-size:13px; color:var(--gray-500); }
   .question-list { display:flex; flex-direction:column; gap:12px; }
   .question-card { border:1.5px solid var(--gray-200); border-radius:var(--radius); padding:16px; background:white; }
-  .question-card:hover { border-color:var(--blue); }
+  .question-card:hover { border-color:var(--crimson); }
   .q-header { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
-  .q-num { font-size:12px; font-weight:700; color:var(--blue); background:var(--blue-light); padding:2px 8px; border-radius:20px; white-space:nowrap; }
+  .q-num { font-size:12px; font-weight:700; color:var(--crimson); background:var(--crimson-light); padding:2px 8px; border-radius:20px; white-space:nowrap; }
   .q-text-input { flex:1; padding:8px 12px; border:1.5px solid var(--gray-200); border-radius:var(--radius); font-size:14px; font-family:'Sarabun',sans-serif; outline:none; }
-  .q-text-input:focus { border-color:var(--blue); }
+  .q-text-input:focus { border-color:var(--crimson); }
   .choices-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
   .choice-row { display:flex; align-items:center; gap:6px; }
   .choice-label { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; cursor:pointer; transition:all .15s; border:2px solid var(--gray-200); color:var(--gray-600); }
   .choice-label.correct { background:var(--green); border-color:var(--green); color:white; }
   .choice-label.wrong { background:var(--gray-100); }
   .choice-input { flex:1; padding:6px 10px; border:1.5px solid var(--gray-200); border-radius:6px; font-size:13px; font-family:'Sarabun',sans-serif; outline:none; }
-  .choice-input:focus { border-color:var(--blue); }
+  .choice-input:focus { border-color:var(--crimson); }
   .choice-input.correct { border-color:var(--green); background:var(--green-light); }
-  .result-card { background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%); border-radius:var(--radius-lg); padding:32px; color:white; text-align:center; margin-bottom:20px; animation:slideUp .4s ease; }
+  .result-card { background:linear-gradient(135deg, #7F1D1D 0%, #991B1B 100%); border-radius:var(--radius-lg); padding:32px; color:white; text-align:center; margin-bottom:20px; animation:slideUp .4s ease; border-bottom:3px solid #F59E0B; }
   .result-title { font-family:'Prompt',sans-serif; font-size:22px; font-weight:700; margin-bottom:8px; }
   .result-sub { font-size:14px; opacity:.85; margin-bottom:24px; }
   .link-box { background:white; border-radius:var(--radius); padding:14px 16px; display:flex; align-items:center; gap:10px; margin-bottom:10px; text-align:left; }
   .link-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; margin-bottom:3px; }
-  .link-label.edit { color:var(--blue); }
+  .link-label.edit { color:var(--crimson); }
   .link-label.view { color:var(--green); }
   .link-url { font-size:12px; color:var(--gray-600); font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
   .copy-btn { font-size:13px; padding:7px 14px; border-radius:6px; border:none; cursor:pointer; display:flex; align-items:center; gap:5px; font-family:'Sarabun',sans-serif; white-space:nowrap; font-weight:600; transition:opacity .15s; }
   .copy-btn:hover { opacity:.85; }
-  .copy-btn.copied { background:#1e8e3e !important; color:white !important; }
-  .loading-overlay { position:fixed; inset:0; background:rgba(255,255,255,.85); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:200; }
-  .spinner { width:48px; height:48px; border:4px solid var(--gray-200); border-top-color:var(--blue); border-radius:50%; animation:spin .8s linear infinite; margin-bottom:16px; }
+  .copy-btn.copied { background:#059669 !important; color:white !important; }
+  .loading-overlay { position:fixed; inset:0; background:rgba(255,255,255,.88); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:200; backdrop-filter:blur(3px); }
+  .spinner { width:48px; height:48px; border:4px solid var(--gray-200); border-top-color:var(--crimson); border-radius:50%; animation:spin .8s linear infinite; margin-bottom:16px; }
   @keyframes spin { to{transform:rotate(360deg)} }
-  .loading-text { font-size:15px; font-weight:500; color:var(--gray-700); }
+  .loading-text { font-size:15px; font-weight:600; color:var(--gray-800); }
   .loading-sub { font-size:13px; color:var(--gray-500); margin-top:4px; }
   .empty-state { text-align:center; padding:60px 20px; color:var(--gray-500); }
   .empty-icon { font-size:40px; margin-bottom:12px; }
   .progress-bar { height:4px; background:var(--gray-200); border-radius:2px; margin-top:8px; overflow:hidden; }
-  .progress-fill { height:100%; background:var(--blue); border-radius:2px; transition:width .3s; }
+  .progress-fill { height:100%; background:var(--crimson); border-radius:2px; transition:width .3s; }
   .nav-row { display:flex; gap:12px; align-items:center; justify-content:space-between; margin-top:8px; }
   .license-table { width:100%; border-collapse:collapse; }
   .license-table th { text-align:left; font-size:12px; font-weight:600; color:var(--gray-600); padding:8px 12px; border-bottom:2px solid var(--gray-200); }
@@ -144,29 +149,29 @@ const css = `
   .badge { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:3px 8px; border-radius:20px; }
   .badge-green { background:var(--green-light); color:var(--green); }
   .badge-red { background:var(--red-light); color:var(--red); }
-  .badge-blue { background:var(--blue-light); color:var(--blue); }
-  .badge-purple { background:var(--purple-light); color:var(--purple); }
-  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center; z-index:300; }
-  .modal { background:white; border-radius:var(--radius-lg); padding:28px; width:100%; max-width:440px; box-shadow:var(--shadow-lg); animation:slideUp .3s ease; }
-  .modal-title { font-family:'Prompt',sans-serif; font-size:18px; font-weight:600; margin-bottom:20px; }
+  .badge-blue { background:var(--crimson-light); color:var(--crimson); }
+  .badge-purple { background:var(--gold-light); color:var(--gold-dark); }
+  .modal-overlay { position:fixed; inset:0; background:rgba(15,23,42,.5); display:flex; align-items:center; justify-content:center; z-index:300; backdrop-filter:blur(4px); }
+  .modal { background:white; border-radius:var(--radius-lg); padding:28px; width:100%; max-width:440px; box-shadow:var(--shadow-lg); animation:slideUp .3s ease; border:1px solid var(--gray-200); border-top:4px solid var(--crimson); }
+  .modal-title { font-family:'Prompt',sans-serif; font-size:18px; font-weight:700; color:var(--gray-900); margin-bottom:20px; }
   .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
   .stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px; }
   .stat-card { background:white; border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-sm); border:1px solid var(--gray-200); text-align:center; }
-  .stat-number { font-family:'Prompt',sans-serif; font-size:32px; font-weight:700; margin-bottom:4px; }
+  .stat-number { font-family:'Prompt',sans-serif; font-size:32px; font-weight:700; margin-bottom:4px; color:var(--crimson); }
   .stat-label { font-size:13px; color:var(--gray-600); }
-@media (max-width:768px) {
+  @media (max-width:768px) {
     .main-layout { flex-direction:column; }
     .sidebar { width:100%; border-right:none; border-bottom:1px solid var(--gray-200); padding:8px; display:flex; flex-wrap:wrap; gap:4px; }
     .sidebar-section { display:none; }
     .sidebar-item { width:auto; padding:7px 12px; font-size:13px; }
     .content { padding:16px; }
-    .stepper { overflow-x:auto; padding-bottom:8px; }
+    .stepper { overflow-x:auto; padding:12px; }
     .step-label { display:none; }
     .stats-grid { grid-template-columns:repeat(3,1fr); gap:8px; }
     .stat-number { font-size:22px; }
     .choices-grid { grid-template-columns:1fr; }
     .login-card { padding:32px 20px; }
-    .topbar { padding:0 12px; }
+    .topbar { padding:0 14px; }
     .topbar-title { font-size:15px; }
     .license-table { font-size:12px; }
     .license-table th, .license-table td { padding:8px 6px; }
@@ -191,11 +196,11 @@ const css = `
 
 // ICONS
 const Logo = () => (
-  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-    <rect width="32" height="32" rx="8" fill="#7C3AED"/>
+  <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+    <rect width="32" height="32" rx="8" fill="#991B1B"/>
     <path d="M8 10h16M8 16h10M8 22h12" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-    <circle cx="24" cy="22" r="4" fill="#A78BFA"/>
-    <path d="M22 22l1.5 1.5L26 20" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <circle cx="24" cy="22" r="4" fill="#F59E0B"/>
+    <path d="M22 22l1.5 1.5L26 20" stroke="#7F1D1D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 const PlusIcon = () => <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>;
@@ -267,42 +272,73 @@ function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
 
   return (
     <div className="login-page">
-      {/* Decorative bg circles */}
+      {/* Decorative bg circles in red/gold soft tint */}
       <div style={{position:"fixed",inset:0,overflow:"hidden",pointerEvents:"none",zIndex:0}}>
-        <div style={{position:"absolute",top:"-8%",right:"-4%",width:420,height:420,borderRadius:"50%",background:"rgba(124,58,237,.07)"}}/>
-        <div style={{position:"absolute",bottom:"-8%",left:"-4%",width:320,height:320,borderRadius:"50%",background:"rgba(147,51,234,.05)"}}/>
-        <div style={{position:"absolute",top:"40%",left:"5%",width:180,height:180,borderRadius:"50%",background:"rgba(167,139,250,.06)"}}/>
+        <div style={{position:"absolute",top:"-10%",right:"-5%",width:480,height:480,borderRadius:"50%",background:"radial-gradient(circle, rgba(185,28,28,.09) 0%, transparent 70%)"}}/>
+        <div style={{position:"absolute",bottom:"-10%",left:"-5%",width:420,height:420,borderRadius:"50%",background:"radial-gradient(circle, rgba(245,158,11,.09) 0%, transparent 70%)"}}/>
+        <div style={{position:"absolute",top:"35%",left:"8%",width:240,height:240,borderRadius:"50%",background:"rgba(254,243,199,.35)"}}/>
       </div>
 
-      <div className="login-card" style={{position:"relative",zIndex:1}}>
-        {/* Brand */}
-        <div style={{textAlign:"center",marginBottom:24}}>
-          <div style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:72,height:72,background:"linear-gradient(135deg,#7C3AED 0%,#9333EA 100%)",borderRadius:20,marginBottom:14,boxShadow:"0 8px 28px rgba(124,58,237,.35)"}}>
-            <svg width="38" height="38" viewBox="0 0 32 32" fill="none">
-              <path d="M8 10h16M8 16h10M8 22h12" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-              <circle cx="24" cy="22" r="4" fill="#A78BFA"/>
-              <path d="M22 22l1.5 1.5L26 20" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+      <div className="login-card" style={{position:"relative",zIndex:1,maxWidth:440}}>
+        {/* School Logo & Brand */}
+        <div style={{textAlign:"center",marginBottom:20}}>
+          <img
+            src="/school-logo.png"
+            alt="ตราโรงเรียนวังหลวงพิทยาสรรพ์"
+            style={{
+              height: 84,
+              width: "auto",
+              objectFit: "contain",
+              marginBottom: 10,
+              filter: "drop-shadow(0 4px 10px rgba(153,27,27,.2))"
+            }}
+          />
+          <div style={{fontSize: 12, fontWeight: 700, color: "var(--crimson)", letterSpacing: "1px", textTransform: "uppercase"}}>
+            โรงเรียนวังหลวงพิทยาสรรพ์
           </div>
-          <div style={{fontFamily:"'Prompt',sans-serif",fontSize:28,fontWeight:700,color:"var(--gray-900)",lineHeight:1.2}}>FormAuto</div>
-          <div style={{fontSize:14,color:"var(--gray-500)",marginTop:6}}>สร้าง Google Form ข้อสอบ ใน 1 นาที</div>
+          <div style={{fontFamily:"'Prompt',sans-serif",fontSize:26,fontWeight:800,color:"var(--gray-900)",lineHeight:1.2,marginTop:2}}>
+            FormAuto
+          </div>
+          <div style={{fontSize:13.5,color:"var(--gray-600)",marginTop:4}}>
+            ระบบสร้างและวิเคราะห์ข้อสอบออนไลน์
+          </div>
         </div>
 
         {/* Feature chips */}
-        <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:28,flexWrap:"wrap"}}>
-          <span style={{fontSize:11,background:"var(--blue-light)",color:"var(--blue)",padding:"4px 11px",borderRadius:20,fontWeight:600}}>⚡ AI อ่านข้อสอบ</span>
-          <span style={{fontSize:11,background:"var(--green-light)",color:"var(--green)",padding:"4px 11px",borderRadius:20,fontWeight:600}}>✅ มีเฉลยอัตโนมัติ</span>
-          <span style={{fontSize:11,background:"var(--purple-light)",color:"var(--purple)",padding:"4px 11px",borderRadius:20,fontWeight:600}}>📋 .docx .pdf .txt</span>
+        <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:22,flexWrap:"wrap"}}>
+          <span style={{fontSize:11,background:"var(--crimson-light)",color:"var(--crimson)",border:"1px solid var(--crimson-light)",padding:"3px 10px",borderRadius:20,fontWeight:600}}>⚡ AI ช่วยคิดข้อสอบ</span>
+          <span style={{fontSize:11,background:"var(--gold-light)",color:"var(--gold-dark)",border:"1px solid var(--gold-light)",padding:"3px 10px",borderRadius:20,fontWeight:600}}>🏫 แยกห้อง & เรียงเลขที่</span>
+          <span style={{fontSize:11,background:"var(--green-light)",color:"var(--green)",border:"1px solid var(--green-light)",padding:"3px 10px",borderRadius:20,fontWeight:600}}>📊 สรุปคะแนนสด</span>
         </div>
 
         {/* Google Login for Teachers */}
-        <button className="btn btn-secondary" onClick={handleGoogleLogin} disabled={loading}
-          style={{borderRadius:12,fontSize:15,padding:"13px",marginBottom:16,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:"white",border:"1.5px solid var(--gray-200)"}}>
+        <button
+          className="btn"
+          onClick={handleGoogleLogin}
+          disabled={loading}
+          style={{
+            borderRadius: 12,
+            fontSize: 14.5,
+            padding: "13px 16px",
+            marginBottom: 16,
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+            background: "white",
+            border: "1.5px solid var(--gray-300)",
+            color: "var(--gray-800)",
+            fontWeight: 600,
+            boxShadow: "0 2px 6px rgba(0,0,0,0.04)",
+            cursor: "pointer",
+            transition: "all .2s"
+          }}>
           <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-          เข้าสู่ระบบด้วยอีเมลโรงเรียน
+          เข้าสู่ระบบด้วยอีเมลโรงเรียน (@wangluangpitt.ac.th)
         </button>
 
-        <div style={{display:"flex",alignItems:"center",margin:"20px 0",color:"var(--gray-400)",fontSize:13}}>
+        <div style={{display:"flex",alignItems:"center",margin:"18px 0",color:"var(--gray-400)",fontSize:13}}>
           <div style={{flex:1,height:1,background:"var(--gray-200)"}}></div>
           <span style={{padding:"0 10px"}}>หรือใช้ License Key</span>
           <div style={{flex:1,height:1,background:"var(--gray-200)"}}></div>
@@ -1319,7 +1355,11 @@ function matchRoom(item: any, grade: string, room: string) {
 }
 
 // ============ EXAM SCORE DASHBOARD (IN-APP) ============
-function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void }) {
+function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => void; user?: any }) {
+  const isSchoolUser = user?.is_google ||
+    (user?.email && user.email.toLowerCase().endsWith("@wangluangpitt.ac.th")) ||
+    (typeof user?.key === "string" && user.key.toLowerCase().endsWith("@wangluangpitt.ac.th")) ||
+    user?.role === "admin";
   const [activeTab, setActiveTab] = useState<"overview" | "students" | "sheet">("overview");
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -1546,8 +1586,9 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
                     minWidth: 26,
                     padding: "2px 8px",
                     borderRadius: 12,
-                    background: "#EEF2FF",
-                    color: "#4338CA",
+                    background: "var(--amber-100)",
+                    color: "var(--amber-800)",
+                    border: "1px solid var(--amber-200)",
                     fontWeight: 700,
                     fontSize: 12
                   }}>
@@ -1626,20 +1667,39 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
           </div>
         </div>
 
-        <div style={{display: "flex", alignItems: "flex-start", gap: 12}}>
-          <div style={{
-            background: "#E6F4EA",
-            color: "#0F9D58",
-            borderRadius: 12,
-            padding: "10px 14px",
-            fontSize: 24,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center"
-          }}>
-            📊
-          </div>
+        <div style={{display: "flex", alignItems: "center", gap: 14}}>
+          {isSchoolUser ? (
+            <img
+              src="/school-logo.png"
+              alt="ตราโรงเรียนวังหลวงพิทยาสรรพ์"
+              style={{
+                width: 48,
+                height: 48,
+                objectFit: "contain",
+                filter: "drop-shadow(0 2px 6px rgba(245,158,11,.35))"
+              }}
+            />
+          ) : (
+            <div style={{
+              background: "var(--crimson-light)",
+              color: "var(--crimson)",
+              borderRadius: 12,
+              padding: "10px 14px",
+              fontSize: 24,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}>
+              📊
+            </div>
+          )}
           <div style={{flex: 1}}>
+            {isSchoolUser && (
+              <div style={{fontSize: 12, fontWeight: 700, color: "var(--crimson)", display: "flex", alignItems: "center", gap: 6, marginBottom: 2}}>
+                <span>🏫 โรงเรียนวังหลวงพิทยาสรรพ์</span>
+                <span style={{background: "var(--amber-100)", color: "var(--amber-800)", padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 800}}>ว.พ.</span>
+              </div>
+            )}
             <h2 style={{margin: 0, fontSize: 20, fontWeight: 700, color: "var(--gray-900)"}}>
               {exam.form_title}
             </h2>
@@ -1668,16 +1728,16 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
               style={{
                 background: "transparent",
                 border: "none",
-                borderBottom: activeTab === t.id ? "3px solid #0F9D58" : "3px solid transparent",
+                borderBottom: activeTab === t.id ? "3px solid var(--crimson)" : "3px solid transparent",
                 padding: "8px 16px",
                 fontSize: 14,
                 fontWeight: activeTab === t.id ? 700 : 500,
-                color: activeTab === t.id ? "#0F9D58" : "var(--gray-600)",
+                color: activeTab === t.id ? "var(--crimson)" : "var(--gray-600)",
                 cursor: "pointer",
                 transition: "all .2s"
               }}>
               {t.label} {t.count !== null && <span style={{
-                background: activeTab === t.id ? "#0F9D58" : "var(--gray-200)",
+                background: activeTab === t.id ? "var(--crimson)" : "var(--gray-200)",
                 color: activeTab === t.id ? "white" : "var(--gray-700)",
                 padding: "2px 8px",
                 borderRadius: 12,
@@ -1706,12 +1766,12 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
             <>
               {/* 4 Hero KPI Cards */}
               <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 20}}>
-                <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #2563EB", background: "linear-gradient(135deg, #FFFFFF 0%, #F0F7FF 100%)"}}>
+                <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid var(--crimson)", background: "linear-gradient(135deg, #FFFFFF 0%, #FEF2F2 100%)"}}>
                   <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8}}>
                     <span style={{fontSize: 13, fontWeight: 600, color: "var(--gray-600)"}}>👥 ส่งข้อสอบแล้ว</span>
                     <span style={{fontSize: 20}}>📝</span>
                   </div>
-                  <div style={{fontSize: 26, fontWeight: 800, color: "#1E3A8A"}}>
+                  <div style={{fontSize: 26, fontWeight: 800, color: "var(--crimson)"}}>
                     {stats?.totalStudents || `${rawStudents.length} คน`}
                   </div>
                   <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
@@ -1719,12 +1779,12 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
                   </div>
                 </div>
 
-                <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #0F9D58", background: "linear-gradient(135deg, #FFFFFF 0%, #F0FDF4 100%)"}}>
+                <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid var(--amber)", background: "linear-gradient(135deg, #FFFFFF 0%, #FFFBEB 100%)"}}>
                   <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8}}>
                     <span style={{fontSize: 13, fontWeight: 600, color: "var(--gray-600)"}}>📈 คะแนนเฉลี่ย (Mean)</span>
                     <span style={{fontSize: 20}}>🎯</span>
                   </div>
-                  <div style={{fontSize: 26, fontWeight: 800, color: "#0F9D58"}}>
+                  <div style={{fontSize: 26, fontWeight: 800, color: "var(--amber-800)"}}>
                     {stats?.average || "-"}
                   </div>
                   <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
@@ -1732,12 +1792,12 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
                   </div>
                 </div>
 
-                <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #F59E0B", background: "linear-gradient(135deg, #FFFFFF 0%, #FEFCE8 100%)"}}>
+                <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid var(--amber-dark)", background: "linear-gradient(135deg, #FFFFFF 0%, #FEF3C7 100%)"}}>
                   <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8}}>
                     <span style={{fontSize: 13, fontWeight: 600, color: "var(--gray-600)"}}>🏆 สูงสุด / ต่ำสุด</span>
                     <span style={{fontSize: 20}}>🥇</span>
                   </div>
-                  <div style={{fontSize: 22, fontWeight: 800, color: "#D97706"}}>
+                  <div style={{fontSize: 22, fontWeight: 800, color: "var(--amber-900)"}}>
                     {stats?.maxScore || "-"} / {stats?.minScore || "-"}
                   </div>
                   <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
@@ -1745,12 +1805,12 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
                   </div>
                 </div>
 
-                <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #8B5CF6", background: "linear-gradient(135deg, #FFFFFF 0%, #F5F3FF 100%)"}}>
+                <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #059669", background: "linear-gradient(135deg, #FFFFFF 0%, #F0FDF4 100%)"}}>
                   <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8}}>
                     <span style={{fontSize: 13, fontWeight: 600, color: "var(--gray-600)"}}>📊 อัตราการสอบผ่าน</span>
                     <span style={{fontSize: 20}}>🏅</span>
                   </div>
-                  <div style={{fontSize: 26, fontWeight: 800, color: "#6D28D9"}}>
+                  <div style={{fontSize: 26, fontWeight: 800, color: "#047857"}}>
                     {stats?.passRate || "0%"}
                   </div>
                   <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
@@ -1868,9 +1928,9 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
                 style={{
                   padding: "7px 14px",
                   borderRadius: 20,
-                  border: roomFilter === "all" ? "2px solid #0F9D58" : "1px solid var(--gray-200)",
-                  background: roomFilter === "all" ? "#E6F4EA" : "white",
-                  color: roomFilter === "all" ? "#0F9D58" : "var(--gray-700)",
+                  border: roomFilter === "all" ? "2px solid var(--crimson)" : "1px solid var(--gray-200)",
+                  background: roomFilter === "all" ? "var(--crimson-light)" : "white",
+                  color: roomFilter === "all" ? "var(--crimson)" : "var(--gray-700)",
                   fontWeight: roomFilter === "all" ? 700 : 500,
                   fontSize: 13,
                   cursor: "pointer",
@@ -1881,7 +1941,7 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
                 }}>
                 🏫 ทุกห้องเรียน
                 <span style={{
-                  background: roomFilter === "all" ? "#0F9D58" : "var(--gray-100)",
+                  background: roomFilter === "all" ? "var(--crimson)" : "var(--gray-100)",
                   color: roomFilter === "all" ? "white" : "var(--gray-600)",
                   padding: "1px 7px",
                   borderRadius: 10,
@@ -1902,9 +1962,9 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
                     style={{
                       padding: "7px 14px",
                       borderRadius: 20,
-                      border: isSelected ? "2px solid #2563EB" : "1px solid var(--gray-200)",
-                      background: isSelected ? "#EFF6FF" : "white",
-                      color: isSelected ? "#2563EB" : "var(--gray-700)",
+                      border: isSelected ? "2px solid var(--crimson)" : "1px solid var(--gray-200)",
+                      background: isSelected ? "var(--crimson-light)" : "white",
+                      color: isSelected ? "var(--crimson)" : "var(--gray-700)",
                       fontWeight: isSelected ? 700 : 500,
                       fontSize: 13,
                       cursor: "pointer",
@@ -1915,7 +1975,7 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
                     }}>
                     🚪 {rm}
                     <span style={{
-                      background: isSelected ? "#2563EB" : "var(--gray-100)",
+                      background: isSelected ? "var(--crimson)" : "var(--gray-100)",
                       color: isSelected ? "white" : "var(--gray-600)",
                       padding: "1px 7px",
                       borderRadius: 10,
@@ -1957,9 +2017,9 @@ function ExamScoreDashboard({ exam, onBack }: { exam: any; onBack: () => void })
                       flexWrap: "wrap",
                       gap: 8
                     }}>
-                      <div style={{fontWeight: 700, fontSize: 14, color: "#1E3A8A", display: "flex", alignItems: "center", gap: 8}}>
+                      <div style={{fontWeight: 700, fontSize: 14, color: "var(--crimson)", display: "flex", alignItems: "center", gap: 8}}>
                         <span>🏫 {rm}</span>
-                        <span style={{fontSize: 12, fontWeight: 500, color: "var(--gray-600)", background: "#E2E8F0", padding: "2px 8px", borderRadius: 10}}>
+                        <span style={{fontSize: 12, fontWeight: 500, color: "var(--crimson)", background: "var(--crimson-light)", padding: "2px 8px", borderRadius: 10}}>
                           {roomStudents.length} คน (เรียงตามเลขที่)
                         </span>
                       </div>
@@ -2050,7 +2110,7 @@ function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSel
   useEffect(() => { fetchHistory(); }, []);
 
   if (viewingExam) {
-    return <ExamScoreDashboard exam={viewingExam} onBack={() => setViewingExam(null)} />;
+    return <ExamScoreDashboard exam={viewingExam} onBack={() => setViewingExam(null)} user={user} />;
   }
 
   const copy = (k: string, val: string) => {
@@ -2081,12 +2141,13 @@ function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSel
     <div>
       {/* Top Banner */}
       <div style={{
-        background: "linear-gradient(135deg, #0F9D58 0%, #0B8043 100%)",
+        background: "linear-gradient(135deg, #7F1D1D 0%, #991B1B 55%, #B91C1C 100%)",
+        borderBottom: "2.5px solid #F59E0B",
         borderRadius: "var(--radius-lg)",
         padding: "24px 28px",
         color: "white",
         marginBottom: 20,
-        boxShadow: "0 4px 16px rgba(15,157,88,.25)",
+        boxShadow: "0 4px 18px rgba(127,29,29,.22)",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
@@ -2095,23 +2156,23 @@ function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSel
       }}>
         <div>
           <div style={{display:"flex", alignItems:"center", gap:10, marginBottom: 6}}>
-            <div style={{background:"rgba(255,255,255,.2)", borderRadius:8, padding:6, display:"flex", alignItems:"center", justifyContent:"center"}}>
+            <div style={{background:"rgba(255,255,255,.18)", borderRadius:10, padding:"6px 8px", display:"flex", alignItems:"center", justifyContent:"center"}}>
               <SheetIcon />
             </div>
             <h2 style={{fontFamily:"'Prompt',sans-serif", fontSize:22, fontWeight:700, margin:0}}>
-              📊 ผลการสอบ & ชีตคะแนน (Google Sheets)
+              📊 ผลการสอบ & ชีตคะแนน โรงเรียนวังหลวงพิทยาสรรพ์
             </h2>
           </div>
-          <p style={{fontSize:14, opacity:.9, margin:0, maxWidth:600}}>
+          <p style={{fontSize:14, opacity:.9, margin:0, maxWidth:640}}>
             ชีตคะแนนและคำตอบของนักเรียนจะซิงค์อัตโนมัติแบบเรียลไทม์ คุณครูสามารถเลือกดูตามระดับชั้นและห้องเรียนจากแถบเมนูด้านซ้ายได้ทันที
           </p>
         </div>
         <div style={{display:"flex", gap:12, alignItems:"center"}}>
-          <div style={{background:"rgba(255,255,255,.18)", borderRadius:12, padding:"10px 18px", textAlign:"center"}}>
-            <div style={{fontSize:20, fontWeight:700}}>{filtered.length}</div>
-            <div style={{fontSize:11, opacity:.85}}>แสดง {filtered.length}/{history.length} ชีต</div>
+          <div style={{background:"rgba(255,255,255,.16)", border:"1px solid rgba(255,255,255,.25)", borderRadius:12, padding:"10px 18px", textAlign:"center"}}>
+            <div style={{fontSize:22, fontWeight:800, color:"#FEF3C7"}}>{filtered.length}</div>
+            <div style={{fontSize:11, opacity:.9}}>แสดง {filtered.length}/{history.length} ชีต</div>
           </div>
-          <button className="btn btn-sm" onClick={fetchHistory} style={{background:"white", color:"#0F9D58", fontWeight:600}}>
+          <button className="btn btn-sm" onClick={fetchHistory} style={{background:"white", color:"var(--crimson)", fontWeight:700, boxShadow:"0 2px 6px rgba(0,0,0,0.1)"}}>
             <RefreshIcon /> รีเฟรช
           </button>
         </div>
@@ -2121,13 +2182,21 @@ function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSel
       <div className="card" style={{padding: "16px 20px", marginBottom: 16}}>
         <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10, marginBottom: selectedGrade !== "all" ? 12 : 0}}>
           <div style={{display:"flex", alignItems:"center", gap:8, flexWrap:"wrap"}}>
-            <span style={{fontSize:13, fontWeight:700, color:"var(--gray-700)"}}>🏫 ระดับชั้น:</span>
+            <span style={{fontSize:13, fontWeight:700, color:"var(--gray-800)"}}>🏫 ระดับชั้น:</span>
             {gradeList.map(g => (
               <button
                 key={g.id}
                 type="button"
-                className={`btn btn-sm ${selectedGrade === g.id ? "btn-green" : "btn-secondary"}`}
-                style={{fontSize: 12, padding: "4px 12px", borderRadius: 20}}
+                className="btn btn-sm"
+                style={{
+                  fontSize: 12,
+                  padding: "5px 14px",
+                  borderRadius: 20,
+                  background: selectedGrade === g.id ? "var(--crimson)" : "var(--gray-100)",
+                  color: selectedGrade === g.id ? "white" : "var(--gray-700)",
+                  border: selectedGrade === g.id ? "1.5px solid var(--crimson-dark)" : "1px solid var(--gray-200)",
+                  fontWeight: selectedGrade === g.id ? 700 : 500
+                }}
                 onClick={() => {
                   setSelectedGrade(g.id);
                   setSelectedRoom("all");
@@ -2154,11 +2223,19 @@ function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSel
         {/* Room sub-filter when a grade is selected */}
         {selectedGrade !== "all" && (
           <div style={{display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", paddingTop: 10, borderTop: "1px dashed var(--gray-200)"}}>
-            <span style={{fontSize:12, fontWeight:600, color:"#0F9D58"}}>📍 ห้องเรียน:</span>
+            <span style={{fontSize:12, fontWeight:700, color:"var(--crimson)"}}>📍 ห้องเรียน:</span>
             <button
               type="button"
-              className={`btn btn-sm ${selectedRoom === "all" ? "btn-green" : "btn-secondary"}`}
-              style={{fontSize: 11, padding: "3px 10px", borderRadius: 16}}
+              className="btn btn-sm"
+              style={{
+                fontSize: 11.5,
+                padding: "3px 12px",
+                borderRadius: 16,
+                background: selectedRoom === "all" ? "var(--crimson)" : "var(--gray-100)",
+                color: selectedRoom === "all" ? "white" : "var(--gray-700)",
+                border: selectedRoom === "all" ? "1px solid var(--crimson)" : "1px solid var(--gray-200)",
+                fontWeight: selectedRoom === "all" ? 700 : 500
+              }}
               onClick={() => setSelectedRoom("all")}>
               ทุกห้อง ({selectedGrade.replace("m", "ม.")})
             </button>
@@ -2166,8 +2243,16 @@ function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSel
               <button
                 key={r}
                 type="button"
-                className={`btn btn-sm ${selectedRoom === r ? "btn-green" : "btn-secondary"}`}
-                style={{fontSize: 11, padding: "3px 10px", borderRadius: 16}}
+                className="btn btn-sm"
+                style={{
+                  fontSize: 11.5,
+                  padding: "3px 12px",
+                  borderRadius: 16,
+                  background: selectedRoom === r ? "var(--crimson)" : "var(--gray-100)",
+                  color: selectedRoom === r ? "white" : "var(--gray-700)",
+                  border: selectedRoom === r ? "1px solid var(--crimson)" : "1px solid var(--gray-200)",
+                  fontWeight: selectedRoom === r ? 700 : 500
+                }}
                 onClick={() => setSelectedRoom(r)}>
                 {r}
               </button>
@@ -2223,11 +2308,11 @@ function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSel
       ) : (
         <div style={{display:"grid", gap:16}}>
           {filtered.map((item, idx) => (
-            <div key={item.id} className="card" style={{margin:0, borderLeft:"5px solid #0F9D58"}}>
+            <div key={item.id} className="card" style={{margin:0, borderLeft:"5px solid var(--crimson)"}}>
               <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12}}>
                 <div style={{flex:1, minWidth:260}}>
                   <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:4, flexWrap:"wrap"}}>
-                    <span style={{fontSize:12, fontWeight:700, color:"#0F9D58", background:"#E6F4EA", padding:"2px 8px", borderRadius:20}}>
+                    <span style={{fontSize:12, fontWeight:700, color:"var(--crimson)", background:"var(--crimson-light)", padding:"2px 8px", borderRadius:20}}>
                       #{filtered.length - idx}
                     </span>
                     <span style={{fontSize:16, fontWeight:700, color:"var(--gray-900)"}}>
@@ -2257,12 +2342,12 @@ function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSel
                         className="btn"
                         onClick={() => setViewingExam(item)}
                         style={{
-                          background:"#0F9D58",
+                          background:"linear-gradient(135deg, #991B1B 0%, #B91C1C 100%)",
                           color:"white",
                           fontWeight:700,
-                          fontSize:14,
+                          fontSize:13.5,
                           padding:"9px 18px",
-                          boxShadow:"0 2px 8px rgba(15,157,88,.25)"
+                          boxShadow:"0 2px 8px rgba(153,27,27,.25)"
                         }}>
                         📊 ดูสรุปคะแนนในระบบ
                       </button>
@@ -2278,7 +2363,7 @@ function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSel
                     <div style={{fontSize:12, color:"var(--gray-500)", textAlign:"right"}}>
                       <span>⚠️ ฟอร์มนี้สร้างก่อนระบบเชื่อมต่อชีต</span>
                       <br/>
-                      <a href={item.edit_url} target="_blank" rel="noreferrer" style={{color:"var(--blue)", textDecoration:"underline"}}>
+                      <a href={item.edit_url} target="_blank" rel="noreferrer" style={{color:"var(--crimson)", textDecoration:"underline"}}>
                         คลิกที่นี่เพื่อไปดูคะแนนใน Google Form
                       </a>
                     </div>
@@ -2354,11 +2439,11 @@ function ResultView({ result, onReset, userRole, usageCount, dailyLimit }: any) 
       </div>
 
       {userRole !== "admin" && (
-        <div style={{marginTop:16,background:"linear-gradient(135deg,#7C3AED 0%,#9333EA 100%)",borderRadius:16,padding:"24px",color:"white",textAlign:"center"}}>
-          <div style={{fontSize:16,fontWeight:700,marginBottom:6}}>🔥 ปลดล็อก Pro</div>
-          <div style={{fontSize:13,opacity:.85,marginBottom:4}}>อ่านไฟล์ข้อสอบวันนี้ <strong>{usageCount}/{dailyLimit??10}</strong> ครั้ง</div>
-          <div style={{fontSize:13,opacity:.75,marginBottom:16}}>อัปเกรด → สร้างได้ไม่จำกัด • ไม่มีวันหมดอายุ</div>
-          <button className="btn" style={{background:"white",color:"#7C3AED",fontWeight:700,borderRadius:20,padding:"10px 28px",fontSize:14}}>
+        <div style={{marginTop:16,background:"linear-gradient(135deg, #7F1D1D 0%, #991B1B 50%, #B91C1C 100%)",border:"1.5px solid #F59E0B",borderRadius:16,padding:"24px",color:"white",textAlign:"center",boxShadow:"0 4px 16px rgba(127,29,29,.22)"}}>
+          <div style={{fontSize:16,fontWeight:700,marginBottom:6,color:"#FEF3C7"}}>🔥 ปลดล็อก Pro</div>
+          <div style={{fontSize:13,opacity:.9,marginBottom:4}}>อ่านไฟล์ข้อสอบวันนี้ <strong>{usageCount}/{dailyLimit??10}</strong> ครั้ง</div>
+          <div style={{fontSize:13,opacity:.8,marginBottom:16}}>อัปเกรด → สร้างได้ไม่จำกัด • ไม่มีวันหมดอายุ</div>
+          <button className="btn" style={{background:"white",color:"var(--crimson)",fontWeight:700,borderRadius:20,padding:"10px 28px",fontSize:14}}>
             ✨ อัปเกรด Pro
           </button>
         </div>
@@ -2499,6 +2584,8 @@ export default function App() {
 
   if (!user) return <><style>{css}</style><LoginPage onLogin={handleLogin}/></>;
 
+  const isSchoolUser = user?.is_google || (user?.email && user.email.toLowerCase().endsWith("@wangluangpitt.ac.th")) || (typeof user?.key === "string" && user.key.toLowerCase().endsWith("@wangluangpitt.ac.th")) || user?.role === "admin";
+
   return (
     <>
       <style>{css}</style>
@@ -2511,11 +2598,56 @@ export default function App() {
           </div>
         )}
         <div className="topbar">
-          <div className="topbar-brand"><Logo /><span className="topbar-title">FormAuto</span></div>
+          <div className="topbar-brand">
+            {isSchoolUser ? (
+              <img
+                src="/school-logo.png"
+                alt="ตราโรงเรียนวังหลวงพิทยาสรรพ์"
+                style={{
+                  height: 42,
+                  width: "auto",
+                  objectFit: "contain",
+                  filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.3))"
+                }}
+              />
+            ) : (
+              <Logo />
+            )}
+            <div style={{lineHeight: 1.2}}>
+              <div style={{
+                fontFamily: "'Prompt', sans-serif",
+                fontSize: 16,
+                fontWeight: 700,
+                color: "white",
+                display: "flex",
+                alignItems: "center",
+                gap: 8
+              }}>
+                {isSchoolUser ? "โรงเรียนวังหลวงพิทยาสรรพ์" : "FormAuto"}
+                {isSchoolUser && (
+                  <span style={{
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    background: "rgba(245, 158, 11, 0.25)",
+                    color: "#FEF3C7",
+                    border: "1px solid rgba(245, 158, 11, 0.5)",
+                    padding: "1px 8px",
+                    borderRadius: 12,
+                    letterSpacing: "0.5px"
+                  }}>
+                    ว.พ.
+                  </span>
+                )}
+              </div>
+              <div style={{fontSize: 11.5, color: "rgba(255, 255, 255, 0.85)", fontWeight: 400}}>
+                {isSchoolUser ? "FormAuto • ระบบสร้างและวิเคราะห์ข้อสอบออนไลน์" : "ระบบสร้าง Google Form ข้อสอบอัตโนมัติ"}
+              </div>
+            </div>
+          </div>
           <div className="topbar-user">
-            {user.is_google ? (
-              <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,.2)",borderRadius:20,padding:"4px 12px"}}>
-                <span style={{fontSize:12,fontWeight:600,color:"white"}}>✨ ใช้งานไม่จำกัด</span>
+            {isSchoolUser ? (
+              <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,.18)",borderRadius:20,padding:"4px 12px",border:"1px solid rgba(255,255,255,.25)"}}>
+                <span style={{fontSize:12,fontWeight:600,color:"#FEF3C7"}}>✨ ใช้งานไม่จำกัด</span>
               </div>
             ) : user.role !== "admin" && (
               <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,.15)",borderRadius:20,padding:"4px 12px"}}>
@@ -2526,15 +2658,34 @@ export default function App() {
                 </div>
               </div>
             )}
-            <span className={`role-badge ${user.role==="admin"?"role-admin":"role-user"}`} style={user.role==="admin" ? undefined : user.is_google ? {background:"rgba(255,255,255,.2)",color:"white"} : undefined}>
-              {user.role==="admin" ? "👑 Admin" : user.is_google ? "🏫 คุณครู ว.พ." : "👤 User"}
+            <span className={`role-badge ${user.role==="admin"?"role-admin":"role-user"}`}>
+              {user.role==="admin" ? "👑 Admin" : isSchoolUser ? "🏫 คุณครู ว.พ." : "👤 User"}
             </span>
-            <button className="btn btn-icon" style={{borderColor:"rgba(255,255,255,.3)",color:"white"}} onClick={handleLogout}><LogoutIcon /></button>
+            <button className="btn btn-icon" onClick={handleLogout} title="ออกจากระบบ"><LogoutIcon /></button>
           </div>
         </div>
 
         <div className="main-layout">
           <div className="sidebar">
+            {isSchoolUser && (
+              <div style={{
+                background: "linear-gradient(135deg, #FEF2F2 0%, #FFFBEB 100%)",
+                border: "1px solid #FEE2E2",
+                borderRadius: "var(--radius)",
+                padding: "10px 12px",
+                marginBottom: 14,
+                display: "flex",
+                alignItems: "center",
+                gap: 10
+              }}>
+                <img src="/school-logo.png" alt="Logo" style={{height: 36, width: "auto", objectFit: "contain"}} />
+                <div style={{fontSize: 12, lineHeight: 1.25}}>
+                  <div style={{fontWeight: 700, color: "var(--crimson)"}}>วังหลวงพิทยาสรรพ์</div>
+                  <div style={{color: "var(--gray-600)", fontSize: 11}}>สพม.ร้อยเอ็ด</div>
+                </div>
+              </div>
+            )}
+
             <button className={`sidebar-item ${tab==="create"?"active":""}`} onClick={() => { setTab("create"); }}>
               <FormIcon /> สร้างข้อสอบใหม่
             </button>
@@ -2543,7 +2694,7 @@ export default function App() {
               <button
                 className={`sidebar-item ${tab==="sheets"?"active":""}`}
                 onClick={() => { setTab("sheets"); setSelectedGrade("all"); setSelectedRoom("all"); }}
-                style={tab==="sheets"?{background:"#E6F4EA",color:"#0F9D58",fontWeight:600}:{}}>
+                style={tab==="sheets"?{background:"var(--crimson-light)",color:"var(--crimson)",fontWeight:700}:{}}>
                 <SheetIcon /> 📊 ผลการสอบ & ชีตคะแนน
               </button>
 
@@ -2551,7 +2702,7 @@ export default function App() {
               <div style={{
                 marginLeft: 10,
                 paddingLeft: 8,
-                borderLeft: "2px solid #A7F3D0",
+                borderLeft: "2.5px solid #FCA5A5",
                 marginTop: 4,
                 marginBottom: 6,
                 display: "flex",
@@ -2581,8 +2732,8 @@ export default function App() {
                         fontSize: "12px",
                         borderRadius: "6px",
                         margin: 0,
-                        background: isSelected ? "#E6F4EA" : "transparent",
-                        color: isSelected ? "#0F9D58" : "var(--gray-600)",
+                        background: isSelected ? "var(--crimson-light)" : "transparent",
+                        color: isSelected ? "var(--crimson)" : "var(--gray-600)",
                         fontWeight: isSelected ? 700 : 500,
                         display: "flex",
                         alignItems: "center",
@@ -2594,7 +2745,7 @@ export default function App() {
                         setSelectedRoom("all");
                       }}>
                       <span>{g.label}</span>
-                      {isSelected && <span style={{fontSize: 9, color: "#0F9D58"}}>●</span>}
+                      {isSelected && <span style={{fontSize: 9, color: "var(--crimson)"}}>●</span>}
                     </button>
                   );
                 })}
@@ -2602,7 +2753,7 @@ export default function App() {
                 {/* Specific Room Dropdown inside Left Sidebar */}
                 {selectedGrade !== "all" && (
                   <div style={{marginTop: 4, padding: "4px 2px"}}>
-                    <div style={{fontSize: 10.5, fontWeight: 600, color: "#0F9D58", marginBottom: 3}}>
+                    <div style={{fontSize: 10.5, fontWeight: 600, color: "var(--crimson)", marginBottom: 3}}>
                       📍 เลือกห้องเฉพาะ:
                     </div>
                     <select
@@ -2615,10 +2766,10 @@ export default function App() {
                         width: "100%",
                         padding: "5px 6px",
                         borderRadius: "6px",
-                        border: "1.5px solid #0F9D58",
+                        border: "1.5px solid var(--crimson)",
                         fontSize: "11.5px",
                         background: "white",
-                        color: "#0F9D58",
+                        color: "var(--crimson)",
                         fontWeight: 600,
                         outline: "none"
                       }}>

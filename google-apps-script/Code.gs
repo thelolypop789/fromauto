@@ -131,7 +131,7 @@ function doPost(e) {
 
       // Helper column Z สำหรับสกัดคะแนนตัวเลขจากข้อความดิบ เช่น "8 / 10" -> 8
       summarySheet.getRange("Z1").setValue("คะแนนตัวเลข (ระบบ)");
-      summarySheet.getRange("Z2").setFormula("=ARRAYFORMULA(IF('ผลการสอบรายบุคคล'!A2:A=\"\", \"\", IFERROR(VALUE(REGEXEXTRACT('ผลการสอบรายบุคคล'!B2:B&\"\", \"^[0-9]+\")), 0)))");
+      summarySheet.getRange("Z2").setFormula("=ARRAYFORMULA(IF('ผลการสอบรายบุคคล'!B2:B=\"\", \"\", IFERROR(VALUE(LEFT('ผลการสอบรายบุคคล'!B2:B, FIND(\"/\", 'ผลการสอบรายบุคคล'!B2:B) - 1)), 0)))");
       summarySheet.hideColumns(26);
 
       // การ์ดสถิติภาพรวม
@@ -146,14 +146,14 @@ function doPost(e) {
       summarySheet.setRowHeight(4, 30);
 
       var statLabels = [
-        ["👥 จำนวนนักเรียนที่ส่งข้อสอบ", "=COUNTA('ผลการสอบรายบุคคล'!A2:A) & \" คน\""],
+        ["👥 จำนวนนักเรียนที่ส่งข้อสอบ", "=COUNTIF('ผลการสอบรายบุคคล'!B2:B, \"*/*\") & \" คน\""],
         ["🎯 คะแนนเต็ม", totalQ + " คะแนน"],
-        ["📈 คะแนนเฉลี่ย (Mean)", "=IF(COUNTA('ผลการสอบรายบุคคล'!A2:A)=0, \"-\", ROUND(AVERAGE(Z2:Z), 2) & \" คะแนน\")"],
-        ["🏆 คะแนนสูงสุด (Max)", "=IF(COUNTA('ผลการสอบรายบุคคล'!A2:A)=0, \"-\", MAX(Z2:Z) & \" คะแนน\")"],
-        ["📉 คะแนนต่ำสุด (Min)", "=IF(COUNTA('ผลการสอบรายบุคคล'!A2:A)=0, \"-\", MIN(Z2:Z) & \" คะแนน\")"],
-        ["✅ สอบผ่าน (เกณฑ์ ≥ " + passScore + " คะแนน)", "=IF(COUNTA('ผลการสอบรายบุคคล'!A2:A)=0, \"-\", COUNTIF(Z2:Z, \">=\" & " + passScore + ") & \" คน\")"],
-        ["❌ ไม่ผ่านเกณฑ์ (< " + passScore + " คะแนน)", "=IF(COUNTA('ผลการสอบรายบุคคล'!A2:A)=0, \"-\", (COUNTA('ผลการสอบรายบุคคล'!A2:A) - COUNTIF(Z2:Z, \">=\" & " + passScore + ")) & \" คน\")"],
-        ["📊 อัตราการผ่านเกณฑ์", "=IF(COUNTA('ผลการสอบรายบุคคล'!A2:A)=0, \"-\", ROUND((COUNTIF(Z2:Z, \">=\" & " + passScore + ") / COUNTA('ผลการสอบรายบุคคล'!A2:A)) * 100, 1) & \"%\")"]
+        ["📈 คะแนนเฉลี่ย (Mean)", "=IF(COUNTIF('ผลการสอบรายบุคคล'!B2:B, \"*/*\")=0, \"-\", ROUND(AVERAGE(Z2:Z), 2) & \" คะแนน\")"],
+        ["🏆 คะแนนสูงสุด (Max)", "=IF(COUNTIF('ผลการสอบรายบุคคล'!B2:B, \"*/*\")=0, \"-\", MAX(Z2:Z) & \" คะแนน\")"],
+        ["📉 คะแนนต่ำสุด (Min)", "=IF(COUNTIF('ผลการสอบรายบุคคล'!B2:B, \"*/*\")=0, \"-\", MIN(Z2:Z) & \" คะแนน\")"],
+        ["✅ สอบผ่าน (เกณฑ์ ≥ " + passScore + " คะแนน)", "=IF(COUNTIF('ผลการสอบรายบุคคล'!B2:B, \"*/*\")=0, \"-\", COUNTIF(Z2:Z, \">=\" & " + passScore + ") & \" คน\")"],
+        ["❌ ไม่ผ่านเกณฑ์ (< " + passScore + " คะแนน)", "=IF(COUNTIF('ผลการสอบรายบุคคล'!B2:B, \"*/*\")=0, \"-\", (COUNTIF('ผลการสอบรายบุคคล'!B2:B, \"*/*\") - COUNTIF(Z2:Z, \">=\" & " + passScore + ")) & \" คน\")"],
+        ["📊 อัตราการผ่านเกณฑ์", "=IF(COUNTIF('ผลการสอบรายบุคคล'!B2:B, \"*/*\")=0, \"-\", ROUND((COUNTIF(Z2:Z, \">=\" & " + passScore + ") / COUNTIF('ผลการสอบรายบุคคล'!B2:B, \"*/*\")) * 100, 1) & \"%\")"]
       ];
 
       for (var r = 0; r < statLabels.length; r++) {
@@ -285,6 +285,101 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({
       success: false,
       error: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * ฟังก์ชัน doGet สำหรับดึงข้อมูลสรุปผลคะแนนและรายชื่อนักเรียนกลับมาแสดงใน Web App FormAuto
+ */
+function doGet(e) {
+  try {
+    if (!e || !e.parameter) {
+      return ContentService.createTextOutput(JSON.stringify({ success: true, message: "FormAuto GAS API Ready" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var sheetUrl = e.parameter.sheetUrl;
+    var sheetId = e.parameter.sheetId;
+    if (!sheetId && sheetUrl) {
+      var match = sheetUrl.match(/[-\w]{25,}/);
+      if (match) sheetId = match[0];
+    }
+
+    if (!sheetId) {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, error: "Missing sheetId" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var ss = SpreadsheetApp.openById(sheetId);
+    var sheets = ss.getSheets();
+    var summarySheet = sheets[0];
+    var responseSheet = sheets.length > 1 ? sheets[1] : null;
+
+    var stats = {
+      title: summarySheet ? summarySheet.getRange("A1").getValue().toString().replace("📊 สรุปภาพรวมผลการสอบ: ", "") : "",
+      totalStudents: 0,
+      totalScore: 0,
+      average: "-",
+      maxScore: "-",
+      minScore: "-",
+      passCount: 0,
+      failCount: 0,
+      passRate: "0%",
+      rooms: []
+    };
+
+    if (summarySheet) {
+      stats.totalStudents = summarySheet.getRange("C5").getValue();
+      stats.totalScore = summarySheet.getRange("C6").getValue();
+      stats.average = summarySheet.getRange("C7").getValue();
+      stats.maxScore = summarySheet.getRange("C8").getValue();
+      stats.minScore = summarySheet.getRange("C9").getValue();
+      stats.passCount = summarySheet.getRange("C10").getValue();
+      stats.failCount = summarySheet.getRange("C11").getValue();
+      stats.passRate = summarySheet.getRange("C12").getValue();
+
+      var roomData = summarySheet.getRange("E6:G20").getValues();
+      for (var r = 0; r < roomData.length; r++) {
+        if (roomData[r][0]) {
+          stats.rooms.push({
+            room: roomData[r][0].toString(),
+            count: roomData[r][1].toString(),
+            status: roomData[r][2].toString()
+          });
+        }
+      }
+    }
+
+    var students = [];
+    if (responseSheet) {
+      var lastRow = responseSheet.getLastRow();
+      var lastCol = responseSheet.getLastColumn();
+      if (lastRow > 1 && lastCol >= 2) {
+        var headerVals = responseSheet.getRange(1, 1, 1, lastCol).getValues()[0];
+        var dataRows = responseSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+        for (var i = 0; i < dataRows.length; i++) {
+          var item = {};
+          for (var c = 0; c < headerVals.length; c++) {
+            var colName = headerVals[c].toString().trim();
+            item[colName] = dataRows[i][c];
+          }
+          students.push(item);
+        }
+      }
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      sheetId: sheetId,
+      stats: stats,
+      students: students
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: err.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
 }

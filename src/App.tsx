@@ -1641,6 +1641,12 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
     </div>
   );
 }
+// Helper: ทำความสะอาดคำชี้แจง โดยไม่แสดงแท็ก [ห้อง: ...] หรือ [ระดับชั้น: ...]
+const cleanDesc = (desc?: string | null) => {
+  if (!desc) return "";
+  return desc.replace(/\s*\[(ห้อง|ระดับชั้น):[^\]]*\]/g, "").trim();
+};
+
 // ============ HISTORY ============
 function HistoryTab({ user }: any) {
   const [history, setHistory] = useState<any[]>([]);
@@ -1712,7 +1718,7 @@ function HistoryTab({ user }: any) {
                   )}
                   <td>
                     <div style={{fontWeight:600,fontSize:14}}>{h.form_title}</div>
-                    {h.form_desc && <div style={{fontSize:12,color:"var(--gray-500)",marginTop:2}}>{h.form_desc}</div>}
+                    {cleanDesc(h.form_desc) && <div style={{fontSize:12,color:"var(--gray-500)",marginTop:2}}>{cleanDesc(h.form_desc)}</div>}
                   </td>
                   <td><span className="badge badge-blue">{h.question_count} ข้อ</span></td>
                   <td style={{fontSize:12,color:"var(--gray-600)",whiteSpace:"nowrap"}}>
@@ -2270,7 +2276,7 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
               {exam.form_title}
             </h2>
             <div style={{fontSize: 13, color: "var(--gray-600)", marginTop: 4}}>
-              {exam.form_desc || "ข้อสอบออนไลน์"} • คำถาม {exam.question_count} ข้อ • อัปเดตล่าสุด {new Date().toLocaleTimeString("th-TH")}
+              {cleanDesc(exam.form_desc) || "ข้อสอบออนไลน์"} • คำถาม {exam.question_count} ข้อ • อัปเดตล่าสุด {new Date().toLocaleTimeString("th-TH")}
             </div>
           </div>
         </div>
@@ -3156,9 +3162,9 @@ function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSel
                       {item.form_title}
                     </span>
                   </div>
-                  {item.form_desc && (
+                  {cleanDesc(item.form_desc) && (
                     <div style={{fontSize:13, color:"var(--gray-600)", marginBottom:8}}>
-                      {item.form_desc}
+                      {cleanDesc(item.form_desc)}
                     </div>
                   )}
                   <div style={{display:"flex", gap:14, flexWrap:"wrap", fontSize:12, color:"var(--gray-500)", marginTop:6}}>
@@ -3424,7 +3430,7 @@ export default function App() {
         method:"POST",
         body: JSON.stringify({
           title: formTitle,
-          description: finalDesc,
+          description: formDesc.trim(),
           headers,
           questions: cleanedQuestions,
           teacherEmail: user.is_google ? user.key : undefined

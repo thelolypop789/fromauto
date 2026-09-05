@@ -1233,18 +1233,29 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
   "hasAnswer": true,
   "questions": [
     {
+      "type": "multiple_choice",
       "text": "คำถาม",
+      "points": 1,
       "choices": ["ตัวเลือก1","ตัวเลือก2","ตัวเลือก3","ตัวเลือก4"],
-      "answer": 0
+      "answer": 0,
+      "answerText": ""
     }
   ]
 }
 กฎสำคัญ:
-- answer คือ index ของตัวเลือกที่ถูก (0=ตัวเลือกแรก, 1=ตัวเลือกที่สอง ...)
-- ถ้าไม่มีเฉลยในไฟล์เลย ให้ hasAnswer = false และ answer = -1 ทุกข้อ
-- ถ้ามีเฉลย ให้ hasAnswer = true และใส่ answer ให้ถูกต้อง
-- รองรับตัวเลือกแบบ ก ข ค ง และ A B C D และ 1 2 3 4
-- จับเฉลยจากเฉลยท้ายไฟล์ หรือสีตัวอักษร หรือไฮไลต์ หรือเครื่องหมายใดๆ
+- type ให้เลือก 1 จาก: "multiple_choice" (ปรนัย/เลือกตอบ), "short_answer" (เติมคำ/ตอบสั้น), "paragraph" (อัตนัย/บรรยาย/ข้อเขียน)
+- points คือน้ำหนักคะแนนของข้อนั้น (ตัวเลข เช่น 1, 2, 5) ถ้าในข้อสอบมีระบุคะแนนข้อนั้น เช่น "(2 คะแนน)" ให้นำมาใส่ ถ้าไม่ระบุให้เป็น 1
+- สำหรับ multiple_choice:
+  - choices คือตัวเลือก (เช่น 4 ตัวเลือก)
+  - answer คือ index ของตัวเลือกที่ถูก (0=ตัวเลือกแรก, 1=ตัวเลือกที่สอง ...) ถ้าไม่มีเฉลยให้ answer = -1
+  - รองรับตัวเลือกแบบ ก ข ค ง และ A B C D และ 1 2 3 4
+  - จับเฉลยจากเฉลยท้ายไฟล์ หรือสีตัวอักษร หรือไฮไลต์ หรือเครื่องหมายใดๆ
+- สำหรับ short_answer (เติมคำ) หรือ paragraph (อัตนัย):
+  - choices ให้เป็น []
+  - answer ให้เป็น -1
+  - answerText คือแนวคำตอบ หรือเฉลย หรือเกณฑ์การให้คะแนน (ถ้ามี)
+- ถ้าไม่มีเฉลยในไฟล์เลย ให้ hasAnswer = false
+- ถ้ามีเฉลย ให้ hasAnswer = true
 - ตัดข้อความที่ไม่ใช่ข้อสอบออก เช่น คำชี้แจง หัวข้อ คำอวยพร`;
 
   const callGemini = async (parts: any[]) => {
@@ -1315,12 +1326,19 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
       }
 
       // แปลงผลลัพธ์
-      const qs = parsed.questions.map((q: any, i: number) => ({
-        id: Date.now() + i,
-        text: q.text || "",
-        choices: q.choices || ["","","",""],
-        answer: q.answer >= 0 ? q.answer : 0,
-      }));
+      const qs = (parsed.questions || []).map((q: any, i: number) => {
+        const qType = (q.type === "short_answer" || q.type === "paragraph") ? q.type : "multiple_choice";
+        const pts = typeof q.points === "number" && q.points >= 0 ? q.points : 1;
+        return {
+          id: Date.now() + i,
+          type: qType,
+          points: pts,
+          text: q.text || "",
+          choices: qType === "multiple_choice" ? (Array.isArray(q.choices) && q.choices.length > 0 ? q.choices : ["","","",""]) : [],
+          answer: qType === "multiple_choice" ? (q.answer >= 0 ? q.answer : 0) : -1,
+          answerText: q.answerText || ""
+        };
+      });
 
       setHasAnswer(parsed.hasAnswer);
       setQuestions(qs);
@@ -1336,17 +1354,41 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
     setQuestions(questions.map((q: any) => q.id===id ? {...q,[field]:val} : q));
   const updateChoice = (qid: number, ci: number, val: string) =>
     setQuestions(questions.map((q: any) => q.id===qid ? {...q, choices: q.choices.map((c: string, i: number) => i===ci ? val : c)} : q));
-  const addQuestion = () =>
-    setQuestions([...questions, {id:Date.now(), text:"", choices:["","","",""], answer:0}]);
+  const addQuestion = (type = "multiple_choice") =>
+    setQuestions([...questions, {
+      id: Date.now(),
+      type,
+      points: 1,
+      text: "",
+      choices: type === "multiple_choice" ? ["","","",""] : [],
+      answer: 0,
+      answerText: ""
+    }]);
   const removeQ = (id: number) =>
     setQuestions(questions.filter((q: any) => q.id!==id));
+  const changeQType = (id: number, newType: string) => {
+    setQuestions(questions.map((q: any) => {
+      if (q.id !== id) return q;
+      return {
+        ...q,
+        type: newType,
+        choices: newType === "multiple_choice" ? (q.choices && q.choices.length ? q.choices : ["","","",""]) : [],
+        answer: newType === "multiple_choice" ? (q.answer >= 0 ? q.answer : 0) : -1
+      };
+    }));
+  };
+
+  const totalPoints = questions.reduce((sum: number, q: any) => sum + (typeof q.points === "number" && q.points >= 0 ? q.points : 1), 0);
+  const mcCount = questions.filter((q: any) => !q.type || q.type === "multiple_choice").length;
+  const saCount = questions.filter((q: any) => q.type === "short_answer").length;
+  const pCount = questions.filter((q: any) => q.type === "paragraph").length;
 
   return (
     <div>
       {/* Upload Zone */}
       <div className="card">
         <div className="card-title">📁 อัปโหลดไฟล์ข้อสอบ</div>
-        <div className="card-sub">รองรับ .docx .pdf .txt — AI จะอ่านและแปลงข้อสอบให้อัตโนมัติ</div>
+        <div className="card-sub">รองรับ .docx .pdf .txt — AI จะอ่านและจำแนกข้อสอบ ปรนัย เติมคำ และอัตนัย ให้อัตโนมัติ</div>
         <div style={{marginBottom:14, padding:"10px 14px", background:"var(--yellow-light)", borderRadius:"var(--radius)", fontSize:13, color:"#92400e", display:"flex", alignItems:"flex-start", gap:8}}>
           <span style={{flexShrink:0}}>📌</span>
           <span><strong>ข้อสอบที่มีรูปภาพ:</strong> รูปจะไม่ถูกส่งไปยัง Google Form — แนะนำให้ใช้เฉพาะข้อสอบที่เป็นข้อความเท่านั้น</span>
@@ -1398,7 +1440,6 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
           </div>
         )}
 
-
         {/* Error */}
         {parseError && (
           <div style={{marginTop:10, padding:"10px 14px", background:"var(--red-light)", borderRadius:"var(--radius)", fontSize:13, color:"var(--red)"}}>
@@ -1409,15 +1450,39 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
 
       {/* รายการข้อสอบ */}
       <div className="card">
-        <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16}}>
-          <div className="card-title">❓ รายการข้อสอบ ({questions.length} ข้อ)</div>
-          <button className="btn btn-secondary btn-sm" onClick={addQuestion}><PlusIcon /> เพิ่มข้อ</button>
+        <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12, marginBottom:16}}>
+          <div>
+            <div className="card-title" style={{display:"flex", alignItems:"center", gap:8, flexWrap:"wrap"}}>
+              <span>❓ รายการข้อสอบ ({questions.length} ข้อ)</span>
+              <span style={{fontSize:13, background:"#EFF6FF", color:"#1D4ED8", border:"1px solid #BFDBFE", padding:"2px 10px", borderRadius:12, fontWeight:700}}>
+                🎯 คะแนนเต็มรวม {totalPoints} คะแนน
+              </span>
+            </div>
+            <div style={{fontSize:12, color:"var(--gray-500)", marginTop:4, display:"flex", gap:8, flexWrap:"wrap"}}>
+              <span>🔘 ปรนัย {mcCount} ข้อ</span>
+              <span>•</span>
+              <span>✏️ เติมคำ {saCount} ข้อ</span>
+              <span>•</span>
+              <span>📝 อัตนัย {pCount} ข้อ</span>
+            </div>
+          </div>
+          <div style={{display:"flex", gap:6, flexWrap:"wrap"}}>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addQuestion("multiple_choice")} title="เพิ่มข้อสอบแบบเลือกตอบ (ก-ง)">
+              <PlusIcon /> + ปรนัย
+            </button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addQuestion("short_answer")} title="เพิ่มข้อสอบแบบเติมคำตอบสั้น">
+              <PlusIcon /> + เติมคำ
+            </button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => addQuestion("paragraph")} title="เพิ่มข้อสอบแบบเขียนบรรยาย/อัตนัย">
+              <PlusIcon /> + อัตนัย
+            </button>
+          </div>
         </div>
 
         {questions.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">📝</div>
-            <p>อัปโหลดไฟล์หรือกด "เพิ่มข้อ" เพื่อกรอกเอง</p>
+            <p>อัปโหลดไฟล์หรือกดปุ่มเพิ่มข้อสอบด้านบนเพื่อกรอกเอง</p>
           </div>
         ) : (
           <div className="question-list">
@@ -1428,15 +1493,65 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
               const isEmpty = !q.text.trim();
               const isDup = dupSet.has(q.text.trim());
               const warn = isEmpty || isDup;
+              const qType = q.type || "multiple_choice";
+              const qPoints = typeof q.points === "number" && q.points >= 0 ? q.points : 1;
+
               return (
               <div className="question-card" key={q.id} style={warn ? {borderColor:"var(--yellow)"} : {}}>
-                <div className="q-header">
+                <div className="q-header" style={{flexWrap: "wrap", gap: 8, alignItems: "center"}}>
                   <span className="q-num">ข้อ {qi+1}</span>
+
+                  {/* Question Type Selector */}
+                  <select
+                    value={qType}
+                    onChange={e => changeQType(q.id, e.target.value)}
+                    style={{
+                      padding: "4px 8px",
+                      borderRadius: "6px",
+                      border: "1.5px solid var(--gray-200)",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      background: qType === "short_answer" ? "#FEF3C7" : qType === "paragraph" ? "#F3E8FF" : "#EFF6FF",
+                      color: qType === "short_answer" ? "#92400E" : qType === "paragraph" ? "#6B21A8" : "#1E40AF",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <option value="multiple_choice">🔘 ปรนัย (เลือกตอบ)</option>
+                    <option value="short_answer">✏️ เติมคำ (คำตอบสั้น)</option>
+                    <option value="paragraph">📝 อัตนัย (บรรยาย)</option>
+                  </select>
+
+                  {/* Question Points Input */}
+                  <div style={{display: "inline-flex", alignItems: "center", gap: 4, background: "var(--gray-50)", padding: "3px 8px", borderRadius: "6px", border: "1px solid var(--gray-200)", fontSize: "12px"}}>
+                    <span style={{fontWeight: 600, color: "var(--gray-600)"}}>คะแนน:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={qPoints}
+                      onChange={e => updateQ(q.id, "points", Math.max(0, parseInt(e.target.value, 10) || 0))}
+                      style={{
+                        width: 44,
+                        textAlign: "center",
+                        padding: "2px 4px",
+                        borderRadius: "4px",
+                        border: "1.5px solid var(--gray-300)",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        color: "var(--crimson)",
+                        background: "white"
+                      }}
+                    />
+                    <span style={{color: "var(--gray-500)"}}>คะแนน</span>
+                  </div>
+
                   {warn && (
                     <div style={{width:20,height:20,borderRadius:"50%",background:"var(--yellow)",color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,flexShrink:0}}>!</div>
                   )}
-                  <input className="q-text-input" placeholder="กรอกคำถาม..." value={q.text}
-                    onChange={e => updateQ(q.id, "text", e.target.value)} style={{flex:1}}/>
+
+                  <input className="q-text-input" placeholder="กรอกคำถามหรือโจทย์..." value={q.text}
+                    onChange={e => updateQ(q.id, "text", e.target.value)} style={{flex:1, minWidth: 200}}/>
                   <button
                     type="button"
                     className="btn-delete"
@@ -1446,30 +1561,76 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
                     <TrashIcon /> ลบ
                   </button>
                 </div>
+
                 {warn && (
                   <div style={{fontSize:12,color:"#92400e",background:"var(--yellow-light)",borderRadius:6,padding:"4px 10px",marginBottom:8}}>
                     ⚠️ {isEmpty ? "คำถามว่างเปล่า" : "ข้อความซ้ำกับข้ออื่น — จะเติม (2), (3) ให้อัตโนมัติตอนสร้างฟอร์ม"}
                   </div>
                 )}
-                <div style={{fontSize:11, color:"var(--gray-500)", marginBottom:8}}>
-                  คลิกวงกลมเพื่อเลือกเฉลย {q.answer >= 0 ? `(เฉลย: ${labels[q.answer]})` : "(ยังไม่มีเฉลย)"}
-                </div>
-                <div className="choices-grid">
-                  {q.choices.map((c: string, ci: number) => (
-                    <div className="choice-row" key={ci}>
-                      <div
-                        className={`choice-label ${q.answer===ci ? "correct" : "wrong"}`}
-                        onClick={() => updateQ(q.id, "answer", ci)}
-                      >
-                        {q.answer===ci ? <CheckIcon /> : labels[ci]}
-                      </div>
-                      <input
-                        className={`choice-input ${q.answer===ci ? "correct" : ""}`}
-                        placeholder={`ตัวเลือก ${labels[ci]}`} value={c}
-                        onChange={e => updateChoice(q.id, ci, e.target.value)}/>
+
+                {/* Multiple Choice UI */}
+                {qType === "multiple_choice" && (
+                  <>
+                    <div style={{fontSize:11, color:"var(--gray-500)", marginBottom:8}}>
+                      คลิกวงกลมเพื่อเลือกเฉลย {q.answer >= 0 ? `(เฉลย: ${labels[q.answer] || (q.answer+1)})` : "(ยังไม่มีเฉลย)"}
                     </div>
-                  ))}
-                </div>
+                    <div className="choices-grid">
+                      {q.choices.map((c: string, ci: number) => (
+                        <div className="choice-row" key={ci}>
+                          <div
+                            className={`choice-label ${q.answer===ci ? "correct" : "wrong"}`}
+                            onClick={() => updateQ(q.id, "answer", ci)}
+                          >
+                            {q.answer===ci ? <CheckIcon /> : labels[ci] || (ci+1)}
+                          </div>
+                          <input
+                            className={`choice-input ${q.answer===ci ? "correct" : ""}`}
+                            placeholder={`ตัวเลือก ${labels[ci] || (ci+1)}`} value={c}
+                            onChange={e => updateChoice(q.id, ci, e.target.value)}/>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Short Answer UI */}
+                {qType === "short_answer" && (
+                  <div style={{marginTop: 8, padding: "10px 12px", background: "#FFFBEB", borderRadius: "8px", border: "1px solid #FDE68A"}}>
+                    <div style={{fontSize: 12, fontWeight: 700, color: "#92400E", marginBottom: 6, display: "flex", alignItems: "center", gap: 6}}>
+                      <span>✏️ แนวคำตอบ / เฉลยสำหรับข้อสอบเติมคำ:</span>
+                    </div>
+                    <input
+                      type="text"
+                      className="choice-input"
+                      style={{width: "100%", background: "white", padding: "8px 12px", fontSize: "13px"}}
+                      placeholder="กรอกแนวคำตอบที่ถูกต้องสำหรับข้อนี้ (ถ้ามี)..."
+                      value={q.answerText || ""}
+                      onChange={e => updateQ(q.id, "answerText", e.target.value)}
+                    />
+                    <div style={{fontSize: 11, color: "#B45309", marginTop: 4}}>
+                      💡 ใน Google Form จะสร้างเป็นช่องกรอกคำตอบสั้น (Short Answer) และมีแนวคำตอบนี้บันทึกไว้ให้ครูดูตอนตรวจให้คะแนน
+                    </div>
+                  </div>
+                )}
+
+                {/* Paragraph UI */}
+                {qType === "paragraph" && (
+                  <div style={{marginTop: 8, padding: "10px 12px", background: "#FAF5FF", borderRadius: "8px", border: "1px solid #E9D5FF"}}>
+                    <div style={{fontSize: 12, fontWeight: 700, color: "#6B21A8", marginBottom: 6, display: "flex", alignItems: "center", gap: 6}}>
+                      <span>📝 แนวคำตอบ / เกณฑ์การให้คะแนน (อัตนัย/บรรยาย):</span>
+                    </div>
+                    <textarea
+                      className="choice-input"
+                      style={{width: "100%", background: "white", padding: "8px 12px", fontSize: "13px", minHeight: 60, resize: "vertical"}}
+                      placeholder="ระบุแนวคำตอบสำคัญ หรือเกณฑ์ในการให้คะแนนข้อนี้..."
+                      value={q.answerText || ""}
+                      onChange={e => updateQ(q.id, "answerText", e.target.value)}
+                    />
+                    <div style={{fontSize: 11, color: "#7E22CE", marginTop: 4}}>
+                      💡 ใน Google Form จะสร้างเป็นช่องเขียนบรรยาย (Paragraph) เพื่อให้นักเรียนพิมพ์ตอบได้อย่างอิสระ และครูสามารถตรวจให้คะแนนในระบบได้โดยตรง
+                    </div>
+                  </div>
+                )}
               </div>
               );
             });
@@ -1663,6 +1824,13 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
   const [roomFilter, setRoomFilter] = useState("all");
   const [sortBy, setSortBy] = useState<"no" | "score_desc" | "score_asc" | "time">("no");
 
+  // In-App Grading State
+  const [gradingStudent, setGradingStudent] = useState<any>(null);
+  const [newScoreInput, setNewScoreInput] = useState<string>("");
+  const [savingScore, setSavingScore] = useState(false);
+  const [gradeSuccessMsg, setGradeSuccessMsg] = useState("");
+  const [gradeErrorMsg, setGradeErrorMsg] = useState("");
+
   const loadData = async () => {
     if (!exam.sheet_url) return;
     setLoading(true);
@@ -1849,6 +2017,87 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
 
   const embedUrl = exam.sheet_url?.replace(/\/edit.*$/, "/preview") || exam.sheet_url;
 
+  // เปิดหน้าต่างตรวจและให้คะแนนนักเรียน
+  const handleOpenGrading = (student: any) => {
+    setGradingStudent(student);
+    const parsed = parseScore(student, totalMax);
+    setNewScoreInput(String(parsed.earned));
+    setGradeSuccessMsg("");
+    setGradeErrorMsg("");
+  };
+
+  // ดึงคำตอบรายข้อของนักเรียน
+  const getStudentQuestionAnswers = (s: any) => {
+    if (!s) return [];
+    const nonQuestionKeys = [
+      "ประทับเวลา", "timestamp", "time",
+      "คะแนน", "score", "total score", "points",
+      "ชื่อ-สกุล", "ชื่อ-นามสกุล", "ชื่อ", "name",
+      "ชั้น", "ห้องเรียน", "ห้อง", "ระดับชั้น", "room", "class",
+      "เลขที่", "no.", "no", "number",
+      "เลขประจำตัว", "id", "_rowindex"
+    ];
+    return Object.entries(s)
+      .filter(([k]) => !nonQuestionKeys.some(nk => k.toLowerCase().trim() === nk || k.toLowerCase().includes(nk)))
+      .map(([qTitle, answerVal]) => ({
+        title: qTitle,
+        answer: getSafeStr(answerVal)
+      }));
+  };
+
+  // บันทึกคะแนนลงชีตและอัปเดต State ทันที
+  const handleSaveScore = async () => {
+    if (!gradingStudent) return;
+    const earnedVal = parseFloat(newScoreInput);
+    if (isNaN(earnedVal) || earnedVal < 0) {
+      setGradeErrorMsg("กรุณากรอกคะแนนเป็นตัวเลขที่ถูกต้อง (ตั้งแต่ 0 ขึ้นไป)");
+      return;
+    }
+    if (earnedVal > totalMax) {
+      if (!confirm(`คะแนนที่กรอก (${earnedVal}) มากกว่าคะแนนเต็ม (${totalMax}) คุณครูต้องการบันทึกหรือไม่?`)) {
+        return;
+      }
+    }
+
+    setSavingScore(true);
+    setGradeErrorMsg("");
+    setGradeSuccessMsg("");
+
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "update_score",
+          sheetUrl: exam.sheet_url,
+          rowIndex: gradingStudent._rowIndex,
+          newScore: earnedVal,
+          totalMax: totalMax
+        })
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || "บันทึกคะแนนไม่สำเร็จ");
+
+      // อัปเดตข้อมูลคะแนนใน State ทันทีแบบ Real-time
+      const newScoreStr = `${earnedVal} / ${totalMax}`;
+      const updatedStudents = rawStudents.map(s => {
+        if (s._rowIndex === gradingStudent._rowIndex) {
+          return { ...s, "คะแนน": newScoreStr, "Score": newScoreStr };
+        }
+        return s;
+      });
+      setData((prev: any) => ({ ...prev, students: updatedStudents }));
+      setGradeSuccessMsg("✅ บันทึกคะแนนลงในระบบและ Google Sheets เรียบร้อยแล้ว!");
+      setTimeout(() => {
+        setGradingStudent(null);
+        setGradeSuccessMsg("");
+      }, 900);
+    } catch (err: any) {
+      setGradeErrorMsg(err.message || "เกิดข้อผิดพลาดในการบันทึกคะแนน");
+    } finally {
+      setSavingScore(false);
+    }
+  };
+
   // ตารางแสดงรายชื่อนักเรียน
   const renderStudentTable = (list: any[]) => (
     <div style={{overflowX: "auto"}}>
@@ -1862,6 +2111,7 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
             <th style={{padding: "10px 12px", textAlign: "center", width: 110}}>คะแนน</th>
             <th style={{padding: "10px 12px", textAlign: "center", width: 110}}>ผลประเมิน</th>
             <th style={{padding: "10px 12px", textAlign: "left", width: 150}}>วัน-เวลาส่ง</th>
+            <th style={{padding: "10px 12px", textAlign: "center", width: 130}}>จัดการ</th>
           </tr>
         </thead>
         <tbody>
@@ -1928,6 +2178,27 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
                 </td>
                 <td style={{padding: "10px 12px", color: "var(--gray-600)", fontSize: 12}}>
                   {timeStr}
+                </td>
+                <td style={{padding: "10px 12px", textAlign: "center"}}>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    style={{
+                      padding: "4px 10px",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      borderRadius: "8px",
+                      background: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)",
+                      color: "white",
+                      border: "none",
+                      cursor: "pointer",
+                      boxShadow: "0 2px 4px rgba(37,99,235,0.2)"
+                    }}
+                    onClick={() => handleOpenGrading(s)}
+                    title="คลิกเพื่อตรวจคำตอบและกรอกคะแนนโดยตรง"
+                  >
+                    ✏️ ตรวจ/ให้คะแนน
+                  </button>
                 </td>
               </tr>
             );
@@ -2043,6 +2314,68 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
           ))}
         </div>
       </div>
+
+      {/* Alert Banner for Subjective/Essay / Ungraded questions */}
+      {data?.hasManualGrading && (
+        <div style={{
+          background: "linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)",
+          border: "1.5px solid #F59E0B",
+          borderRadius: "var(--radius-lg)",
+          padding: "16px 20px",
+          marginBottom: 20,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 12,
+          boxShadow: "0 2px 8px rgba(245, 158, 11, 0.15)"
+        }}>
+          <div style={{display: "flex", alignItems: "flex-start", gap: 12}}>
+            <span style={{fontSize: 24, lineHeight: 1}}>🔔</span>
+            <div>
+              <div style={{fontSize: 14, fontWeight: 700, color: "#92400E", marginBottom: 2}}>
+                แบบทดสอบนี้มีข้อสอบอัตนัยหรือเติมคำที่ต้องตรวจให้คะแนน
+              </div>
+              <div style={{fontSize: 12.5, color: "#B45309"}}>
+                คุณครูสามารถกดปุ่ม <strong>"✏️ ตรวจ/ให้คะแนน"</strong> ในแท็บรายชื่อนักเรียน เพื่ออ่านคำตอบและกรอกคะแนนในระบบได้โดยตรง หรือเปิดตรวจผ่าน Google Forms
+              </div>
+            </div>
+          </div>
+          <div style={{display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap"}}>
+            {exam.edit_url && (
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => window.open(exam.edit_url, "_blank")}
+                style={{
+                  background: "linear-gradient(135deg, #7F1D1D 0%, #991B1B 100%)",
+                  color: "white",
+                  fontWeight: 600,
+                  fontSize: 12.5,
+                  padding: "8px 14px",
+                  borderRadius: "8px"
+                }}>
+                ✏️ เปิดตรวจใน Google Forms
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn btn-sm btn-secondary"
+              onClick={() => setActiveTab("students")}
+              style={{
+                background: "white",
+                borderColor: "#F59E0B",
+                color: "#92400E",
+                fontWeight: 700,
+                fontSize: 12.5,
+                padding: "8px 14px",
+                borderRadius: "8px"
+              }}>
+              👥 ไปที่รายชื่อนักเรียนเพื่อกรอกคะแนน
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Tab 1: Overview Dashboard */}
       {activeTab === "overview" && (
@@ -2379,6 +2712,215 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
             }}
             title="Google Sheets Preview"
           />
+        </div>
+      )}
+
+      {/* In-App Grading Modal */}
+      {gradingStudent && (
+        <div className="loading-overlay" style={{background: "rgba(15, 23, 42, 0.75)", zIndex: 1000, padding: 16}}>
+          <div style={{
+            background: "white",
+            borderRadius: "20px",
+            maxWidth: "600px",
+            width: "100%",
+            maxHeight: "90vh",
+            display: "flex",
+            flexDirection: "column",
+            boxShadow: "0 25px 50px -12px rgba(0,0,0,0.35)",
+            animation: "popInModal .25s ease",
+            overflow: "hidden"
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: "18px 24px",
+              borderBottom: "1.5px solid var(--gray-200)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              background: "linear-gradient(135deg, #FEF2F2 0%, #FFFBEB 100%)"
+            }}>
+              <div style={{display: "flex", alignItems: "center", gap: 10}}>
+                <span style={{fontSize: 24}}>✏️</span>
+                <div>
+                  <h3 style={{margin: 0, fontSize: 17, fontWeight: 700, color: "var(--gray-900)"}}>
+                    ตรวจและบันทึกคะแนนรายบุคคล
+                  </h3>
+                  <div style={{fontSize: 12.5, color: "var(--gray-600)", marginTop: 2}}>
+                    บันทึกคะแนนตรงเข้า Google Sheets อัตโนมัติ โดยไม่ต้องเปิดไฟล์ชีต
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => !savingScore && setGradingStudent(null)}
+                style={{background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "var(--gray-500)", padding: 4}}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body (Scrollable) */}
+            <div style={{padding: "20px 24px", overflowY: "auto", flex: 1}}>
+              {/* Student Info Card */}
+              <div style={{
+                background: "var(--gray-50)",
+                border: "1px solid var(--gray-200)",
+                borderRadius: "12px",
+                padding: "12px 16px",
+                marginBottom: 18,
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+                gap: 8
+              }}>
+                <div>
+                  <div style={{fontSize: 11, color: "var(--gray-500)", fontWeight: 600}}>ชื่อ-นามสกุล</div>
+                  <div style={{fontSize: 14, fontWeight: 700, color: "var(--gray-900)"}}>
+                    {getStudentField(gradingStudent, ["ชื่อ-สกุล", "ชื่อ-นามสกุล", "ชื่อ", "Name"]) || "-"}
+                  </div>
+                </div>
+                <div>
+                  <div style={{fontSize: 11, color: "var(--gray-500)", fontWeight: 600}}>ชั้น / ห้อง</div>
+                  <div style={{fontSize: 14, fontWeight: 700, color: "var(--crimson)"}}>
+                    {getStudentRoom(gradingStudent)}
+                  </div>
+                </div>
+                <div>
+                  <div style={{fontSize: 11, color: "var(--gray-500)", fontWeight: 600}}>เลขที่</div>
+                  <div style={{fontSize: 14, fontWeight: 700, color: "#D97706"}}>
+                    {getStudentNo(gradingStudent) !== 9999 ? `เลขที่ ${getStudentNo(gradingStudent)}` : "-"}
+                  </div>
+                </div>
+                <div>
+                  <div style={{fontSize: 11, color: "var(--gray-500)", fontWeight: 600}}>คะแนนเดิมในระบบ</div>
+                  <div style={{fontSize: 14, fontWeight: 700, color: "#059669"}}>
+                    {parseScore(gradingStudent, totalMax).str}
+                  </div>
+                </div>
+              </div>
+
+              {/* Question Answers from Student */}
+              <div style={{marginBottom: 20}}>
+                <div style={{fontSize: 13, fontWeight: 700, color: "var(--gray-800)", marginBottom: 10, display: "flex", alignItems: "center", gap: 6}}>
+                  <span>📝</span>
+                  <span>คำตอบที่นักเรียนส่งมา ({getStudentQuestionAnswers(gradingStudent).length} ข้อ):</span>
+                </div>
+                <div style={{display: "flex", flexDirection: "column", gap: 10, maxHeight: 240, overflowY: "auto", paddingRight: 4}}>
+                  {getStudentQuestionAnswers(gradingStudent).length === 0 ? (
+                    <div style={{fontSize: 12, color: "var(--gray-500)", fontStyle: "italic", textAlign: "center", padding: 12}}>
+                      ไม่พบคอลัมน์คำตอบเฉพาะข้อในชีต
+                    </div>
+                  ) : (
+                    getStudentQuestionAnswers(gradingStudent).map((qa, idx) => (
+                      <div key={idx} style={{background: "white", border: "1px solid var(--gray-200)", borderRadius: "8px", padding: "10px 12px"}}>
+                        <div style={{fontSize: 12.5, fontWeight: 600, color: "var(--gray-800)", marginBottom: 4}}>
+                          <span style={{color: "var(--crimson)", marginRight: 6}}>ข้อ {idx + 1}:</span>
+                          {qa.title}
+                        </div>
+                        <div style={{
+                          fontSize: 13,
+                          padding: "6px 10px",
+                          background: qa.answer ? "#F8FAFC" : "#FEF2F2",
+                          color: qa.answer ? "var(--gray-900)" : "#DC2626",
+                          borderRadius: "6px",
+                          borderLeft: "3px solid " + (qa.answer ? "var(--crimson)" : "#DC2626"),
+                          whiteSpace: "pre-wrap"
+                        }}>
+                          {qa.answer || "(ไม่ได้ตอบ / ว่างเปล่า)"}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Score Input Box */}
+              <div style={{background: "#EFF6FF", border: "1.5px solid #BFDBFE", borderRadius: "14px", padding: "16px 20px", marginBottom: 14}}>
+                <label style={{display: "block", fontSize: 13, fontWeight: 700, color: "#1E3A8A", marginBottom: 8}}>
+                  🎯 กรอกคะแนนใหม่ที่ต้องการบันทึก (คะแนนเต็ม {totalMax} คะแนน):
+                </label>
+                <div style={{display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap"}}>
+                  <input
+                    type="number"
+                    min="0"
+                    max={totalMax}
+                    step="0.5"
+                    value={newScoreInput}
+                    onChange={e => setNewScoreInput(e.target.value)}
+                    style={{
+                      width: 100,
+                      fontSize: 20,
+                      fontWeight: 800,
+                      textAlign: "center",
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      border: "2px solid #2563EB",
+                      color: "#1E3A8A",
+                      outline: "none",
+                      background: "white"
+                    }}
+                    disabled={savingScore}
+                  />
+                  <span style={{fontSize: 16, fontWeight: 700, color: "#1E3A8A"}}>
+                    / {totalMax} คะแนน
+                  </span>
+                  <div style={{display: "flex", gap: 6, marginLeft: "auto", flexWrap: "wrap"}}>
+                    {[0, Math.ceil(totalMax * 0.5), totalMax].map(quickScore => (
+                      <button
+                        key={quickScore}
+                        type="button"
+                        onClick={() => setNewScoreInput(String(quickScore))}
+                        className="btn btn-secondary btn-sm"
+                        style={{padding: "4px 8px", fontSize: 11}}
+                        disabled={savingScore}
+                      >
+                        {quickScore === 0 ? "0 คะแนน" : quickScore === totalMax ? `เต็ม (${totalMax})` : `ผ่าน (${quickScore})`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {gradeErrorMsg && (
+                <div style={{padding: "8px 12px", background: "var(--red-light)", color: "var(--red)", borderRadius: "8px", fontSize: 13, marginBottom: 10}}>
+                  ⚠️ {gradeErrorMsg}
+                </div>
+              )}
+
+              {gradeSuccessMsg && (
+                <div style={{padding: "8px 12px", background: "var(--green-light)", color: "var(--green)", borderRadius: "8px", fontSize: 13, fontWeight: 600, marginBottom: 10}}>
+                  {gradeSuccessMsg}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{padding: "14px 24px", borderTop: "1px solid var(--gray-200)", display: "flex", justifyContent: "flex-end", gap: 10, background: "var(--gray-50)"}}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setGradingStudent(null)}
+                disabled={savingScore}
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                className="btn"
+                onClick={handleSaveScore}
+                disabled={savingScore}
+                style={{
+                  background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                  color: "white",
+                  padding: "10px 24px",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  boxShadow: "0 2px 8px rgba(5,150,105,0.3)"
+                }}
+              >
+                {savingScore ? "⏳ กำลังบันทึกคะแนนลงชีต..." : "💾 บันทึกคะแนน"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -2842,17 +3384,32 @@ export default function App() {
         const count = seen.get(base) ?? 0;
         seen.set(base, count + 1);
         const text = count > 0 ? `${base} (${count + 1})` : base;
+        const qType = q.type || "multiple_choice";
+        const pts = typeof q.points === "number" && q.points >= 0 ? q.points : 1;
+
+        if (qType === "short_answer" || qType === "paragraph") {
+          return {
+            ...q,
+            type: qType,
+            points: pts,
+            text,
+            choices: [],
+            answer: -1,
+            answerText: q.answerText || ""
+          };
+        }
+
         // Deduplicate choices, tracking new index of the correct answer
         const choiceKey = (c: string, idx: number) => c.trim() || `ตัวเลือก ${idx + 1}`;
         const keyToNewIdx = new Map<string, number>();
         const uniqueChoices: string[] = [];
-        q.choices.forEach((c: string, idx: number) => {
+        (q.choices || []).forEach((c: string, idx: number) => {
           const k = choiceKey(c, idx);
           if (!keyToNewIdx.has(k)) { keyToNewIdx.set(k, uniqueChoices.length); uniqueChoices.push(c); }
         });
-        const answerKey = choiceKey(q.choices[q.answer] ?? "", q.answer);
+        const answerKey = choiceKey((q.choices || [])[q.answer] ?? "", q.answer);
         const newAnswer = keyToNewIdx.get(answerKey) ?? 0;
-        return { ...q, text, choices: uniqueChoices, answer: newAnswer };
+        return { ...q, type: "multiple_choice", points: pts, text, choices: uniqueChoices, answer: newAnswer };
       });
       const roomsTag = targetRooms.length > 0
         ? `[ห้อง: ${targetRooms.join(", ")}]`
@@ -3267,15 +3824,38 @@ export default function App() {
                         </div>
                       )}
 
-                      <div style={{padding:"14px 18px",background:"var(--gray-50)",borderRadius:"var(--radius-lg)",border:"1px solid var(--gray-200)"}}>
-                        <div style={{fontSize:12,fontWeight:700,color:"var(--green)",marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
-                          <span>❓</span> จำนวนข้อสอบ & เฉลย
-                        </div>
-                        <div style={{fontSize:15,fontWeight:700,color:"var(--gray-900)",display:"flex",alignItems:"center",gap:8}}>
-                          <span>{questions.length} ข้อ</span>
-                          <span className="badge badge-green" style={{fontSize:11}}>พร้อมเฉลยและตรวจอัตโนมัติ</span>
-                        </div>
-                      </div>
+                      {(() => {
+                        const sumPts = questions.reduce((s: number, q: any) => s + (typeof q.points === "number" && q.points >= 0 ? q.points : 1), 0);
+                        const mc = questions.filter((q: any) => !q.type || q.type === "multiple_choice").length;
+                        const sa = questions.filter((q: any) => q.type === "short_answer").length;
+                        const pa = questions.filter((q: any) => q.type === "paragraph").length;
+                        const hasManual = sa > 0 || pa > 0;
+
+                        return (
+                          <div style={{padding:"14px 18px",background:"var(--gray-50)",borderRadius:"var(--radius-lg)",border:"1px solid var(--gray-200)"}}>
+                            <div style={{fontSize:12,fontWeight:700,color:"var(--green)",marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
+                              <span>❓</span> จำนวนข้อสอบ & คะแนนเต็ม
+                            </div>
+                            <div style={{fontSize:15,fontWeight:700,color:"var(--gray-900)",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                              <span>{questions.length} ข้อ ({sumPts} คะแนน)</span>
+                              {hasManual ? (
+                                <span className="badge" style={{background:"#FEF3C7",color:"#92400E",fontSize:11}}>
+                                  มีข้อเขียน/ตรวจในระบบได้
+                                </span>
+                              ) : (
+                                <span className="badge badge-green" style={{fontSize:11}}>
+                                  ตรวจอัตโนมัติ 100%
+                                </span>
+                              )}
+                            </div>
+                            <div style={{fontSize:12,color:"var(--gray-500)",marginTop:4,display:"flex",gap:6,flexWrap:"wrap"}}>
+                              <span>ปรนัย {mc} ข้อ</span>
+                              {sa > 0 && <span>• เติมคำ {sa} ข้อ</span>}
+                              {pa > 0 && <span>• อัตนัย {pa} ข้อ</span>}
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       <div style={{padding:"14px 18px",background:"var(--gray-50)",borderRadius:"var(--radius-lg)",border:"1px solid var(--gray-200)"}}>
                         <div style={{fontSize:12,fontWeight:700,color:"var(--gray-600)",marginBottom:4,display:"flex",alignItems:"center",gap:6}}>

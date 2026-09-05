@@ -14,6 +14,11 @@ function doPost(e) {
       return handleGetSummary(data.sheetUrl || data.sheetId);
     }
 
+    // ถ้าเป็นการบันทึก/แก้ไขคะแนนนักเรียนโดยตรงจากระบบ FormAuto
+    if (data && data.action === "update_score") {
+      return handleUpdateScore(data);
+    }
+
     var form = FormApp.create(data.title || "แบบทดสอบออนไลน์");
 
     // 1. ตั้งค่าให้เป็นแบบทดสอบ (Quiz) และตั้งค่าไม่เก็บอีเมลเด็ดขาด
@@ -50,21 +55,57 @@ function doPost(e) {
       });
     }
 
-    // 3. สร้างข้อสอบแบบปรนัย (Multiple Choice) พร้อมเฉลยและคะแนน (1 คะแนน/ข้อ)
+    // 3. สร้างข้อสอบ (รองรับ ปรนัย Multiple Choice, เติมคำ Short Answer, อัตนัย Paragraph พร้อมคะแนนรายข้อ)
+    var hasManualGrading = false;
+    var manualQuestions = [];
+    var totalMaxPoints = 0;
+
     if (data.questions && Array.isArray(data.questions)) {
       data.questions.forEach(function(q) {
-        var item = form.addMultipleChoiceItem();
-        item.setTitle(q.text);
-        item.setPoints(1);
-        item.setRequired(true);
+        var pts = (typeof q.points === "number" && q.points >= 0) ? q.points : 1;
+        totalMaxPoints += pts;
 
-        var choices = [];
-        q.choices.forEach(function(choiceText, idx) {
-          var isCorrect = (idx === q.answer);
-          choices.push(item.createChoice(choiceText, isCorrect));
-        });
-        item.setChoices(choices);
+        if (q.type === "short_answer" || q.type === "text") {
+          hasManualGrading = true;
+          manualQuestions.push(q.text || "ข้อสอบเติมคำ");
+          var item = form.addTextItem();
+          item.setTitle(q.text);
+          item.setPoints(pts);
+          item.setRequired(true);
+          if (q.answerText) {
+            item.setHelpText("แนวคำตอบ/เฉลย: " + q.answerText);
+          }
+        } else if (q.type === "paragraph" || q.type === "essay") {
+          hasManualGrading = true;
+          manualQuestions.push(q.text || "ข้อสอบอัตนัย");
+          var item = form.addParagraphTextItem();
+          item.setTitle(q.text);
+          item.setPoints(pts);
+          item.setRequired(true);
+          if (q.answerText) {
+            item.setHelpText("เกณฑ์การให้คะแนน/แนวคำตอบ: " + q.answerText);
+          }
+        } else {
+          // ค่าเริ่มต้น: ปรนัย (Multiple Choice)
+          var item = form.addMultipleChoiceItem();
+          item.setTitle(q.text);
+          item.setPoints(pts);
+          item.setRequired(true);
+
+          var choices = [];
+          if (q.choices && Array.isArray(q.choices)) {
+            q.choices.forEach(function(choiceText, idx) {
+              var isCorrect = (idx === q.answer);
+              choices.push(item.createChoice(choiceText, isCorrect));
+            });
+          }
+          item.setChoices(choices);
+        }
       });
+    }
+
+    if (totalMaxPoints === 0) {
+      totalMaxPoints = (data.questions && data.questions.length) ? data.questions.length : 10;
     }
 
     var formId = form.getId();
@@ -112,8 +153,7 @@ function doPost(e) {
       }
 
       // ออกแบบแท็บ "📊 สรุปภาพรวมคะแนน"
-      var totalQ = (data.questions && data.questions.length) ? data.questions.length : 10;
-      var passScore = Math.ceil(totalQ * 0.5);
+      var passScore = Math.ceil(totalMaxPoints * 0.5);
 
       // แบนเนอร์หัวข้อตารางสรุป
       summarySheet.getRange("A1:G1").merge()
@@ -138,6 +178,9 @@ function doPost(e) {
       // Helper column Z สำหรับสกัดคะแนนตัวเลขจากข้อความดิบ เช่น "8 / 10" -> 8
       summarySheet.getRange("Z1").setValue("คะแนนตัวเลข (ระบบ)");
       summarySheet.getRange("Z2").setFormula("=ARRAYFORMULA(IF('ผลการสอบรายบุคคล'!B2:B=\"\", \"\", IFERROR(VALUE(LEFT('ผลการสอบรายบุคคล'!B2:B, FIND(\"/\", 'ผลการสอบรายบุคคล'!B2:B) - 1)), 0)))");
+      summarySheet.getRange("Z3").setValue(hasManualGrading ? "HAS_MANUAL_GRADING" : "AUTO_GRADED");
+      summarySheet.getRange("Z4").setValue(JSON.stringify(manualQuestions));
+      summarySheet.getRange("Z5").setValue(totalMaxPoints);
       summarySheet.hideColumns(26);
 
       // การ์ดสถิติภาพรวม
@@ -153,7 +196,7 @@ function doPost(e) {
 
       var statLabels = [
         ["👥 จำนวนนักเรียนที่ส่งข้อสอบ", "=COUNTIF('ผลการสอบรายบุคคล'!B2:B, \"*/*\") & \" คน\""],
-        ["🎯 คะแนนเต็ม", totalQ + " คะแนน"],
+        ["🎯 คะแนนเต็ม", totalMaxPoints + " คะแนน"],
         ["📈 คะแนนเฉลี่ย (Mean)", "=IF(COUNTIF('ผลการสอบรายบุคคล'!B2:B, \"*/*\")=0, \"-\", ROUND(AVERAGE(Z2:Z), 2) & \" คะแนน\")"],
         ["🏆 คะแนนสูงสุด (Max)", "=IF(COUNTIF('ผลการสอบรายบุคคล'!B2:B, \"*/*\")=0, \"-\", MAX(Z2:Z) & \" คะแนน\")"],
         ["📉 คะแนนต่ำสุด (Min)", "=IF(COUNTIF('ผลการสอบรายบุคคล'!B2:B, \"*/*\")=0, \"-\", MIN(Z2:Z) & \" คะแนน\")"],
@@ -336,6 +379,7 @@ function handleGetSummary(sheetUrlOrId) {
         var dataRows = responseSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
         for (var i = 0; i < dataRows.length; i++) {
           var item = {};
+          item["_rowIndex"] = i + 2; // ตำแหน่งแถวจริงใน Google Sheet สำหรับอัปเดตคะแนน
           for (var c = 0; c < headerVals.length; c++) {
             var colName = headerVals[c].toString().trim();
             item[colName] = dataRows[i][c];
@@ -407,6 +451,22 @@ function handleGetSummary(sheetUrlOrId) {
       }
     }
 
+    // ตรวจสอบข้อมูลข้อสอบอัตนัย/เติมคำจาก Metadata
+    var hasManualGrading = false;
+    var manualQuestions = [];
+    if (summarySheet) {
+      try {
+        var z3Val = summarySheet.getRange("Z3").getValue();
+        if (z3Val === "HAS_MANUAL_GRADING") {
+          hasManualGrading = true;
+          var z4Val = summarySheet.getRange("Z4").getValue();
+          if (z4Val) manualQuestions = JSON.parse(z4Val);
+        }
+      } catch (zErr) {
+        Logger.log("Read metadata error: " + zErr.message);
+      }
+    }
+
     var stats = {
       title: summarySheet ? summarySheet.getRange("A1").getValue().toString().replace("📊 สรุปภาพรวมผลการสอบ: ", "") : "",
       totalStudents: totalStudentsCount + " คน",
@@ -423,8 +483,77 @@ function handleGetSummary(sheetUrlOrId) {
     return ContentService.createTextOutput(JSON.stringify({
       success: true,
       sheetId: sheetId,
+      hasManualGrading: hasManualGrading,
+      manualQuestions: manualQuestions,
       stats: stats,
       students: students
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * ฟังก์ชันบันทึก/แก้ไขคะแนนนักเรียนรายบุคคลจากเว็บแอป FormAuto โดยตรง
+ */
+function handleUpdateScore(data) {
+  try {
+    var sheetId = data.sheetUrl || data.sheetId;
+    if (sheetId && typeof sheetId === "string" && sheetId.indexOf("http") !== -1) {
+      var match = sheetId.match(/[-\w]{25,}/);
+      if (match) sheetId = match[0];
+    }
+
+    if (!sheetId) {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, error: "Missing sheetId" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var ss = SpreadsheetApp.openById(sheetId);
+    var sheets = ss.getSheets();
+    var responseSheet = null;
+    for (var s = 0; s < sheets.length; s++) {
+      if (sheets[s].getName().indexOf("สรุป") === -1) {
+        responseSheet = sheets[s];
+        break;
+      }
+    }
+    if (!responseSheet) responseSheet = sheets.length > 1 ? sheets[1] : sheets[0];
+
+    var rowIndex = parseInt(data.rowIndex, 10);
+    if (!rowIndex || rowIndex < 2) {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, error: "Invalid rowIndex: " + data.rowIndex }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var lastCol = responseSheet.getLastColumn();
+    var headerVals = responseSheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    var scoreCol = -1;
+    for (var c = 0; c < headerVals.length; c++) {
+      var colName = headerVals[c].toString().trim();
+      if (colName === "คะแนน" || colName.toLowerCase() === "score") {
+        scoreCol = c + 1;
+        break;
+      }
+    }
+    if (scoreCol === -1) scoreCol = 2; // ดีฟอลต์คอลัมน์ B คือคอลัมน์คะแนนของ Google Forms
+
+    var newScoreStr = data.newScore.toString().trim();
+    if (newScoreStr.indexOf("/") === -1 && data.totalMax) {
+      newScoreStr = newScoreStr + " / " + data.totalMax;
+    }
+
+    responseSheet.getRange(rowIndex, scoreCol).setValue(newScoreStr);
+    SpreadsheetApp.flush();
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      rowIndex: rowIndex,
+      newScore: newScoreStr
     })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {

@@ -1891,9 +1891,12 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
     return "";
   };
 
-  const totalMax = exam.question_count || 20;
+  // คำนวณคะแนนเต็มจริง (ดึงจาก data?.totalMaxPoints ใน Google Sheets หรือ data?.stats?.totalScore หรือ fallback เป็น exam.question_count)
+  const totalMax = (data?.totalMaxPoints && data.totalMaxPoints > 0)
+    ? data.totalMaxPoints
+    : (data?.stats?.totalScore ? parseFloat(data.stats.totalScore) : 0) || exam.question_count || 20;
 
-  const parseScore = (s: any, defaultTotal: number = 20) => {
+  const parseScore = (s: any, defaultTotal: number = totalMax) => {
     const raw = getStudentField(s, ["คะแนน", "score", "total score", "points"]);
     if (!raw) return { str: "-", earned: 0, total: defaultTotal, isPass: false };
     const rawStr = String(raw).trim();
@@ -1972,7 +1975,7 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
 
   const stats = {
     totalStudents: totalCount > 0 ? `${totalCount} คน` : (data?.stats?.totalStudents || "0 คน"),
-    totalScore: data?.stats?.totalScore || `${totalMax} คะแนน`,
+    totalScore: `${totalMax} คะแนน`,
     average: totalCount > 0 ? computedAvg : (data?.stats?.average || "-"),
     maxScore: totalCount > 0 ? computedMax : (data?.stats?.maxScore || "-"),
     minScore: totalCount > 0 ? computedMin : (data?.stats?.minScore || "-"),

@@ -451,7 +451,7 @@ function handleGetSummary(sheetUrlOrId) {
       }
     }
 
-    // ตรวจสอบข้อมูลข้อสอบอัตนัย/เติมคำจาก Metadata
+    // ตรวจสอบข้อมูลข้อสอบอัตนัย/เติมคำและคะแนนเต็มรวมจาก Metadata
     var hasManualGrading = false;
     var manualQuestions = [];
     if (summarySheet) {
@@ -462,10 +462,35 @@ function handleGetSummary(sheetUrlOrId) {
           var z4Val = summarySheet.getRange("Z4").getValue();
           if (z4Val) manualQuestions = JSON.parse(z4Val);
         }
+        var z5Val = summarySheet.getRange("Z5").getValue();
+        if (typeof z5Val === "number" && z5Val > 0) {
+          totalMaxPoints = z5Val;
+        } else if (z5Val) {
+          var parsedZ5 = parseFloat(z5Val);
+          if (!isNaN(parsedZ5) && parsedZ5 > 0) totalMaxPoints = parsedZ5;
+        }
       } catch (zErr) {
         Logger.log("Read metadata error: " + zErr.message);
       }
+
+      // ถ้ายังเป็นค่าเริ่มต้น 20 ให้ลองอ่านจาก C6 (แถวคะแนนเต็มในตารางสรุป)
+      if (totalMaxPoints === 20 || !totalMaxPoints) {
+        try {
+          var c6Val = summarySheet.getRange("C6").getValue();
+          if (c6Val) {
+            var c6Match = c6Val.toString().match(/\d+(\.\d+)?/);
+            if (c6Match && parseFloat(c6Match[0]) > 0) {
+              totalMaxPoints = parseFloat(c6Match[0]);
+            }
+          }
+        } catch (c6Err) {}
+      }
     }
+
+    var passThreshold = Math.ceil(totalMaxPoints * 0.5);
+    var passCountNum = studentScores.filter(function(s) { return s >= passThreshold; }).length;
+    var failCountNum = totalStudentsCount - passCountNum;
+    var passRatePct = totalStudentsCount > 0 ? ((passCountNum / totalStudentsCount) * 100).toFixed(1) + "%" : "0%";
 
     var stats = {
       title: summarySheet ? summarySheet.getRange("A1").getValue().toString().replace("📊 สรุปภาพรวมผลการสอบ: ", "") : "",
@@ -485,6 +510,7 @@ function handleGetSummary(sheetUrlOrId) {
       sheetId: sheetId,
       hasManualGrading: hasManualGrading,
       manualQuestions: manualQuestions,
+      totalMaxPoints: totalMaxPoints,
       stats: stats,
       students: students
     })).setMimeType(ContentService.MimeType.JSON);

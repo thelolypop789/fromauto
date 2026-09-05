@@ -64,6 +64,14 @@ const css = `
   .btn-sm { padding:6px 14px; font-size:13px; }
   .btn-icon { padding:7px; background:transparent; border:1px solid rgba(255,255,255,.35); color:white; border-radius:8px; }
   .btn-icon:hover { background:rgba(255,255,255,.15); }
+  .btn-delete { display:inline-flex; align-items:center; justify-content:center; gap:4px; padding:6px 10px; background:#FEE2E2; color:#DC2626; border:1.5px solid #FCA5A5; border-radius:var(--radius); font-size:12px; font-weight:700; cursor:pointer; transition:all .15s ease; white-space:nowrap; }
+  .btn-delete:hover { background:#DC2626; color:white; border-color:#B91C1C; transform:translateY(-1px); }
+  .step-clickable { cursor:pointer; transition:all .15s ease; border-radius:8px; padding:2px 4px; }
+  .step-clickable:hover .step-dot { transform:scale(1.12); box-shadow:0 0 0 4px rgba(16,185,129,.3); }
+  .step-clickable:hover .step-label { color:var(--green); text-decoration:underline; font-weight:700; }
+  .btn-vibrant-new { display:inline-flex; align-items:center; justify-content:center; gap:10px; background:linear-gradient(135deg, #FF0055 0%, #FF5500 50%, #FFCC00 100%); color:white; font-family:'Prompt',sans-serif; font-size:18px; font-weight:800; padding:16px 38px; border-radius:50px; border:none; cursor:pointer; box-shadow:0 8px 25px rgba(255,85,0,.45), 0 0 0 2px rgba(255,255,255,.3); transition:all .2s ease; text-shadow:0 1px 2px rgba(0,0,0,.2); }
+  .btn-vibrant-new:hover { transform:translateY(-3px) scale(1.03); box-shadow:0 14px 35px rgba(255,85,0,.65), 0 0 0 4px rgba(255,204,0,.5); }
+  .btn-vibrant-new:active { transform:translateY(1px); }
   .btn:disabled { opacity:.5; cursor:not-allowed; }
   .topbar { background:linear-gradient(135deg, #7F1D1D 0%, #991B1B 55%, #B91C1C 100%); border-bottom:2.5px solid #F59E0B; display:flex; align-items:center; padding:0 24px; height:64px; position:sticky; top:0; z-index:100; box-shadow:0 4px 20px rgba(127,29,29,.22); }
   .topbar-brand { display:flex; align-items:center; gap:12px; flex:1; }
@@ -666,14 +674,34 @@ function StepDetails({
 
   return (
     <div className="card">
-      <div className="card-title">📄 รายละเอียดชุดข้อสอบ</div>
-      <div className="card-sub">กรอกข้อมูลพื้นฐาน และเลือกห้องเรียนที่ใช้ข้อสอบชุดนี้ (สามารถเลือกได้หลายห้อง)</div>
+      <div className="card-title">📄 ข้อมูลหัวกระดาษและรายละเอียดข้อสอบ</div>
+      <div className="card-sub">ตั้งชื่อหัวข้อสอบ คำชี้แจงหัวกระดาษ และเลือกห้องเรียนที่ใช้ข้อสอบชุดนี้</div>
 
       <div className="field">
-        <label>ชื่อชุดข้อสอบ *</label>
+        <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6, flexWrap:"wrap", gap:6}}>
+          <label style={{margin:0, fontWeight:700}}>ชื่อชุดข้อสอบ / หัวกระดาษ *</label>
+          <div style={{display:"flex", gap:4, flexWrap:"wrap", alignItems:"center"}}>
+            <span style={{fontSize:11, color:"var(--gray-500)"}}>⚡ ตัวอย่างหัวข้อ:</span>
+            {[
+              "แบบทดสอบวัดผลกลางภาค",
+              "แบบทดสอบวัดผลปลายภาค",
+              "แบบทดสอบเก็บคะแนน",
+            ].map(preset => (
+              <button
+                key={preset}
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{fontSize:11, padding:"2px 8px"}}
+                onClick={() => setFormTitle(formTitle ? `${preset} ${formTitle}` : preset)}
+              >
+                + {preset}
+              </button>
+            ))}
+          </div>
+        </div>
         <input
           type="text"
-          placeholder="เช่น แบบทดสอบวิชาภาษาไทย ม.1 กลางภาค"
+          placeholder="เช่น แบบทดสอบวัดผลกลางภาค วิชาภาษาไทย ม.1 โรงเรียนวังหลวงพิทยาสรรพ์"
           value={formTitle}
           onChange={e => setFormTitle(e.target.value)}
         />
@@ -818,8 +846,8 @@ function StepHeaders({ headers, setHeaders }: any) {
 
   return (
     <div className="card">
-      <div className="card-title">📋 กำหนดส่วนหัวของฟอร์ม</div>
-      <div className="card-sub">กำหนดช่องข้อมูลที่ต้องการให้นักเรียนกรอก เช่น ชื่อ เลขที่ และเลือกห้องเรียน (Dropdown)</div>
+      <div className="card-title">📋 กำหนดส่วนหัวของฟอร์ม (ข้อมูลนักเรียน)</div>
+      <div className="card-sub">กำหนดช่องข้อมูลหัวกระดาษที่ต้องการให้นักเรียนกรอก เช่น ชื่อ-สกุล ชั้น เลขที่ (สามารถลบหรือแก้ไขได้ทุกข้อ)</div>
 
       <div style={{marginBottom:16}}>
         <div style={{fontSize:13, color:"var(--gray-600)", marginBottom:8}}>เพิ่มช่องข้อมูลที่ใช้บ่อย:</div>
@@ -873,7 +901,14 @@ function StepHeaders({ headers, setHeaders }: any) {
                 title="คลิกเพื่อสลับ จำเป็น / ไม่จำเป็น">
                 {h.required ? "จำเป็น" : "ไม่จำเป็น"}
               </span>
-              <button className="btn btn-icon" onClick={() => removeHeader(h.id)}><TrashIcon /></button>
+              <button
+                type="button"
+                className="btn-delete"
+                onClick={() => removeHeader(h.id)}
+                title={`ลบข้อ ${i+1}: ${h.label || "ช่องนี้"}`}
+              >
+                <TrashIcon /> ลบ
+              </button>
             </div>
 
             {h.type === "dropdown" && (
@@ -1142,7 +1177,14 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
                   )}
                   <input className="q-text-input" placeholder="กรอกคำถาม..." value={q.text}
                     onChange={e => updateQ(q.id, "text", e.target.value)} style={{flex:1}}/>
-                  <button className="btn btn-icon" onClick={() => removeQ(q.id)}><TrashIcon /></button>
+                  <button
+                    type="button"
+                    className="btn-delete"
+                    onClick={() => removeQ(q.id)}
+                    title={`ลบข้อ ${qi+1}`}
+                  >
+                    <TrashIcon /> ลบ
+                  </button>
                 </div>
                 {warn && (
                   <div style={{fontSize:12,color:"#92400e",background:"var(--yellow-light)",borderRadius:6,padding:"4px 10px",marginBottom:8}}>
@@ -2427,8 +2469,17 @@ function ResultView({ result, onReset, userRole, usageCount, dailyLimit }: any) 
           ))}
         </div>
       </div>
-      <div style={{textAlign:"center"}}>
-        <button className="btn btn-secondary" onClick={onReset}>+ สร้างข้อสอบชุดใหม่</button>
+      <div style={{textAlign:"center", margin:"28px 0 16px"}}>
+        <button
+          type="button"
+          className="btn-vibrant-new"
+          onClick={onReset}
+          title="คลิกเพื่อเริ่มสร้างแบบทดสอบชุดใหม่ทันที"
+        >
+          <span>✨ 🚀</span>
+          <span>สร้างข้อสอบชุดใหม่</span>
+          <span style={{fontSize:13, opacity:.9, background:"rgba(255,255,255,.25)", padding:"3px 10px", borderRadius:20}}>เริ่มใหม่</span>
+        </button>
       </div>
 
       {userRole !== "admin" && (
@@ -2797,18 +2848,42 @@ export default function App() {
             tab==="history" ? <HistoryTab user={user} /> : (
               <>
                 <div className="stepper">
-                  {steps.map((s,i) => (
-                    <div key={s} style={{display:"flex",alignItems:"center",flex:i<steps.length-1?1:0}}>
-                      <div style={{display:"flex",alignItems:"center",gap:6}}>
-                        <div className={`step-dot ${i<step?"done":i===step?"active":"pending"}`}>
-                          {i<step?<CheckIcon />:i+1}
+                  {steps.map((s,i) => {
+                    const isClickable = i < step;
+                    return (
+                      <div key={s} style={{display:"flex",alignItems:"center",flex:i<steps.length-1?1:0}}>
+                        <div
+                          className={`step-item ${isClickable ? "step-clickable" : ""}`}
+                          style={{display:"flex",alignItems:"center",gap:6,cursor:isClickable?"pointer":"default"}}
+                          onClick={() => { if (isClickable) setStep(i); }}
+                          title={isClickable ? `คลิกเพื่อย้อนกลับไป: ขั้นตอนที่ ${i+1} ${s}` : undefined}
+                        >
+                          <div className={`step-dot ${i<step?"done":i===step?"active":"pending"}`}>
+                            {i<step?<CheckIcon />:i+1}
+                          </div>
+                          <span className={`step-label ${i<step?"done":i===step?"active":"pending"}`}>{s}</span>
                         </div>
-                        <span className={`step-label ${i<step?"done":i===step?"active":"pending"}`}>{s}</span>
+                        {i<steps.length-1 && <div className={`step-line ${i<step?"done":""}`} style={{flex:1,margin:"0 6px"}}/>}
                       </div>
-                      {i<steps.length-1 && <div className={`step-line ${i<step?"done":""}`} style={{flex:1,margin:"0 6px"}}/>}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
+
+                {step > 0 && step < 4 && (
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,padding:"10px 16px",background:"white",borderRadius:"var(--radius)",border:"1px solid var(--gray-200)",boxShadow:"var(--shadow-sm)"}}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setStep(s => s - 1)}
+                      style={{display:"inline-flex",alignItems:"center",gap:6,fontWeight:700,color:"var(--gray-700)"}}
+                    >
+                      ← ย้อนกลับไปขั้นตอนก่อนหน้า ({steps[step-1]})
+                    </button>
+                    <span style={{fontSize:13,color:"var(--gray-600)"}}>
+                      ขั้นตอนที่ {step+1}: <strong>{steps[step]}</strong>
+                    </span>
+                  </div>
+                )}
 
                 {step===0 && (
                   <StepDetails

@@ -81,69 +81,274 @@ const css = `
   .role-admin { background:rgba(245,158,11,.9); color:#7F1D1D; font-weight:800; box-shadow:0 2px 6px rgba(0,0,0,.15); }
   .role-user { background:rgba(255,255,255,.2); color:white; border:1px solid rgba(255,255,255,.3); }
   .main-layout { display:flex; flex:1; min-height:calc(100vh - 64px); }
-  .sidebar { width:230px; background:white; border-right:1px solid var(--gray-200); padding:16px 12px; flex-shrink:0; }
+  .sidebar { width:230px; background:white; border-right:1px solid var(--gray-200); padding:16px 12px; flex-shrink:0; display:flex; flex-direction:column; }
   .sidebar-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:var(--radius); cursor:pointer; font-size:13.5px; font-weight:500; color:var(--gray-600); transition:all .15s; margin-bottom:2px; border:none; background:none; width:100%; text-align:left; }
   .sidebar-item:hover { background:var(--gray-100); color:var(--gray-900); }
   .sidebar-item.active { background:var(--crimson-light); color:var(--crimson); font-weight:700; border-left:3.5px solid var(--crimson); }
   .sidebar-item.admin-active { background:var(--gold-light); color:var(--gold-dark); font-weight:700; border-left:3.5px solid var(--gold); }
   .sidebar-section { font-size:11px; font-weight:700; color:var(--gray-400); padding:10px 12px 4px; text-transform:uppercase; letter-spacing:.8px; margin-top:6px; }
-  .content { flex:1; padding:28px; overflow-y:auto; }
-  .stepper { display:flex; align-items:center; margin-bottom:28px; background:white; padding:16px 20px; border-radius:var(--radius-lg); border:1px solid var(--gray-200); box-shadow:var(--shadow-sm); }
-  .step-dot { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; transition:all .2s; }
-  .step-dot.done { background:var(--green); color:white; }
-  .step-dot.active { background:var(--crimson); color:white; box-shadow:0 0 0 4px rgba(245,158,11,.35); }
-  .step-dot.pending { background:var(--gray-200); color:var(--gray-600); }
-  .step-label { font-size:13px; font-weight:500; font-family:'Prompt',sans-serif; }
-  .step-label.active { color:var(--crimson); font-weight:700; }
-  .step-label.done { color:var(--green); font-weight:600; }
-  .step-label.pending { color:var(--gray-400); }
-  .step-line { flex:1; height:2px; background:var(--gray-200); margin:0 8px; min-width:16px; }
-  .step-line.done { background:var(--green); }
-  .card { background:white; border-radius:var(--radius-lg); padding:24px; box-shadow:var(--shadow-sm); border:1px solid var(--gray-200); margin-bottom:20px; }
-  .card-title { font-family:'Prompt',sans-serif; font-size:17px; font-weight:700; color:var(--gray-900); margin-bottom:4px; }
-  .card-sub { font-size:13px; color:var(--gray-600); margin-bottom:20px; }
-  .header-list { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
-  .header-row { display:flex; align-items:center; gap:8px; }
-  .header-input { flex:1; padding:8px 12px; border:1.5px solid var(--gray-200); border-radius:var(--radius); font-size:14px; font-family:'Sarabun',sans-serif; outline:none; }
-  .header-input:focus { border-color:var(--crimson); }
-  .header-badge { font-size:11px; font-weight:700; padding:3px 8px; border-radius:20px; background:var(--crimson-light); color:var(--crimson); cursor:pointer; white-space:nowrap; }
-  .header-badge.required { background:var(--red-light); color:var(--red); }
-  .upload-zone { border:2px dashed var(--gray-300); border-radius:var(--radius-lg); padding:36px; text-align:center; cursor:pointer; transition:all .2s; background:var(--gray-50); }
-  .upload-zone:hover { border-color:var(--crimson); background:var(--crimson-light); }
-  .upload-zone.has-file { border-color:var(--green); background:var(--green-light); border-style:solid; }
-  .upload-text { font-size:15px; font-weight:600; color:var(--gray-800); margin-bottom:4px; margin-top:12px; }
-  .upload-hint { font-size:13px; color:var(--gray-500); }
-  .question-list { display:flex; flex-direction:column; gap:12px; }
-  .question-card { border:1.5px solid var(--gray-200); border-radius:var(--radius); padding:16px; background:white; }
-  .question-card:hover { border-color:var(--crimson); }
-  .q-header { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
-  .q-num { font-size:12px; font-weight:700; color:var(--crimson); background:var(--crimson-light); padding:2px 8px; border-radius:20px; white-space:nowrap; }
-  .q-text-input { flex:1; padding:8px 12px; border:1.5px solid var(--gray-200); border-radius:var(--radius); font-size:14px; font-family:'Sarabun',sans-serif; outline:none; }
-  .q-text-input:focus { border-color:var(--crimson); }
-  .choices-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
-  .choice-row { display:flex; align-items:center; gap:6px; }
-  .choice-label { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; cursor:pointer; transition:all .15s; border:2px solid var(--gray-200); color:var(--gray-600); }
-  .choice-label.correct { background:var(--green); border-color:var(--green); color:white; }
-  .choice-label.wrong { background:var(--gray-100); }
-  .choice-input { flex:1; padding:6px 10px; border:1.5px solid var(--gray-200); border-radius:6px; font-size:13px; font-family:'Sarabun',sans-serif; outline:none; }
-  .choice-input:focus { border-color:var(--crimson); }
-  .choice-input.correct { border-color:var(--green); background:var(--green-light); }
-  .result-card { background:linear-gradient(135deg, #7F1D1D 0%, #991B1B 100%); border-radius:var(--radius-lg); padding:32px; color:white; text-align:center; margin-bottom:20px; animation:slideUp .4s ease; border-bottom:3px solid #F59E0B; }
-  .result-title { font-family:'Prompt',sans-serif; font-size:22px; font-weight:700; margin-bottom:8px; }
-  .result-sub { font-size:14px; opacity:.85; margin-bottom:24px; }
-  .link-box { background:white; border-radius:var(--radius); padding:14px 16px; display:flex; align-items:center; gap:10px; margin-bottom:10px; text-align:left; }
-  .link-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; margin-bottom:3px; }
-  .link-label.edit { color:var(--crimson); }
-  .link-label.view { color:var(--green); }
-  .link-url { font-size:12px; color:var(--gray-600); font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
-  .copy-btn { font-size:13px; padding:7px 14px; border-radius:6px; border:none; cursor:pointer; display:flex; align-items:center; gap:5px; font-family:'Sarabun',sans-serif; white-space:nowrap; font-weight:600; transition:opacity .15s; }
-  .copy-btn:hover { opacity:.85; }
-  .copy-btn.copied { background:#059669 !important; color:white !important; }
-  .loading-overlay { position:fixed; inset:0; background:rgba(255,255,255,.88); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:200; backdrop-filter:blur(3px); }
+  .content { flex:1; padding:28px; overflow-y:auto; display:flex; flex-direction:column; }
+  .btn-create-form {
+    position: relative;
+    width: 100%;
+    background: linear-gradient(135deg, #059669 0%, #10B981 50%, #047857 100%);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    padding: 18px 24px;
+    cursor: pointer;
+    overflow: hidden;
+    box-shadow: 0 10px 25px -4px rgba(16, 185, 129, 0.45), 0 4px 12px rgba(5, 150, 105, 0.3);
+    transition: all .25s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-align: left;
+  }
+  .btn-create-form::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%; width: 60%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+    transform: skewX(-20deg);
+    animation: btnShimmer 3s infinite;
+  }
+  @keyframes btnShimmer {
+    0% { left: -100%; }
+    40%, 100% { left: 160%; }
+  }
+  .btn-create-form:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 32px -4px rgba(16, 185, 129, 0.55), 0 6px 16px rgba(5, 150, 105, 0.4);
+    background: linear-gradient(135deg, #047857 0%, #10B981 40%, #059669 100%);
+  }
+  .btn-create-form:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .btn-create-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.22);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.35);
+    flex-shrink: 0;
+  }
+  .btn-create-title {
+    font-family: 'Prompt', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  }
+  .btn-create-sub {
+    font-size: 12.5px;
+    color: rgba(255,255,255,0.92);
+    font-weight: 400;
+    margin-top: 2px;
+  }
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    backdrop-filter: blur(8px);
+    animation: fadeInOverlay .25s ease;
+  }
+  @keyframes fadeInOverlay { from{opacity:0} to{opacity:1} }
+  .loading-modal {
+    background: white;
+    border-radius: 24px;
+    padding: 34px 30px 24px;
+    width: 92%;
+    max-width: 450px;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.15);
+    text-align: center;
+    position: relative;
+    animation: popInModal .3s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+  }
+  @keyframes popInModal { from{transform:scale(0.92); opacity:0} to{transform:scale(1); opacity:1} }
+  .loading-modal::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, var(--crimson), #F59E0B, var(--green), var(--crimson));
+    background-size: 200% 100%;
+    animation: gradientShift 2.5s linear infinite;
+  }
+  @keyframes gradientShift {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+  }
+  .loading-animation-container {
+    position: relative;
+    width: 86px;
+    height: 86px;
+    margin: 0 auto 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pulse-ring {
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(185, 28, 28, 0.18) 0%, transparent 70%);
+    animation: pulseRing 1.8s ease-out infinite;
+  }
+  @keyframes pulseRing {
+    0% { transform: scale(0.8); opacity: 1; }
+    100% { transform: scale(1.35); opacity: 0; }
+  }
+  .orbital-spinner {
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    border: 3.5px solid #F1F5F9;
+    border-top-color: var(--crimson);
+    border-right-color: #F59E0B;
+    border-bottom-color: var(--green);
+    animation: spin 1s linear infinite;
+  }
+  .loading-center-icon {
+    position: absolute;
+    font-size: 30px;
+    animation: floatIcon 2s ease-in-out infinite alternate;
+  }
+  @keyframes floatIcon {
+    from { transform: translateY(-2px) scale(0.96); }
+    to { transform: translateY(2px) scale(1.04); }
+  }
+  .loading-title {
+    font-family: 'Prompt', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 6px;
+  }
+  .loading-desc {
+    font-size: 13.5px;
+    color: var(--gray-600);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+  .loading-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+    background: var(--gray-50);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 18px;
+    border: 1px solid var(--gray-200);
+  }
+  .loading-step-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--gray-400);
+    transition: all .25s ease;
+  }
+  .loading-step-item.active {
+    color: var(--crimson);
+    font-weight: 700;
+  }
+  .loading-step-item.done {
+    color: var(--green);
+    font-weight: 600;
+  }
+  .loading-step-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .loading-step-item.active .loading-step-icon {
+    background: var(--crimson-light);
+    color: var(--crimson);
+  }
+  .loading-step-item.done .loading-step-icon {
+    background: var(--green-light);
+    color: var(--green);
+  }
+  .loading-step-item.pending .loading-step-icon {
+    background: var(--gray-200);
+    color: var(--gray-500);
+  }
+  .loading-step-badge {
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 700;
+  }
+  .loading-step-badge.active {
+    background: var(--crimson-light);
+    color: var(--crimson);
+  }
+  .loading-step-badge.done {
+    background: var(--green-light);
+    color: var(--green);
+  }
+  .loading-bar-wrapper {
+    height: 6px;
+    background: var(--gray-200);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 12px;
+  }
+  .loading-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--crimson), #F59E0B, var(--green));
+    border-radius: 10px;
+    transition: width .4s ease;
+  }
+  .loading-note {
+    font-size: 12px;
+    color: var(--gray-400);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
   .spinner { width:48px; height:48px; border:4px solid var(--gray-200); border-top-color:var(--crimson); border-radius:50%; animation:spin .8s linear infinite; margin-bottom:16px; }
   @keyframes spin { to{transform:rotate(360deg)} }
   .loading-text { font-size:15px; font-weight:600; color:var(--gray-800); }
   .loading-sub { font-size:13px; color:var(--gray-500); margin-top:4px; }
+  .app-footer {
+    text-align: center;
+    padding: 24px 0 10px;
+    font-size: 12px;
+    color: var(--gray-400);
+    letter-spacing: 0.5px;
+    user-select: none;
+    margin-top: auto;
+  }
+  .sidebar-footer {
+    padding: 16px 10px 4px;
+    font-size: 11px;
+    color: var(--gray-400);
+    text-align: center;
+    opacity: 0.7;
+    margin-top: auto;
+    letter-spacing: 0.3px;
+    user-select: none;
+  }
   .empty-state { text-align:center; padding:60px 20px; color:var(--gray-500); }
   .empty-icon { font-size:40px; margin-bottom:12px; }
   .progress-bar { height:4px; background:var(--gray-200); border-radius:2px; margin-top:8px; overflow:hidden; }
@@ -371,6 +576,10 @@ function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
 
         <div style={{textAlign:"center",marginTop:18,fontSize:12,color:"var(--gray-400)"}}>
           กรุณาติดต่อผู้ดูแลระบบเพื่อรับ Key
+        </div>
+
+        <div style={{textAlign:"center",marginTop:20,fontSize:11.5,color:"var(--gray-400)",opacity:0.7,letterSpacing:0.3,userSelect:"none"}}>
+          develop by พงศกร ดรโคตร์กอก
         </div>
       </div>
     </div>
@@ -2520,7 +2729,16 @@ export default function App() {
   const [targetRooms, setTargetRooms] = useState<string[]>([]);
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [loadingMsg, setLoadingMsg] = useState("");
+  const [loadingStepIndex, setLoadingStepIndex] = useState(0);
+
+  const FORM_CREATION_STEPS = [
+    { label: "จัดเตรียมและตรวจสอบโครงสร้างข้อสอบ", icon: "📋" },
+    { label: "เชื่อมต่อไปยัง Google Apps Script และ Google Drive", icon: "📡" },
+    { label: "สร้างฟอร์มแบบทดสอบชุดใหม่ใน Google Form", icon: "📝" },
+    { label: "บรรจุคำถาม ตัวเลือก พร้อมตั้งค่าเฉลยอัตโนมัติ", icon: "🎯" },
+    { label: "บันทึกข้อมูลและสร้างลิงก์สำหรับส่งให้นักเรียน", icon: "✨" },
+  ];
+
   const [result, setResult] = useState<any>(null);
   const [formTitle, setFormTitle] = useState("");
   const [formDesc, setFormDesc] = useState("");
@@ -2553,10 +2771,18 @@ export default function App() {
   };
 
   const handleSubmit = async () => {
-    const msgs = ["กำลังส่งข้อมูล...","กำลังสร้าง Google Form...","เพิ่มข้อสอบและตัวเลือก...","ตั้งค่าเฉลยอัตโนมัติ...","เสร็จสิ้น!"];
-    let i = 0;
-    setLoading(true); setLoadingMsg(msgs[0]);
-    const iv = setInterval(() => { i++; if(i<msgs.length) setLoadingMsg(msgs[i]); }, 800);
+    setLoading(true);
+    setLoadingStepIndex(0);
+    setSubmitError("");
+
+    let curStep = 0;
+    const iv = setInterval(() => {
+      curStep++;
+      if (curStep <= 3) {
+        setLoadingStepIndex(curStep);
+      }
+    }, 2200);
+
     try {
       // Deduplicate question text and choices to prevent Google Forms API rejection
       const seen = new Map<string, number>();
@@ -2597,8 +2823,14 @@ export default function App() {
         }),
       });
       const data = await res.json();
-      clearInterval(iv); setLoading(false);
       if (!data.success) throw new Error(data.error);
+
+      // Finished successfully!
+      setLoadingStepIndex(4);
+      await new Promise(r => setTimeout(r, 600));
+      clearInterval(iv);
+      setLoading(false);
+
       await supabase.from("form_history").insert({
         license_key: user.key,
         form_title: formTitle,
@@ -2612,7 +2844,8 @@ export default function App() {
       setResult({ title:formTitle, questionCount:questions.length, headerCount:headers.length, links:{ edit:data.editUrl?.trim(), view:data.viewUrl?.trim(), sheet:data.sheetUrl?.trim() } });
       setStep(4);
     } catch(err: any) {
-      clearInterval(iv); setLoading(false);
+      clearInterval(iv);
+      setLoading(false);
       setSubmitError(err.message);
     }
   };
@@ -2636,9 +2869,43 @@ export default function App() {
       <div className="app">
         {loading && (
           <div className="loading-overlay">
-            <div className="spinner"/>
-            <div className="loading-text">{loadingMsg}</div>
-            <div className="loading-sub">กรุณารอสักครู่...</div>
+            <div className="loading-modal">
+              <div className="loading-animation-container">
+                <div className="pulse-ring" />
+                <div className="orbital-spinner" />
+                <div className="loading-center-icon">🚀</div>
+              </div>
+              <div className="loading-title">กำลังสร้าง Google Form</div>
+              <div className="loading-desc">
+                ระบบกำลังจัดเตรียมข้อสอบ {questions.length} ข้อ และสร้างแบบทดสอบลงใน Google Drive ของคุณครู
+              </div>
+
+              <div className="loading-steps">
+                {FORM_CREATION_STEPS.map((s, idx) => {
+                  const isDone = idx < loadingStepIndex;
+                  const isCurrent = idx === loadingStepIndex;
+                  return (
+                    <div key={s.label} className={`loading-step-item ${isDone ? "done" : isCurrent ? "active" : "pending"}`}>
+                      <div className="loading-step-icon">
+                        {isDone ? "✓" : isCurrent ? "⏳" : "•"}
+                      </div>
+                      <div style={{flex:1}}>{s.label}</div>
+                      {isCurrent && <span className="loading-step-badge active">กำลังทำ...</span>}
+                      {isDone && <span className="loading-step-badge done">เรียบร้อย</span>}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="loading-bar-wrapper">
+                <div className="loading-bar-fill" style={{ width: `${Math.min(100, (loadingStepIndex + 1) * 20)}%` }} />
+              </div>
+
+              <div className="loading-note">
+                <span>🔒</span>
+                <span>ระบบกำลังทำงานอย่างปลอดภัย กรุณาอย่าปิดหรือรีเฟรชหน้าต่างนี้</span>
+              </div>
+            </div>
           </div>
         )}
         <div className="topbar">
@@ -2840,6 +3107,9 @@ export default function App() {
             )}
             <div className="sidebar-section">บัญชี</div>
             <button className="sidebar-item" onClick={handleLogout}><LogoutIcon /> ออกจากระบบ</button>
+            <div className="sidebar-footer">
+              develop by พงศกร ดรโคตร์กอก
+            </div>
           </div>
 
           <div className="content">
@@ -2914,31 +3184,86 @@ export default function App() {
                 )}
                 {step===3 && (
                   <div className="card">
-                    <div className="card-title">🚀 พร้อมสร้าง Google Form</div>
-                    <div className="card-sub">ตรวจสอบข้อมูลก่อนสร้าง</div>
-                    <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
-                      <div style={{padding:"12px 16px",background:"var(--gray-50)",borderRadius:"var(--radius)",fontSize:14}}>
-                        📄 ชื่อข้อสอบ: <strong>{formTitle}</strong>
+                    <div className="card-title" style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+                      <span>🚀 พร้อมสร้าง Google Form</span>
+                      <span className="badge badge-green" style={{fontSize:12,padding:"4px 10px"}}>ขั้นตอนสุดท้ายก่อนเริ่มสร้าง</span>
+                    </div>
+                    <div className="card-sub">กรุณาตรวจสอบข้อมูลภาพรวมของแบบทดสอบก่อนกดยืนยันสร้างฟอร์ม</div>
+                    
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(280px, 1fr))",gap:12,marginBottom:24}}>
+                      <div style={{padding:"14px 18px",background:"var(--gray-50)",borderRadius:"var(--radius-lg)",border:"1px solid var(--gray-200)"}}>
+                        <div style={{fontSize:12,fontWeight:700,color:"var(--crimson)",marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
+                          <span>📄</span> ชื่อแบบทดสอบ
+                        </div>
+                        <div style={{fontSize:15,fontWeight:700,color:"var(--gray-900)"}}>{formTitle || "(ไม่ได้ระบุ)"}</div>
                       </div>
-                      {formDesc && (
-                        <div style={{padding:"12px 16px",background:"var(--gray-50)",borderRadius:"var(--radius)",fontSize:14}}>
-                          📝 คำอธิบาย: <strong>{formDesc}</strong>
+
+                      {formDesc ? (
+                        <div style={{padding:"14px 18px",background:"var(--gray-50)",borderRadius:"var(--radius-lg)",border:"1px solid var(--gray-200)"}}>
+                          <div style={{fontSize:12,fontWeight:700,color:"var(--gray-600)",marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
+                            <span>📝</span> คำอธิบายแบบทดสอบ
+                          </div>
+                          <div style={{fontSize:14,color:"var(--gray-800)"}}>{formDesc}</div>
+                        </div>
+                      ) : (
+                        <div style={{padding:"14px 18px",background:"var(--gray-50)",borderRadius:"var(--radius-lg)",border:"1px solid var(--gray-200)"}}>
+                          <div style={{fontSize:12,fontWeight:700,color:"var(--gray-600)",marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
+                            <span>🎯</span> ระดับชั้น / ห้องเป้าหมาย
+                          </div>
+                          <div style={{fontSize:14,color:"var(--gray-800)"}}>
+                            {targetGrade ? targetGrade : "ทุกระดับชั้น"} {targetRooms.length > 0 && `(${targetRooms.join(", ")})`}
+                          </div>
                         </div>
                       )}
-                      <div style={{padding:"12px 16px",background:"var(--gray-50)",borderRadius:"var(--radius)",fontSize:14}}>
-                        ❓ จำนวนข้อ: <strong>{questions.length} ข้อ</strong>
+
+                      <div style={{padding:"14px 18px",background:"var(--gray-50)",borderRadius:"var(--radius-lg)",border:"1px solid var(--gray-200)"}}>
+                        <div style={{fontSize:12,fontWeight:700,color:"var(--green)",marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
+                          <span>❓</span> จำนวนข้อสอบ & เฉลย
+                        </div>
+                        <div style={{fontSize:15,fontWeight:700,color:"var(--gray-900)",display:"flex",alignItems:"center",gap:8}}>
+                          <span>{questions.length} ข้อ</span>
+                          <span className="badge badge-green" style={{fontSize:11}}>พร้อมเฉลยและตรวจอัตโนมัติ</span>
+                        </div>
                       </div>
-                      <div style={{padding:"12px 16px",background:"var(--gray-50)",borderRadius:"var(--radius)",fontSize:14}}>
-                        📋 ส่วนหัว: <strong>{headers.map((h: any) => h.label).join(", ")}</strong>
+
+                      <div style={{padding:"14px 18px",background:"var(--gray-50)",borderRadius:"var(--radius-lg)",border:"1px solid var(--gray-200)"}}>
+                        <div style={{fontSize:12,fontWeight:700,color:"var(--gray-600)",marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
+                          <span>📋</span> ช่องข้อมูลนักเรียน ({headers.length} ช่อง)
+                        </div>
+                        <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:4}}>
+                          {headers.map((h: any) => (
+                            <span key={h.id} style={{fontSize:12,padding:"2px 8px",background:"white",border:"1px solid var(--gray-300)",borderRadius:6,fontWeight:600}}>
+                              {h.label || "ช่องข้อมูล"}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     </div>
+
                     {submitError && (
-                      <div style={{marginBottom:14,padding:"12px 16px",background:"var(--red-light)",borderRadius:"var(--radius)",fontSize:13,color:"var(--red)"}}>
-                        ⚠️ {submitError}
+                      <div style={{marginBottom:18,padding:"14px 18px",background:"var(--red-light)",borderRadius:"var(--radius)",fontSize:13,color:"var(--red)",display:"flex",alignItems:"center",gap:8}}>
+                        <span>⚠️</span>
+                        <span>{submitError}</span>
                       </div>
                     )}
-                    <button className="btn btn-green" style={{width:"100%",padding:14,fontSize:16}} onClick={handleSubmit} disabled={loading}>
-                      🚀 สร้าง Google Form เลย!
+
+                    <button
+                      type="button"
+                      className="btn-create-form"
+                      onClick={handleSubmit}
+                      disabled={loading}
+                      title="คลิกเพื่อเริ่มสร้างแบบทดสอบ Google Form ทันที"
+                    >
+                      <div className="btn-create-icon">
+                        🚀
+                      </div>
+                      <div style={{flex:1,textAlign:"left"}}>
+                        <div className="btn-create-title">สร้าง Google Form ทันที</div>
+                        <div className="btn-create-sub">ระบบจะนำคำถาม ตัวเลือก และเฉลยไปสร้างเป็นฟอร์มใน Google Drive ให้ทันที</div>
+                      </div>
+                      <div style={{fontSize:22,fontWeight:800,opacity:0.9,marginRight:4}}>
+                        ➔
+                      </div>
                     </button>
                   </div>
                 )}
@@ -2964,6 +3289,10 @@ export default function App() {
                 )}
               </>
             )}
+
+            <div className="app-footer">
+              develop by พงศกร ดรโคตร์กอก
+            </div>
           </div>
         </div>
       </div>

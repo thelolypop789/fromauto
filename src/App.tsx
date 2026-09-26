@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -870,12 +870,94 @@ function AdminPanel({ adminKey }: { adminKey: string }) {
   );
 }
 
+// ============ SUBJECT GROUPS (8 กลุ่มสาระการเรียนรู้ สพฐ.) ============
+export interface SubjectGroup {
+  id: string;
+  name: string;
+  shortName: string;
+  icon: string;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+  codePrefix?: string;
+}
+
+export const SUBJECT_GROUPS: SubjectGroup[] = [
+  { id: "all", name: "ทุกกลุ่มสาระการเรียนรู้", shortName: "ทุกกลุ่มสาระฯ", icon: "📚", color: "var(--crimson)", bgColor: "#FEF2F2", borderColor: "var(--crimson)" },
+  { id: "thai", name: "กลุ่มสาระฯ ภาษาไทย", shortName: "ภาษาไทย", icon: "🇹🇭", color: "#B91C1C", bgColor: "#FEF2F2", borderColor: "#FECACA", codePrefix: "ท" },
+  { id: "math", name: "กลุ่มสาระฯ คณิตศาสตร์", shortName: "คณิตศาสตร์", icon: "📐", color: "#1D4ED8", bgColor: "#EFF6FF", borderColor: "#BFDBFE", codePrefix: "ค" },
+  { id: "science", name: "กลุ่มสาระฯ วิทยาศาสตร์และเทคโนโลยี", shortName: "วิทย์ฯ-เทคโน", icon: "🔬", color: "#047857", bgColor: "#ECFDF5", borderColor: "#A7F3D0", codePrefix: "ว" },
+  { id: "social", name: "กลุ่มสาระฯ สังคมศึกษา ศาสนา และวัฒนธรรม", shortName: "สังคมศึกษา", icon: "🌏", color: "#D97706", bgColor: "#FFFBEB", borderColor: "#FDE68A", codePrefix: "ส" },
+  { id: "foreign", name: "กลุ่มสาระฯ ภาษาต่างประเทศ", shortName: "ภาษาต่างประเทศ", icon: "🇬🇧", color: "#7C3AED", bgColor: "#F5F3FF", borderColor: "#DDD6FE", codePrefix: "อ/จ" },
+  { id: "health", name: "กลุ่มสาระฯ สุขศึกษาและพลศึกษา", shortName: "สุขศึกษา-พละ", icon: "🏃", color: "#EA580C", bgColor: "#FFF7ED", borderColor: "#FFEDD5", codePrefix: "พ" },
+  { id: "art", name: "กลุ่มสาระฯ ศิลปะ", shortName: "ศิลปะ", icon: "🎨", color: "#DB2777", bgColor: "#FDF2F8", borderColor: "#FBCFE8", codePrefix: "ศ" },
+  { id: "career", name: "กลุ่มสาระฯ การงานอาชีพ", shortName: "การงานอาชีพ", icon: "🛠️", color: "#4B5563", bgColor: "#F9FAFB", borderColor: "#E5E7EB", codePrefix: "ง" },
+  { id: "activity", name: "กิจกรรมพัฒนาผู้เรียน / อื่นๆ", shortName: "กิจกรรม/อื่นๆ", icon: "🧭", color: "#0891B2", bgColor: "#ECFEFF", borderColor: "#A5F3FC", codePrefix: "ก/I" },
+];
+
+export const detectSubjectFromTitle = (title: string, desc = ""): string => {
+  const text = `${title} ${desc}`.toLowerCase();
+
+  // Health & PE (พ)
+  if (/(พ\d{5}|[ (]พ\d|สุขศึกษา|พลศึกษา|ยิมนาส|ฟุตซอล|บาสเกตบอล|ตะกร้อ|ลีลาศ|ธุรกิจการกีฬา|การจัดการแข่งขัน|กีฬา|สุขภาพ)/.test(text)) return "health";
+  // Art (ศ)
+  if (/(ศ\d{5}|[ (]ศ\d|ศิลปะ|ทัศนศิลป์|ประวัติศาสตร์ศิลป์|ดนตรี|นาฏศิลป์)/.test(text)) return "art";
+  // Career (ง)
+  if (/(ง\d{5}|[ (]ง\d|การงานอาชีพ|งานช่าง|เกษตร|ขยายพันธ์|การดำรงชีวิตและครอบครัว|อาชีวอนามัย|เครื่องมือวัด)/.test(text)) return "career";
+  // Thai (ท)
+  if (/(ท\d{5}|[ (]ท\d|ภาษาไทย|วรรณกรรม|การอ่าน|การเขียน|วรรณคดี|เรียงความ)/.test(text)) return "thai";
+  // Foreign (อ, จ)
+  if (/(อ\d{5}|จ\d{5}|[ (][อจ]\d|ภาษาอังกฤษ|อังกฤษ|ภาษาจีน|汉语|english|listening|speaking)/.test(text)) return "foreign";
+  // Math (ค)
+  if (/(ค\d{5}|[ (]ค\d|คณิตศาสตร์|คณิต|พีชคณิต|เรขาคณิต|แคลคูลัส|สถิติ)/.test(text)) return "math";
+  // Science & Tech (ว)
+  if (/(ว\d{5}|[ (]ว\d|วิทยาศาสตร์|วิทยาศษสตร์|ฟิสิกส์|เคมี|ชีววิทยา|ชีวภาพ|ดาราศาสตร์|คอมพิวเตอร์|เทคโนโลยี|วิทยาการคำนวณ|coding)/.test(text)) return "science";
+  // Social (ส)
+  if (/(ส\d{5}|[ (]ส\d|สังคมศึกษา|สังคม|ประวัติศาสตร์|หน้าที่พลเมือง|ภูมิศาสตร์|ศาสนา|ศีลธรรม|เศรษฐศาสตร์)/.test(text)) return "social";
+
+  return "";
+};
+
+export const getExamSubjectGroup = (item: any): SubjectGroup => {
+  if (!item) return SUBJECT_GROUPS.find(g => g.id === "activity")!;
+  const text = `${item.form_title || ""} ${item.form_desc || ""}`.toLowerCase();
+  const id = item.id || "";
+  const license = (item.license_key || "").toLowerCase();
+
+  // 1. Explicit tag in form_desc: [กลุ่มสาระ: xxx]
+  const tagMatch = text.match(/\[กลุ่มสาระ:\s*([^\]]+)\]/);
+  if (tagMatch) {
+    const raw = tagMatch[1].trim();
+    const found = SUBJECT_GROUPS.find(g => g.id !== "all" && (g.id === raw || g.name.includes(raw) || g.shortName.includes(raw) || raw.includes(g.shortName)));
+    if (found) return found;
+  }
+
+  // 2. Specific teacher & legacy hardcode mapping for past exams
+  if (license.includes("duangkhae")) return SUBJECT_GROUPS.find(g => g.id === "thai")!;
+  if (license.includes("pongsarkon")) return SUBJECT_GROUPS.find(g => g.id === "career")!;
+  if (license.includes("peeraphon") || id.startsWith("2edeb292")) return SUBJECT_GROUPS.find(g => g.id === "foreign")!;
+
+  // Legacy courses
+  if (text.includes("เครื่องมือวัด") || text.includes("ขยายพันธ์")) return SUBJECT_GROUPS.find(g => g.id === "career")!;
+  if (text.includes("ค้นคว้าอิสระ") || text.includes(" is ") || text.includes("i22201")) return SUBJECT_GROUPS.find(g => g.id === "activity")!;
+
+  // 3. Keyword / course code detection
+  const detectedId = detectSubjectFromTitle(item.form_title || "", item.form_desc || "");
+  if (detectedId) {
+    const found = SUBJECT_GROUPS.find(g => g.id === detectedId);
+    if (found) return found;
+  }
+
+  return SUBJECT_GROUPS.find(g => g.id === "activity")!;
+};
+
 // ============ STEP 0: DETAILS ============
 function StepDetails({
   formTitle, setFormTitle,
   formDesc, setFormDesc,
   targetGrade, setTargetGrade,
   targetRooms, setTargetRooms,
+  targetSubject, setTargetSubject,
   onRoomsChange
 }: any) {
   const grades = [
@@ -935,7 +1017,7 @@ function StepDetails({
   return (
     <div className="card">
       <div className="card-title">📄 ข้อมูลหัวกระดาษและรายละเอียดข้อสอบ</div>
-      <div className="card-sub">ตั้งชื่อหัวข้อสอบ คำชี้แจงหัวกระดาษ และเลือกห้องเรียนที่ใช้ข้อสอบชุดนี้</div>
+      <div className="card-sub">ตั้งชื่อหัวข้อสอบ เลือกกลุ่มสาระการเรียนรู้ และเลือกห้องเรียนที่ใช้ข้อสอบชุดนี้</div>
 
       <div className="field">
         <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6, flexWrap:"wrap", gap:6}}>
@@ -952,7 +1034,14 @@ function StepDetails({
                 type="button"
                 className="btn btn-secondary btn-sm"
                 style={{fontSize:11, padding:"2px 8px"}}
-                onClick={() => setFormTitle(formTitle ? `${preset} ${formTitle}` : preset)}
+                onClick={() => {
+                  const val = formTitle ? `${preset} ${formTitle}` : preset;
+                  setFormTitle(val);
+                  if (!targetSubject) {
+                    const detected = detectSubjectFromTitle(val);
+                    if (detected) setTargetSubject(detected);
+                  }
+                }}
               >
                 + {preset}
               </button>
@@ -963,8 +1052,72 @@ function StepDetails({
           type="text"
           placeholder="เช่น แบบทดสอบวัดผลกลางภาค วิชาภาษาไทย ม.1 โรงเรียนวังหลวงพิทยาสรรพ์"
           value={formTitle}
-          onChange={e => setFormTitle(e.target.value)}
+          onChange={e => {
+            const val = e.target.value;
+            setFormTitle(val);
+            if (!targetSubject) {
+              const detected = detectSubjectFromTitle(val);
+              if (detected) setTargetSubject(detected);
+            }
+          }}
         />
+      </div>
+
+      {/* Subject Group Selector */}
+      <div className="field" style={{background:"var(--gray-50)", padding:"16px", borderRadius:"var(--radius)", border:"1px solid var(--gray-200)"}}>
+        <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8, flexWrap:"wrap", gap:6}}>
+          <label style={{fontWeight:700, margin:0, color:"var(--gray-800)"}}>
+            📚 กลุ่มสาระการเรียนรู้ (8 กลุ่มสาระ สพฐ.):
+          </label>
+          {targetSubject && (
+            <button
+              type="button"
+              className="btn btn-sm btn-secondary"
+              style={{fontSize:11, padding:"3px 8px", color:"var(--gray-500)"}}
+              onClick={() => setTargetSubject("")}>
+              ✕ ล้าง
+            </button>
+          )}
+        </div>
+
+        <div style={{display:"flex", gap:6, flexWrap:"wrap"}}>
+          {SUBJECT_GROUPS.filter(g => g.id !== "all").map(g => {
+            const isSelected = targetSubject === g.id;
+            return (
+              <button
+                key={g.id}
+                type="button"
+                onClick={() => setTargetSubject(g.id)}
+                style={{
+                  padding: "6px 13px",
+                  borderRadius: "20px",
+                  fontSize: "12.5px",
+                  cursor: "pointer",
+                  border: isSelected ? `2px solid ${g.color}` : "1.5px solid var(--gray-300)",
+                  background: isSelected ? g.bgColor : "white",
+                  color: isSelected ? g.color : "var(--gray-700)",
+                  fontWeight: isSelected ? 700 : 500,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  boxShadow: isSelected ? `0 2px 6px ${g.bgColor}` : "none",
+                  transition: "all .15s"
+                }}>
+                <span>{g.icon}</span>
+                <span>{g.shortName}</span>
+                {isSelected && <span>✓</span>}
+              </button>
+            );
+          })}
+        </div>
+        {targetSubject && (
+          <div style={{fontSize:12, color:"var(--gray-600)", marginTop:8, display:"flex", alignItems:"center", gap:6}}>
+            <span>✨</span>
+            <span>จัดอยู่ใน: <strong style={{color: SUBJECT_GROUPS.find(g => g.id === targetSubject)?.color}}>
+              {SUBJECT_GROUPS.find(g => g.id === targetSubject)?.name}
+            </strong> (ระบบจะจำแนกเข้าสู่แดชบอร์ดกลุ่มสาระฯ นี้ให้อัตโนมัติ)</span>
+          </div>
+        )}
       </div>
 
       <div className="field" style={{background:"var(--gray-50)", padding:"16px", borderRadius:"var(--radius)", border:"1px solid var(--gray-200)"}}>
@@ -1641,10 +1794,10 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
     </div>
   );
 }
-// Helper: ทำความสะอาดคำชี้แจง โดยไม่แสดงแท็ก [ห้อง: ...] หรือ [ระดับชั้น: ...]
+// Helper: ทำความสะอาดคำชี้แจง โดยไม่แสดงแท็ก [ห้อง: ...], [ระดับชั้น: ...] หรือ [กลุ่มสาระ: ...]
 const cleanDesc = (desc?: string | null) => {
   if (!desc) return "";
-  return desc.replace(/\s*\[(ห้อง|ระดับชั้น):[^\]]*\]/g, "").trim();
+  return desc.replace(/\s*\[(ห้อง|ระดับชั้น|กลุ่มสาระ):[^\]]*\]/g, "").trim();
 };
 
 // ============ HISTORY ============
@@ -1717,6 +1870,28 @@ function HistoryTab({ user }: any) {
                     <td style={{fontFamily:"monospace",fontSize:11,color:"var(--gray-600)"}}>{h.license_key}</td>
                   )}
                   <td>
+                    <div style={{display:"flex", alignItems:"center", gap:6, flexWrap:"wrap", marginBottom:4}}>
+                      {(() => {
+                        const sg = getExamSubjectGroup(h);
+                        return (
+                          <span style={{
+                            background: sg.bgColor,
+                            color: sg.color,
+                            border: `1px solid ${sg.borderColor}`,
+                            padding: "1px 7px",
+                            borderRadius: 10,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4
+                          }}>
+                            <span>{sg.icon}</span>
+                            <span>{sg.shortName}</span>
+                          </span>
+                        );
+                      })()}
+                    </div>
                     <div style={{fontWeight:600,fontSize:14}}>{h.form_title}</div>
                     {cleanDesc(h.form_desc) && <div style={{fontSize:12,color:"var(--gray-500)",marginTop:2}}>{cleanDesc(h.form_desc)}</div>}
                   </td>
@@ -2404,12 +2579,34 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
             </div>
           )}
           <div style={{flex: 1}}>
-            {isSchoolUser && (
-              <div style={{fontSize: 12, fontWeight: 700, color: "var(--crimson)", display: "flex", alignItems: "center", gap: 6, marginBottom: 2}}>
-                <span>🏫 โรงเรียนวังหลวงพิทยาสรรพ์</span>
-                <span style={{background: "var(--amber-100)", color: "var(--amber-800)", padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 800}}>ว.พ.</span>
-              </div>
-            )}
+            <div style={{display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4}}>
+              {isSchoolUser && (
+                <div style={{fontSize: 12, fontWeight: 700, color: "var(--crimson)", display: "flex", alignItems: "center", gap: 6}}>
+                  <span>🏫 โรงเรียนวังหลวงพิทยาสรรพ์</span>
+                  <span style={{background: "var(--amber-100)", color: "var(--amber-800)", padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 800}}>ว.พ.</span>
+                </div>
+              )}
+              {(() => {
+                const sg = getExamSubjectGroup(exam);
+                return (
+                  <span style={{
+                    background: sg.bgColor,
+                    color: sg.color,
+                    border: `1px solid ${sg.borderColor}`,
+                    padding: "2px 10px",
+                    borderRadius: 20,
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4
+                  }}>
+                    <span>{sg.icon}</span>
+                    <span>{sg.name}</span>
+                  </span>
+                );
+              })()}
+            </div>
             <h2 style={{margin: 0, fontSize: 20, fontWeight: 700, color: "var(--gray-900)"}}>
               {exam.form_title}
             </h2>
@@ -2569,6 +2766,37 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
             </div>
           ) : (
             <>
+              {/* Learning Area Banner Card */}
+              {(() => {
+                const sg = getExamSubjectGroup(exam);
+                return (
+                  <div style={{
+                    background: sg.bgColor,
+                    border: `1.5px solid ${sg.borderColor}`,
+                    borderRadius: "var(--radius)",
+                    padding: "12px 18px",
+                    marginBottom: 20,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: 10
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <span style={{ fontSize: 28 }}>{sg.icon}</span>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: sg.color }}>
+                          {sg.name} ({sg.codePrefix ? `รหัสวิชาขึ้นต้นด้วย: ${sg.codePrefix}` : "รายวิชาทั่วไป"})
+                        </div>
+                        <div style={{ fontSize: 12, color: "var(--gray-600)" }}>
+                          แบบทดสอบนี้จัดอยู่ในหมวด <strong>{sg.shortName}</strong> รวบรวมสถิติคะแนนเพื่อการประเมินคุณภาพผู้เรียนตามกลุ่มสาระการเรียนรู้
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* 4 Hero KPI Cards */}
               <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 20}}>
                 <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid var(--crimson)", background: "linear-gradient(135deg, #FFFFFF 0%, #FEF2F2 100%)"}}>
@@ -3175,12 +3403,24 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
 }
 
 // ============ SHEETS & RESULTS TAB ============
-function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSelectedRoom }: any) {
+function SheetsTab({
+  user,
+  selectedGrade,
+  setSelectedGrade,
+  selectedRoom,
+  setSelectedRoom,
+  selectedSubject = "all",
+  setSelectedSubject
+}: any) {
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [copied, setCopied] = useState<Record<string, boolean>>({});
   const [viewingExam, setViewingExam] = useState<any>(null);
+  const [localSubject, setLocalSubject] = useState("all");
+
+  const currentSubject = setSelectedSubject ? selectedSubject : localSubject;
+  const setCurrentSubject = setSelectedSubject || setLocalSubject;
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -3192,6 +3432,15 @@ function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSel
   };
 
   useEffect(() => { fetchHistory(); }, []);
+
+  const subjectCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    history.forEach(h => {
+      const sg = getExamSubjectGroup(h);
+      map[sg.id] = (map[sg.id] || 0) + 1;
+    });
+    return map;
+  }, [history]);
 
   if (viewingExam) {
     return <ExamScoreDashboard exam={viewingExam} onBack={() => setViewingExam(null)} user={user} />;
@@ -3208,7 +3457,9 @@ function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSel
       h.form_title?.toLowerCase().includes(search.toLowerCase()) ||
       h.form_desc?.toLowerCase().includes(search.toLowerCase());
     const matchR = matchRoom(h, selectedGrade, selectedRoom);
-    return matchSearch && matchR;
+    const sg = getExamSubjectGroup(h);
+    const matchSub = currentSubject === "all" || sg.id === currentSubject;
+    return matchSearch && matchR && matchSub;
   });
 
   const gradeList = [
@@ -3247,8 +3498,8 @@ function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSel
               📊 ผลการสอบ & ชีตคะแนน โรงเรียนวังหลวงพิทยาสรรพ์
             </h2>
           </div>
-          <p style={{fontSize:14, opacity:.9, margin:0, maxWidth:640}}>
-            ชีตคะแนนและคำตอบของนักเรียนจะซิงค์อัตโนมัติแบบเรียลไทม์ คุณครูสามารถเลือกดูตามระดับชั้นและห้องเรียนจากแถบเมนูด้านซ้ายได้ทันที
+          <p style={{fontSize:14, opacity:.9, margin:0, maxWidth:680}}>
+            ชีตคะแนนและคำตอบของนักเรียนจะซิงค์อัตโนมัติแบบเรียลไทม์ คุณครูสามารถเลือกกรองตาม <strong>กลุ่มสาระการเรียนรู้ (8 กลุ่มสาระ)</strong>, ระดับชั้น และห้องเรียนได้ทันที
           </p>
         </div>
         <div style={{display:"flex", gap:12, alignItems:"center"}}>
@@ -3262,7 +3513,72 @@ function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSel
         </div>
       </div>
 
-      {/* Grade & Room Quick Filter Bar */}
+      {/* 8 Learning Areas Dashboard Cards */}
+      <div className="card" style={{padding: "16px 20px", marginBottom: 16}}>
+        <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8}}>
+          <div style={{fontSize: 14, fontWeight: 700, color: "var(--gray-800)", display: "flex", alignItems: "center", gap: 8}}>
+            <span>📚 จำแนกตาม 8 กลุ่มสาระการเรียนรู้</span>
+            <span style={{fontSize: 11.5, fontWeight: 500, color: "var(--gray-500)"}}>
+              (คลิกเพื่อเลือกดูเฉพาะกลุ่มสาระที่ต้องการ)
+            </span>
+          </div>
+          {currentSubject !== "all" && (
+            <button
+              type="button"
+              className="btn btn-sm btn-secondary"
+              style={{fontSize: 11.5, color: "var(--crimson)", fontWeight: 600}}
+              onClick={() => setCurrentSubject("all")}>
+              ✕ แสดงทุกกลุ่มสาระ ({history.length})
+            </button>
+          )}
+        </div>
+
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+          gap: 8
+        }}>
+          {SUBJECT_GROUPS.map(sg => {
+            const count = sg.id === "all" ? history.length : (subjectCounts[sg.id] || 0);
+            const isSelected = currentSubject === sg.id;
+            return (
+              <div
+                key={sg.id}
+                onClick={() => setCurrentSubject(sg.id)}
+                style={{
+                  background: isSelected ? (sg.id === "all" ? "var(--crimson-light)" : sg.bgColor) : "#F8FAFC",
+                  border: isSelected ? `2px solid ${sg.id === "all" ? "var(--crimson)" : sg.color}` : "1.5px solid var(--gray-200)",
+                  borderRadius: "10px",
+                  padding: "10px 10px",
+                  textAlign: "center",
+                  cursor: "pointer",
+                  transition: "all .15s",
+                  boxShadow: isSelected ? "0 2px 8px rgba(0,0,0,0.08)" : "none"
+                }}>
+                <div style={{fontSize: 20, marginBottom: 2}}>{sg.icon}</div>
+                <div style={{
+                  fontSize: 12,
+                  fontWeight: isSelected ? 800 : 600,
+                  color: isSelected ? (sg.id === "all" ? "var(--crimson)" : sg.color) : "var(--gray-700)",
+                  lineHeight: 1.2
+                }}>
+                  {sg.shortName}
+                </div>
+                <div style={{
+                  fontSize: 13,
+                  fontWeight: 800,
+                  color: isSelected ? (sg.id === "all" ? "var(--crimson)" : sg.color) : "var(--gray-500)",
+                  marginTop: 4
+                }}>
+                  {count} <span style={{fontSize: 10, fontWeight: 500}}>ชุด</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Grade & Room Filter Bar */}
       <div className="card" style={{padding: "16px 20px", marginBottom: 16}}>
         <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10, marginBottom: selectedGrade !== "all" ? 12 : 0}}>
           <div style={{display:"flex", alignItems:"center", gap:8, flexWrap:"wrap"}}>
@@ -3299,7 +3615,7 @@ function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSel
                 setSelectedGrade("all");
                 setSelectedRoom("all");
               }}>
-              ✕ ดูทั้งหมด
+              ✕ ดูทุกระดับชั้น
             </button>
           )}
         </div>
@@ -3376,28 +3692,47 @@ function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSel
         <div className="card" style={{textAlign:"center", padding:"48px 20px"}}>
           <div style={{fontSize:44, marginBottom:12}}>📊</div>
           <div style={{fontSize:16, fontWeight:600, color:"var(--gray-800)", marginBottom:4}}>
-            ไม่พบข้อสอบในห้องที่เลือก
+            ไม่พบข้อสอบตามเงื่อนไขที่เลือก
           </div>
           <div style={{fontSize:13, color:"var(--gray-500)", maxWidth:420, margin:"0 auto 16px"}}>
-            {selectedGrade !== "all" || selectedRoom !== "all"
+            {currentSubject !== "all"
+              ? `ไม่พบข้อสอบในกลุ่มสาระฯ ${SUBJECT_GROUPS.find(g => g.id === currentSubject)?.name}`
+              : selectedGrade !== "all" || selectedRoom !== "all"
               ? `ไม่พบชีตข้อสอบที่ตรงกับ ${selectedRoom !== "all" ? selectedRoom : GRADE_LABELS[selectedGrade] || selectedGrade}`
               : "เมื่อคุณครูสร้าง Google Form ข้อสอบใหม่ ระบบจะสร้าง Google Sheet บันทึกคะแนนและคำตอบให้อัตโนมัติ"}
           </div>
-          {(selectedGrade !== "all" || selectedRoom !== "all" || search) && (
-            <button className="btn btn-secondary btn-sm" onClick={() => { setSelectedGrade("all"); setSelectedRoom("all"); setSearch(""); }}>
+          {(currentSubject !== "all" || selectedGrade !== "all" || selectedRoom !== "all" || search) && (
+            <button className="btn btn-secondary btn-sm" onClick={() => { setCurrentSubject("all"); setSelectedGrade("all"); setSelectedRoom("all"); setSearch(""); }}>
               ดูชีตข้อสอบทั้งหมด ({history.length} ชุด)
             </button>
           )}
         </div>
       ) : (
         <div style={{display:"grid", gap:16}}>
-          {filtered.map((item, idx) => (
-            <div key={item.id} className="card" style={{margin:0, borderLeft:"5px solid var(--crimson)"}}>
+          {filtered.map((item, idx) => {
+            const sg = getExamSubjectGroup(item);
+            return (
+            <div key={item.id} className="card" style={{margin:0, borderLeft:`5px solid ${sg.color}`}}>
               <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12}}>
                 <div style={{flex:1, minWidth:260}}>
                   <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:4, flexWrap:"wrap"}}>
                     <span style={{fontSize:12, fontWeight:700, color:"var(--crimson)", background:"var(--crimson-light)", padding:"2px 8px", borderRadius:20}}>
                       #{filtered.length - idx}
+                    </span>
+                    <span style={{
+                      background: sg.bgColor,
+                      color: sg.color,
+                      border: `1px solid ${sg.borderColor}`,
+                      padding: "2px 9px",
+                      borderRadius: 14,
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4
+                    }}>
+                      <span>{sg.icon}</span>
+                      <span>{sg.shortName}</span>
                     </span>
                     <span style={{fontSize:16, fontWeight:700, color:"var(--gray-900)"}}>
                       {item.form_title}
@@ -3477,7 +3812,8 @@ function SheetsTab({ user, selectedGrade, setSelectedGrade, selectedRoom, setSel
                 </div>
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
       )}
     </div>
@@ -3565,8 +3901,10 @@ export default function App() {
   const [tab, setTab] = useState("create");
   const [selectedGrade, setSelectedGrade] = useState("all");
   const [selectedRoom, setSelectedRoom] = useState("all");
+  const [selectedSubject, setSelectedSubject] = useState("all");
   const [targetGrade, setTargetGrade] = useState("");
   const [targetRooms, setTargetRooms] = useState<string[]>([]);
+  const [targetSubject, setTargetSubject] = useState("");
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
@@ -3658,13 +3996,19 @@ export default function App() {
         const newAnswer = keyToNewIdx.get(answerKey) ?? 0;
         return { ...q, type: "multiple_choice", points: pts, text, choices: uniqueChoices, answer: newAnswer };
       });
+
+      const subjectGroupObj = SUBJECT_GROUPS.find(g => g.id === targetSubject);
+      const subjectTag = subjectGroupObj && subjectGroupObj.id !== "all"
+        ? `[กลุ่มสาระ: ${subjectGroupObj.name}]`
+        : "";
       const roomsTag = targetRooms.length > 0
         ? `[ห้อง: ${targetRooms.join(", ")}]`
         : targetGrade
         ? `[ระดับชั้น: ${targetGrade}]`
         : "";
-      const finalDesc = roomsTag
-        ? `${formDesc ? formDesc + " " : ""}${roomsTag}`
+      const combinedTags = [subjectTag, roomsTag].filter(Boolean).join(" ");
+      const finalDesc = combinedTags
+        ? `${formDesc ? formDesc + " " : ""}${combinedTags}`
         : formDesc;
 
       const res = await fetch(SCRIPT_URL, {
@@ -3705,7 +4049,17 @@ export default function App() {
     }
   };
 
-  const handleReset = () => { setStep(0); setResult(null); setQuestions([]); setFormTitle(""); setFormDesc(""); setTargetGrade(""); setTargetRooms([]); setSubmitError(""); };
+  const handleReset = () => {
+    setStep(0);
+    setResult(null);
+    setQuestions([]);
+    setFormTitle("");
+    setFormDesc("");
+    setTargetGrade("");
+    setTargetRooms([]);
+    setTargetSubject("");
+    setSubmitError("");
+  };
 
   useEffect(() => {
     if (!user || user.role === "admin") return;
@@ -3969,7 +4323,17 @@ export default function App() {
 
           <div className="content">
            {tab==="admin" && user.role==="admin" ? <AdminPanel adminKey={user.key} /> :
-            tab==="sheets" ? <SheetsTab user={user} selectedGrade={selectedGrade} setSelectedGrade={setSelectedGrade} selectedRoom={selectedRoom} setSelectedRoom={setSelectedRoom} /> :
+            tab==="sheets" ? (
+              <SheetsTab
+                user={user}
+                selectedGrade={selectedGrade}
+                setSelectedGrade={setSelectedGrade}
+                selectedRoom={selectedRoom}
+                setSelectedRoom={setSelectedRoom}
+                selectedSubject={selectedSubject}
+                setSelectedSubject={setSelectedSubject}
+              />
+            ) :
             tab==="history" ? <HistoryTab user={user} /> : (
               <>
                 <div className="stepper">
@@ -4020,6 +4384,8 @@ export default function App() {
                     setTargetGrade={setTargetGrade}
                     targetRooms={targetRooms}
                     setTargetRooms={setTargetRooms}
+                    targetSubject={targetSubject}
+                    setTargetSubject={setTargetSubject}
                     onRoomsChange={handleRoomsChange}
                   />
                 )}
@@ -4051,6 +4417,36 @@ export default function App() {
                           <span>📄</span> ชื่อแบบทดสอบ
                         </div>
                         <div style={{fontSize:15,fontWeight:700,color:"var(--gray-900)"}}>{formTitle || "(ไม่ได้ระบุ)"}</div>
+                      </div>
+
+                      {/* Subject Group Preview Card */}
+                      <div style={{padding:"14px 18px",background:"var(--gray-50)",borderRadius:"var(--radius-lg)",border:"1px solid var(--gray-200)"}}>
+                        <div style={{fontSize:12,fontWeight:700,color:"var(--gray-600)",marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
+                          <span>📚</span> กลุ่มสาระการเรียนรู้
+                        </div>
+                        <div style={{fontSize:14,fontWeight:700}}>
+                          {targetSubject ? (() => {
+                            const sg = SUBJECT_GROUPS.find(g => g.id === targetSubject);
+                            if (!sg) return "ทั่วไป";
+                            return (
+                              <span style={{
+                                background: sg.bgColor,
+                                color: sg.color,
+                                border: `1px solid ${sg.borderColor}`,
+                                padding: "2px 10px",
+                                borderRadius: 16,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 5
+                              }}>
+                                <span>{sg.icon}</span>
+                                <span>{sg.name}</span>
+                              </span>
+                            );
+                          })() : (
+                            <span style={{color: "var(--gray-500)"}}>ทั่วไป (ไม่ได้ระบุกลุ่มสาระ)</span>
+                          )}
+                        </div>
                       </div>
 
                       {formDesc ? (

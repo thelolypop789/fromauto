@@ -1991,13 +1991,26 @@ function matchRoom(item: any, grade: string, room: string) {
   return keywords.some(kw => text.includes(kw));
 }
 
+// ============ STUDENT GRADE SCALING (เกณฑ์วัดผลการเรียน สพฐ.) ============
+export function calculateStudentGrade(earned: number, total: number) {
+  const pct = total > 0 ? (earned / total) * 100 : 0;
+  if (pct >= 80) return { grade: "4", gpa: 4.0, label: "ดีเยี่ยม (80-100%)", color: "#047857", bg: "#ECFDF5", border: "#A7F3D0", tier: "mastery", pct };
+  if (pct >= 75) return { grade: "3.5", gpa: 3.5, label: "ดีมาก (75-79%)", color: "#059669", bg: "#F0FDF4", border: "#BBF7D0", tier: "mastery", pct };
+  if (pct >= 70) return { grade: "3", gpa: 3.0, label: "ดี (70-74%)", color: "#1D4ED8", bg: "#EFF6FF", border: "#BFDBFE", tier: "developing", pct };
+  if (pct >= 65) return { grade: "2.5", gpa: 2.5, label: "ค่อนข้างดี (65-69%)", color: "#2563EB", bg: "#F0F9FF", border: "#BAE6FD", tier: "developing", pct };
+  if (pct >= 60) return { grade: "2", gpa: 2.0, label: "ปานกลาง (60-64%)", color: "#D97706", bg: "#FFFBEB", border: "#FDE68A", tier: "developing", pct };
+  if (pct >= 55) return { grade: "1.5", gpa: 1.5, label: "พอใช้ (55-59%)", color: "#EA580C", bg: "#FFF7ED", border: "#FFEDD5", tier: "developing", pct };
+  if (pct >= 50) return { grade: "1", gpa: 1.0, label: "ผ่านเกณฑ์ขั้นต่ำ (50-54%)", color: "#C2410C", bg: "#FFEDD5", border: "#FED7AA", tier: "developing", pct };
+  return { grade: "0", gpa: 0.0, label: "ต่ำกว่าเกณฑ์ / ไม่ผ่าน (<50%)", color: "#DC2626", bg: "#FEF2F2", border: "#FECACA", tier: "at_risk", pct };
+}
+
 // ============ EXAM SCORE DASHBOARD (IN-APP) ============
 function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => void; user?: any }) {
   const isSchoolUser = user?.is_google ||
     (user?.email && user.email.toLowerCase().endsWith("@wangluangpitt.ac.th")) ||
     (typeof user?.key === "string" && user.key.toLowerCase().endsWith("@wangluangpitt.ac.th")) ||
     user?.role === "admin";
-  const [activeTab, setActiveTab] = useState<"overview" | "students" | "sheet">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "classroom" | "item_analysis" | "at_risk" | "students" | "sheet">("overview");
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -2012,6 +2025,10 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
   const [gradeSuccessMsg, setGradeSuccessMsg] = useState("");
   const [gradeErrorMsg, setGradeErrorMsg] = useState("");
 
+  // Modal for viewing item option distribution breakdown
+  const [selectedQuestionModal, setSelectedQuestionModal] = useState<any>(null);
+  const [atRiskCopied, setAtRiskCopied] = useState(false);
+
   const loadData = async () => {
     if (!exam.sheet_url || !exam.sheet_url.trim()) {
       setLoading(false);
@@ -2023,7 +2040,6 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
 
     const sheetId = exam.sheet_url.match(/[-\w]{25,}/)?.[0] || exam.sheet_url.trim();
 
-    // Helper fetch พร้อม AbortController timeout ป้องกันค้างไม่สิ้นสุด
     const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 28000) => {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeoutMs);
@@ -2037,7 +2053,6 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
       }
     };
 
-    // Helper ถอดรหัส JSON อย่างปลอดภัย ป้องกัน SyntaxError จากหน้า HTML Error ของ Google
     const parseJsonResponse = async (res: Response) => {
       const text = await res.text();
       const trimmed = text.trim();
@@ -2050,7 +2065,6 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
     let resultJson: any = null;
     let lastError = "";
 
-    // ยุทธศาสตร์ที่ 1: ดึงผ่าน GET ด้วย sheetId (เสถียรที่สุดใน Google Apps Script เพราะไม่สูญหายข้อมูลจาก 302 redirect)
     try {
       const getUrl = `${SCRIPT_URL}?sheetId=${encodeURIComponent(sheetId)}`;
       const res = await fetchWithTimeout(getUrl, { method: "GET" }, 25000);
@@ -2066,7 +2080,6 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
       lastError = e.message || String(e);
     }
 
-    // ยุทธศาสตร์ที่ 2: ถ้า GET ไม่สำเร็จ ให้ลองเรียกผ่าน POST
     if (!resultJson) {
       try {
         const postRes = await fetchWithTimeout(SCRIPT_URL, {
@@ -2090,7 +2103,6 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
       }
     }
 
-    // ยุทธศาสตร์ที่ 3: รีไทร์อัตโนมัติอีก 1 ครั้ง (เผื่อติด Google Apps Script Cold Start)
     if (!resultJson) {
       try {
         await new Promise(r => setTimeout(r, 1200));
@@ -2123,57 +2135,34 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
     loadData();
   }, [exam.sheet_url]);
 
-  // Safe helper functions to prevent any type crash
   const getSafeStr = (val: any): string => {
     if (val === undefined || val === null) return "";
     if (val instanceof Date) return val.toLocaleString("th-TH");
     return String(val).trim();
   };
 
-  // ตรวจสอบว่าชื่อคอลัมน์เป็นข้อมูลระบบหรือข้อมูลนักเรียน (ไม่ใช่โจทย์ข้อสอบ)
   const isSystemOrProfileColumn = (colName: string): boolean => {
     if (!colName) return true;
     const clean = colName.trim().toLowerCase();
-    
-    // ข้อมูลภายในระบบ
     if (clean === "_rowindex" || clean.startsWith("_")) return true;
-    
-    // เวลาส่ง
     if (/^(ประทับเวลา|timestamp|time\s*stamp|submission\s*time|วันที่และเวลา)$/i.test(clean)) return true;
-    
-    // คะแนนรวม
     if (/^(คะแนน|score|total\s*score|คะแนนรวม|คะแนนที่ได้|points)$/i.test(clean)) return true;
-    
-    // ชื่อ-สกุล
     if (/^(ชื่อ|ชื่อ-สกุล|ชื่อ-นามสกุล|ชื่อ\s*-\s*สกุล|ชื่อ\s*-\s*นามสกุล|ชื่อผู้สอบ|ชื่อนักเรียน|name|full[\s\-_]*name|student[\s\-_]*name)$/i.test(clean)) return true;
-    
-    // ชั้น / ห้องเรียน
     if (/^(ชั้น|ห้อง|ห้องเรียน|ระดับชั้น|ระดับชั้น[\s\-_/]*ห้อง|ชั้น[\s\-_/]*ห้อง|ห้อง[\s\-_/]*ชั้น|room|class|grade)$/i.test(clean)) return true;
-    
-    // เลขที่
     if (/^(เลขที่|ลำดับที่|เลขที่นักเรียน|no\.?|student\s*no\.?|roll\s*no\.?)$/i.test(clean)) return true;
-    
-    // เลขประจำตัว
     if (/^(เลขประจำตัว|รหัสประจำตัว|รหัสนักเรียน|เลขประจำตัวนักเรียน|student[\s\-_]*id|std[\s\-_]*id)$/i.test(clean)) return true;
-    
-    // อีเมล
     if (/^(อีเมล|ที่อยู่อีเมล|email|email[\s\-_]*address)$/i.test(clean)) return true;
-    
-    // คำนำหน้า
     if (/^(คำนำหน้า|คำนำหน้านาม|prefix|title)$/i.test(clean)) return true;
-    
     return false;
   };
 
   const getStudentField = (s: any, keys: string[]): string => {
     if (!s || typeof s !== "object") return "";
-    // 1. Direct exact property match
     for (const k of keys) {
       if (s[k] !== undefined && s[k] !== null && s[k] !== "") {
         return getSafeStr(s[k]);
       }
     }
-    // 2. Case-insensitive exact trimmed match
     const entries = Object.entries(s);
     for (const k of keys) {
       const kLower = k.toLowerCase().trim();
@@ -2182,11 +2171,10 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
         return getSafeStr(found[1]);
       }
     }
-    // 3. Normalized match (สำหรับคีย์สั้น <= 30 ตัวอักษร ป้องกันไม่ให้จับคู่กับข้อความโจทย์ข้อสอบ)
     for (const [key, val] of entries) {
       if (val === undefined || val === null || val === "") continue;
       const cleanKey = key.trim().toLowerCase();
-      if (cleanKey.length > 30) continue; // ข้ามข้อความคำถามยาวๆ
+      if (cleanKey.length > 30) continue;
       for (const k of keys) {
         const kLower = k.toLowerCase().trim();
         if (cleanKey === kLower || cleanKey.replace(/\s+/g, "") === kLower.replace(/\s+/g, "")) {
@@ -2197,7 +2185,6 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
     return "";
   };
 
-  // คำนวณคะแนนเต็มจริง (ดึงจาก data?.totalMaxPoints ใน Google Sheets หรือ data?.stats?.totalScore หรือ fallback เป็น exam.question_count)
   const totalMax = (data?.totalMaxPoints && data.totalMaxPoints > 0)
     ? data.totalMaxPoints
     : (data?.stats?.totalScore ? parseFloat(data.stats.totalScore) : 0) || exam.question_count || 20;
@@ -2240,18 +2227,81 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
 
   const rawStudents: any[] = data?.students || [];
 
-  // คำนวณสถิติจากคะแนนนักเรียนจริงโดยตรง (Real-time Calculation)
+  // Descriptive Statistics Calculation
   const studentScores = rawStudents.map(s => parseScore(s, totalMax).earned).filter(n => !isNaN(n));
   const passThresh = Math.ceil(totalMax * 0.5);
   const totalCount = studentScores.length;
-  const computedAvg = totalCount > 0 ? (studentScores.reduce((a, b) => a + b, 0) / totalCount).toFixed(2) + " คะแนน" : "-";
+  const computedAvgNum = totalCount > 0 ? (studentScores.reduce((a, b) => a + b, 0) / totalCount) : 0;
+  const computedAvg = totalCount > 0 ? computedAvgNum.toFixed(2) + " คะแนน" : "-";
   const computedMax = totalCount > 0 ? Math.max(...studentScores) + " คะแนน" : "-";
   const computedMin = totalCount > 0 ? Math.min(...studentScores) + " คะแนน" : "-";
   const computedPass = studentScores.filter(s => s >= passThresh).length;
   const computedFail = totalCount - computedPass;
-  const computedPassRate = totalCount > 0 ? ((computedPass / totalCount) * 100).toFixed(1) + "%" : "0%";
+  const computedPassRateNum = totalCount > 0 ? ((computedPass / totalCount) * 100) : 0;
+  const computedPassRate = totalCount > 0 ? computedPassRateNum.toFixed(1) + "%" : "0%";
 
-  // รวบรวมรายชื่อห้องทั้งหมด
+  const computedMedian = (() => {
+    if (totalCount === 0) return "-";
+    const sorted = [...studentScores].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    if (sorted.length % 2 !== 0) return sorted[mid].toFixed(1) + " คะแนน";
+    return (((sorted[mid - 1] + sorted[mid]) / 2).toFixed(1)) + " คะแนน";
+  })();
+
+  const computedSd = (() => {
+    if (totalCount <= 1) return "0.00";
+    const variance = studentScores.reduce((acc, v) => acc + Math.pow(v - computedAvgNum, 2), 0) / (totalCount - 1);
+    return Math.sqrt(variance).toFixed(2);
+  })();
+
+  const computedRange = totalCount > 0 ? (Math.max(...studentScores) - Math.min(...studentScores)).toFixed(1) + " คะแนน" : "-";
+
+  const overallQuality = (() => {
+    if (totalCount === 0) return { text: "รอข้อมูลผู้สอบ", color: "var(--gray-600)", bg: "var(--gray-100)" };
+    const avgPct = (computedAvgNum / totalMax) * 100;
+    if (avgPct >= 75) return { text: "🌟 ดีเยี่ยม (Mastery)", color: "#047857", bg: "#ECFDF5" };
+    if (avgPct >= 60) return { text: "👍 ดี (Proficient)", color: "#1D4ED8", bg: "#EFF6FF" };
+    if (avgPct >= 50) return { text: "🎯 ปานกลาง (Developing)", color: "#D97706", bg: "#FFFBEB" };
+    return { text: "⚠️ ต้องพัฒนาเร่งด่วน (Needs Support)", color: "#DC2626", bg: "#FEF2F2" };
+  })();
+
+  // Grade Bands 8 levels (สพฐ.)
+  const gradeBands = [
+    { grade: "4", label: "เกรด 4", desc: "ดีเยี่ยม (80-100%)", color: "#047857", bg: "#ECFDF5", border: "#A7F3D0" },
+    { grade: "3.5", label: "เกรด 3.5", desc: "ดีมาก (75-79%)", color: "#059669", bg: "#F0FDF4", border: "#BBF7D0" },
+    { grade: "3", label: "เกรด 3", desc: "ดี (70-74%)", color: "#1D4ED8", bg: "#EFF6FF", border: "#BFDBFE" },
+    { grade: "2.5", label: "เกรด 2.5", desc: "ค่อนข้างดี (65-69%)", color: "#2563EB", bg: "#F0F9FF", border: "#BAE6FD" },
+    { grade: "2", label: "เกรด 2", desc: "ปานกลาง (60-64%)", color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
+    { grade: "1.5", label: "เกรด 1.5", desc: "พอใช้ (55-59%)", color: "#EA580C", bg: "#FFF7ED", border: "#FFEDD5" },
+    { grade: "1", label: "เกรด 1", desc: "ผ่านเกณฑ์ขั้นต่ำ (50-54%)", color: "#C2410C", bg: "#FFEDD5", border: "#FED7AA" },
+    { grade: "0", label: "เกรด 0", desc: "ไม่ผ่านเกณฑ์ (<50%)", color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
+  ].map(b => {
+    const list = rawStudents.filter(s => {
+      const g = calculateStudentGrade(parseScore(s, totalMax).earned, totalMax);
+      return g.grade === b.grade;
+    });
+    const count = list.length;
+    const pct = totalCount > 0 ? (count / totalCount) * 100 : 0;
+    return { ...b, count, pct, list };
+  });
+
+  // Score Histogram Distribution Buckets
+  const scoreBuckets = [
+    { range: "81% - 100%", label: "ดีเยี่ยม (81-100%)", color: "#047857", min: 80, max: 100 },
+    { range: "61% - 80%", label: "ดี (61-80%)", color: "#1D4ED8", min: 60, max: 80 },
+    { range: "41% - 60%", label: "ปานกลาง (41-60%)", color: "#D97706", min: 40, max: 60 },
+    { range: "21% - 40%", label: "พอใช้ (21-40%)", color: "#EA580C", min: 20, max: 40 },
+    { range: "0% - 20%", label: "ต้องช่วยเหลือเร่งด่วน (0-20%)", color: "#DC2626", min: 0, max: 20 },
+  ].map(b => {
+    const count = rawStudents.filter(s => {
+      const pct = totalMax > 0 ? (parseScore(s, totalMax).earned / totalMax) * 100 : 0;
+      return (b.min === 0 ? pct >= b.min : pct > b.min) && pct <= b.max;
+    }).length;
+    const pct = totalCount > 0 ? (count / totalCount) * 100 : 0;
+    return { ...b, count, pct };
+  });
+
+  // Rooms list
   const roomSet = new Set<string>();
   rawStudents.forEach(s => {
     const r = getStudentRoom(s);
@@ -2264,34 +2314,142 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
   }
   const roomList = Array.from(roomSet).sort((a, b) => a.localeCompare(b, "th-TH", { numeric: true }));
 
-  // ข้อมูลสถิติแต่ละห้องสำหรับแท็บ Overview
-  const roomStatsComputed = (roomList.length > 0 ? roomList : ["ม.1/1", "ม.1/2", "ม.1/3", "ม.1/4"]).map(rm => {
+  // Cross-Classroom Comparison Analysis
+  const classroomAnalysis = (roomList.length > 0 ? roomList : ["ม.1/1", "ม.1/2"]).map(rm => {
     const rmStudents = rawStudents.filter(s => getStudentRoom(s) === rm || getStudentRoom(s).includes(rm));
     const rmCount = rmStudents.length;
-    const rmScores = rmStudents.map(s => parseScore(s, totalMax).earned);
-    const rmAvg = rmCount > 0 ? (rmScores.reduce((a, b) => a + b, 0) / rmCount).toFixed(1) : "-";
+    const rmScores = rmStudents.map(s => parseScore(s, totalMax).earned).filter(n => !isNaN(n));
+    const rmAvgNum = rmCount > 0 ? (rmScores.reduce((a, b) => a + b, 0) / rmCount) : 0;
     const rmPass = rmStudents.filter(s => parseScore(s, totalMax).isPass).length;
+    const rmFail = rmCount - rmPass;
+    const rmPassPct = rmCount > 0 ? (rmPass / rmCount) * 100 : 0;
+    const rmMax = rmCount > 0 ? Math.max(...rmScores) : 0;
+    const rmMin = rmCount > 0 ? Math.min(...rmScores) : 0;
+    const rmSd = rmCount > 1 ? Math.sqrt(rmScores.reduce((acc, v) => acc + Math.pow(v - rmAvgNum, 2), 0) / (rmCount - 1)) : 0;
+    const atRisk = rmStudents.filter(s => !parseScore(s, totalMax).isPass).length;
+
+    let tierLabel = "ดีเยี่ยม";
+    let tierColor = "#047857";
+    let tierBg = "#ECFDF5";
+    const rmAvgPct = (rmAvgNum / totalMax) * 100;
+    if (rmAvgPct >= 75) {
+      tierLabel = "ยอดเยี่ยม";
+      tierColor = "#047857";
+      tierBg = "#ECFDF5";
+    } else if (rmAvgPct >= 60) {
+      tierLabel = "ดีมาก";
+      tierColor = "#1D4ED8";
+      tierBg = "#EFF6FF";
+    } else if (rmAvgPct >= 50) {
+      tierLabel = "ปานกลาง";
+      tierColor = "#D97706";
+      tierBg = "#FFFBEB";
+    } else {
+      tierLabel = "ต้องพัฒนา";
+      tierColor = "#DC2626";
+      tierBg = "#FEF2F2";
+    }
+
     return {
       room: rm,
-      count: `${rmCount} คน`,
-      status: rmCount > 0 ? `ส่งแล้ว (ผ่าน ${rmPass}/${rmCount})` : "ยังไม่มีผู้ส่ง",
-      avg: rmAvg
+      count: rmCount,
+      avgNum: rmAvgNum,
+      avgStr: rmCount > 0 ? rmAvgNum.toFixed(2) : "-",
+      max: rmCount > 0 ? rmMax : "-",
+      min: rmCount > 0 ? rmMin : "-",
+      sd: rmCount > 1 ? rmSd.toFixed(2) : "-",
+      passCount: rmPass,
+      failCount: rmFail,
+      passPct: rmPassPct,
+      passRateStr: rmCount > 0 ? rmPassPct.toFixed(1) + "%" : "0%",
+      atRiskCount: atRisk,
+      tierLabel,
+      tierColor,
+      tierBg,
+      students: rmStudents
+    };
+  }).sort((a, b) => b.avgNum - a.avgNum);
+
+  const topRoom = classroomAnalysis.find(r => r.count > 0);
+  const highestPassRoom = [...classroomAnalysis].sort((a, b) => b.passPct - a.passPct).find(r => r.count > 0);
+  const lowestRoom = [...classroomAnalysis].reverse().find(r => r.count > 0);
+
+  // Item Analysis (วิเคราะห์ข้อสอบรายข้อ)
+  const questionColumns = (data?.columnHeaders || []).filter((h: string) => !isSystemOrProfileColumn(h));
+  const itemAnalysis = questionColumns.map((colName: string, idx: number) => {
+    const responses = rawStudents.map(s => getSafeStr(s[colName])).filter(Boolean);
+    const totalResponses = responses.length;
+    const freqMap: Record<string, number> = {};
+    responses.forEach(r => {
+      freqMap[r] = (freqMap[r] || 0) + 1;
+    });
+    const sortedChoices = Object.entries(freqMap).sort((a, b) => b[1] - a[1]);
+    const topChoice = sortedChoices[0] || ["-", 0];
+    const topChoicePct = totalResponses > 0 ? (topChoice[1] / totalResponses) * 100 : 0;
+
+    let difficultyLabel = "ปานกลาง";
+    let difficultyColor = "#D97706";
+    let difficultyBg = "#FFFBEB";
+    if (topChoicePct >= 70) {
+      difficultyLabel = "ง่าย / เข้าใจดี (Mastery)";
+      difficultyColor = "#047857";
+      difficultyBg = "#ECFDF5";
+    } else if (topChoicePct < 45) {
+      difficultyLabel = "ยาก / สับสนสูง (Needs Review)";
+      difficultyColor = "#DC2626";
+      difficultyBg = "#FEF2F2";
+    }
+
+    return {
+      index: idx + 1,
+      title: colName,
+      totalResponses,
+      topChoice: topChoice[0],
+      topChoiceCount: topChoice[1],
+      topChoicePct,
+      choices: sortedChoices,
+      distinctCount: sortedChoices.length,
+      difficultyLabel,
+      difficultyColor,
+      difficultyBg
     };
   });
 
-  const stats = {
-    totalStudents: totalCount > 0 ? `${totalCount} คน` : (data?.stats?.totalStudents || "0 คน"),
-    totalScore: `${totalMax} คะแนน`,
-    average: totalCount > 0 ? computedAvg : (data?.stats?.average || "-"),
-    maxScore: totalCount > 0 ? computedMax : (data?.stats?.maxScore || "-"),
-    minScore: totalCount > 0 ? computedMin : (data?.stats?.minScore || "-"),
-    passCount: totalCount > 0 ? `${computedPass} คน` : (data?.stats?.passCount || "0 คน"),
-    failCount: totalCount > 0 ? `${computedFail} คน` : (data?.stats?.failCount || "0 คน"),
-    passRate: totalCount > 0 ? computedPassRate : (data?.stats?.passRate || "0%"),
-    rooms: roomStatsComputed
+  const sortedByConsensus = [...itemAnalysis].sort((a, b) => b.topChoicePct - a.topChoicePct);
+  const topMasteryQuestions = sortedByConsensus.slice(0, 3);
+  const topConfusingQuestions = [...itemAnalysis].sort((a, b) => a.topChoicePct - b.topChoicePct).slice(0, 3);
+
+  // 3-Tier Student Intervention
+  const atRiskStudents = rawStudents.filter(s => parseScore(s, totalMax).earned < passThresh);
+  const developingStudents = rawStudents.filter(s => {
+    const e = parseScore(s, totalMax).earned;
+    return e >= passThresh && (e / totalMax) < 0.75;
+  });
+  const masteryStudents = rawStudents.filter(s => (parseScore(s, totalMax).earned / totalMax) >= 0.75);
+
+  const copyAtRiskList = () => {
+    if (atRiskStudents.length === 0) return;
+    const lines = [
+      `🚨 รายชื่อนักเรียนกลุ่มเสี่ยง / ต้องช่วยเหลือเร่งด่วน (<50%)`,
+      `แบบทดสอบ: ${exam.form_title}`,
+      `คะแนนเต็ม: ${totalMax} คะแนน | เกณฑ์ผ่าน: ${passThresh} คะแนน`,
+      `จำนวนนักเรียนกลุ่มเสี่ยง: ${atRiskStudents.length} คน`,
+      `---------------------------------------`,
+      ...atRiskStudents.map((s, idx) => {
+        const no = getStudentField(s, ["เลขที่", "ลำดับที่", "no.", "no"]);
+        const name = getStudentField(s, ["ชื่อ-สกุล", "ชื่อ-นามสกุล", "ชื่อ", "Name"]);
+        const room = getStudentRoom(s);
+        const score = parseScore(s, totalMax);
+        const gap = passThresh - score.earned;
+        return `${idx + 1}. [ห้อง ${room}${no ? ` เลขที่ ${no}` : ""}] ${name || "ไม่ระบุชื่อ"} - ได้ ${score.earned}/${totalMax} คะแนน (ขาดอีก ${gap > 0 ? gap : 1} คะแนน)`;
+      })
+    ];
+    navigator.clipboard.writeText(lines.join("\n")).catch(() => {});
+    setAtRiskCopied(true);
+    setTimeout(() => setAtRiskCopied(false), 2500);
   };
 
-  // กรองตามการค้นหาและห้องเรียน
+  // Filter & Sort Students
   const filteredStudents = rawStudents.filter(s => {
     const text = Object.values(s).map(v => getSafeStr(v)).join(" ").toLowerCase();
     const matchSearch = !searchTerm || text.includes(searchTerm.toLowerCase());
@@ -2300,7 +2458,6 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
     return matchSearch && matchR;
   });
 
-  // เรียงลำดับนักเรียน
   const sortStudentList = (list: any[]) => {
     return [...list].sort((a, b) => {
       if (sortBy === "no") {
@@ -2321,7 +2478,6 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
         if (diff !== 0) return diff;
         return getStudentNo(a) - getStudentNo(b);
       }
-      // sortBy === "time"
       const tA = getStudentField(a, ["ประทับเวลา", "timestamp", "time"]);
       const tB = getStudentField(b, ["ประทับเวลา", "timestamp", "time"]);
       return tB.localeCompare(tA);
@@ -2330,9 +2486,6 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
 
   const sortedStudents = sortStudentList(filteredStudents);
 
-  const embedUrl = exam.sheet_url?.replace(/\/edit.*$/, "/preview") || exam.sheet_url;
-
-  // เปิดหน้าต่างตรวจและให้คะแนนนักเรียน
   const handleOpenGrading = (student: any) => {
     setGradingStudent(student);
     const parsed = parseScore(student, totalMax);
@@ -2341,13 +2494,11 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
     setGradeErrorMsg("");
   };
 
-  // ดึงคำตอบรายข้อของนักเรียน (ครอบคลุมครบทุกคำถาม ไม่มีตกหล่น)
   const getStudentQuestionAnswers = (s: any) => {
     if (!s || typeof s !== "object") return [];
     return Object.entries(s)
       .filter(([k]) => !isSystemOrProfileColumn(k))
       .map(([qTitle, answerVal]) => {
-        // หาข้อมูลแนวคำตอบ/เกณฑ์ (ถ้ามีบันทึกไว้ใน manualQuestions)
         const manualInfo = data?.manualQuestions?.find((mq: any) => {
           const mText = typeof mq === "string" ? mq : mq?.text;
           return mText && (qTitle === mText || qTitle.includes(mText) || mText.includes(qTitle));
@@ -2364,7 +2515,6 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
       });
   };
 
-  // บันทึกคะแนนลงชีตและอัปเดต State ทันที
   const handleSaveScore = async () => {
     if (!gradingStudent) return;
     const earnedVal = parseFloat(newScoreInput);
@@ -2379,45 +2529,54 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
     }
 
     setSavingScore(true);
-    setGradeErrorMsg("");
     setGradeSuccessMsg("");
+    setGradeErrorMsg("");
 
     try {
+      const rowIndex = gradingStudent._rowIndex;
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         body: JSON.stringify({
           action: "update_score",
           sheetUrl: exam.sheet_url,
-          rowIndex: gradingStudent._rowIndex,
+          sheetId: exam.sheet_url.match(/[-\w]{25,}/)?.[0] || exam.sheet_url.trim(),
+          rowIndex: rowIndex,
           newScore: earnedVal,
           totalMax: totalMax
         })
       });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error || "บันทึกคะแนนไม่สำเร็จ");
 
-      // อัปเดตข้อมูลคะแนนใน State ทันทีแบบ Real-time
-      const newScoreStr = `${earnedVal} / ${totalMax}`;
-      const updatedStudents = rawStudents.map(s => {
-        if (s._rowIndex === gradingStudent._rowIndex) {
-          return { ...s, "คะแนน": newScoreStr, "Score": newScoreStr };
-        }
-        return s;
-      });
-      setData((prev: any) => ({ ...prev, students: updatedStudents }));
-      setGradeSuccessMsg("✅ บันทึกคะแนนลงในระบบและ Google Sheets เรียบร้อยแล้ว!");
-      setTimeout(() => {
-        setGradingStudent(null);
-        setGradeSuccessMsg("");
-      }, 900);
+      const resJson = await res.json();
+      if (resJson && resJson.success) {
+        setGradeSuccessMsg(`✅ บันทึกคะแนนสำเร็จ (${earnedVal} / ${totalMax})`);
+        setData((prev: any) => {
+          if (!prev || !prev.students) return prev;
+          const updated = prev.students.map((st: any) => {
+            if (st._rowIndex === rowIndex) {
+              return {
+                ...st,
+                "คะแนน": `${earnedVal} / ${totalMax}`,
+                "score": `${earnedVal} / ${totalMax}`
+              };
+            }
+            return st;
+          });
+          return { ...prev, students: updated };
+        });
+        setTimeout(() => {
+          setGradingStudent(null);
+        }, 1200);
+      } else {
+        setGradeErrorMsg(resJson.error || "เกิดข้อผิดพลาดในการบันทึกคะแนน");
+      }
     } catch (err: any) {
-      setGradeErrorMsg(err.message || "เกิดข้อผิดพลาดในการบันทึกคะแนน");
+      setGradeErrorMsg(err.message || "ไม่สามารถเชื่อมต่อกับ Google Apps Script ได้");
     } finally {
       setSavingScore(false);
     }
   };
 
-  // ตารางแสดงรายชื่อนักเรียน
+  // Student table renderer with Grade column badge
   const renderStudentTable = (list: any[]) => (
     <div style={{overflowX: "auto"}}>
       <table style={{width: "100%", borderCollapse: "collapse", fontSize: 13}}>
@@ -2428,9 +2587,10 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
             <th style={{padding: "10px 12px", textAlign: "left"}}>ชื่อ-นามสกุล</th>
             <th style={{padding: "10px 12px", textAlign: "center", width: 85}}>ห้อง</th>
             <th style={{padding: "10px 12px", textAlign: "center", width: 110}}>คะแนน</th>
-            <th style={{padding: "10px 12px", textAlign: "center", width: 110}}>ผลประเมิน</th>
-            <th style={{padding: "10px 12px", textAlign: "left", width: 150}}>วัน-เวลาส่ง</th>
-            <th style={{padding: "10px 12px", textAlign: "center", width: 130}}>จัดการ</th>
+            <th style={{padding: "10px 12px", textAlign: "center", width: 95}}>เกรด (สพฐ.)</th>
+            <th style={{padding: "10px 12px", textAlign: "center", width: 105}}>ผลประเมิน</th>
+            <th style={{padding: "10px 12px", textAlign: "left", width: 140}}>วัน-เวลาส่ง</th>
+            <th style={{padding: "10px 12px", textAlign: "center", width: 125}}>จัดการ</th>
           </tr>
         </thead>
         <tbody>
@@ -2440,6 +2600,7 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
             const studentRoom = getStudentRoom(s);
             const studentName = getStudentField(s, ["ชื่อ-สกุล", "ชื่อ-นามสกุล", "ชื่อ", "Name"]) || "-";
             const timeStr = getStudentField(s, ["ประทับเวลา", "Timestamp", "time"]) || "-";
+            const gr = calculateStudentGrade(parsed.earned, totalMax);
 
             return (
               <tr key={idx} style={{borderBottom: "1px solid var(--gray-100)"}}>
@@ -2482,6 +2643,19 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
                   color: parsed.isPass ? "#059669" : "#DC2626"
                 }}>
                   {parsed.str}
+                </td>
+                <td style={{padding: "10px 12px", textAlign: "center"}}>
+                  <span style={{
+                    padding: "2px 9px",
+                    borderRadius: 12,
+                    fontSize: 11.5,
+                    fontWeight: 800,
+                    background: gr.bg,
+                    color: gr.color,
+                    border: `1px solid ${gr.border}`
+                  }}>
+                    เกรด {gr.grade}
+                  </span>
                 </td>
                 <td style={{padding: "10px 12px", textAlign: "center"}}>
                   <span style={{
@@ -2616,18 +2790,22 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
           </div>
         </div>
 
-        {/* Tab Switcher */}
+        {/* 6 Comprehensive Tabs Switcher */}
         <div style={{
           display: "flex",
-          gap: 8,
+          gap: 6,
           marginTop: 20,
           borderBottom: "1px solid var(--gray-200)",
-          paddingBottom: 2
+          paddingBottom: 2,
+          overflowX: "auto"
         }}>
           {[
-            { id: "overview", label: "📊 ภาพรวมสถิติคะแนน", count: null },
-            { id: "students", label: "👥 รายชื่อและคะแนนรายคน", count: rawStudents.length },
-            { id: "sheet", label: "📑 แผ่นงาน Google Sheets ตัวจริง", count: null }
+            { id: "overview", label: "📊 ภาพรวม & ตัดเกรด", count: null },
+            { id: "classroom", label: "🏫 เปรียบเทียบห้องเรียน", count: roomList.length > 1 ? `${roomList.length} ห้อง` : null },
+            { id: "item_analysis", label: "🎯 วิเคราะห์ข้อสอบรายข้อ", count: questionColumns.length > 0 ? `${questionColumns.length} ข้อ` : null },
+            { id: "at_risk", label: "🚨 คัดกรองกลุ่มเสี่ยง", count: atRiskStudents.length > 0 ? `${atRiskStudents.length} คน` : null, isAlert: atRiskStudents.length > 0 },
+            { id: "students", label: "👥 รายชื่อและคำตอบรายคน", count: rawStudents.length },
+            { id: "sheet", label: "📑 Google Sheets ตัวจริง", count: null }
           ].map(t => (
             <button
               key={t.id}
@@ -2636,21 +2814,34 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
                 background: "transparent",
                 border: "none",
                 borderBottom: activeTab === t.id ? "3px solid var(--crimson)" : "3px solid transparent",
-                padding: "8px 16px",
-                fontSize: 14,
+                padding: "8px 14px",
+                fontSize: 13.5,
                 fontWeight: activeTab === t.id ? 700 : 500,
-                color: activeTab === t.id ? "var(--crimson)" : "var(--gray-600)",
+                color: activeTab === t.id ? "var(--crimson)" : (t.isAlert ? "#DC2626" : "var(--gray-600)"),
                 cursor: "pointer",
+                whiteSpace: "nowrap",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
                 transition: "all .2s"
               }}>
-              {t.label} {t.count !== null && <span style={{
-                background: activeTab === t.id ? "var(--crimson)" : "var(--gray-200)",
-                color: activeTab === t.id ? "white" : "var(--gray-700)",
-                padding: "2px 8px",
-                borderRadius: 12,
-                fontSize: 11,
-                marginLeft: 4
-              }}>{t.count}</span>}
+              <span>{t.label}</span>
+              {t.count !== null && (
+                <span style={{
+                  background: t.isAlert
+                    ? (activeTab === t.id ? "#DC2626" : "#FEE2E2")
+                    : (activeTab === t.id ? "var(--crimson)" : "var(--gray-200)"),
+                  color: t.isAlert
+                    ? (activeTab === t.id ? "white" : "#DC2626")
+                    : (activeTab === t.id ? "white" : "var(--gray-700)"),
+                  padding: "2px 7px",
+                  borderRadius: 12,
+                  fontSize: 11,
+                  fontWeight: 700
+                }}>
+                  {t.count}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -2718,7 +2909,7 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
         </div>
       )}
 
-      {/* Tab 1: Overview Dashboard */}
+      {/* ==================== TAB 1: OVERVIEW & GRADE BANDS ==================== */}
       {activeTab === "overview" && (
         <div>
           {error && (
@@ -2735,9 +2926,7 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
               flexWrap: "wrap",
               gap: 10
             }}>
-              <div>
-                ⚠️ {error} — สามารถคลิกแท็บ "แผ่นงาน Google Sheets ตัวจริง" เพื่อดูชีตโดยตรงได้ครับ
-              </div>
+              <div>⚠️ {error} — สามารถคลิกแท็บ "แผ่นงาน Google Sheets ตัวจริง" เพื่อดูชีตโดยตรงได้ครับ</div>
               <button
                 type="button"
                 onClick={loadData}
@@ -2759,6 +2948,7 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
               </button>
             </div>
           )}
+
           {loading ? (
             <div className="card" style={{textAlign:"center", padding: "40px 20px"}}>
               <div className="spinner" style={{margin: "0 auto 12px"}}/>
@@ -2774,7 +2964,7 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
                     background: sg.bgColor,
                     border: `1.5px solid ${sg.borderColor}`,
                     borderRadius: "var(--radius)",
-                    padding: "12px 18px",
+                    padding: "14px 20px",
                     marginBottom: 20,
                     display: "flex",
                     alignItems: "center",
@@ -2783,12 +2973,12 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
                     gap: 10
                   }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <span style={{ fontSize: 28 }}>{sg.icon}</span>
+                      <span style={{ fontSize: 32 }}>{sg.icon}</span>
                       <div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: sg.color }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: sg.color }}>
                           {sg.name} ({sg.codePrefix ? `รหัสวิชาขึ้นต้นด้วย: ${sg.codePrefix}` : "รายวิชาทั่วไป"})
                         </div>
-                        <div style={{ fontSize: 12, color: "var(--gray-600)" }}>
+                        <div style={{ fontSize: 12.5, color: "var(--gray-600)" }}>
                           แบบทดสอบนี้จัดอยู่ในหมวด <strong>{sg.shortName}</strong> รวบรวมสถิติคะแนนเพื่อการประเมินคุณภาพผู้เรียนตามกลุ่มสาระการเรียนรู้
                         </div>
                       </div>
@@ -2797,103 +2987,216 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
                 );
               })()}
 
-              {/* 4 Hero KPI Cards */}
-              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 20}}>
+              {/* 6 Hero KPI Metric Cards */}
+              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 20}}>
                 <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid var(--crimson)", background: "linear-gradient(135deg, #FFFFFF 0%, #FEF2F2 100%)"}}>
-                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8}}>
-                    <span style={{fontSize: 13, fontWeight: 600, color: "var(--gray-600)"}}>👥 ส่งข้อสอบแล้ว</span>
+                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6}}>
+                    <span style={{fontSize: 12.5, fontWeight: 600, color: "var(--gray-600)"}}>👥 ผู้ส่งข้อสอบแล้ว</span>
                     <span style={{fontSize: 20}}>📝</span>
                   </div>
                   <div style={{fontSize: 26, fontWeight: 800, color: "var(--crimson)"}}>
-                    {stats?.totalStudents || `${rawStudents.length} คน`}
+                    {totalCount} คน
                   </div>
                   <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
-                    จากคะแนนเต็ม {stats?.totalScore}
+                    จากทั้งหมด {roomList.length} ห้องเรียน
                   </div>
                 </div>
 
-                <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid var(--amber)", background: "linear-gradient(135deg, #FFFFFF 0%, #FFFBEB 100%)"}}>
-                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8}}>
-                    <span style={{fontSize: 13, fontWeight: 600, color: "var(--gray-600)"}}>📈 คะแนนเฉลี่ย (Mean)</span>
+                <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #2563EB", background: "linear-gradient(135deg, #FFFFFF 0%, #EFF6FF 100%)"}}>
+                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6}}>
+                    <span style={{fontSize: 12.5, fontWeight: 600, color: "var(--gray-600)"}}>📈 คะแนนเฉลี่ย (Mean)</span>
                     <span style={{fontSize: 20}}>🎯</span>
                   </div>
-                  <div style={{fontSize: 26, fontWeight: 800, color: "var(--amber-800)"}}>
-                    {stats?.average || "-"}
+                  <div style={{fontSize: 24, fontWeight: 800, color: "#1D4ED8"}}>
+                    {computedAvg}
                   </div>
                   <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
-                    เกณฑ์ผ่าน ≥ {passThresh} คะแนน (50%)
+                    มัธยฐาน: <strong>{computedMedian}</strong>
                   </div>
                 </div>
 
-                <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid var(--amber-dark)", background: "linear-gradient(135deg, #FFFFFF 0%, #FEF3C7 100%)"}}>
-                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8}}>
-                    <span style={{fontSize: 13, fontWeight: 600, color: "var(--gray-600)"}}>🏆 สูงสุด / ต่ำสุด</span>
-                    <span style={{fontSize: 20}}>🥇</span>
+                <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #7C3AED", background: "linear-gradient(135deg, #FFFFFF 0%, #F5F3FF 100%)"}}>
+                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6}}>
+                    <span style={{fontSize: 12.5, fontWeight: 600, color: "var(--gray-600)"}}>📐 ส่วนเบี่ยงเบน (S.D.)</span>
+                    <span style={{fontSize: 20}}>📊</span>
                   </div>
-                  <div style={{fontSize: 22, fontWeight: 800, color: "var(--amber-900)"}}>
-                    {stats?.maxScore || "-"} / {stats?.minScore || "-"}
+                  <div style={{fontSize: 24, fontWeight: 800, color: "#6D28D9"}}>
+                    {computedSd}
                   </div>
                   <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
-                    คะแนนสูงสุด / ต่ำสุด
+                    การกระจายตัวของความรู้
+                  </div>
+                </div>
+
+                <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #D97706", background: "linear-gradient(135deg, #FFFFFF 0%, #FFFBEB 100%)"}}>
+                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6}}>
+                    <span style={{fontSize: 12.5, fontWeight: 600, color: "var(--gray-600)"}}>🏆 สูงสุด / ต่ำสุด</span>
+                    <span style={{fontSize: 20}}>🥇</span>
+                  </div>
+                  <div style={{fontSize: 20, fontWeight: 800, color: "#B45309"}}>
+                    {computedMax} / {computedMin}
+                  </div>
+                  <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
+                    พิสัย (Range): {computedRange}
                   </div>
                 </div>
 
                 <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #059669", background: "linear-gradient(135deg, #FFFFFF 0%, #F0FDF4 100%)"}}>
-                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8}}>
-                    <span style={{fontSize: 13, fontWeight: 600, color: "var(--gray-600)"}}>📊 อัตราการสอบผ่าน</span>
-                    <span style={{fontSize: 20}}>🏅</span>
+                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6}}>
+                    <span style={{fontSize: 12.5, fontWeight: 600, color: "var(--gray-600)"}}>🏅 อัตราการสอบผ่าน</span>
+                    <span style={{fontSize: 20}}>🎖️</span>
                   </div>
                   <div style={{fontSize: 26, fontWeight: 800, color: "#047857"}}>
-                    {stats?.passRate || "0%"}
+                    {computedPassRate}
                   </div>
                   <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
-                    ผ่าน {stats?.passCount} • ปรับปรุง {stats?.failCount}
+                    ผ่าน {computedPass} • ปรับปรุง {computedFail}
+                  </div>
+                </div>
+
+                <div className="card" style={{margin:0, padding: 18, borderLeft: `5px solid ${overallQuality.color}`, background: overallQuality.bg}}>
+                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6}}>
+                    <span style={{fontSize: 12.5, fontWeight: 600, color: "var(--gray-700)"}}>🌟 คุณภาพโดยรวม</span>
+                    <span style={{fontSize: 20}}>🏫</span>
+                  </div>
+                  <div style={{fontSize: 17, fontWeight: 800, color: overallQuality.color, lineHeight: 1.3}}>
+                    {overallQuality.text}
+                  </div>
+                  <div style={{fontSize: 12, color: "var(--gray-600)", marginTop: 4}}>
+                    เกณฑ์ผ่าน ≥ {passThresh} / {totalMax} (50%)
                   </div>
                 </div>
               </div>
 
-              {/* Classroom breakdown table */}
-              {stats?.rooms && stats.rooms.length > 0 && (
-                <div className="card" style={{marginBottom: 20}}>
-                  <div className="card-title" style={{display: "flex", alignItems: "center", gap: 8}}>
-                    <span>🏫 สรุปผลแยกตามห้องเรียน</span>
+              {/* 8-Level Grade Bands Distribution (สพฐ.) */}
+              <div className="card" style={{marginBottom: 20}}>
+                <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 14}}>
+                  <div>
+                    <div className="card-title" style={{display: "flex", alignItems: "center", gap: 8}}>
+                      <span>🎓 แผนภูมิการกระจายผลการเรียน 8 ระดับ (ตามเกณฑ์ สพฐ.)</span>
+                    </div>
+                    <div className="card-sub">การแจกแจงเกรด 4, 3.5, 3, 2.5, 2, 1.5, 1 และเกรด 0 ของนักเรียนทั้งหมด {totalCount} คน</div>
                   </div>
-                  <div className="card-sub">ติดตามจำนวนนักเรียนและคะแนนเฉลี่ยในแต่ละห้องเรียน</div>
-                  <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginTop: 14}}>
-                    {stats.rooms.map((rm: any, idx: number) => {
-                      const countNum = parseInt(rm.count) || 0;
-                      const hasSubmitted = countNum > 0;
-                      return (
-                        <div
-                          key={idx}
-                          style={{
-                            border: "1.5px solid",
-                            borderColor: hasSubmitted ? "#A7F3D0" : "var(--gray-200)",
-                            background: hasSubmitted ? "#ECFDF5" : "#F9FAFB",
-                            borderRadius: "var(--radius)",
-                            padding: "14px 16px",
-                            textAlign: "center"
-                          }}>
-                          <div style={{fontSize: 16, fontWeight: 700, color: hasSubmitted ? "#065F46" : "var(--gray-700)"}}>
-                            {rm.room}
-                          </div>
-                          <div style={{fontSize: 20, fontWeight: 800, color: hasSubmitted ? "#059669" : "var(--gray-500)", margin: "4px 0"}}>
-                            {rm.count}
-                          </div>
-                          <span style={{
-                            display: "inline-block",
-                            fontSize: 11,
-                            fontWeight: 600,
-                            padding: "2px 8px",
-                            borderRadius: 12,
-                            background: hasSubmitted ? "#10B981" : "var(--gray-300)",
-                            color: "white"
-                          }}>
-                            {rm.status}
-                          </span>
+                  <div style={{display: "flex", gap: 8, fontSize: 12}}>
+                    <span style={{background: "#ECFDF5", color: "#047857", padding: "4px 10px", borderRadius: 12, fontWeight: 700}}>
+                      🌟 กลุ่มเก่ง (3.5-4): {gradeBands.filter(g => g.grade === "4" || g.grade === "3.5").reduce((a, b) => a + b.count, 0)} คน ({((gradeBands.filter(g => g.grade === "4" || g.grade === "3.5").reduce((a, b) => a + b.count, 0) / (totalCount || 1)) * 100).toFixed(1)}%)
+                    </span>
+                    <span style={{background: "#FEF2F2", color: "#DC2626", padding: "4px 10px", borderRadius: 12, fontWeight: 700}}>
+                      🚨 ไม่ผ่าน (เกรด 0): {gradeBands.find(g => g.grade === "0")?.count || 0} คน ({gradeBands.find(g => g.grade === "0")?.pct.toFixed(1)}%)
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{display: "grid", gap: 10}}>
+                  {gradeBands.map(gb => (
+                    <div key={gb.grade} style={{display: "flex", alignItems: "center", gap: 12, fontSize: 13}}>
+                      <div style={{width: 90, flexShrink: 0, fontWeight: 700, display: "flex", alignItems: "center", gap: 6}}>
+                        <span style={{
+                          background: gb.bg,
+                          color: gb.color,
+                          border: `1px solid ${gb.border}`,
+                          borderRadius: 6,
+                          padding: "2px 7px",
+                          fontSize: 12
+                        }}>
+                          เกรด {gb.grade}
+                        </span>
+                      </div>
+                      <div style={{width: 140, flexShrink: 0, fontSize: 12, color: "var(--gray-600)"}}>
+                        {gb.desc}
+                      </div>
+                      <div style={{flex: 1, background: "var(--gray-100)", borderRadius: 8, height: 22, overflow: "hidden", position: "relative"}}>
+                        <div style={{
+                          background: gb.color,
+                          height: "100%",
+                          width: `${gb.pct}%`,
+                          borderRadius: 8,
+                          transition: "width .5s ease"
+                        }}/>
+                      </div>
+                      <div style={{width: 100, textAlign: "right", flexShrink: 0, fontWeight: 700, color: gb.count > 0 ? gb.color : "var(--gray-400)"}}>
+                        {gb.count} คน ({gb.pct.toFixed(1)}%)
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Score Distribution Bands Histogram */}
+              <div className="card" style={{marginBottom: 20}}>
+                <div className="card-title" style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 4}}>
+                  <span>📊 การกระจายตัวของช่วงคะแนนสอบ (Score Distribution Histogram)</span>
+                </div>
+                <div className="card-sub" style={{marginBottom: 16}}>ภาพรวมความสามารถของผู้เรียนแบ่งตามระดับช่วงคะแนนร้อยละ</div>
+                <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12}}>
+                  {scoreBuckets.map((b, idx) => (
+                    <div key={idx} style={{
+                      border: "1.5px solid var(--gray-200)",
+                      borderRadius: "var(--radius)",
+                      padding: "16px 14px",
+                      textAlign: "center",
+                      background: b.count > 0 ? "white" : "var(--gray-50)",
+                      borderTop: `4px solid ${b.color}`
+                    }}>
+                      <div style={{fontSize: 12, fontWeight: 700, color: "var(--gray-600)", marginBottom: 4}}>
+                        {b.range}
+                      </div>
+                      <div style={{fontSize: 24, fontWeight: 800, color: b.color}}>
+                        {b.count} <span style={{fontSize: 13, fontWeight: 600}}>คน</span>
+                      </div>
+                      <div style={{fontSize: 11.5, color: "var(--gray-500)", marginTop: 4}}>
+                        {b.pct.toFixed(1)}% ของผู้สอบ
+                      </div>
+                      <div style={{fontSize: 11, fontWeight: 600, color: b.color, marginTop: 4}}>
+                        {b.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Classroom quick preview */}
+              {classroomAnalysis.length > 0 && (
+                <div className="card" style={{marginBottom: 20}}>
+                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 12}}>
+                    <div>
+                      <div className="card-title" style={{display: "flex", alignItems: "center", gap: 8}}>
+                        <span>🏫 สรุปผลการสอบแยกตามห้องเรียน</span>
+                      </div>
+                      <div className="card-sub">จำนวนนักเรียนและคะแนนเฉลี่ยในแต่ละห้องเรียน</div>
+                    </div>
+                    {classroomAnalysis.length > 1 && (
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setActiveTab("classroom")}
+                        style={{fontWeight: 700, color: "var(--crimson)"}}>
+                        🏫 ดูการวิเคราะห์เปรียบเทียบเชิงลึก →
+                      </button>
+                    )}
+                  </div>
+                  <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12}}>
+                    {classroomAnalysis.map((rm, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          border: "1.5px solid",
+                          borderColor: rm.count > 0 ? "#A7F3D0" : "var(--gray-200)",
+                          background: rm.count > 0 ? "#ECFDF5" : "#F9FAFB",
+                          borderRadius: "var(--radius)",
+                          padding: "14px 16px",
+                          textAlign: "center"
+                        }}>
+                        <div style={{fontSize: 15, fontWeight: 700, color: rm.count > 0 ? "#065F46" : "var(--gray-700)"}}>
+                          {rm.room}
                         </div>
-                      );
-                    })}
+                        <div style={{fontSize: 22, fontWeight: 800, color: rm.count > 0 ? "#059669" : "var(--gray-500)", margin: "4px 0"}}>
+                          {rm.count} คน
+                        </div>
+                        <div style={{fontSize: 12, color: "var(--gray-600)"}}>
+                          เฉลี่ย: <strong style={{color: "#0F9D58"}}>{rm.avgStr}</strong> (ผ่าน {rm.passCount})
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -2902,7 +3205,512 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
         </div>
       )}
 
-      {/* Tab 2: Individual Student Scores */}
+      {/* ==================== TAB 2: CROSS-CLASSROOM COMPARISON ==================== */}
+      {activeTab === "classroom" && (
+        <div>
+          {/* Executive Classroom Highlights */}
+          <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 20}}>
+            {topRoom && (
+              <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #059669", background: "linear-gradient(135deg, #FFFFFF 0%, #F0FDF4 100%)"}}>
+                <div style={{fontSize: 12, fontWeight: 700, color: "#047857", marginBottom: 4}}>
+                  🥇 ห้องคะแนนเฉลี่ยสูงสุด (Top Performance)
+                </div>
+                <div style={{fontSize: 22, fontWeight: 800, color: "#065F46"}}>
+                  {topRoom.room}
+                </div>
+                <div style={{fontSize: 13, color: "var(--gray-600)", marginTop: 4}}>
+                  เฉลี่ย <strong>{topRoom.avgStr}</strong> คะแนน • ผ่าน {topRoom.passRateStr} ({topRoom.passCount}/{topRoom.count} คน)
+                </div>
+              </div>
+            )}
+
+            {highestPassRoom && (
+              <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #2563EB", background: "linear-gradient(135deg, #FFFFFF 0%, #EFF6FF 100%)"}}>
+                <div style={{fontSize: 12, fontWeight: 700, color: "#1D4ED8", marginBottom: 4}}>
+                  🌟 ห้องอัตราผ่านสูงสุด (Highest Pass Rate)
+                </div>
+                <div style={{fontSize: 22, fontWeight: 800, color: "#1E3A8A"}}>
+                  {highestPassRoom.room}
+                </div>
+                <div style={{fontSize: 13, color: "var(--gray-600)", marginTop: 4}}>
+                  อัตราการผ่าน <strong>{highestPassRoom.passRateStr}</strong> (ผ่านเกณฑ์ {highestPassRoom.passCount} คน)
+                </div>
+              </div>
+            )}
+
+            {lowestRoom && lowestRoom.atRiskCount > 0 && (
+              <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #DC2626", background: "linear-gradient(135deg, #FFFFFF 0%, #FEF2F2 100%)"}}>
+                <div style={{fontSize: 12, fontWeight: 700, color: "#DC2626", marginBottom: 4}}>
+                  ⚠️ ห้องที่ต้องการการดูแลเร่งด่วน (Intervention Needed)
+                </div>
+                <div style={{fontSize: 22, fontWeight: 800, color: "#991B1B"}}>
+                  {lowestRoom.room}
+                </div>
+                <div style={{fontSize: 13, color: "var(--gray-600)", marginTop: 4}}>
+                  มีนักเรียนไม่ผ่าน {lowestRoom.atRiskCount} คน (เฉลี่ย {lowestRoom.avgStr} คะแนน)
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Classroom Comparison Bar Chart */}
+          <div className="card" style={{marginBottom: 20}}>
+            <div className="card-title" style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 4}}>
+              <span>📊 กราฟเปรียบเทียบคะแนนเฉลี่ยระหว่างห้องเรียน</span>
+            </div>
+            <div className="card-sub" style={{marginBottom: 24}}>
+              เปรียบเทียบผลสัมฤทธิ์ทางการเรียนของแต่ละห้องเรียน เทียบกับเกณฑ์ผ่าน ({passThresh} คะแนน) และคะแนนเฉลี่ยรวมทั้งโรงเรียน ({computedAvg})
+            </div>
+
+            {classroomAnalysis.length === 0 ? (
+              <div style={{textAlign: "center", padding: 30, color: "var(--gray-500)"}}>ยังไม่มีข้อมูลห้องเรียน</div>
+            ) : (
+              <div style={{overflowX: "auto", paddingBottom: 10}}>
+                <div style={{
+                  display: "flex",
+                  alignItems: "flex-end",
+                  gap: 20,
+                  height: 220,
+                  minWidth: Math.max(480, classroomAnalysis.length * 90),
+                  padding: "0 20px 30px",
+                  borderBottom: "2px solid var(--gray-300)",
+                  position: "relative"
+                }}>
+                  {/* Benchmark Line */}
+                  {totalMax > 0 && computedAvgNum > 0 && (
+                    <div style={{
+                      position: "absolute",
+                      bottom: 30 + ((computedAvgNum / totalMax) * 170),
+                      left: 0,
+                      right: 0,
+                      borderTop: "2px dashed #DC2626",
+                      zIndex: 2,
+                      pointerEvents: "none"
+                    }}>
+                      <span style={{
+                        position: "absolute",
+                        right: 8,
+                        top: -18,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        background: "#DC2626",
+                        color: "white",
+                        padding: "1px 6px",
+                        borderRadius: 4
+                      }}>
+                        เฉลี่ยรวม: {computedAvgNum.toFixed(1)}
+                      </span>
+                    </div>
+                  )}
+
+                  {classroomAnalysis.map((rm, idx) => {
+                    const heightPct = totalMax > 0 ? (rm.avgNum / totalMax) * 100 : 0;
+                    return (
+                      <div key={idx} style={{flex: 1, display: "flex", flexDirection: "column", alignItems: "center", height: "100%", justifyContent: "flex-end"}}>
+                        <div style={{fontSize: 12, fontWeight: 700, color: rm.tierColor, marginBottom: 4}}>
+                          {rm.avgStr}
+                        </div>
+                        <div style={{
+                          width: "70%",
+                          maxWidth: 54,
+                          minWidth: 32,
+                          height: `${Math.max(12, (heightPct / 100) * 170)}px`,
+                          background: `linear-gradient(180deg, ${rm.tierColor} 0%, ${rm.tierColor}CC 100%)`,
+                          borderRadius: "6px 6px 0 0",
+                          boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+                          transition: "height .4s ease"
+                        }}/>
+                        <div style={{fontSize: 13, fontWeight: 700, color: "var(--gray-800)", marginTop: 8}}>
+                          {rm.room}
+                        </div>
+                        <div style={{fontSize: 11, color: "var(--gray-500)"}}>
+                          ({rm.count} คน)
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Deep Classroom Comparison Table */}
+          <div className="card">
+            <div className="card-title" style={{marginBottom: 4}}>
+              📋 ตารางเปรียบเทียบผลสัมฤทธิ์รายห้องแบบละเอียด
+            </div>
+            <div className="card-sub" style={{marginBottom: 16}}>
+              คลิกปุ่ม "กรองดูห้องนี้" เพื่อตรวจสอบคำตอบและคะแนนของนักเรียนในห้องนั้นๆ
+            </div>
+
+            <div style={{overflowX: "auto"}}>
+              <table style={{width: "100%", borderCollapse: "collapse", fontSize: 13}}>
+                <thead>
+                  <tr style={{background: "var(--gray-50)", borderBottom: "2px solid var(--gray-200)"}}>
+                    <th style={{padding: "10px 12px", textAlign: "center", width: 60}}>อันดับ</th>
+                    <th style={{padding: "10px 12px", textAlign: "left"}}>ห้องเรียน</th>
+                    <th style={{padding: "10px 12px", textAlign: "center"}}>ผู้เข้าสอบ</th>
+                    <th style={{padding: "10px 12px", textAlign: "center"}}>คะแนนเฉลี่ย (Mean)</th>
+                    <th style={{padding: "10px 12px", textAlign: "center"}}>S.D.</th>
+                    <th style={{padding: "10px 12px", textAlign: "center"}}>สูงสุด / ต่ำสุด</th>
+                    <th style={{padding: "10px 12px", textAlign: "center"}}>ผ่าน / ตก</th>
+                    <th style={{padding: "10px 12px", textAlign: "center"}}>ร้อยละผ่าน (%)</th>
+                    <th style={{padding: "10px 12px", textAlign: "center"}}>ระดับคุณภาพ</th>
+                    <th style={{padding: "10px 12px", textAlign: "center"}}>ดำเนินการ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {classroomAnalysis.map((rm, idx) => (
+                    <tr key={idx} style={{borderBottom: "1px solid var(--gray-100)"}}>
+                      <td style={{padding: "10px 12px", textAlign: "center", fontWeight: 700}}>
+                        {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : idx + 1}
+                      </td>
+                      <td style={{padding: "10px 12px", fontWeight: 700, color: "var(--gray-900)"}}>
+                        {rm.room}
+                      </td>
+                      <td style={{padding: "10px 12px", textAlign: "center"}}>
+                        {rm.count} คน
+                      </td>
+                      <td style={{padding: "10px 12px", textAlign: "center", fontWeight: 700, color: "#1D4ED8"}}>
+                        {rm.avgStr}
+                      </td>
+                      <td style={{padding: "10px 12px", textAlign: "center", color: "var(--gray-600)"}}>
+                        {rm.sd}
+                      </td>
+                      <td style={{padding: "10px 12px", textAlign: "center", fontSize: 12}}>
+                        {rm.max} / {rm.min}
+                      </td>
+                      <td style={{padding: "10px 12px", textAlign: "center"}}>
+                        <span style={{color: "#059669", fontWeight: 700}}>{rm.passCount}</span> / <span style={{color: "#DC2626"}}>{rm.failCount}</span>
+                      </td>
+                      <td style={{padding: "10px 12px", textAlign: "center", fontWeight: 700, color: rm.passPct >= 50 ? "#059669" : "#DC2626"}}>
+                        {rm.passRateStr}
+                      </td>
+                      <td style={{padding: "10px 12px", textAlign: "center"}}>
+                        <span style={{
+                          padding: "2px 8px",
+                          borderRadius: 12,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          background: rm.tierBg,
+                          color: rm.tierColor
+                        }}>
+                          {rm.tierLabel}
+                        </span>
+                      </td>
+                      <td style={{padding: "10px 12px", textAlign: "center"}}>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => {
+                            setRoomFilter(rm.room);
+                            setActiveTab("students");
+                          }}
+                          style={{fontSize: 12, padding: "3px 10px"}}>
+                          🔍 ดูรายชื่อห้องนี้
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== TAB 3: ITEM ANALYSIS ==================== */}
+      {activeTab === "item_analysis" && (
+        <div>
+          {/* Executive Item Highlights */}
+          <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, marginBottom: 20}}>
+            <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #059669", background: "linear-gradient(135deg, #FFFFFF 0%, #F0FDF4 100%)"}}>
+              <div style={{fontSize: 13, fontWeight: 700, color: "#047857", marginBottom: 6, display: "flex", alignItems: "center", gap: 6}}>
+                <span>🟢 ข้อที่ผู้เรียนตอบได้ดีที่สุด (Top High Mastery)</span>
+              </div>
+              <div style={{fontSize: 12.5, color: "var(--gray-600)", marginBottom: 8}}>
+                เนื้อหาในข้อเหล่านี้ นักเรียนส่วนใหญ่ทำความเข้าใจได้ดีมาก
+              </div>
+              <div style={{display: "grid", gap: 6}}>
+                {topMasteryQuestions.map((q: any) => (
+                  <div key={q.index} style={{fontSize: 12.5, display: "flex", justifyContent: "space-between", background: "white", padding: "6px 10px", borderRadius: 6, border: "1px solid #A7F3D0"}}>
+                    <span style={{fontWeight: 600, color: "#065F46", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "75%"}}>
+                      ข้อ {q.index}. {q.title}
+                    </span>
+                    <strong style={{color: "#059669"}}>{q.topChoicePct.toFixed(0)}%</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #DC2626", background: "linear-gradient(135deg, #FFFFFF 0%, #FEF2F2 100%)"}}>
+              <div style={{fontSize: 13, fontWeight: 700, color: "#DC2626", marginBottom: 6, display: "flex", alignItems: "center", gap: 6}}>
+                <span>🔴 ข้อที่นักเรียนตอบสับสนสูงสุด (Needs Revision / Review)</span>
+              </div>
+              <div style={{fontSize: 12.5, color: "var(--gray-600)", marginBottom: 8}}>
+                คำตอบกระจายตัวสูง แนะนำให้คุณครูนำข้อเหล่านี้มาเฉลยและทบทวนในห้องเรียน
+              </div>
+              <div style={{display: "grid", gap: 6}}>
+                {topConfusingQuestions.map((q: any) => (
+                  <div key={q.index} style={{fontSize: 12.5, display: "flex", justifyContent: "space-between", background: "white", padding: "6px 10px", borderRadius: 6, border: "1px solid #FECACA"}}>
+                    <span style={{fontWeight: 600, color: "#991B1B", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "75%"}}>
+                      ข้อ {q.index}. {q.title}
+                    </span>
+                    <strong style={{color: "#DC2626"}}>กระจายตัวสูง</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Full Item Analysis Table */}
+          <div className="card">
+            <div className="card-title" style={{marginBottom: 4}}>
+              🎯 ตารางวิเคราะห์คุณภาพข้อสอบรายข้อ (Item Analysis)
+            </div>
+            <div className="card-sub" style={{marginBottom: 16}}>
+              คำนวณจากคำตอบจริงของนักเรียนทั้งหมด {rawStudents.length} คน • คลิกที่ข้อเพื่อดูแจกแจงตัวเลือกทั้งหมด
+            </div>
+
+            {itemAnalysis.length === 0 ? (
+              <div style={{textAlign: "center", padding: 30, color: "var(--gray-500)"}}>ไม่พบคอลัมน์คำถามสำหรับวิเคราะห์</div>
+            ) : (
+              <div style={{overflowX: "auto"}}>
+                <table style={{width: "100%", borderCollapse: "collapse", fontSize: 13}}>
+                  <thead>
+                    <tr style={{background: "var(--gray-50)", borderBottom: "2px solid var(--gray-200)"}}>
+                      <th style={{padding: "10px 12px", textAlign: "center", width: 60}}>ข้อที่</th>
+                      <th style={{padding: "10px 12px", textAlign: "left"}}>คำถาม / โจทย์</th>
+                      <th style={{padding: "10px 12px", textAlign: "center", width: 100}}>ผู้ตอบ (คน)</th>
+                      <th style={{padding: "10px 12px", textAlign: "left", width: 220}}>คำตอบยอดนิยม (Most Popular)</th>
+                      <th style={{padding: "10px 12px", textAlign: "center", width: 110}}>สัดส่วน (%)</th>
+                      <th style={{padding: "10px 12px", textAlign: "center", width: 160}}>ระดับความยากง่าย</th>
+                      <th style={{padding: "10px 12px", textAlign: "center", width: 140}}>การแจกแจง</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {itemAnalysis.map((q: any) => (
+                      <tr key={q.index} style={{borderBottom: "1px solid var(--gray-100)"}}>
+                        <td style={{padding: "10px 12px", textAlign: "center", fontWeight: 700}}>
+                          #{q.index}
+                        </td>
+                        <td style={{padding: "10px 12px", fontWeight: 600, color: "var(--gray-900)"}}>
+                          {q.title}
+                        </td>
+                        <td style={{padding: "10px 12px", textAlign: "center"}}>
+                          {q.totalResponses} คน
+                        </td>
+                        <td style={{padding: "10px 12px", color: "var(--gray-700)", fontSize: 12.5}}>
+                          <div style={{overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 210}}>
+                            {q.topChoice}
+                          </div>
+                        </td>
+                        <td style={{padding: "10px 12px", textAlign: "center", fontWeight: 700, color: q.difficultyColor}}>
+                          {q.topChoicePct.toFixed(1)}%
+                        </td>
+                        <td style={{padding: "10px 12px", textAlign: "center"}}>
+                          <span style={{
+                            padding: "3px 9px",
+                            borderRadius: 12,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            background: q.difficultyBg,
+                            color: q.difficultyColor
+                          }}>
+                            {q.difficultyLabel}
+                          </span>
+                        </td>
+                        <td style={{padding: "10px 12px", textAlign: "center"}}>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => setSelectedQuestionModal(q)}
+                            style={{fontSize: 12, padding: "3px 10px"}}>
+                            📊 ดูทุกตัวเลือก
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ==================== TAB 4: AT-RISK STUDENT INTERVENTION ==================== */}
+      {activeTab === "at_risk" && (
+        <div>
+          {/* 3-Tier Distribution Overview */}
+          <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 20}}>
+            <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #059669", background: "linear-gradient(135deg, #FFFFFF 0%, #F0FDF4 100%)"}}>
+              <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6}}>
+                <span style={{fontSize: 13, fontWeight: 700, color: "#047857"}}>🌟 กลุ่มรอบรู้ (Mastery Tier)</span>
+                <span style={{fontSize: 20}}>🏆</span>
+              </div>
+              <div style={{fontSize: 26, fontWeight: 800, color: "#065F46"}}>
+                {masteryStudents.length} คน
+              </div>
+              <div style={{fontSize: 12, color: "var(--gray-600)", marginTop: 4}}>
+                ได้คะแนน ≥ 75% ({((masteryStudents.length / (totalCount || 1)) * 100).toFixed(1)}% ของทั้งหมด)
+              </div>
+            </div>
+
+            <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #2563EB", background: "linear-gradient(135deg, #FFFFFF 0%, #EFF6FF 100%)"}}>
+              <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6}}>
+                <span style={{fontSize: 13, fontWeight: 700, color: "#1D4ED8"}}>🎯 กลุ่มปานกลาง (Developing Tier)</span>
+                <span style={{fontSize: 20}}>📘</span>
+              </div>
+              <div style={{fontSize: 26, fontWeight: 800, color: "#1E3A8A"}}>
+                {developingStudents.length} คน
+              </div>
+              <div style={{fontSize: 12, color: "var(--gray-600)", marginTop: 4}}>
+                ได้คะแนน 50% - 74% ({((developingStudents.length / (totalCount || 1)) * 100).toFixed(1)}% ของทั้งหมด)
+              </div>
+            </div>
+
+            <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #DC2626", background: "linear-gradient(135deg, #FFFFFF 0%, #FEF2F2 100%)"}}>
+              <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6}}>
+                <span style={{fontSize: 13, fontWeight: 700, color: "#DC2626"}}>🚨 กลุ่มเสี่ยง / ไม่ผ่าน (At-Risk Tier)</span>
+                <span style={{fontSize: 20}}>⚠️</span>
+              </div>
+              <div style={{fontSize: 26, fontWeight: 800, color: "#991B1B"}}>
+                {atRiskStudents.length} คน
+              </div>
+              <div style={{fontSize: 12, color: "var(--gray-600)", marginTop: 4}}>
+                ได้คะแนนต่ำกว่า 50% ({((atRiskStudents.length / (totalCount || 1)) * 100).toFixed(1)}% ของทั้งหมด)
+              </div>
+            </div>
+          </div>
+
+          {/* Action Box */}
+          <div className="card" style={{marginBottom: 20}}>
+            <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12}}>
+              <div>
+                <div className="card-title" style={{display: "flex", alignItems: "center", gap: 8, color: "#991B1B"}}>
+                  <span>🚨 คัดกรองนักเรียนที่ต้องได้รับการช่วยเหลือเร่งด่วน ({atRiskStudents.length} คน)</span>
+                </div>
+                <div className="card-sub" style={{marginBottom: 0}}>
+                  นักเรียนกลุ่มนี้ได้คะแนนไม่ถึงเกณฑ์ผ่าน 50% (เกณฑ์ผ่าน ≥ {passThresh} / {totalMax} คะแนน) ควรจัดกิจกรรมสอนซ่อมเสริม
+                </div>
+              </div>
+              <button
+                className="btn btn-sm"
+                onClick={copyAtRiskList}
+                style={{
+                  background: atRiskCopied ? "#059669" : "#DC2626",
+                  color: "white",
+                  fontWeight: 700,
+                  padding: "8px 16px",
+                  borderRadius: 8,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6
+                }}>
+                {atRiskCopied ? <><CheckIcon /> คัดลอกรายชื่อสำเร็จ!</> : <><CopyIcon /> คัดลอกรายชื่อกลุ่มเสี่ยง</>}
+              </button>
+            </div>
+          </div>
+
+          {/* At-Risk Table */}
+          <div className="card" style={{marginBottom: 20}}>
+            {atRiskStudents.length === 0 ? (
+              <div style={{textAlign: "center", padding: "40px 20px"}}>
+                <div style={{fontSize: 48, marginBottom: 8}}>🎉</div>
+                <div style={{fontSize: 16, fontWeight: 700, color: "#059669"}}>ยอดเยี่ยมมาก! ไม่มีนักเรียนตกหรืออยู่ในกลุ่มเสี่ยง</div>
+                <div style={{fontSize: 13, color: "var(--gray-500)", marginTop: 4}}>นักเรียนทุกคนทำคะแนนได้ผ่านเกณฑ์ขั้นต่ำ 50%</div>
+              </div>
+            ) : (
+              <div style={{overflowX: "auto"}}>
+                <table style={{width: "100%", borderCollapse: "collapse", fontSize: 13}}>
+                  <thead>
+                    <tr style={{background: "var(--gray-50)", borderBottom: "2px solid var(--gray-200)"}}>
+                      <th style={{padding: "10px 12px", textAlign: "left", width: 45}}>#</th>
+                      <th style={{padding: "10px 12px", textAlign: "center", width: 75}}>เลขที่</th>
+                      <th style={{padding: "10px 12px", textAlign: "left"}}>ชื่อ-นามสกุล</th>
+                      <th style={{padding: "10px 12px", textAlign: "center", width: 85}}>ห้อง</th>
+                      <th style={{padding: "10px 12px", textAlign: "center", width: 110}}>คะแนนที่ได้</th>
+                      <th style={{padding: "10px 12px", textAlign: "center", width: 120}}>ขาดอีกจะผ่าน</th>
+                      <th style={{padding: "10px 12px", textAlign: "center", width: 110}}>สถานะ</th>
+                      <th style={{padding: "10px 12px", textAlign: "center", width: 130}}>ตรวจ/กรอกคะแนน</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {atRiskStudents.map((s, idx) => {
+                      const parsed = parseScore(s, totalMax);
+                      const studentNo = getStudentNo(s);
+                      const studentRoom = getStudentRoom(s);
+                      const studentName = getStudentField(s, ["ชื่อ-สกุล", "ชื่อ-นามสกุล", "ชื่อ", "Name"]) || "-";
+                      const gap = passThresh - parsed.earned;
+
+                      return (
+                        <tr key={idx} style={{borderBottom: "1px solid var(--gray-100)"}}>
+                          <td style={{padding: "10px 12px", color: "var(--gray-500)"}}>{idx + 1}</td>
+                          <td style={{padding: "10px 12px", textAlign: "center"}}>
+                            <span style={{background: "var(--red-light)", color: "var(--red)", fontWeight: 700, padding: "2px 8px", borderRadius: 10}}>
+                              {studentNo !== 9999 ? studentNo : "-"}
+                            </span>
+                          </td>
+                          <td style={{padding: "10px 12px", fontWeight: 700, color: "var(--gray-900)"}}>
+                            {studentName}
+                          </td>
+                          <td style={{padding: "10px 12px", textAlign: "center"}}>
+                            <span style={{padding: "2px 8px", borderRadius: 10, background: "#F1F5F9", color: "#475569", fontWeight: 600}}>
+                              {studentRoom}
+                            </span>
+                          </td>
+                          <td style={{padding: "10px 12px", textAlign: "center", fontWeight: 700, color: "#DC2626", fontSize: 14}}>
+                            {parsed.str}
+                          </td>
+                          <td style={{padding: "10px 12px", textAlign: "center", color: "#B45309", fontWeight: 700}}>
+                            ขาด {gap > 0 ? gap : 1} คะแนน
+                          </td>
+                          <td style={{padding: "10px 12px", textAlign: "center"}}>
+                            <span style={{padding: "2px 8px", borderRadius: 12, background: "#FEE2E2", color: "#991B1B", fontSize: 11, fontWeight: 700}}>
+                              ⚠️ ต้องซ่อมเสริม
+                            </span>
+                          </td>
+                          <td style={{padding: "10px 12px", textAlign: "center"}}>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-secondary"
+                              onClick={() => handleOpenGrading(s)}
+                              style={{fontSize: 12, padding: "3px 8px"}}>
+                              ✏️ ตรวจข้อสอบ
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Remedial Action Guide for Teachers */}
+          <div className="card" style={{background: "linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 100%)", border: "1.5px solid #BFDBFE"}}>
+            <div style={{fontSize: 14, fontWeight: 700, color: "#1E3A8A", marginBottom: 8, display: "flex", alignItems: "center", gap: 6}}>
+              <span>💡 คำแนะนำการจัดกิจกรรมการเรียนรู้ซ่อมเสริม (Remediation Strategies)</span>
+            </div>
+            <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, fontSize: 12.5, color: "#334155"}}>
+              <div style={{background: "white", padding: "10px 14px", borderRadius: 8, border: "1px solid #DBEAFE"}}>
+                <div style={{fontWeight: 700, color: "#1D4ED8", marginBottom: 2}}>1. สอนเสริมกลุ่มย่อย (Small Group)</div>
+                <div>ดึงนักเรียนกลุ่มเสี่ยงมาทบทวนเฉพาะหัวข้อที่พบข้อผิดพลาดสูงจากการวิเคราะห์ข้อสอบ</div>
+              </div>
+              <div style={{background: "white", padding: "10px 14px", borderRadius: 8, border: "1px solid #DBEAFE"}}>
+                <div style={{fontWeight: 700, color: "#1D4ED8", marginBottom: 2}}>2. เพื่อนช่วยเพื่อน (Peer Tutoring)</div>
+                <div>จับคู่ให้กลุ่มเก่ง (Mastery Tier) ช่วยอธิบายแนวคิดและแบบฝึกหัดให้เพื่อนในห้อง</div>
+              </div>
+              <div style={{background: "white", padding: "10px 14px", borderRadius: 8, border: "1px solid #DBEAFE"}}>
+                <div style={{fontWeight: 700, color: "#1D4ED8", marginBottom: 2}}>3. แบบทดสอบคู่ขนาน (Parallel Retest)</div>
+                <div>ให้ทำแบบฝึกหัดชุดคู่ขนานเพื่อวัดผลซ้ำและเปิดโอกาสให้แก้ตัวให้ผ่านเกณฑ์ 50%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== TAB 5: INDIVIDUAL STUDENT SCORES ==================== */}
       {activeTab === "students" && (
         <div className="card">
           {loading ? (
@@ -2983,83 +3791,41 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
                       borderRadius: "var(--radius)",
                       border: "1px solid var(--gray-200)",
                       fontSize: 13,
-                      background: "white",
-                      cursor: "pointer"
+                      outline: "none",
+                      background: "white"
                     }}>
-                    <option value="no">🔢 เรียงตามเลขที่ (1, 2, 3...)</option>
-                    <option value="score_desc">🏆 เรียงตามคะแนน (มาก → น้อย)</option>
-                    <option value="score_asc">📉 เรียงตามคะแนน (น้อย → มาก)</option>
-                    <option value="time">🕒 เรียงตามเวลาส่ง (ล่าสุด)</option>
+                    <option value="no">🔢 เรียงตามเลขที่</option>
+                    <option value="score_desc">📈 คะแนน: มาก → น้อย</option>
+                    <option value="score_asc">📉 คะแนน: น้อย → มาก</option>
+                    <option value="time">🕒 เวลาส่งล่าสุด</option>
                   </select>
                 </div>
               </div>
 
-              {/* Quick Room Filter Pills */}
-              {roomList.length > 0 && (
-                <div style={{
-                  display: "flex",
-                  gap: 8,
-                  overflowX: "auto",
-                  paddingBottom: 10,
-                  marginBottom: 16,
-                  borderBottom: "1px dashed var(--gray-200)"
-                }}>
+              {/* Classroom filter pills */}
+              {roomList.length > 1 && (
+                <div style={{display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16}}>
                   <button
-                    type="button"
+                    className={`btn btn-sm ${roomFilter === "all" ? "btn-primary" : "btn-secondary"}`}
                     onClick={() => setRoomFilter("all")}
-                    style={{
-                      padding: "7px 14px",
-                      borderRadius: 20,
-                      border: roomFilter === "all" ? "2px solid var(--crimson)" : "1px solid var(--gray-200)",
-                      background: roomFilter === "all" ? "var(--crimson-light)" : "white",
-                      color: roomFilter === "all" ? "var(--crimson)" : "var(--gray-700)",
-                      fontWeight: roomFilter === "all" ? 700 : 500,
-                      fontSize: 13,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      whiteSpace: "nowrap"
-                    }}>
-                    🏫 ทุกห้องเรียน
-                    <span style={{
-                      background: roomFilter === "all" ? "var(--crimson)" : "var(--gray-100)",
-                      color: roomFilter === "all" ? "white" : "var(--gray-600)",
-                      padding: "1px 7px",
-                      borderRadius: 10,
-                      fontSize: 11
-                    }}>
-                      {rawStudents.length}
-                    </span>
+                    style={roomFilter === "all" ? {background: "var(--crimson)", color: "white"} : {}}>
+                    ทุกห้อง ({rawStudents.length})
                   </button>
-
                   {roomList.map(rm => {
                     const count = rawStudents.filter(s => getStudentRoom(s) === rm || getStudentRoom(s).includes(rm)).length;
                     const isSelected = roomFilter === rm;
                     return (
                       <button
                         key={rm}
-                        type="button"
+                        className={`btn btn-sm ${isSelected ? "btn-primary" : "btn-secondary"}`}
                         onClick={() => setRoomFilter(rm)}
-                        style={{
-                          padding: "7px 14px",
-                          borderRadius: 20,
-                          border: isSelected ? "2px solid var(--crimson)" : "1px solid var(--gray-200)",
-                          background: isSelected ? "var(--crimson-light)" : "white",
-                          color: isSelected ? "var(--crimson)" : "var(--gray-700)",
-                          fontWeight: isSelected ? 700 : 500,
-                          fontSize: 13,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                          whiteSpace: "nowrap"
-                        }}>
-                        🚪 {rm}
+                        style={isSelected ? {background: "var(--crimson)", color: "white"} : {}}>
+                        {rm}
                         <span style={{
-                          background: isSelected ? "var(--crimson)" : "var(--gray-100)",
-                          color: isSelected ? "white" : "var(--gray-600)",
-                          padding: "1px 7px",
+                          marginLeft: 5,
+                          background: isSelected ? "rgba(255,255,255,0.3)" : "var(--gray-200)",
+                          color: isSelected ? "white" : "var(--gray-700)",
+                          padding: "1px 6px",
                           borderRadius: 10,
                           fontSize: 11
                         }}>
@@ -3076,7 +3842,6 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
                   {rawStudents.length === 0 ? "⏳ ยังไม่มีนักเรียนส่งข้อสอบ" : "ไม่พบข้อมูลนักเรียนตามคำค้นหา"}
                 </div>
               ) : roomFilter === "all" && roomList.length > 1 ? (
-                /* ถ้าเลือกทุกห้อง และมีหลายห้อง ให้จัดกลุ่มแสดงแยกห้องพร้อมเรียงเลขที่ */
                 <div>
                   {roomList.map(rm => {
                     const roomStudents = sortStudentList(
@@ -3115,28 +3880,8 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
                       </div>
                     );
                   })}
-
-                  {/* นักเรียนที่ไม่ได้ระบุห้อง (ถ้ามี) */}
-                  {(() => {
-                    const unassigned = sortStudentList(
-                      filteredStudents.filter(s => {
-                        const r = getStudentRoom(s);
-                        return !roomList.some(rm => r === rm || r.includes(rm));
-                      })
-                    );
-                    if (unassigned.length === 0) return null;
-                    return (
-                      <div style={{marginBottom: 20, border: "1px solid var(--gray-200)", borderRadius: "var(--radius)", overflow: "hidden"}}>
-                        <div style={{background: "#F8FAFC", padding: "10px 16px", borderBottom: "1px solid var(--gray-200)", fontWeight: 700, fontSize: 14, color: "var(--gray-700)"}}>
-                          📌 อื่นๆ / ไม่ระบุห้อง ({unassigned.length} คน)
-                        </div>
-                        {renderStudentTable(unassigned)}
-                      </div>
-                    );
-                  })()}
                 </div>
               ) : (
-                /* ถ้าเลือกห้องเจาะจง หรือมีห้องเดียว แสดงตารางเดี่ยว */
                 renderStudentTable(sortedStudents)
               )}
             </>
@@ -3144,7 +3889,7 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
         </div>
       )}
 
-      {/* Tab 3: Embedded Google Sheet Preview */}
+      {/* ==================== TAB 6: EMBEDDED GOOGLE SHEET PREVIEW ==================== */}
       {activeTab === "sheet" && (
         <div className="card" style={{padding: 12}}>
           <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "4px 8px"}}>
@@ -3158,241 +3903,173 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
             </button>
           </div>
           <iframe
-            src={embedUrl}
+            src={exam.sheet_url?.replace(/\/edit.*$/, "/preview") || exam.sheet_url}
+            title="Google Sheets Preview"
             style={{
               width: "100%",
-              height: "680px",
+              height: 640,
               border: "1px solid var(--gray-200)",
-              borderRadius: "var(--radius)",
-              background: "white"
+              borderRadius: "var(--radius)"
             }}
-            title="Google Sheets Preview"
           />
         </div>
       )}
 
-      {/* In-App Grading Modal */}
-      {gradingStudent && (
-        <div className="loading-overlay" style={{background: "rgba(15, 23, 42, 0.75)", zIndex: 1000, padding: 16}}>
-          <div style={{
-            background: "white",
-            borderRadius: "20px",
-            maxWidth: "600px",
-            width: "100%",
-            maxHeight: "90vh",
-            display: "flex",
-            flexDirection: "column",
-            boxShadow: "0 25px 50px -12px rgba(0,0,0,0.35)",
-            animation: "popInModal .25s ease",
-            overflow: "hidden"
-          }}>
-            {/* Modal Header */}
-            <div style={{
-              padding: "18px 24px",
-              borderBottom: "1.5px solid var(--gray-200)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              background: "linear-gradient(135deg, #FEF2F2 0%, #FFFBEB 100%)"
-            }}>
-              <div style={{display: "flex", alignItems: "center", gap: 10}}>
-                <span style={{fontSize: 24}}>✏️</span>
-                <div>
-                  <h3 style={{margin: 0, fontSize: 17, fontWeight: 700, color: "var(--gray-900)"}}>
-                    ตรวจและบันทึกคะแนนรายบุคคล
-                  </h3>
-                  <div style={{fontSize: 12.5, color: "var(--gray-600)", marginTop: 2}}>
-                    บันทึกคะแนนตรงเข้า Google Sheets อัตโนมัติ โดยไม่ต้องเปิดไฟล์ชีต
-                  </div>
-                </div>
+      {/* Modal: Item Option Breakdown */}
+      {selectedQuestionModal && (
+        <div className="modal-overlay" onClick={() => setSelectedQuestionModal(null)}>
+          <div className="modal" style={{maxWidth: 580}} onClick={e => e.stopPropagation()}>
+            <div style={{display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16}}>
+              <div>
+                <span style={{fontSize: 12, fontWeight: 700, color: "var(--crimson)", background: "var(--crimson-light)", padding: "2px 8px", borderRadius: 12}}>
+                  ข้อที่ {selectedQuestionModal.index}
+                </span>
+                <h3 style={{fontSize: 16, fontWeight: 700, color: "var(--gray-900)", marginTop: 6}}>
+                  {selectedQuestionModal.title}
+                </h3>
               </div>
               <button
-                type="button"
-                onClick={() => !savingScore && setGradingStudent(null)}
-                style={{background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "var(--gray-500)", padding: 4}}
-              >
+                onClick={() => setSelectedQuestionModal(null)}
+                style={{background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "var(--gray-500)"}}>
                 ✕
               </button>
             </div>
 
-            {/* Modal Body (Scrollable) */}
-            <div style={{padding: "20px 24px", overflowY: "auto", flex: 1}}>
-              {/* Student Info Card */}
-              <div style={{
-                background: "var(--gray-50)",
-                border: "1px solid var(--gray-200)",
-                borderRadius: "12px",
-                padding: "12px 16px",
-                marginBottom: 18,
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-                gap: 8
-              }}>
-                <div>
-                  <div style={{fontSize: 11, color: "var(--gray-500)", fontWeight: 600}}>ชื่อ-นามสกุล</div>
-                  <div style={{fontSize: 14, fontWeight: 700, color: "var(--gray-900)"}}>
-                    {getStudentField(gradingStudent, ["ชื่อ-สกุล", "ชื่อ-นามสกุล", "ชื่อ", "Name"]) || "-"}
-                  </div>
-                </div>
-                <div>
-                  <div style={{fontSize: 11, color: "var(--gray-500)", fontWeight: 600}}>ชั้น / ห้อง</div>
-                  <div style={{fontSize: 14, fontWeight: 700, color: "var(--crimson)"}}>
-                    {getStudentRoom(gradingStudent)}
-                  </div>
-                </div>
-                <div>
-                  <div style={{fontSize: 11, color: "var(--gray-500)", fontWeight: 600}}>เลขที่</div>
-                  <div style={{fontSize: 14, fontWeight: 700, color: "#D97706"}}>
-                    {getStudentNo(gradingStudent) !== 9999 ? `เลขที่ ${getStudentNo(gradingStudent)}` : "-"}
-                  </div>
-                </div>
-                <div>
-                  <div style={{fontSize: 11, color: "var(--gray-500)", fontWeight: 600}}>คะแนนเดิมในระบบ</div>
-                  <div style={{fontSize: 14, fontWeight: 700, color: "#059669"}}>
-                    {parseScore(gradingStudent, totalMax).str}
-                  </div>
-                </div>
-              </div>
-
-              {/* Question Answers from Student */}
-              <div style={{marginBottom: 20}}>
-                <div style={{fontSize: 13, fontWeight: 700, color: "var(--gray-800)", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "space-between"}}>
-                  <div style={{display: "flex", alignItems: "center", gap: 6}}>
-                    <span>📝</span>
-                    <span>คำตอบที่นักเรียนส่งมา ({getStudentQuestionAnswers(gradingStudent).length} ข้อ):</span>
-                  </div>
-                  {getStudentQuestionAnswers(gradingStudent).some(qa => qa.isManual) && (
-                    <span style={{fontSize: 11, background: "#FEF3C7", color: "#92400E", padding: "2px 8px", borderRadius: 8, fontWeight: 600}}>
-                      ✏️ มีข้อสอบอัตนัย/เติมคำ
-                    </span>
-                  )}
-                </div>
-                <div style={{display: "flex", flexDirection: "column", gap: 10, maxHeight: 360, overflowY: "auto", paddingRight: 4}}>
-                  {getStudentQuestionAnswers(gradingStudent).length === 0 ? (
-                    <div style={{fontSize: 12, color: "var(--gray-500)", fontStyle: "italic", textAlign: "center", padding: 12}}>
-                      ไม่พบคอลัมน์คำตอบเฉพาะข้อในชีต
-                    </div>
-                  ) : (
-                    getStudentQuestionAnswers(gradingStudent).map((qa, idx) => (
-                      <div key={idx} style={{background: "white", border: qa.isManual ? "1.5px solid #F59E0B" : "1px solid var(--gray-200)", borderRadius: "8px", padding: "10px 12px"}}>
-                        <div style={{display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4}}>
-                          <div style={{fontSize: 12.5, fontWeight: 600, color: "var(--gray-800)", flex: 1}}>
-                            <span style={{color: "var(--crimson)", marginRight: 6}}>ข้อ {idx + 1}:</span>
-                            {qa.title}
-                          </div>
-                          {qa.isManual && (
-                            <span style={{fontSize: 10, background: "#FEF3C7", color: "#92400E", padding: "2px 6px", borderRadius: 6, fontWeight: 700, whiteSpace: "nowrap"}}>
-                              ตรวจในระบบ
-                            </span>
-                          )}
-                        </div>
-                        {qa.guideline && (
-                          <div style={{fontSize: 11.5, color: "#92400E", background: "#FFFBEB", borderLeft: "3px solid #F59E0B", padding: "4px 8px", borderRadius: 4, marginBottom: 6}}>
-                            💡 <strong>แนวคำตอบ / เกณฑ์:</strong> {qa.guideline}
-                          </div>
-                        )}
-                        <div style={{
-                          fontSize: 13,
-                          padding: "6px 10px",
-                          background: qa.answer ? "#F8FAFC" : "#FEF2F2",
-                          color: qa.answer ? "var(--gray-900)" : "#DC2626",
-                          borderRadius: "6px",
-                          borderLeft: "3px solid " + (qa.answer ? (qa.isManual ? "#F59E0B" : "var(--crimson)") : "#DC2626"),
-                          whiteSpace: "pre-wrap"
-                        }}>
-                          {qa.answer || "(ไม่ได้ตอบ / ว่างเปล่า)"}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Score Input Box */}
-              <div style={{background: "#EFF6FF", border: "1.5px solid #BFDBFE", borderRadius: "14px", padding: "16px 20px", marginBottom: 14}}>
-                <label style={{display: "block", fontSize: 13, fontWeight: 700, color: "#1E3A8A", marginBottom: 8}}>
-                  🎯 กรอกคะแนนใหม่ที่ต้องการบันทึก (คะแนนเต็ม {totalMax} คะแนน):
-                </label>
-                <div style={{display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap"}}>
-                  <input
-                    type="number"
-                    min="0"
-                    max={totalMax}
-                    step="0.5"
-                    value={newScoreInput}
-                    onChange={e => setNewScoreInput(e.target.value)}
-                    style={{
-                      width: 100,
-                      fontSize: 20,
-                      fontWeight: 800,
-                      textAlign: "center",
-                      padding: "8px 12px",
-                      borderRadius: "8px",
-                      border: "2px solid #2563EB",
-                      color: "#1E3A8A",
-                      outline: "none",
-                      background: "white"
-                    }}
-                    disabled={savingScore}
-                  />
-                  <span style={{fontSize: 16, fontWeight: 700, color: "#1E3A8A"}}>
-                    / {totalMax} คะแนน
-                  </span>
-                  <div style={{display: "flex", gap: 6, marginLeft: "auto", flexWrap: "wrap"}}>
-                    {[0, Math.ceil(totalMax * 0.5), totalMax].map(quickScore => (
-                      <button
-                        key={quickScore}
-                        type="button"
-                        onClick={() => setNewScoreInput(String(quickScore))}
-                        className="btn btn-secondary btn-sm"
-                        style={{padding: "4px 8px", fontSize: 11}}
-                        disabled={savingScore}
-                      >
-                        {quickScore === 0 ? "0 คะแนน" : quickScore === totalMax ? `เต็ม (${totalMax})` : `ผ่าน (${quickScore})`}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {gradeErrorMsg && (
-                <div style={{padding: "8px 12px", background: "var(--red-light)", color: "var(--red)", borderRadius: "8px", fontSize: 13, marginBottom: 10}}>
-                  ⚠️ {gradeErrorMsg}
-                </div>
-              )}
-
-              {gradeSuccessMsg && (
-                <div style={{padding: "8px 12px", background: "var(--green-light)", color: "var(--green)", borderRadius: "8px", fontSize: 13, fontWeight: 600, marginBottom: 10}}>
-                  {gradeSuccessMsg}
-                </div>
-              )}
+            <div style={{fontSize: 13, color: "var(--gray-600)", marginBottom: 14}}>
+              ผู้ตอบทั้งหมด <strong>{selectedQuestionModal.totalResponses}</strong> คน • มีคำตอบที่แตกต่างกัน <strong>{selectedQuestionModal.distinctCount}</strong> ตัวเลือก
             </div>
 
-            {/* Modal Footer */}
-            <div style={{padding: "14px 24px", borderTop: "1px solid var(--gray-200)", display: "flex", justifyContent: "flex-end", gap: 10, background: "var(--gray-50)"}}>
+            <div style={{display: "grid", gap: 10, maxHeight: 340, overflowY: "auto", paddingRight: 4}}>
+              {selectedQuestionModal.choices.map(([choice, count]: [string, number], cIdx: number) => {
+                const pct = selectedQuestionModal.totalResponses > 0 ? (count / selectedQuestionModal.totalResponses) * 100 : 0;
+                const isTop = cIdx === 0;
+                return (
+                  <div key={cIdx} style={{background: isTop ? "#F0FDF4" : "#F9FAFB", padding: "10px 14px", borderRadius: 8, border: isTop ? "1.5px solid #A7F3D0" : "1px solid var(--gray-200)"}}>
+                    <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, fontSize: 13}}>
+                      <span style={{fontWeight: 700, color: isTop ? "#065F46" : "var(--gray-800)"}}>
+                        {isTop && "⭐ "}{choice}
+                      </span>
+                      <strong style={{color: isTop ? "#059669" : "var(--gray-700)"}}>
+                        {count} คน ({pct.toFixed(1)}%)
+                      </strong>
+                    </div>
+                    <div style={{height: 8, background: "var(--gray-200)", borderRadius: 4, overflow: "hidden"}}>
+                      <div style={{height: "100%", width: `${pct}%`, background: isTop ? "#059669" : "#2563EB", borderRadius: 4}}/>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{display: "flex", justifyContent: "flex-end", marginTop: 20}}>
+              <button className="btn btn-secondary btn-sm" onClick={() => setSelectedQuestionModal(null)}>
+                ปิดหน้าต่าง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: In-App Score Grading */}
+      {gradingStudent && (
+        <div className="modal-overlay" onClick={() => setGradingStudent(null)}>
+          <div className="modal" style={{maxWidth: 620}} onClick={e => e.stopPropagation()}>
+            <div style={{display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16}}>
+              <div>
+                <span style={{fontSize: 12, fontWeight: 700, color: "var(--crimson)", background: "var(--crimson-light)", padding: "2px 8px", borderRadius: 12}}>
+                  ตรวจข้อสอบนักเรียน
+                </span>
+                <h3 style={{fontSize: 17, fontWeight: 700, color: "var(--gray-900)", marginTop: 6}}>
+                  {getStudentField(gradingStudent, ["ชื่อ-สกุล", "ชื่อ-นามสกุล", "ชื่อ", "Name"]) || "นักเรียน"}
+                </h3>
+                <div style={{fontSize: 12.5, color: "var(--gray-600)", marginTop: 2}}>
+                  ห้อง {getStudentRoom(gradingStudent)} • เลขที่ {getStudentNo(gradingStudent) !== 9999 ? getStudentNo(gradingStudent) : "-"}
+                </div>
+              </div>
+              <button
+                onClick={() => setGradingStudent(null)}
+                style={{background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "var(--gray-500)"}}>
+                ✕
+              </button>
+            </div>
+
+            {gradeSuccessMsg && (
+              <div style={{padding: "10px 14px", background: "#ECFDF5", color: "#065F46", borderRadius: 8, fontSize: 13, marginBottom: 14, fontWeight: 600}}>
+                {gradeSuccessMsg}
+              </div>
+            )}
+            {gradeErrorMsg && (
+              <div style={{padding: "10px 14px", background: "var(--red-light)", color: "var(--red)", borderRadius: 8, fontSize: 13, marginBottom: 14}}>
+                ⚠️ {gradeErrorMsg}
+              </div>
+            )}
+
+            <div style={{marginBottom: 16}}>
+              <label style={{fontSize: 13, fontWeight: 700, color: "var(--gray-700)", display: "block", marginBottom: 6}}>
+                กรอกคะแนนรวม (เต็ม {totalMax} คะแนน):
+              </label>
+              <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  max={totalMax * 1.5}
+                  value={newScoreInput}
+                  onChange={e => setNewScoreInput(e.target.value)}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: "var(--radius)",
+                    border: "1.5px solid var(--gray-300)",
+                    fontSize: 16,
+                    fontWeight: 700,
+                    width: 140,
+                    outline: "none"
+                  }}
+                />
+                <span style={{fontSize: 15, fontWeight: 600, color: "var(--gray-600)"}}>
+                  / {totalMax} คะแนน
+                </span>
+              </div>
+            </div>
+
+            <div style={{maxHeight: 280, overflowY: "auto", border: "1px solid var(--gray-200)", borderRadius: 8, padding: 12, marginBottom: 16}}>
+              <div style={{fontSize: 12.5, fontWeight: 700, color: "var(--gray-700)", marginBottom: 8}}>
+                📝 คำตอบที่นักเรียนส่งมา ({getStudentQuestionAnswers(gradingStudent).length} ข้อ):
+              </div>
+              <div style={{display: "grid", gap: 10}}>
+                {getStudentQuestionAnswers(gradingStudent).map((qa, qIdx) => (
+                  <div key={qIdx} style={{background: "#F8FAFC", padding: "10px 12px", borderRadius: 6, fontSize: 12.5}}>
+                    <div style={{fontWeight: 700, color: "var(--gray-900)", marginBottom: 4}}>
+                      ข้อ {qIdx + 1}. {qa.title}
+                    </div>
+                    <div style={{color: "#1E3A8A", background: "white", padding: "6px 10px", borderRadius: 4, border: "1px solid var(--gray-200)"}}>
+                      คำตอบ: <strong>{qa.answer || "(ไม่ได้ตอบ)"}</strong>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{display: "flex", justifyContent: "flex-end", gap: 10}}>
               <button
                 type="button"
-                className="btn btn-secondary"
+                className="btn btn-secondary btn-sm"
                 onClick={() => setGradingStudent(null)}
-                disabled={savingScore}
-              >
+                disabled={savingScore}>
                 ยกเลิก
               </button>
               <button
                 type="button"
-                className="btn"
+                className="btn btn-sm"
                 onClick={handleSaveScore}
                 disabled={savingScore}
                 style={{
                   background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
                   color: "white",
-                  padding: "10px 24px",
-                  fontWeight: 700,
-                  fontSize: 14,
-                  boxShadow: "0 2px 8px rgba(5,150,105,0.3)"
-                }}
-              >
-                {savingScore ? "⏳ กำลังบันทึกคะแนนลงชีต..." : "💾 บันทึกคะแนน"}
+                  padding: "8px 20px",
+                  fontWeight: 700
+                }}>
+                {savingScore ? "⏳ กำลังบันทึก..." : "💾 บันทึกคะแนนลงชีต"}
               </button>
             </div>
           </div>
@@ -3418,6 +4095,7 @@ function SheetsTab({
   const [copied, setCopied] = useState<Record<string, boolean>>({});
   const [viewingExam, setViewingExam] = useState<any>(null);
   const [localSubject, setLocalSubject] = useState("all");
+  const [viewMode, setViewMode] = useState<"cards" | "analytics">("cards");
 
   const currentSubject = setSelectedSubject ? selectedSubject : localSubject;
   const setCurrentSubject = setSelectedSubject || setLocalSubject;
@@ -3513,6 +4191,238 @@ function SheetsTab({
         </div>
       </div>
 
+      {/* View Mode Switcher */}
+      <div style={{display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap"}}>
+        <button
+          type="button"
+          onClick={() => setViewMode("cards")}
+          style={{
+            padding: "9px 20px",
+            borderRadius: 20,
+            fontSize: 13.5,
+            fontWeight: 700,
+            cursor: "pointer",
+            background: viewMode === "cards" ? "var(--crimson)" : "white",
+            color: viewMode === "cards" ? "white" : "var(--gray-700)",
+            border: viewMode === "cards" ? "none" : "1.5px solid var(--gray-300)",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            boxShadow: viewMode === "cards" ? "0 2px 8px rgba(153,27,27,.25)" : "none",
+            transition: "all .15s"
+          }}>
+          <span>📋 รายการชีตข้อสอบ</span>
+          <span style={{
+            background: viewMode === "cards" ? "rgba(255,255,255,0.25)" : "var(--gray-100)",
+            color: viewMode === "cards" ? "white" : "var(--gray-700)",
+            padding: "1px 8px",
+            borderRadius: 10,
+            fontSize: 11.5
+          }}>
+            {filtered.length} ชุด
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setViewMode("analytics")}
+          style={{
+            padding: "9px 20px",
+            borderRadius: 20,
+            fontSize: 13.5,
+            fontWeight: 700,
+            cursor: "pointer",
+            background: viewMode === "analytics" ? "var(--crimson)" : "white",
+            color: viewMode === "analytics" ? "white" : "var(--gray-700)",
+            border: viewMode === "analytics" ? "none" : "1.5px solid var(--gray-300)",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            boxShadow: viewMode === "analytics" ? "0 2px 8px rgba(153,27,27,.25)" : "none",
+            transition: "all .15s"
+          }}>
+          <span>📈 แดชบอร์ดวิเคราะห์ 8 กลุ่มสาระฯ (สพฐ.)</span>
+        </button>
+      </div>
+
+      {viewMode === "analytics" ? (
+        <div>
+          {/* Institutional KPI Cards */}
+          <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 20}}>
+            <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid var(--crimson)", background: "linear-gradient(135deg, #FFFFFF 0%, #FEF2F2 100%)"}}>
+              <div style={{fontSize: 12.5, fontWeight: 600, color: "var(--gray-600)", marginBottom: 4}}>
+                📚 ข้อสอบทั้งหมดในระบบ
+              </div>
+              <div style={{fontSize: 26, fontWeight: 800, color: "var(--crimson)"}}>
+                {history.length} ชุด
+              </div>
+              <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
+                ครอบคลุม 8 กลุ่มสาระการเรียนรู้
+              </div>
+            </div>
+
+            <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #2563EB", background: "linear-gradient(135deg, #FFFFFF 0%, #EFF6FF 100%)"}}>
+              <div style={{fontSize: 12.5, fontWeight: 600, color: "var(--gray-600)", marginBottom: 4}}>
+                ❓ คำถามที่สร้างแล้วทั้งหมด
+              </div>
+              <div style={{fontSize: 26, fontWeight: 800, color: "#1D4ED8"}}>
+                {history.reduce((acc: number, h: any) => acc + (h.question_count || 0), 0)} ข้อ
+              </div>
+              <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
+                พร้อมเฉลยและเกณฑ์การให้คะแนน
+              </div>
+            </div>
+
+            <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #059669", background: "linear-gradient(135deg, #FFFFFF 0%, #F0FDF4 100%)"}}>
+              <div style={{fontSize: 12.5, fontWeight: 600, color: "var(--gray-600)", marginBottom: 4}}>
+                🏫 กลุ่มสาระฯ ที่มีความเคลื่อนไหว
+              </div>
+              <div style={{fontSize: 26, fontWeight: 800, color: "#047857"}}>
+                {SUBJECT_GROUPS.filter(sg => sg.id !== "all" && (subjectCounts[sg.id] || 0) > 0).length} / 8 กลุ่ม
+              </div>
+              <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 4}}>
+                กลุ่มสาระการเรียนรู้ สพฐ.
+              </div>
+            </div>
+
+            <div className="card" style={{margin:0, padding: 18, borderLeft: "5px solid #D97706", background: "linear-gradient(135deg, #FFFFFF 0%, #FFFBEB 100%)"}}>
+              <div style={{fontSize: 12.5, fontWeight: 600, color: "var(--gray-600)", marginBottom: 4}}>
+                🏆 กลุ่มสาระฯ ที่จัดสอบมากที่สุด
+              </div>
+              {(() => {
+                const active = SUBJECT_GROUPS.filter(sg => sg.id !== "all").sort((a, b) => (subjectCounts[b.id] || 0) - (subjectCounts[a.id] || 0));
+                const top = active[0];
+                return (
+                  <div>
+                    <div style={{fontSize: 20, fontWeight: 800, color: "#B45309"}}>
+                      {top?.icon} {top?.shortName}
+                    </div>
+                    <div style={{fontSize: 12, color: "var(--gray-600)", marginTop: 4}}>
+                      จัดทำแล้ว {subjectCounts[top?.id] || 0} ชุดข้อสอบ
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* Learning Areas Distribution Bar Chart */}
+          <div className="card" style={{marginBottom: 20}}>
+            <div className="card-title" style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 4}}>
+              <span>📊 แผนภูมิเปรียบเทียบสัดส่วนข้อสอบ 8 กลุ่มสาระการเรียนรู้ (สพฐ.)</span>
+            </div>
+            <div className="card-sub" style={{marginBottom: 20}}>
+              แสดงสัดส่วนการจัดสร้างแบบทดสอบออนไลน์ของโรงเรียนวังหลวงพิทยาสรรพ์
+            </div>
+
+            <div style={{display: "grid", gap: 12}}>
+              {SUBJECT_GROUPS.filter(sg => sg.id !== "all").map(sg => {
+                const count = subjectCounts[sg.id] || 0;
+                const pct = history.length > 0 ? (count / history.length) * 100 : 0;
+                return (
+                  <div key={sg.id} style={{display: "flex", alignItems: "center", gap: 12, fontSize: 13}}>
+                    <div style={{width: 160, flexShrink: 0, fontWeight: 700, display: "flex", alignItems: "center", gap: 8}}>
+                      <span style={{fontSize: 20}}>{sg.icon}</span>
+                      <span style={{color: sg.color}}>{sg.shortName}</span>
+                    </div>
+                    <div style={{flex: 1, background: "var(--gray-100)", borderRadius: 8, height: 24, overflow: "hidden", position: "relative"}}>
+                      <div style={{
+                        background: sg.color,
+                        height: "100%",
+                        width: `${pct}%`,
+                        borderRadius: 8,
+                        transition: "width .5s ease"
+                      }}/>
+                    </div>
+                    <div style={{width: 110, textAlign: "right", flexShrink: 0, fontWeight: 700, color: count > 0 ? sg.color : "var(--gray-400)"}}>
+                      {count} ชุด ({pct.toFixed(1)}%)
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Detailed Learning Areas Table */}
+          <div className="card">
+            <div className="card-title" style={{marginBottom: 4}}>
+              📋 ตารางแจกแจงข้อมูล 8 กลุ่มสาระการเรียนรู้
+            </div>
+            <div className="card-sub" style={{marginBottom: 16}}>
+              คลิกปุ่ม "ดูข้อสอบกลุ่มนี้" เพื่อเปิดดูและวิเคราะห์คะแนนข้อสอบในกลุ่มสาระฯ นั้น
+            </div>
+
+            <div style={{overflowX: "auto"}}>
+              <table style={{width: "100%", borderCollapse: "collapse", fontSize: 13}}>
+                <thead>
+                  <tr style={{background: "var(--gray-50)", borderBottom: "2px solid var(--gray-200)"}}>
+                    <th style={{padding: "10px 12px", textAlign: "left"}}>กลุ่มสาระการเรียนรู้</th>
+                    <th style={{padding: "10px 12px", textAlign: "center"}}>รหัสวิชาขึ้นต้น</th>
+                    <th style={{padding: "10px 12px", textAlign: "center"}}>ชุดข้อสอบ (ชุด)</th>
+                    <th style={{padding: "10px 12px", textAlign: "center"}}>สัดส่วน (%)</th>
+                    <th style={{padding: "10px 12px", textAlign: "center"}}>สถานะการประเมิน</th>
+                    <th style={{padding: "10px 12px", textAlign: "center"}}>ดำเนินการ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {SUBJECT_GROUPS.filter(sg => sg.id !== "all").map(sg => {
+                    const count = subjectCounts[sg.id] || 0;
+                    const pct = history.length > 0 ? (count / history.length) * 100 : 0;
+                    return (
+                      <tr key={sg.id} style={{borderBottom: "1px solid var(--gray-100)"}}>
+                        <td style={{padding: "12px 12px"}}>
+                          <div style={{display: "flex", alignItems: "center", gap: 10}}>
+                            <span style={{fontSize: 24}}>{sg.icon}</span>
+                            <div>
+                              <div style={{fontWeight: 700, color: "var(--gray-900)"}}>{sg.name}</div>
+                              <div style={{fontSize: 11.5, color: "var(--gray-500)"}}>หมวด {sg.shortName}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{padding: "12px 12px", textAlign: "center"}}>
+                          <span style={{background: sg.bgColor, color: sg.color, fontWeight: 700, padding: "2px 8px", borderRadius: 8, fontSize: 12}}>
+                            {sg.codePrefix ? `${sg.codePrefix}*` : "-"}
+                          </span>
+                        </td>
+                        <td style={{padding: "12px 12px", textAlign: "center", fontWeight: 700, fontSize: 14, color: sg.color}}>
+                          {count} ชุด
+                        </td>
+                        <td style={{padding: "12px 12px", textAlign: "center", fontWeight: 600}}>
+                          {pct.toFixed(1)}%
+                        </td>
+                        <td style={{padding: "12px 12px", textAlign: "center"}}>
+                          <span style={{
+                            padding: "3px 10px",
+                            borderRadius: 12,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            background: count > 0 ? "#ECFDF5" : "var(--gray-100)",
+                            color: count > 0 ? "#047857" : "var(--gray-500)"
+                          }}>
+                            {count > 0 ? "✅ มีข้อสอบในระบบ" : "⏳ ยังไม่มีข้อสอบ"}
+                          </span>
+                        </td>
+                        <td style={{padding: "12px 12px", textAlign: "center"}}>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => {
+                              setCurrentSubject(sg.id);
+                              setViewMode("cards");
+                            }}
+                            style={{fontSize: 12, padding: "4px 12px", fontWeight: 700}}>
+                            🔍 ดูข้อสอบกลุ่มนี้
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
       {/* 8 Learning Areas Dashboard Cards */}
       <div className="card" style={{padding: "16px 20px", marginBottom: 16}}>
         <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8}}>
@@ -3815,6 +4725,8 @@ function SheetsTab({
           );
         })}
         </div>
+      )}
+        </>
       )}
     </div>
   );

@@ -1991,20 +1991,16 @@ function matchRoom(item: any, grade: string, room: string) {
   return keywords.some(kw => text.includes(kw));
 }
 
-// ============ STUDENT GRADE SCALING (เกณฑ์วัดผลการเรียน สพฐ.) ============
-export function calculateStudentGrade(earned: number, total: number) {
+// ============ EXAM SCORE LEVEL SCALING (ระดับผลคะแนนสอบตามเกณฑ์ร้อยละ) ============
+export function calculateScoreLevel(earned: number, total: number) {
   const pct = total > 0 ? (earned / total) * 100 : 0;
-  if (pct >= 80) return { grade: "4", gpa: 4.0, label: "ดีเยี่ยม (80-100%)", color: "#047857", bg: "#ECFDF5", border: "#A7F3D0", tier: "mastery", pct };
-  if (pct >= 75) return { grade: "3.5", gpa: 3.5, label: "ดีมาก (75-79%)", color: "#059669", bg: "#F0FDF4", border: "#BBF7D0", tier: "mastery", pct };
-  if (pct >= 70) return { grade: "3", gpa: 3.0, label: "ดี (70-74%)", color: "#1D4ED8", bg: "#EFF6FF", border: "#BFDBFE", tier: "developing", pct };
-  if (pct >= 65) return { grade: "2.5", gpa: 2.5, label: "ค่อนข้างดี (65-69%)", color: "#2563EB", bg: "#F0F9FF", border: "#BAE6FD", tier: "developing", pct };
-  if (pct >= 60) return { grade: "2", gpa: 2.0, label: "ปานกลาง (60-64%)", color: "#D97706", bg: "#FFFBEB", border: "#FDE68A", tier: "developing", pct };
-  if (pct >= 55) return { grade: "1.5", gpa: 1.5, label: "พอใช้ (55-59%)", color: "#EA580C", bg: "#FFF7ED", border: "#FFEDD5", tier: "developing", pct };
-  if (pct >= 50) return { grade: "1", gpa: 1.0, label: "ผ่านเกณฑ์ขั้นต่ำ (50-54%)", color: "#C2410C", bg: "#FFEDD5", border: "#FED7AA", tier: "developing", pct };
-  return { grade: "0", gpa: 0.0, label: "ต่ำกว่าเกณฑ์ / ไม่ผ่าน (<50%)", color: "#DC2626", bg: "#FEF2F2", border: "#FECACA", tier: "at_risk", pct };
+  if (pct >= 80) return { level: "ดีเยี่ยม", range: "80-100%", color: "#047857", bg: "#ECFDF5", border: "#A7F3D0", tier: "mastery", pct };
+  if (pct >= 70) return { level: "ดีมาก", range: "70-79%", color: "#059669", bg: "#F0FDF4", border: "#BBF7D0", tier: "mastery", pct };
+  if (pct >= 60) return { level: "ดี", range: "60-69%", color: "#1D4ED8", bg: "#EFF6FF", border: "#BFDBFE", tier: "developing", pct };
+  if (pct >= 50) return { level: "ผ่านเกณฑ์", range: "50-59%", color: "#D97706", bg: "#FFFBEB", border: "#FDE68A", tier: "developing", pct };
+  return { level: "ต้องปรับปรุง", range: "ต่ำกว่า 50%", color: "#DC2626", bg: "#FEF2F2", border: "#FECACA", tier: "at_risk", pct };
 }
 
-// ============ EXAM SCORE DASHBOARD (IN-APP) ============
 function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => void; user?: any }) {
   const isSchoolUser = user?.is_google ||
     (user?.email && user.email.toLowerCase().endsWith("@wangluangpitt.ac.th")) ||
@@ -2265,20 +2261,17 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
     return { text: "⚠️ ต้องพัฒนาเร่งด่วน (Needs Support)", color: "#DC2626", bg: "#FEF2F2" };
   })();
 
-  // Grade Bands 8 levels (สพฐ.)
-  const gradeBands = [
-    { grade: "4", label: "เกรด 4", desc: "ดีเยี่ยม (80-100%)", color: "#047857", bg: "#ECFDF5", border: "#A7F3D0" },
-    { grade: "3.5", label: "เกรด 3.5", desc: "ดีมาก (75-79%)", color: "#059669", bg: "#F0FDF4", border: "#BBF7D0" },
-    { grade: "3", label: "เกรด 3", desc: "ดี (70-74%)", color: "#1D4ED8", bg: "#EFF6FF", border: "#BFDBFE" },
-    { grade: "2.5", label: "เกรด 2.5", desc: "ค่อนข้างดี (65-69%)", color: "#2563EB", bg: "#F0F9FF", border: "#BAE6FD" },
-    { grade: "2", label: "เกรด 2", desc: "ปานกลาง (60-64%)", color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
-    { grade: "1.5", label: "เกรด 1.5", desc: "พอใช้ (55-59%)", color: "#EA580C", bg: "#FFF7ED", border: "#FFEDD5" },
-    { grade: "1", label: "เกรด 1", desc: "ผ่านเกณฑ์ขั้นต่ำ (50-54%)", color: "#C2410C", bg: "#FFEDD5", border: "#FED7AA" },
-    { grade: "0", label: "เกรด 0", desc: "ไม่ผ่านเกณฑ์ (<50%)", color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
+  // ระดับผลคะแนนสอบ 5 ระดับ (ตามเกณฑ์ร้อยละการสอบ)
+  const scoreLevelBands = [
+    { level: "ดีเยี่ยม", range: "80% - 100%", desc: "ทำคะแนนได้ในเกณฑ์ดีเยี่ยม", color: "#047857", bg: "#ECFDF5", border: "#A7F3D0", minPct: 80 },
+    { level: "ดีมาก", range: "70% - 79%", desc: "ทำคะแนนได้ในเกณฑ์ดีมาก", color: "#059669", bg: "#F0FDF4", border: "#BBF7D0", minPct: 70 },
+    { level: "ดี", range: "60% - 69%", desc: "ทำคะแนนได้ในเกณฑ์ดี", color: "#1D4ED8", bg: "#EFF6FF", border: "#BFDBFE", minPct: 60 },
+    { level: "ผ่านเกณฑ์", range: "50% - 59%", desc: "ผ่านเกณฑ์ขั้นต่ำ (ครึ่งหนึ่ง)", color: "#D97706", bg: "#FFFBEB", border: "#FDE68A", minPct: 50 },
+    { level: "ต้องปรับปรุง", range: "ต่ำกว่า 50%", desc: "คะแนนต่ำกว่าเกณฑ์ขั้นต่ำ", color: "#DC2626", bg: "#FEF2F2", border: "#FECACA", minPct: 0 },
   ].map(b => {
     const list = rawStudents.filter(s => {
-      const g = calculateStudentGrade(parseScore(s, totalMax).earned, totalMax);
-      return g.grade === b.grade;
+      const sl = calculateScoreLevel(parseScore(s, totalMax).earned, totalMax);
+      return sl.level === b.level;
     });
     const count = list.length;
     const pct = totalCount > 0 ? (count / totalCount) * 100 : 0;
@@ -2587,7 +2580,8 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
             <th style={{padding: "10px 12px", textAlign: "left"}}>ชื่อ-นามสกุล</th>
             <th style={{padding: "10px 12px", textAlign: "center", width: 85}}>ห้อง</th>
             <th style={{padding: "10px 12px", textAlign: "center", width: 110}}>คะแนน</th>
-            <th style={{padding: "10px 12px", textAlign: "center", width: 95}}>เกรด (สพฐ.)</th>
+            <th style={{padding: "10px 12px", textAlign: "center", width: 85}}>ร้อยละ</th>
+            <th style={{padding: "10px 12px", textAlign: "center", width: 110}}>ระดับผลคะแนน</th>
             <th style={{padding: "10px 12px", textAlign: "center", width: 105}}>ผลประเมิน</th>
             <th style={{padding: "10px 12px", textAlign: "left", width: 140}}>วัน-เวลาส่ง</th>
             <th style={{padding: "10px 12px", textAlign: "center", width: 125}}>จัดการ</th>
@@ -2600,7 +2594,8 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
             const studentRoom = getStudentRoom(s);
             const studentName = getStudentField(s, ["ชื่อ-สกุล", "ชื่อ-นามสกุล", "ชื่อ", "Name"]) || "-";
             const timeStr = getStudentField(s, ["ประทับเวลา", "Timestamp", "time"]) || "-";
-            const gr = calculateStudentGrade(parsed.earned, totalMax);
+            const sl = calculateScoreLevel(parsed.earned, totalMax);
+            const scorePct = totalMax > 0 ? ((parsed.earned / totalMax) * 100).toFixed(0) : "0";
 
             return (
               <tr key={idx} style={{borderBottom: "1px solid var(--gray-100)"}}>
@@ -2644,17 +2639,20 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
                 }}>
                   {parsed.str}
                 </td>
+                <td style={{padding: "10px 12px", textAlign: "center", fontWeight: 700, color: "var(--gray-700)"}}>
+                  {scorePct}%
+                </td>
                 <td style={{padding: "10px 12px", textAlign: "center"}}>
                   <span style={{
-                    padding: "2px 9px",
+                    padding: "3px 10px",
                     borderRadius: 12,
                     fontSize: 11.5,
-                    fontWeight: 800,
-                    background: gr.bg,
-                    color: gr.color,
-                    border: `1px solid ${gr.border}`
+                    fontWeight: 700,
+                    background: sl.bg,
+                    color: sl.color,
+                    border: `1px solid ${sl.border}`
                   }}>
-                    เกรด {gr.grade}
+                    {sl.level}
                   </span>
                 </td>
                 <td style={{padding: "10px 12px", textAlign: "center"}}>
@@ -2800,7 +2798,7 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
           overflowX: "auto"
         }}>
           {[
-            { id: "overview", label: "📊 ภาพรวม & ตัดเกรด", count: null },
+            { id: "overview", label: "📊 ภาพรวมผลคะแนน", count: null },
             { id: "classroom", label: "🏫 เปรียบเทียบห้องเรียน", count: roomList.length > 1 ? `${roomList.length} ห้อง` : null },
             { id: "item_analysis", label: "🎯 วิเคราะห์ข้อสอบรายข้อ", count: questionColumns.length > 0 ? `${questionColumns.length} ข้อ` : null },
             { id: "at_risk", label: "🚨 คัดกรองกลุ่มเสี่ยง", count: atRiskStudents.length > 0 ? `${atRiskStudents.length} คน` : null, isAlert: atRiskStudents.length > 0 },
@@ -3068,54 +3066,54 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
                 </div>
               </div>
 
-              {/* 8-Level Grade Bands Distribution (สพฐ.) */}
+              {/* Score Performance Level Distribution */}
               <div className="card" style={{marginBottom: 20}}>
                 <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 14}}>
                   <div>
                     <div className="card-title" style={{display: "flex", alignItems: "center", gap: 8}}>
-                      <span>🎓 แผนภูมิการกระจายผลการเรียน 8 ระดับ (ตามเกณฑ์ สพฐ.)</span>
+                      <span>📈 การกระจายตัวของระดับผลคะแนนสอบ (Score Performance Levels)</span>
                     </div>
-                    <div className="card-sub">การแจกแจงเกรด 4, 3.5, 3, 2.5, 2, 1.5, 1 และเกรด 0 ของนักเรียนทั้งหมด {totalCount} คน</div>
+                    <div className="card-sub">จำแนกตามเกณฑ์ร้อยละของคะแนนสอบ ({exam.question_count} ข้อ • เต็ม {totalMax} คะแนน) จากนักเรียนทั้งหมด {totalCount} คน</div>
                   </div>
-                  <div style={{display: "flex", gap: 8, fontSize: 12}}>
+                  <div style={{display: "flex", gap: 8, fontSize: 12, flexWrap: "wrap"}}>
                     <span style={{background: "#ECFDF5", color: "#047857", padding: "4px 10px", borderRadius: 12, fontWeight: 700}}>
-                      🌟 กลุ่มเก่ง (3.5-4): {gradeBands.filter(g => g.grade === "4" || g.grade === "3.5").reduce((a, b) => a + b.count, 0)} คน ({((gradeBands.filter(g => g.grade === "4" || g.grade === "3.5").reduce((a, b) => a + b.count, 0) / (totalCount || 1)) * 100).toFixed(1)}%)
+                      🌟 กลุ่มคะแนนดี (70-100%): {scoreLevelBands.filter(b => b.level === "ดีเยี่ยม" || b.level === "ดีมาก").reduce((a, b) => a + b.count, 0)} คน ({((scoreLevelBands.filter(b => b.level === "ดีเยี่ยม" || b.level === "ดีมาก").reduce((a, b) => a + b.count, 0) / (totalCount || 1)) * 100).toFixed(1)}%)
                     </span>
                     <span style={{background: "#FEF2F2", color: "#DC2626", padding: "4px 10px", borderRadius: 12, fontWeight: 700}}>
-                      🚨 ไม่ผ่าน (เกรด 0): {gradeBands.find(g => g.grade === "0")?.count || 0} คน ({gradeBands.find(g => g.grade === "0")?.pct.toFixed(1)}%)
+                      🚨 ต่ำกว่าเกณฑ์ (ต่ำกว่า 50%): {scoreLevelBands.find(b => b.level === "ต้องปรับปรุง")?.count || 0} คน ({scoreLevelBands.find(b => b.level === "ต้องปรับปรุง")?.pct.toFixed(1)}%)
                     </span>
                   </div>
                 </div>
 
                 <div style={{display: "grid", gap: 10}}>
-                  {gradeBands.map(gb => (
-                    <div key={gb.grade} style={{display: "flex", alignItems: "center", gap: 12, fontSize: 13}}>
-                      <div style={{width: 90, flexShrink: 0, fontWeight: 700, display: "flex", alignItems: "center", gap: 6}}>
+                  {scoreLevelBands.map(b => (
+                    <div key={b.level} style={{display: "flex", alignItems: "center", gap: 12, fontSize: 13}}>
+                      <div style={{width: 110, flexShrink: 0, fontWeight: 700, display: "flex", alignItems: "center", gap: 6}}>
                         <span style={{
-                          background: gb.bg,
-                          color: gb.color,
-                          border: `1px solid ${gb.border}`,
-                          borderRadius: 6,
-                          padding: "2px 7px",
+                          background: b.bg,
+                          color: b.color,
+                          border: `1px solid ${b.border}`,
+                          borderRadius: 8,
+                          padding: "3px 9px",
                           fontSize: 12
                         }}>
-                          เกรด {gb.grade}
+                          {b.level}
                         </span>
                       </div>
-                      <div style={{width: 140, flexShrink: 0, fontSize: 12, color: "var(--gray-600)"}}>
-                        {gb.desc}
+                      <div style={{width: 110, flexShrink: 0, fontSize: 12, color: "var(--gray-600)", fontWeight: 600}}>
+                        {b.range}
                       </div>
                       <div style={{flex: 1, background: "var(--gray-100)", borderRadius: 8, height: 22, overflow: "hidden", position: "relative"}}>
                         <div style={{
-                          background: gb.color,
+                          background: b.color,
                           height: "100%",
-                          width: `${gb.pct}%`,
+                          width: `${b.pct}%`,
                           borderRadius: 8,
                           transition: "width .5s ease"
                         }}/>
                       </div>
-                      <div style={{width: 100, textAlign: "right", flexShrink: 0, fontWeight: 700, color: gb.count > 0 ? gb.color : "var(--gray-400)"}}>
-                        {gb.count} คน ({gb.pct.toFixed(1)}%)
+                      <div style={{width: 100, textAlign: "right", flexShrink: 0, fontWeight: 700, color: b.count > 0 ? b.color : "var(--gray-400)"}}>
+                        {b.count} คน ({b.pct.toFixed(1)}%)
                       </div>
                     </div>
                   ))}

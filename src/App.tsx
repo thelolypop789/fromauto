@@ -2197,6 +2197,8 @@ function generateRealisticExamScoreData(exam: any) {
   };
 }
 
+const examScoreCache = new Map<string, any>();
+
 function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => void; user?: any }) {
   const isSchoolUser = user?.is_google ||
     (user?.email && user.email.toLowerCase().endsWith("@wangluangpitt.ac.th")) ||
@@ -2205,6 +2207,7 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
   const [activeTab, setActiveTab] = useState<"overview" | "classroom" | "item_analysis" | "at_risk" | "students" | "sheet">("overview");
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingStatus, setLoadingStatus] = useState("กำลังเชื่อมต่อ Google Apps Script...");
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [roomFilter, setRoomFilter] = useState("all");
@@ -2222,7 +2225,8 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
   const [selectedQuestionModal, setSelectedQuestionModal] = useState<any>(null);
   const [atRiskCopied, setAtRiskCopied] = useState(false);
 
-  const loadData = async () => {
+  const loadData = async (forceRefreshArg: any = false) => {
+    const forceRefresh = forceRefreshArg === true;
     setLoading(true);
     setError("");
 
@@ -2235,8 +2239,35 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
     }
 
     const sheetId = exam.sheet_url.match(/[-\w]{25,}/)?.[0] || exam.sheet_url.trim();
+    const cacheKey = `exam_score_${sheetId}`;
 
-    const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 4000) => {
+    // 1. ตรวจสอบ In-Memory Cache หรือ SessionStorage ก่อน เพื่อเปิดแดชบอร์ดได้ทันที 0ms
+    if (!forceRefresh) {
+      if (examScoreCache.has(sheetId)) {
+        const cached = examScoreCache.get(sheetId);
+        setData(cached);
+        setIsUsingSimulatedData(Boolean(cached.isSimulated));
+        setLoading(false);
+        return;
+      }
+      try {
+        const saved = sessionStorage.getItem(cacheKey);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.success && Array.isArray(parsed.students) && parsed.students.length > 0) {
+            examScoreCache.set(sheetId, parsed);
+            setData(parsed);
+            setIsUsingSimulatedData(Boolean(parsed.isSimulated));
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (err) {}
+    }
+
+    setLoadingStatus("กำลังเชื่อมต่อ Google Sheets และอ่านคะแนนจริงของนักเรียน...");
+
+    const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 50000) => {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeoutMs);
       try {
@@ -2253,32 +2284,45 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
       const text = await res.text();
       const trimmed = text.trim();
       if (trimmed.startsWith("<") || trimmed.includes("<!DOCTYPE") || trimmed.includes("<html")) {
-        throw new Error("HTML_ERROR: Google ตอบกลับด้วยหน้าเว็บ HTML");
+        throw new Error("HTML_ERROR: Google Apps Script ตอบกลับด้วยหน้าเว็บ HTML");
       }
       return JSON.parse(text);
     };
 
     let resultJson: any = null;
-    // let lastError = "";
+    let fetchError = "";
 
     try {
       const getUrl = `${SCRIPT_URL}?sheetId=${encodeURIComponent(sheetId)}`;
-      const res = await fetchWithTimeout(getUrl, { method: "GET" }, 3800);
+      const res = await fetchWithTimeout(getUrl, { method: "GET" }, 50000);
       if (res.ok) {
         const json = await parseJsonResponse(res);
-        if (json && json.success && Array.isArray(json.students) && json.students.length > 0) {
+        if (json && json.success && Array.isArray(json.students)) {
           resultJson = json;
+        } else if (json && !json.success) {
+          fetchError = json.error || "ไม่สามารถอ่านข้อมูลคะแนนจาก Google Sheets ได้";
         }
+      } else {
+        fetchError = `HTTP ${res.status}: ไม่สามารถเข้าถึง Google Apps Script ได้`;
       }
     } catch (e: any) {
-      // ignore
+      if (e.name === "AbortError") {
+        fetchError = "การเชื่อมต่อ Google Sheets ใช้เวลานานเกินกำหนด (Timeout 50s) กรุณากดลองใหม่";
+      } else {
+        fetchError = e.message || "เกิดข้อผิดพลาดในการเชื่อมต่อ Google Sheets";
+      }
     }
 
     if (resultJson && resultJson.success && Array.isArray(resultJson.students) && resultJson.students.length > 0) {
+      examScoreCache.set(sheetId, resultJson);
+      try { sessionStorage.setItem(cacheKey, JSON.stringify(resultJson)); } catch (err) {}
       setData(resultJson);
       setIsUsingSimulatedData(false);
     } else {
-      // Seamless realistic simulation fallback per user command
+      if (fetchError) {
+        setError(fetchError);
+      }
+      // จำลองข้อมูลเฉพาะกรณีที่ยังไม่มีการส่งคำตอบจริงในชีตเลย หรือชีตว่างเปล่า
       const mock = generateRealisticExamScoreData(exam);
       setData(mock);
       setIsUsingSimulatedData(true);
@@ -3066,6 +3110,51 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
         </div>
       )}
 
+      {/* Live Data Success Banner */}
+      {!isUsingSimulatedData && rawStudents.length > 0 && (
+        <div style={{
+          background: "linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%)",
+          border: "1.5px solid #10B981",
+          borderRadius: "var(--radius-lg)",
+          padding: "12px 18px",
+          marginBottom: 16,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 12,
+          boxShadow: "0 2px 8px rgba(16, 185, 129, 0.12)"
+        }}>
+          <div style={{display: "flex", alignItems: "center", gap: 10}}>
+            <span style={{fontSize: 22}}>✅</span>
+            <div>
+              <div style={{fontSize: 13.5, fontWeight: 700, color: "#065F46"}}>
+                เชื่อมต่อและดึงคะแนนจริงจาก Google Sheets สำเร็จ ({rawStudents.length} คน | {classroomAnalysis.length} ห้องเรียน)
+              </div>
+              <div style={{fontSize: 12, color: "#047857", marginTop: 2}}>
+                คะแนนเฉลี่ย: <strong>{computedAvg}</strong> | อัตราสอบผ่าน: <strong>{computedPassRate}</strong> ({computedPass} คน) | คะแนนเต็ม: {totalMax} คะแนน | ข้อสอบ: {questionColumns.length} ข้อ
+              </div>
+            </div>
+          </div>
+          <div style={{display: "flex", gap: 8, alignItems: "center"}}>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => loadData(true)}
+              style={{background: "#059669", color: "white", fontSize: 12, fontWeight: 700, boxShadow: "0 2px 6px rgba(5,150,105,0.3)"}}>
+              🔄 ดึงคะแนนสดล่าสุด
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-secondary"
+              onClick={() => window.open(exam.sheet_url, "_blank")}
+              style={{background: "white", borderColor: "#A7F3D0", color: "#065F46", fontSize: 12}}>
+              เปิด Google Sheet ↗
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Alert Banner for Simulated / Fallback Data */}
       {isUsingSimulatedData && (
         <div style={{
@@ -3097,7 +3186,7 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
               <button
                 type="button"
                 className="btn btn-sm btn-secondary"
-                onClick={() => loadData()}
+                onClick={() => loadData(true)}
                 style={{background: "white", color: "#92400E", borderColor: "#F59E0B", fontSize: 12, fontWeight: 700}}>
                 🔄 ดึงคะแนนสดจาก Google Sheets
               </button>
@@ -3158,7 +3247,7 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
           {loading ? (
             <div className="card" style={{textAlign:"center", padding: "40px 20px"}}>
               <div className="spinner" style={{margin: "0 auto 12px"}}/>
-              <div style={{fontSize: 14, color: "var(--gray-600)"}}>กำลังดึงข้อมูลสถิติคะแนนล่าสุดจาก Google Sheets...</div>
+              <div style={{fontSize: 15, fontWeight: 700, color: "var(--crimson)", fontFamily: "'Prompt',sans-serif", marginBottom: 4}}>{loadingStatus}</div><div style={{fontSize: 12.5, color: "var(--gray-500)"}}>ระบบกำลังอ่านคำตอบและคำนวณสถิติ 5 ระดับผลคะแนน กรุณารอสักครู่...</div>
             </div>
           ) : (
             <>
@@ -4429,6 +4518,70 @@ function ScoreAnalyticsView({
     const examListWithStats = history.map(exam => {
       const sg = getExamSubjectGroup(exam);
       const h = hashStr(exam.id || exam.form_title || "seed");
+
+      // ตรวจสอบว่ามีข้อมูลคะแนนจริงที่ถูกดึงและแคชไว้แล้วหรือไม่
+      const sheetId = exam.sheet_url ? (exam.sheet_url.match(/[-\w]{25,}/)?.[0] || exam.sheet_url.trim()) : "";
+      const realCached = sheetId ? examScoreCache.get(sheetId) : null;
+      if (realCached && realCached.students && Array.isArray(realCached.students) && realCached.students.length > 0) {
+        const realSt = realCached.students;
+        const realMax = (realCached.totalMaxPoints && realCached.totalMaxPoints > 0) ? realCached.totalMaxPoints : (exam.question_count || 20);
+        const passThreshold = Math.ceil(realMax * 0.5);
+        const scores = realSt.map((s: any) => {
+          let raw: any = s["คะแนน"] ?? s["score"] ?? s["คะแนนรวม"];
+          if (raw === undefined) {
+            for (const k in s) {
+              if (k.toLowerCase().trim() === "คะแนน" || k.toLowerCase().trim() === "score") { raw = s[k]; break; }
+            }
+          }
+          if (raw === undefined || raw === null || raw === "") return 0;
+          const p = String(raw).split("/")[0];
+          const n = parseFloat(p);
+          return isNaN(n) ? 0 : n;
+        });
+        const realCount = realSt.length;
+        const realAvgNum = realCount > 0 ? (scores.reduce((a: number, b: number) => a + b, 0) / realCount) : 0;
+        const realAvgPct = Math.round((realAvgNum / realMax) * 100 * 10) / 10;
+        const realPassCount = scores.filter((sc: number) => sc >= passThreshold).length;
+        const realPassRate = realCount > 0 ? Math.round((realPassCount / realCount) * 100 * 10) / 10 : 0;
+
+        totalSubmissions += realCount;
+        weightedAvgSum += realAvgPct * realCount;
+        weightedPassSum += realPassRate * realCount;
+
+        const realScoreLevel = calculateScoreLevel(realAvgNum, realMax);
+
+        scores.forEach((sc: number) => {
+          const sl = calculateScoreLevel(sc, realMax);
+          if (levelCounts[sl.level] !== undefined) levelCounts[sl.level]++;
+        });
+
+        if (!subjectStatsMap[sg.id]) {
+          subjectStatsMap[sg.id] = { count: 0, students: 0, avgSum: 0, passSum: 0 };
+        }
+        subjectStatsMap[sg.id].count += 1;
+        subjectStatsMap[sg.id].students += realCount;
+        subjectStatsMap[sg.id].avgSum += realAvgPct;
+        subjectStatsMap[sg.id].passSum += realPassRate;
+
+        for (const gr of ["m1", "m2", "m3", "m4", "m5", "m6"]) {
+          if (matchRoom(exam, gr, "all")) {
+            gradeStatsMap[gr].count++;
+            gradeStatsMap[gr].students += realCount;
+            gradeStatsMap[gr].avgSum += realAvgPct * realCount;
+            gradeStatsMap[gr].passSum += realPassRate * realCount;
+          }
+        }
+
+        return {
+          ...exam,
+          subjectGroup: sg,
+          avgPct: realAvgPct,
+          passRate: realPassRate,
+          studentCount: realCount,
+          scoreLevel: realScoreLevel,
+          isRealData: true
+        };
+      }
       const baseMap: Record<string, { avg: number; pass: number }> = {
         thai: { avg: 69.2, pass: 86.5 },
         math: { avg: 59.4, pass: 73.0 },

@@ -356,25 +356,35 @@ function findSheets(ss) {
   var summarySheet = null;
   var responseSheet = null;
 
-  // 1. หาตามชื่อเฉพาะ
+  // 1. หาตามชื่อเฉพาะ (รองรับทั้ง การตอบกลับแบบฟอร์ม 1, ตอบกลับ, Form Responses ฯลฯ)
   for (var s = 0; s < sheets.length; s++) {
-    var sName = sheets[s].getName().toLowerCase();
+    var sName = sheets[s].getName().toLowerCase().trim();
     if (!summarySheet && (sName.indexOf("สรุป") !== -1 || sName.indexOf("summary") !== -1 || sName.indexOf("dashboard") !== -1)) {
       summarySheet = sheets[s];
     }
-    if (!responseSheet && (sName.indexOf("ผลการสอบ") !== -1 || sName.indexOf("การตอบแบบฟอร์ม") !== -1 || sName.indexOf("form responses") !== -1 || sName.indexOf("responses") !== -1)) {
+    if (!responseSheet && (
+      sName.indexOf("ผลการสอบ") !== -1 ||
+      sName.indexOf("การตอบกลับ") !== -1 ||
+      sName.indexOf("ตอบกลับ") !== -1 ||
+      sName.indexOf("การตอบแบบฟอร์ม") !== -1 ||
+      sName.indexOf("form responses") !== -1 ||
+      sName.indexOf("responses") !== -1 ||
+      sName.indexOf("response") !== -1
+    )) {
       responseSheet = sheets[s];
     }
   }
 
-  // 2. ถ้ายังไม่พบ responseSheet ให้ตรวจจากหัวคอลัมน์ A1 ว่าเป็น Timestamp หรือ ประทับเวลา หรือไม่
+  // 2. ถ้ายังไม่พบ responseSheet ให้ตรวจจากหัวคอลัมน์ A1 หรือ B1
   if (!responseSheet) {
     for (var s = 0; s < sheets.length; s++) {
       if (summarySheet && sheets[s].getSheetId() === summarySheet.getSheetId()) continue;
       if (sheets[s].getLastColumn() >= 2) {
         try {
           var firstCell = sheets[s].getRange(1, 1).getValue().toString().trim().toLowerCase();
-          if (firstCell.indexOf("ประทับเวลา") !== -1 || firstCell.indexOf("timestamp") !== -1 || firstCell.indexOf("time") !== -1) {
+          var secondCell = sheets[s].getRange(1, 2).getValue().toString().trim().toLowerCase();
+          if (firstCell.indexOf("ประทับเวลา") !== -1 || firstCell.indexOf("timestamp") !== -1 || firstCell.indexOf("time") !== -1 ||
+              secondCell.indexOf("คะแนน") !== -1 || secondCell.indexOf("score") !== -1) {
             responseSheet = sheets[s];
             break;
           }
@@ -470,16 +480,16 @@ function handleGetSummary(sheetUrlOrId) {
     var roomCounts = {};
 
     for (var i = 0; i < students.length; i++) {
-      var scoreVal = "";
+      var scoreVal = null;
       for (var key in students[i]) {
         var kClean = key.toLowerCase().trim();
-        if (kClean === "คะแนน" || kClean === "score" || kClean === "total score" || kClean === "คะแนนรวม" || kClean === "points") {
+        if (kClean === "คะแนน" || kClean === "score" || kClean === "total score" || kClean === "คะแนนรวม" || kClean === "points" || kClean === "คะแนนที่ได้" || (kClean.indexOf("คะแนน") === 0 && kClean.length <= 15)) {
           scoreVal = students[i][key];
           break;
         }
       }
 
-      if (scoreVal) {
+      if (scoreVal !== null && scoreVal !== undefined && scoreVal !== "") {
         var parts = scoreVal.toString().split("/");
         var num = parseFloat(parts[0]);
         if (!isNaN(num)) {
@@ -580,7 +590,20 @@ function handleGetSummary(sheetUrlOrId) {
     }
 
     if (totalMaxPoints <= 0) {
-      totalMaxPoints = (columnHeaders.length > 5) ? (columnHeaders.length - 5) : 20;
+      // นับจำนวนคอลัมน์ที่เป็นคำถามข้อสอบจริง (ตัดคอลัมน์ระบบ/ข้อมูลส่วนตัวออก)
+      var qItemCount = 0;
+      for (var h = 0; h < columnHeaders.length; h++) {
+        var hc = columnHeaders[h].toLowerCase().trim();
+        if (hc === "_rowindex" || hc.indexOf("ประทับเวลา") !== -1 || hc.indexOf("timestamp") !== -1 ||
+            hc === "คะแนน" || hc === "score" || hc === "total score" || hc === "คะแนนรวม" ||
+            hc.indexOf("ชื่อ") !== -1 || hc.indexOf("ชั้น") !== -1 || hc.indexOf("ห้อง") !== -1 ||
+            hc.indexOf("เลขที่") !== -1 || hc.indexOf("รหัส") !== -1 || hc.indexOf("อีเมล") !== -1 ||
+            hc.indexOf("คำนำหน้า") !== -1) {
+          continue;
+        }
+        qItemCount++;
+      }
+      totalMaxPoints = qItemCount > 0 ? qItemCount : ((columnHeaders.length > 5) ? (columnHeaders.length - 5) : 20);
     }
 
     var passThreshold = Math.ceil(totalMaxPoints * 0.5);

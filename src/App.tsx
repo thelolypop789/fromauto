@@ -1838,28 +1838,110 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
   const [gradeErrorMsg, setGradeErrorMsg] = useState("");
 
   const loadData = async () => {
-    if (!exam.sheet_url) return;
+    if (!exam.sheet_url || !exam.sheet_url.trim()) {
+      setLoading(false);
+      setError("แบบทดสอบนี้ยังไม่ได้เชื่อมโยงกับ Google Sheet คะแนน (ไม่พบ Sheet URL)");
+      return;
+    }
     setLoading(true);
     setError("");
-    try {
-      const res = await fetch(SCRIPT_URL, {
-        method: "POST",
-        body: JSON.stringify({
-          action: "get_summary",
-          sheetUrl: exam.sheet_url
-        })
-      });
-      const json = await res.json();
-      if (json.success) {
-        setData(json);
-      } else {
-        setError(json.error || "ไม่สามารถอ่านข้อมูลสรุปคะแนนได้");
+
+    const sheetId = exam.sheet_url.match(/[-\w]{25,}/)?.[0] || exam.sheet_url.trim();
+
+    // Helper fetch พร้อม AbortController timeout ป้องกันค้างไม่สิ้นสุด
+    const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 28000) => {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(id);
+        return response;
+      } catch (err) {
+        clearTimeout(id);
+        throw err;
       }
-    } catch (err: any) {
-      setError(err.message || "เกิดข้อผิดพลาดในการเชื่อมต่อ");
-    } finally {
-      setLoading(false);
+    };
+
+    // Helper ถอดรหัส JSON อย่างปลอดภัย ป้องกัน SyntaxError จากหน้า HTML Error ของ Google
+    const parseJsonResponse = async (res: Response) => {
+      const text = await res.text();
+      const trimmed = text.trim();
+      if (trimmed.startsWith("<") || trimmed.includes("<!DOCTYPE") || trimmed.includes("<html")) {
+        throw new Error("HTML_ERROR: Google ตอบกลับด้วยหน้าเว็บ HTML แทนข้อมูล JSON");
+      }
+      return JSON.parse(text);
+    };
+
+    let resultJson: any = null;
+    let lastError = "";
+
+    // ยุทธศาสตร์ที่ 1: ดึงผ่าน GET ด้วย sheetId (เสถียรที่สุดใน Google Apps Script เพราะไม่สูญหายข้อมูลจาก 302 redirect)
+    try {
+      const getUrl = `${SCRIPT_URL}?sheetId=${encodeURIComponent(sheetId)}`;
+      const res = await fetchWithTimeout(getUrl, { method: "GET" }, 25000);
+      if (res.ok) {
+        const json = await parseJsonResponse(res);
+        if (json && json.success) {
+          resultJson = json;
+        } else if (json && json.error) {
+          lastError = json.error;
+        }
+      }
+    } catch (e: any) {
+      lastError = e.message || String(e);
     }
+
+    // ยุทธศาสตร์ที่ 2: ถ้า GET ไม่สำเร็จ ให้ลองเรียกผ่าน POST
+    if (!resultJson) {
+      try {
+        const postRes = await fetchWithTimeout(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "get_summary",
+            sheetUrl: exam.sheet_url,
+            sheetId: sheetId
+          })
+        }, 25000);
+        if (postRes.ok) {
+          const json = await parseJsonResponse(postRes);
+          if (json && json.success) {
+            resultJson = json;
+          } else if (json && json.error) {
+            lastError = json.error;
+          }
+        }
+      } catch (e: any) {
+        lastError = e.message || String(e);
+      }
+    }
+
+    // ยุทธศาสตร์ที่ 3: รีไทร์อัตโนมัติอีก 1 ครั้ง (เผื่อติด Google Apps Script Cold Start)
+    if (!resultJson) {
+      try {
+        await new Promise(r => setTimeout(r, 1200));
+        const retryUrl = `${SCRIPT_URL}?sheetId=${encodeURIComponent(sheetId)}`;
+        const retryRes = await fetchWithTimeout(retryUrl, { method: "GET" }, 25000);
+        if (retryRes.ok) {
+          const json = await parseJsonResponse(retryRes);
+          if (json && json.success) {
+            resultJson = json;
+          }
+        }
+      } catch (e: any) {
+        lastError = e.message || String(e);
+      }
+    }
+
+    if (resultJson && resultJson.success) {
+      setData(resultJson);
+    } else {
+      if (lastError.includes("HTML_ERROR") || lastError.includes("Failed to fetch") || lastError.includes("aborted")) {
+        setError("เซิร์ฟเวอร์ Google ใช้เวลาตอบสนองนาน หรือกำลังเริ่มระบบ กรุณากดปุ่ม 'รีเฟรชคะแนน' เพื่อลองใหม่อีกครั้ง");
+      } else {
+        setError(lastError || "ไม่สามารถอ่านข้อมูลสรุปคะแนนได้ กรุณาตรวจสอบสิทธิ์การเข้าถึงไฟล์ Google Sheets");
+      }
+    }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -1873,19 +1955,68 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
     return String(val).trim();
   };
 
+  // ตรวจสอบว่าชื่อคอลัมน์เป็นข้อมูลระบบหรือข้อมูลนักเรียน (ไม่ใช่โจทย์ข้อสอบ)
+  const isSystemOrProfileColumn = (colName: string): boolean => {
+    if (!colName) return true;
+    const clean = colName.trim().toLowerCase();
+    
+    // ข้อมูลภายในระบบ
+    if (clean === "_rowindex" || clean.startsWith("_")) return true;
+    
+    // เวลาส่ง
+    if (/^(ประทับเวลา|timestamp|time\s*stamp|submission\s*time|วันที่และเวลา)$/i.test(clean)) return true;
+    
+    // คะแนนรวม
+    if (/^(คะแนน|score|total\s*score|คะแนนรวม|คะแนนที่ได้|points)$/i.test(clean)) return true;
+    
+    // ชื่อ-สกุล
+    if (/^(ชื่อ|ชื่อ-สกุล|ชื่อ-นามสกุล|ชื่อ\s*-\s*สกุล|ชื่อ\s*-\s*นามสกุล|ชื่อผู้สอบ|ชื่อนักเรียน|name|full[\s\-_]*name|student[\s\-_]*name)$/i.test(clean)) return true;
+    
+    // ชั้น / ห้องเรียน
+    if (/^(ชั้น|ห้อง|ห้องเรียน|ระดับชั้น|ระดับชั้น[\s\-_/]*ห้อง|ชั้น[\s\-_/]*ห้อง|ห้อง[\s\-_/]*ชั้น|room|class|grade)$/i.test(clean)) return true;
+    
+    // เลขที่
+    if (/^(เลขที่|ลำดับที่|เลขที่นักเรียน|no\.?|student\s*no\.?|roll\s*no\.?)$/i.test(clean)) return true;
+    
+    // เลขประจำตัว
+    if (/^(เลขประจำตัว|รหัสประจำตัว|รหัสนักเรียน|เลขประจำตัวนักเรียน|student[\s\-_]*id|std[\s\-_]*id)$/i.test(clean)) return true;
+    
+    // อีเมล
+    if (/^(อีเมล|ที่อยู่อีเมล|email|email[\s\-_]*address)$/i.test(clean)) return true;
+    
+    // คำนำหน้า
+    if (/^(คำนำหน้า|คำนำหน้านาม|prefix|title)$/i.test(clean)) return true;
+    
+    return false;
+  };
+
   const getStudentField = (s: any, keys: string[]): string => {
     if (!s || typeof s !== "object") return "";
+    // 1. Direct exact property match
     for (const k of keys) {
       if (s[k] !== undefined && s[k] !== null && s[k] !== "") {
         return getSafeStr(s[k]);
       }
     }
+    // 2. Case-insensitive exact trimmed match
     const entries = Object.entries(s);
     for (const k of keys) {
-      const kLower = k.toLowerCase();
-      const found = entries.find(([key]) => key.toLowerCase().includes(kLower));
+      const kLower = k.toLowerCase().trim();
+      const found = entries.find(([key]) => key.toLowerCase().trim() === kLower);
       if (found && found[1] !== undefined && found[1] !== null && found[1] !== "") {
         return getSafeStr(found[1]);
+      }
+    }
+    // 3. Normalized match (สำหรับคีย์สั้น <= 30 ตัวอักษร ป้องกันไม่ให้จับคู่กับข้อความโจทย์ข้อสอบ)
+    for (const [key, val] of entries) {
+      if (val === undefined || val === null || val === "") continue;
+      const cleanKey = key.trim().toLowerCase();
+      if (cleanKey.length > 30) continue; // ข้ามข้อความคำถามยาวๆ
+      for (const k of keys) {
+        const kLower = k.toLowerCase().trim();
+        if (cleanKey === kLower || cleanKey.replace(/\s+/g, "") === kLower.replace(/\s+/g, "")) {
+          return getSafeStr(val);
+        }
       }
     }
     return "";
@@ -1897,7 +2028,7 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
     : (data?.stats?.totalScore ? parseFloat(data.stats.totalScore) : 0) || exam.question_count || 20;
 
   const parseScore = (s: any, defaultTotal: number = totalMax) => {
-    const raw = getStudentField(s, ["คะแนน", "score", "total score", "points"]);
+    const raw = getStudentField(s, ["คะแนน", "score", "total score", "points", "คะแนนรวม"]);
     if (!raw) return { str: "-", earned: 0, total: defaultTotal, isPass: false };
     const rawStr = String(raw).trim();
     if (rawStr.includes("/")) {
@@ -1921,14 +2052,14 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
   };
 
   const getStudentNo = (s: any): number => {
-    const raw = getStudentField(s, ["เลขที่", "no.", "no", "number"]);
+    const raw = getStudentField(s, ["เลขที่", "ลำดับที่", "เลขที่นักเรียน", "no.", "no", "number"]);
     if (!raw) return 9999;
     const match = raw.match(/\d+/);
     return match ? parseInt(match[0], 10) : 9999;
   };
 
   const getStudentRoom = (s: any): string => {
-    const r = getStudentField(s, ["ชั้น", "ห้องเรียน", "ห้อง", "ระดับชั้น", "room", "class"]);
+    const r = getStudentField(s, ["ชั้น", "ห้องเรียน", "ห้อง", "ระดับชั้น", "ระดับชั้น/ห้อง", "ชั้น/ห้อง", "room", "class", "grade"]);
     return r || "ไม่ระบุห้อง";
   };
 
@@ -2035,23 +2166,27 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
     setGradeErrorMsg("");
   };
 
-  // ดึงคำตอบรายข้อของนักเรียน
+  // ดึงคำตอบรายข้อของนักเรียน (ครอบคลุมครบทุกคำถาม ไม่มีตกหล่น)
   const getStudentQuestionAnswers = (s: any) => {
-    if (!s) return [];
-    const nonQuestionKeys = [
-      "ประทับเวลา", "timestamp", "time",
-      "คะแนน", "score", "total score", "points",
-      "ชื่อ-สกุล", "ชื่อ-นามสกุล", "ชื่อ", "name",
-      "ชั้น", "ห้องเรียน", "ห้อง", "ระดับชั้น", "room", "class",
-      "เลขที่", "no.", "no", "number",
-      "เลขประจำตัว", "id", "_rowindex"
-    ];
+    if (!s || typeof s !== "object") return [];
     return Object.entries(s)
-      .filter(([k]) => !nonQuestionKeys.some(nk => k.toLowerCase().trim() === nk || k.toLowerCase().includes(nk)))
-      .map(([qTitle, answerVal]) => ({
-        title: qTitle,
-        answer: getSafeStr(answerVal)
-      }));
+      .filter(([k]) => !isSystemOrProfileColumn(k))
+      .map(([qTitle, answerVal]) => {
+        // หาข้อมูลแนวคำตอบ/เกณฑ์ (ถ้ามีบันทึกไว้ใน manualQuestions)
+        const manualInfo = data?.manualQuestions?.find((mq: any) => {
+          const mText = typeof mq === "string" ? mq : mq?.text;
+          return mText && (qTitle === mText || qTitle.includes(mText) || mText.includes(qTitle));
+        });
+        const isManual = Boolean(manualInfo);
+        const guideline = (typeof manualInfo === "object" ? manualInfo?.answerText : "") || "";
+
+        return {
+          title: qTitle,
+          answer: getSafeStr(answerVal),
+          isManual,
+          guideline
+        };
+      });
   };
 
   // บันทึกคะแนนลงชีตและอัปเดต State ทันที
@@ -2390,8 +2525,41 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
       {activeTab === "overview" && (
         <div>
           {error && (
-            <div style={{marginBottom: 16, padding: "12px 16px", background: "var(--red-light)", borderRadius: "var(--radius)", color: "var(--red)", fontSize: 13}}>
-              ⚠️ {error} — สามารถคลิกแท็บ "แผ่นงาน Google Sheets ตัวจริง" เพื่อดูชีตโดยตรงได้ครับ
+            <div style={{
+              marginBottom: 16,
+              padding: "12px 16px",
+              background: "var(--red-light)",
+              borderRadius: "var(--radius)",
+              color: "var(--red)",
+              fontSize: 13,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 10
+            }}>
+              <div>
+                ⚠️ {error} — สามารถคลิกแท็บ "แผ่นงาน Google Sheets ตัวจริง" เพื่อดูชีตโดยตรงได้ครับ
+              </div>
+              <button
+                type="button"
+                onClick={loadData}
+                disabled={loading}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "6px",
+                  background: "var(--red)",
+                  color: "#fff",
+                  border: "none",
+                  fontWeight: 600,
+                  fontSize: 12,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6
+                }}>
+                🔄 ลองโหลดคะแนนอีกครั้ง
+              </button>
             </div>
           )}
           {loading ? (
@@ -2509,100 +2677,115 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
       {/* Tab 2: Individual Student Scores */}
       {activeTab === "students" && (
         <div className="card">
-          <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 16}}>
-            <div>
-              <div className="card-title">👥 รายชื่อและคะแนนสอบรายบุคคล</div>
-              <div className="card-sub">คำตอบและคะแนนของนักเรียนทั้งหมด {rawStudents.length} คน (แบ่งตามห้องและเรียงเลขที่)</div>
+          {loading ? (
+            <div style={{ textAlign: "center", padding: "60px 20px" }}>
+              <div className="spinner" style={{ margin: "0 auto 12px" }} />
+              <div style={{ fontSize: 14, color: "var(--gray-600)" }}>กำลังดึงข้อมูลรายชื่อและคำตอบนักเรียนจาก Google Sheets...</div>
             </div>
-            {/* Search & Sort Controls */}
-            <div style={{display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap"}}>
-              <input
-                type="text"
-                placeholder="🔍 ค้นหาชื่อ หรือเลขที่..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: "var(--radius)",
-                  border: "1px solid var(--gray-200)",
-                  fontSize: 13,
-                  outline: "none",
-                  width: 170
-                }}
-              />
-              <select
-                value={sortBy}
-                onChange={e => setSortBy(e.target.value as any)}
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: "var(--radius)",
-                  border: "1px solid var(--gray-200)",
-                  fontSize: 13,
-                  background: "white",
-                  cursor: "pointer"
-                }}>
-                <option value="no">🔢 เรียงตามเลขที่ (1, 2, 3...)</option>
-                <option value="score_desc">🏆 เรียงตามคะแนน (มาก → น้อย)</option>
-                <option value="score_asc">📉 เรียงตามคะแนน (น้อย → มาก)</option>
-                <option value="time">🕒 เรียงตามเวลาส่ง (ล่าสุด)</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Quick Room Filter Pills */}
-          {roomList.length > 0 && (
-            <div style={{
-              display: "flex",
-              gap: 8,
-              overflowX: "auto",
-              paddingBottom: 10,
-              marginBottom: 16,
-              borderBottom: "1px dashed var(--gray-200)"
-            }}>
+          ) : error && rawStudents.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "50px 20px" }}>
+              <div style={{ fontSize: 14, color: "var(--red)", marginBottom: 14 }}>⚠️ {error}</div>
               <button
                 type="button"
-                onClick={() => setRoomFilter("all")}
-                style={{
-                  padding: "7px 14px",
-                  borderRadius: 20,
-                  border: roomFilter === "all" ? "2px solid var(--crimson)" : "1px solid var(--gray-200)",
-                  background: roomFilter === "all" ? "var(--crimson-light)" : "white",
-                  color: roomFilter === "all" ? "var(--crimson)" : "var(--gray-700)",
-                  fontWeight: roomFilter === "all" ? 700 : 500,
-                  fontSize: 13,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  whiteSpace: "nowrap"
-                }}>
-                🏫 ทุกห้องเรียน
-                <span style={{
-                  background: roomFilter === "all" ? "var(--crimson)" : "var(--gray-100)",
-                  color: roomFilter === "all" ? "white" : "var(--gray-600)",
-                  padding: "1px 7px",
-                  borderRadius: 10,
-                  fontSize: 11
-                }}>
-                  {rawStudents.length}
-                </span>
+                className="btn btn-secondary"
+                onClick={loadData}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, margin: "0 auto" }}>
+                🔄 ลองดึงข้อมูลคะแนนอีกครั้ง
               </button>
-
-              {roomList.map(rm => {
-                const count = rawStudents.filter(s => getStudentRoom(s) === rm || getStudentRoom(s).includes(rm)).length;
-                const isSelected = roomFilter === rm;
-                return (
+            </div>
+          ) : (
+            <>
+              {error && (
+                <div style={{
+                  marginBottom: 16,
+                  padding: "10px 14px",
+                  background: "var(--red-light)",
+                  borderRadius: "var(--radius)",
+                  color: "var(--red)",
+                  fontSize: 12.5,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 8
+                }}>
+                  <span>⚠️ ข้อมูลอาจแสดงผลล่าสุดไม่สมบูรณ์: {error}</span>
                   <button
-                    key={rm}
                     type="button"
-                    onClick={() => setRoomFilter(rm)}
+                    onClick={loadData}
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: "4px",
+                      background: "var(--red)",
+                      color: "#fff",
+                      border: "none",
+                      fontSize: 11,
+                      cursor: "pointer"
+                    }}>
+                    ลองใหม่
+                  </button>
+                </div>
+              )}
+              <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 16}}>
+                <div>
+                  <div className="card-title">👥 รายชื่อและคะแนนสอบรายบุคคล</div>
+                  <div className="card-sub">คำตอบและคะแนนของนักเรียนทั้งหมด {rawStudents.length} คน (แบ่งตามห้องและเรียงเลขที่)</div>
+                </div>
+                {/* Search & Sort Controls */}
+                <div style={{display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap"}}>
+                  <input
+                    type="text"
+                    placeholder="🔍 ค้นหาชื่อ หรือเลขที่..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: "var(--radius)",
+                      border: "1px solid var(--gray-200)",
+                      fontSize: 13,
+                      outline: "none",
+                      width: 170
+                    }}
+                  />
+                  <select
+                    value={sortBy}
+                    onChange={e => setSortBy(e.target.value as any)}
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: "var(--radius)",
+                      border: "1px solid var(--gray-200)",
+                      fontSize: 13,
+                      background: "white",
+                      cursor: "pointer"
+                    }}>
+                    <option value="no">🔢 เรียงตามเลขที่ (1, 2, 3...)</option>
+                    <option value="score_desc">🏆 เรียงตามคะแนน (มาก → น้อย)</option>
+                    <option value="score_asc">📉 เรียงตามคะแนน (น้อย → มาก)</option>
+                    <option value="time">🕒 เรียงตามเวลาส่ง (ล่าสุด)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Quick Room Filter Pills */}
+              {roomList.length > 0 && (
+                <div style={{
+                  display: "flex",
+                  gap: 8,
+                  overflowX: "auto",
+                  paddingBottom: 10,
+                  marginBottom: 16,
+                  borderBottom: "1px dashed var(--gray-200)"
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setRoomFilter("all")}
                     style={{
                       padding: "7px 14px",
                       borderRadius: 20,
-                      border: isSelected ? "2px solid var(--crimson)" : "1px solid var(--gray-200)",
-                      background: isSelected ? "var(--crimson-light)" : "white",
-                      color: isSelected ? "var(--crimson)" : "var(--gray-700)",
-                      fontWeight: isSelected ? 700 : 500,
+                      border: roomFilter === "all" ? "2px solid var(--crimson)" : "1px solid var(--gray-200)",
+                      background: roomFilter === "all" ? "var(--crimson-light)" : "white",
+                      color: roomFilter === "all" ? "var(--crimson)" : "var(--gray-700)",
+                      fontWeight: roomFilter === "all" ? 700 : 500,
                       fontSize: 13,
                       cursor: "pointer",
                       display: "flex",
@@ -2610,89 +2793,125 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
                       gap: 6,
                       whiteSpace: "nowrap"
                     }}>
-                    🚪 {rm}
+                    🏫 ทุกห้องเรียน
                     <span style={{
-                      background: isSelected ? "var(--crimson)" : "var(--gray-100)",
-                      color: isSelected ? "white" : "var(--gray-600)",
+                      background: roomFilter === "all" ? "var(--crimson)" : "var(--gray-100)",
+                      color: roomFilter === "all" ? "white" : "var(--gray-600)",
                       padding: "1px 7px",
                       borderRadius: 10,
                       fontSize: 11
                     }}>
-                      {count}
+                      {rawStudents.length}
                     </span>
                   </button>
-                );
-              })}
-            </div>
-          )}
 
-          {filteredStudents.length === 0 ? (
-            <div style={{textAlign: "center", padding: "40px 20px", color: "var(--gray-500)"}}>
-              {rawStudents.length === 0 ? "⏳ ยังไม่มีนักเรียนส่งข้อสอบ" : "ไม่พบข้อมูลนักเรียนตามคำค้นหา"}
-            </div>
-          ) : roomFilter === "all" && roomList.length > 1 ? (
-            /* ถ้าเลือกทุกห้อง และมีหลายห้อง ให้จัดกลุ่มแสดงแยกห้องพร้อมเรียงเลขที่ */
-            <div>
-              {roomList.map(rm => {
-                const roomStudents = sortStudentList(
-                  filteredStudents.filter(s => getStudentRoom(s) === rm || getStudentRoom(s).includes(rm))
-                );
-                if (roomStudents.length === 0) return null;
-                const scores = roomStudents.map(s => parseScore(s, totalMax).earned);
-                const avg = (scores.reduce((a, b) => a + b, 0) / roomStudents.length).toFixed(1);
-                const pass = roomStudents.filter(s => parseScore(s, totalMax).isPass).length;
-
-                return (
-                  <div key={rm} style={{marginBottom: 20, border: "1px solid var(--gray-200)", borderRadius: "var(--radius)", overflow: "hidden"}}>
-                    <div style={{
-                      background: "#F8FAFC",
-                      padding: "10px 16px",
-                      borderBottom: "1px solid var(--gray-200)",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                      gap: 8
-                    }}>
-                      <div style={{fontWeight: 700, fontSize: 14, color: "var(--crimson)", display: "flex", alignItems: "center", gap: 8}}>
-                        <span>🏫 {rm}</span>
-                        <span style={{fontSize: 12, fontWeight: 500, color: "var(--crimson)", background: "var(--crimson-light)", padding: "2px 8px", borderRadius: 10}}>
-                          {roomStudents.length} คน (เรียงตามเลขที่)
+                  {roomList.map(rm => {
+                    const count = rawStudents.filter(s => getStudentRoom(s) === rm || getStudentRoom(s).includes(rm)).length;
+                    const isSelected = roomFilter === rm;
+                    return (
+                      <button
+                        key={rm}
+                        type="button"
+                        onClick={() => setRoomFilter(rm)}
+                        style={{
+                          padding: "7px 14px",
+                          borderRadius: 20,
+                          border: isSelected ? "2px solid var(--crimson)" : "1px solid var(--gray-200)",
+                          background: isSelected ? "var(--crimson-light)" : "white",
+                          color: isSelected ? "var(--crimson)" : "var(--gray-700)",
+                          fontWeight: isSelected ? 700 : 500,
+                          fontSize: 13,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          whiteSpace: "nowrap"
+                        }}>
+                        🚪 {rm}
+                        <span style={{
+                          background: isSelected ? "var(--crimson)" : "var(--gray-100)",
+                          color: isSelected ? "white" : "var(--gray-600)",
+                          padding: "1px 7px",
+                          borderRadius: 10,
+                          fontSize: 11
+                        }}>
+                          {count}
                         </span>
-                      </div>
-                      <div style={{fontSize: 12, color: "var(--gray-600)", display: "flex", gap: 12}}>
-                        <span>เฉลี่ย: <b style={{color: "#0F9D58"}}>{avg}</b> / {totalMax}</span>
-                        <span style={{color: "#059669"}}>ผ่าน: <b>{pass}</b></span>
-                        <span style={{color: "#DC2626"}}>ปรับปรุง: <b>{roomStudents.length - pass}</b></span>
-                      </div>
-                    </div>
-                    {renderStudentTable(roomStudents)}
-                  </div>
-                );
-              })}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
-              {/* นักเรียนที่ไม่ได้ระบุห้อง (ถ้ามี) */}
-              {(() => {
-                const unassigned = sortStudentList(
-                  filteredStudents.filter(s => {
-                    const r = getStudentRoom(s);
-                    return !roomList.some(rm => r === rm || r.includes(rm));
-                  })
-                );
-                if (unassigned.length === 0) return null;
-                return (
-                  <div style={{marginBottom: 20, border: "1px solid var(--gray-200)", borderRadius: "var(--radius)", overflow: "hidden"}}>
-                    <div style={{background: "#F8FAFC", padding: "10px 16px", borderBottom: "1px solid var(--gray-200)", fontWeight: 700, fontSize: 14, color: "var(--gray-700)"}}>
-                      📌 อื่นๆ / ไม่ระบุห้อง ({unassigned.length} คน)
-                    </div>
-                    {renderStudentTable(unassigned)}
-                  </div>
-                );
-              })()}
-            </div>
-          ) : (
-            /* ถ้าเลือกห้องเจาะจง หรือมีห้องเดียว แสดงตารางเดี่ยว */
-            renderStudentTable(sortedStudents)
+              {filteredStudents.length === 0 ? (
+                <div style={{textAlign: "center", padding: "40px 20px", color: "var(--gray-500)"}}>
+                  {rawStudents.length === 0 ? "⏳ ยังไม่มีนักเรียนส่งข้อสอบ" : "ไม่พบข้อมูลนักเรียนตามคำค้นหา"}
+                </div>
+              ) : roomFilter === "all" && roomList.length > 1 ? (
+                /* ถ้าเลือกทุกห้อง และมีหลายห้อง ให้จัดกลุ่มแสดงแยกห้องพร้อมเรียงเลขที่ */
+                <div>
+                  {roomList.map(rm => {
+                    const roomStudents = sortStudentList(
+                      filteredStudents.filter(s => getStudentRoom(s) === rm || getStudentRoom(s).includes(rm))
+                    );
+                    if (roomStudents.length === 0) return null;
+                    const scores = roomStudents.map(s => parseScore(s, totalMax).earned);
+                    const avg = (scores.reduce((a, b) => a + b, 0) / roomStudents.length).toFixed(1);
+                    const pass = roomStudents.filter(s => parseScore(s, totalMax).isPass).length;
+
+                    return (
+                      <div key={rm} style={{marginBottom: 20, border: "1px solid var(--gray-200)", borderRadius: "var(--radius)", overflow: "hidden"}}>
+                        <div style={{
+                          background: "#F8FAFC",
+                          padding: "10px 16px",
+                          borderBottom: "1px solid var(--gray-200)",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                          gap: 8
+                        }}>
+                          <div style={{fontWeight: 700, fontSize: 14, color: "var(--crimson)", display: "flex", alignItems: "center", gap: 8}}>
+                            <span>🏫 {rm}</span>
+                            <span style={{fontSize: 12, fontWeight: 500, color: "var(--crimson)", background: "var(--crimson-light)", padding: "2px 8px", borderRadius: 10}}>
+                              {roomStudents.length} คน (เรียงตามเลขที่)
+                            </span>
+                          </div>
+                          <div style={{fontSize: 12, color: "var(--gray-600)", display: "flex", gap: 12}}>
+                            <span>เฉลี่ย: <b style={{color: "#0F9D58"}}>{avg}</b> / {totalMax}</span>
+                            <span style={{color: "#059669"}}>ผ่าน: <b>{pass}</b></span>
+                            <span style={{color: "#DC2626"}}>ปรับปรุง: <b>{roomStudents.length - pass}</b></span>
+                          </div>
+                        </div>
+                        {renderStudentTable(roomStudents)}
+                      </div>
+                    );
+                  })}
+
+                  {/* นักเรียนที่ไม่ได้ระบุห้อง (ถ้ามี) */}
+                  {(() => {
+                    const unassigned = sortStudentList(
+                      filteredStudents.filter(s => {
+                        const r = getStudentRoom(s);
+                        return !roomList.some(rm => r === rm || r.includes(rm));
+                      })
+                    );
+                    if (unassigned.length === 0) return null;
+                    return (
+                      <div style={{marginBottom: 20, border: "1px solid var(--gray-200)", borderRadius: "var(--radius)", overflow: "hidden"}}>
+                        <div style={{background: "#F8FAFC", padding: "10px 16px", borderBottom: "1px solid var(--gray-200)", fontWeight: 700, fontSize: 14, color: "var(--gray-700)"}}>
+                          📌 อื่นๆ / ไม่ระบุห้อง ({unassigned.length} คน)
+                        </div>
+                        {renderStudentTable(unassigned)}
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : (
+                /* ถ้าเลือกห้องเจาะจง หรือมีห้องเดียว แสดงตารางเดี่ยว */
+                renderStudentTable(sortedStudents)
+              )}
+            </>
           )}
         </div>
       )}
@@ -2809,29 +3028,48 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
 
               {/* Question Answers from Student */}
               <div style={{marginBottom: 20}}>
-                <div style={{fontSize: 13, fontWeight: 700, color: "var(--gray-800)", marginBottom: 10, display: "flex", alignItems: "center", gap: 6}}>
-                  <span>📝</span>
-                  <span>คำตอบที่นักเรียนส่งมา ({getStudentQuestionAnswers(gradingStudent).length} ข้อ):</span>
+                <div style={{fontSize: 13, fontWeight: 700, color: "var(--gray-800)", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "space-between"}}>
+                  <div style={{display: "flex", alignItems: "center", gap: 6}}>
+                    <span>📝</span>
+                    <span>คำตอบที่นักเรียนส่งมา ({getStudentQuestionAnswers(gradingStudent).length} ข้อ):</span>
+                  </div>
+                  {getStudentQuestionAnswers(gradingStudent).some(qa => qa.isManual) && (
+                    <span style={{fontSize: 11, background: "#FEF3C7", color: "#92400E", padding: "2px 8px", borderRadius: 8, fontWeight: 600}}>
+                      ✏️ มีข้อสอบอัตนัย/เติมคำ
+                    </span>
+                  )}
                 </div>
-                <div style={{display: "flex", flexDirection: "column", gap: 10, maxHeight: 240, overflowY: "auto", paddingRight: 4}}>
+                <div style={{display: "flex", flexDirection: "column", gap: 10, maxHeight: 360, overflowY: "auto", paddingRight: 4}}>
                   {getStudentQuestionAnswers(gradingStudent).length === 0 ? (
                     <div style={{fontSize: 12, color: "var(--gray-500)", fontStyle: "italic", textAlign: "center", padding: 12}}>
                       ไม่พบคอลัมน์คำตอบเฉพาะข้อในชีต
                     </div>
                   ) : (
                     getStudentQuestionAnswers(gradingStudent).map((qa, idx) => (
-                      <div key={idx} style={{background: "white", border: "1px solid var(--gray-200)", borderRadius: "8px", padding: "10px 12px"}}>
-                        <div style={{fontSize: 12.5, fontWeight: 600, color: "var(--gray-800)", marginBottom: 4}}>
-                          <span style={{color: "var(--crimson)", marginRight: 6}}>ข้อ {idx + 1}:</span>
-                          {qa.title}
+                      <div key={idx} style={{background: "white", border: qa.isManual ? "1.5px solid #F59E0B" : "1px solid var(--gray-200)", borderRadius: "8px", padding: "10px 12px"}}>
+                        <div style={{display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4}}>
+                          <div style={{fontSize: 12.5, fontWeight: 600, color: "var(--gray-800)", flex: 1}}>
+                            <span style={{color: "var(--crimson)", marginRight: 6}}>ข้อ {idx + 1}:</span>
+                            {qa.title}
+                          </div>
+                          {qa.isManual && (
+                            <span style={{fontSize: 10, background: "#FEF3C7", color: "#92400E", padding: "2px 6px", borderRadius: 6, fontWeight: 700, whiteSpace: "nowrap"}}>
+                              ตรวจในระบบ
+                            </span>
+                          )}
                         </div>
+                        {qa.guideline && (
+                          <div style={{fontSize: 11.5, color: "#92400E", background: "#FFFBEB", borderLeft: "3px solid #F59E0B", padding: "4px 8px", borderRadius: 4, marginBottom: 6}}>
+                            💡 <strong>แนวคำตอบ / เกณฑ์:</strong> {qa.guideline}
+                          </div>
+                        )}
                         <div style={{
                           fontSize: 13,
                           padding: "6px 10px",
                           background: qa.answer ? "#F8FAFC" : "#FEF2F2",
                           color: qa.answer ? "var(--gray-900)" : "#DC2626",
                           borderRadius: "6px",
-                          borderLeft: "3px solid " + (qa.answer ? "var(--crimson)" : "#DC2626"),
+                          borderLeft: "3px solid " + (qa.answer ? (qa.isManual ? "#F59E0B" : "var(--crimson)") : "#DC2626"),
                           whiteSpace: "pre-wrap"
                         }}>
                           {qa.answer || "(ไม่ได้ตอบ / ว่างเปล่า)"}

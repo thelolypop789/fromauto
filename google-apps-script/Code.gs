@@ -350,59 +350,87 @@ function doPost(e) {
 
 /**
  * ค้นหา summarySheet (แดชบอร์ดสรุป) และ responseSheet (แท็บผลการสอบจริง) อย่างแม่นยำ
+ * รองรับกรณี Google Sheets มีหลายแท็บ, มีแท็บการตอบกลับเก่าที่ว่างเปล่า, หรือชื่อแท็บสรุปมีคำว่า "ผลการสอบ"
  */
 function findSheets(ss) {
   var sheets = ss.getSheets();
   var summarySheet = null;
   var responseSheet = null;
 
-  // 1. หาตามชื่อเฉพาะ (รองรับทั้ง การตอบกลับแบบฟอร์ม 1, ตอบกลับ, Form Responses ฯลฯ)
+  // 1. ระบุ summarySheet ก่อน โดยดูจากคำว่า "สรุป", "summary", "dashboard"
+  // และต้องไม่เป็นชื่อการตอบกลับแบบฟอร์ม
   for (var s = 0; s < sheets.length; s++) {
     var sName = sheets[s].getName().toLowerCase().trim();
-    if (!summarySheet && (sName.indexOf("สรุป") !== -1 || sName.indexOf("summary") !== -1 || sName.indexOf("dashboard") !== -1)) {
-      summarySheet = sheets[s];
+    if (sName.indexOf("สรุป") !== -1 || sName.indexOf("summary") !== -1 || sName.indexOf("dashboard") !== -1) {
+      if (sName.indexOf("การตอบกลับ") === -1 && sName.indexOf("form responses") === -1 && sName.indexOf("responses") === -1) {
+        summarySheet = sheets[s];
+        break;
+      }
     }
-    if (!responseSheet && (
-      sName.indexOf("ผลการสอบ") !== -1 ||
-      sName.indexOf("การตอบกลับ") !== -1 ||
-      sName.indexOf("ตอบกลับ") !== -1 ||
-      sName.indexOf("การตอบแบบฟอร์ม") !== -1 ||
-      sName.indexOf("form responses") !== -1 ||
-      sName.indexOf("responses") !== -1 ||
-      sName.indexOf("response") !== -1
-    )) {
+  }
+
+  // 2. ให้คะแนน (Scoring System) สำหรับทุกชีตที่ไม่ใช่ summarySheet เพื่อหาชีตผลการสอบจริง (responseSheet)
+  var bestSheet = null;
+  var bestScore = -1;
+
+  for (var s = 0; s < sheets.length; s++) {
+    var curSheet = sheets[s];
+    if (summarySheet && curSheet.getSheetId() === summarySheet.getSheetId()) continue;
+
+    var sName = curSheet.getName().toLowerCase().trim();
+    var lastRow = curSheet.getLastRow();
+    var lastCol = curSheet.getLastColumn();
+    var score = 0;
+
+    // ตรวจสอบชื่อชีต
+    if (sName.indexOf("การตอบกลับ") !== -1 || sName.indexOf("การตอบแบบฟอร์ม") !== -1 || sName.indexOf("ตอบกลับ") !== -1 ||
+        sName.indexOf("form response") !== -1 || sName.indexOf("responses") !== -1 || sName.indexOf("response") !== -1 ||
+        sName.indexOf("คำตอบ") !== -1 || sName.indexOf("รายชื่อ") !== -1) {
+      score += 50;
+    }
+
+    // ตรวจสอบจำนวนแถว (ชีตที่มีนักเรียนส่งคำตอบจริง ต้องมี lastRow > 1)
+    if (lastRow > 1) {
+      score += 30;
+      // ให้คะแนนเพิ่มตามจำนวนนักเรียน (สูงสุด +100 คะแนน) เพื่อให้ชีตที่มีนักเรียนจริงชนะชีตทดสอบที่มี 1-2 แถว
+      score += Math.min(lastRow, 100);
+    }
+
+    // ตรวจสอบหัวคอลัมน์แถวที่ 1
+    if (lastCol >= 2 && lastRow >= 1) {
+      try {
+        var headerValues = curSheet.getRange(1, 1, 1, Math.min(lastCol, 10)).getValues()[0];
+        var headerStr = headerValues.join(" ").toLowerCase();
+
+        if (headerStr.indexOf("ประทับเวลา") !== -1 || headerStr.indexOf("timestamp") !== -1 || headerStr.indexOf("time") !== -1) {
+          score += 40;
+        }
+        if (headerStr.indexOf("คะแนน") !== -1 || headerStr.indexOf("score") !== -1 || headerStr.indexOf("points") !== -1) {
+          score += 40;
+        }
+        if (headerStr.indexOf("ชื่อ") !== -1 || headerStr.indexOf("name") !== -1) {
+          score += 20;
+        }
+        if (headerStr.indexOf("ชั้น") !== -1 || headerStr.indexOf("ห้อง") !== -1 || headerStr.indexOf("เลขที่") !== -1) {
+          score += 20;
+        }
+      } catch (hErr) {}
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestSheet = curSheet;
+    }
+  }
+
+  responseSheet = bestSheet;
+
+  // Fallback กรณีคะแนนยังไม่พบ หรือมีชีตเดียว
+  if (!responseSheet) {
+    for (var s = 0; s < sheets.length; s++) {
+      if (summarySheet && sheets[s].getSheetId() === summarySheet.getSheetId()) continue;
       responseSheet = sheets[s];
-    }
-  }
-
-  // 2. ถ้ายังไม่พบ responseSheet ให้ตรวจจากหัวคอลัมน์ A1 หรือ B1
-  if (!responseSheet) {
-    for (var s = 0; s < sheets.length; s++) {
-      if (summarySheet && sheets[s].getSheetId() === summarySheet.getSheetId()) continue;
-      if (sheets[s].getLastColumn() >= 2) {
-        try {
-          var firstCell = sheets[s].getRange(1, 1).getValue().toString().trim().toLowerCase();
-          var secondCell = sheets[s].getRange(1, 2).getValue().toString().trim().toLowerCase();
-          if (firstCell.indexOf("ประทับเวลา") !== -1 || firstCell.indexOf("timestamp") !== -1 || firstCell.indexOf("time") !== -1 ||
-              secondCell.indexOf("คะแนน") !== -1 || secondCell.indexOf("score") !== -1) {
-            responseSheet = sheets[s];
-            break;
-          }
-        } catch (e) {}
-      }
-    }
-  }
-
-  // 3. Fallback: เลือกชีตที่ไม่ใช่ summarySheet และมีจำนวนแถวมากที่สุด
-  if (!responseSheet) {
-    var maxRows = -1;
-    for (var s = 0; s < sheets.length; s++) {
-      if (summarySheet && sheets[s].getSheetId() === summarySheet.getSheetId()) continue;
-      var rCount = sheets[s].getLastRow();
-      if (rCount > maxRows) {
-        maxRows = rCount;
-        responseSheet = sheets[s];
-      }
+      break;
     }
   }
 
@@ -435,9 +463,20 @@ function handleGetSummary(sheetUrlOrId) {
     var summarySheet = found.summarySheet;
     var responseSheet = found.responseSheet;
 
+    var allSheetsInfo = ss.getSheets().map(function(s) {
+      return {
+        name: s.getName(),
+        rows: s.getLastRow(),
+        cols: s.getLastColumn()
+      };
+    });
+
     // 1. อ่านข้อมูลคำตอบนักเรียนทั้งหมดจากแท็บคะแนนดิบ
     var students = [];
     var columnHeaders = [];
+    var scoreColIndex = -1;
+    var scoreColHeader = "";
+
     if (responseSheet) {
       var lastRow = responseSheet.getLastRow();
       var lastCol = responseSheet.getLastColumn();
@@ -454,6 +493,12 @@ function handleGetSummary(sheetUrlOrId) {
             seenHeaders[hName] = 1;
           }
           columnHeaders.push(hName);
+
+          var hClean = hName.toLowerCase();
+          if (scoreColIndex === -1 && (hClean === "คะแนน" || hClean === "score" || hClean === "total score" || hClean === "คะแนนรวม" || hClean === "points" || hClean === "คะแนนที่ได้" || (hClean.indexOf("คะแนน") === 0 && hClean.length <= 25))) {
+            scoreColIndex = h;
+            scoreColHeader = hName;
+          }
         }
 
         if (lastRow > 1) {
@@ -461,14 +506,33 @@ function handleGetSummary(sheetUrlOrId) {
           for (var i = 0; i < dataRows.length; i++) {
             var item = {};
             item["_rowIndex"] = i + 2; // ตำแหน่งแถวจริงใน Google Sheet สำหรับอัปเดตคะแนน
+            var hasAnyContent = false;
+            var hasStudentData = false;
+
             for (var c = 0; c < columnHeaders.length; c++) {
               var val = dataRows[i][c];
               if (val instanceof Date) {
                 val = Utilities.formatDate(val, Session.getScriptTimeZone() || "Asia/Bangkok", "yyyy-MM-dd HH:mm:ss");
               }
+              var strVal = (val !== null && val !== undefined) ? val.toString().trim() : "";
               item[columnHeaders[c]] = (val !== null && val !== undefined) ? val : "";
+              if (strVal !== "") {
+                hasAnyContent = true;
+                var colKeyClean = columnHeaders[c].toLowerCase();
+                if (colKeyClean.indexOf("ชื่อ") !== -1 || colKeyClean.indexOf("name") !== -1 ||
+                    colKeyClean.indexOf("คะแนน") !== -1 || colKeyClean.indexOf("score") !== -1 ||
+                    colKeyClean.indexOf("ประทับเวลา") !== -1 || colKeyClean.indexOf("timestamp") !== -1 ||
+                    colKeyClean.indexOf("เลขที่") !== -1 || colKeyClean.indexOf("ชั้น") !== -1 ||
+                    colKeyClean.indexOf("ห้อง") !== -1) {
+                  hasStudentData = true;
+                }
+              }
             }
-            students.push(item);
+
+            // กรองแถวว่างทิ้ง (ต้องมีข้อมูลนักเรียนจริงอย่างน้อย 1 รายการ)
+            if (hasAnyContent && hasStudentData) {
+              students.push(item);
+            }
           }
         }
       }
@@ -477,13 +541,22 @@ function handleGetSummary(sheetUrlOrId) {
     // 2. คำนวณสถิติจากคะแนนนักเรียนจริงโดยตรง (ไม่พึ่งพาสูตรในชีต เพื่อความแม่นยำ 100%)
     var studentScores = [];
     var totalMaxPoints = 0;
+    var maxEarnedScore = 0;
     var roomCounts = {};
+
+    // ก) ตรวจสอบจากหัวคอลัมน์คะแนน เช่น "คะแนน / 30", "คะแนน (เต็ม 40)"
+    if (scoreColHeader) {
+      var headerMatch = scoreColHeader.match(/(?:\/|เต็ม|out of|\()\s*(\d+(?:\.\d+)?)/i);
+      if (headerMatch && parseFloat(headerMatch[1]) > 0) {
+        totalMaxPoints = parseFloat(headerMatch[1]);
+      }
+    }
 
     for (var i = 0; i < students.length; i++) {
       var scoreVal = null;
       for (var key in students[i]) {
         var kClean = key.toLowerCase().trim();
-        if (kClean === "คะแนน" || kClean === "score" || kClean === "total score" || kClean === "คะแนนรวม" || kClean === "points" || kClean === "คะแนนที่ได้" || (kClean.indexOf("คะแนน") === 0 && kClean.length <= 15)) {
+        if (kClean === "คะแนน" || kClean === "score" || kClean === "total score" || kClean === "คะแนนรวม" || kClean === "points" || kClean === "คะแนนที่ได้" || (kClean.indexOf("คะแนน") === 0 && kClean.length <= 25)) {
           scoreVal = students[i][key];
           break;
         }
@@ -494,9 +567,12 @@ function handleGetSummary(sheetUrlOrId) {
         var num = parseFloat(parts[0]);
         if (!isNaN(num)) {
           studentScores.push(num);
+          if (num > maxEarnedScore) maxEarnedScore = num;
           if (parts.length > 1) {
             var denom = parseFloat(parts[1]);
-            if (!isNaN(denom) && denom > 0 && denom > totalMaxPoints) totalMaxPoints = denom;
+            if (!isNaN(denom) && denom > 0 && denom > totalMaxPoints) {
+              totalMaxPoints = denom;
+            }
           }
         }
       }
@@ -513,6 +589,82 @@ function handleGetSummary(sheetUrlOrId) {
         var rTrim = rName.toString().trim();
         roomCounts[rTrim] = (roomCounts[rTrim] || 0) + 1;
       }
+    }
+
+    // นับจำนวนคำถามข้อสอบจริง (ตัดคอลัมน์ระบบและข้อมูลส่วนตัวออก)
+    var qItemCount = 0;
+    for (var h = 0; h < columnHeaders.length; h++) {
+      var hc = columnHeaders[h].toLowerCase().trim();
+      if (hc === "_rowindex" || hc.indexOf("ประทับเวลา") !== -1 || hc.indexOf("timestamp") !== -1 ||
+          hc.indexOf("คะแนน") !== -1 || hc.indexOf("score") !== -1 || hc === "points" ||
+          hc.indexOf("ชื่อ") !== -1 || hc.indexOf("ชั้น") !== -1 || hc.indexOf("ห้อง") !== -1 ||
+          hc.indexOf("เลขที่") !== -1 || hc.indexOf("รหัส") !== -1 || hc.indexOf("อีเมล") !== -1 ||
+          hc.indexOf("คำนำหน้า") !== -1) {
+        continue;
+      }
+      qItemCount++;
+    }
+
+    // ข) ตรวจสอบจาก Metadata ใน summarySheet
+    var hasManualGrading = false;
+    var manualQuestions = [];
+    if (summarySheet) {
+      try {
+        var zVals = summarySheet.getRange("Z3:Z5").getValues();
+        var z3Val = zVals[0][0];
+        if (z3Val === "HAS_MANUAL_GRADING") {
+          hasManualGrading = true;
+          var z4Val = zVals[1][0];
+          if (z4Val) {
+            try { manualQuestions = JSON.parse(z4Val); } catch (e) {}
+          }
+        }
+        var z5Val = zVals[2][0];
+        var metaMax = 0;
+        if (typeof z5Val === "number" && z5Val > 0) {
+          metaMax = z5Val;
+        } else if (z5Val) {
+          var parsedZ5 = parseFloat(z5Val);
+          if (!isNaN(parsedZ5) && parsedZ5 > 0) metaMax = parsedZ5;
+        }
+        if (totalMaxPoints <= 0 && metaMax >= maxEarnedScore) {
+          totalMaxPoints = metaMax;
+        }
+      } catch (zErr) {
+        Logger.log("Read metadata error: " + zErr.message);
+      }
+
+      // ถ้ายังเป็น 0 ให้ลองอ่านจาก C6 (แถวคะแนนเต็มในตารางสรุป)
+      if (totalMaxPoints <= 0) {
+        try {
+          var c6Val = summarySheet.getRange("C6").getValue();
+          if (c6Val) {
+            var c6Match = c6Val.toString().match(/\d+(\.\d+)?/);
+            if (c6Match) {
+              var c6Num = parseFloat(c6Match[0]);
+              if (c6Num > 0 && c6Num >= maxEarnedScore) {
+                totalMaxPoints = c6Num;
+              }
+            }
+          }
+        } catch (c6Err) {}
+      }
+    }
+
+    // ค) ถ้ายังไม่ทราบ หรือค่า totalMaxPoints น้อยกว่าจำนวนข้อสอบจริง ให้ใช้ qItemCount
+    if (qItemCount > 0) {
+      if (totalMaxPoints <= 0 || (totalMaxPoints < qItemCount && maxEarnedScore <= qItemCount)) {
+        totalMaxPoints = qItemCount;
+      }
+    }
+
+    // ง) กฎเหล็กป้องกันข้อผิดพลาด: คะแนนเต็มต้องไม่น้อยกว่าคะแนนสูงสุดที่นักเรียนทำได้เด็ดขาด!
+    if (maxEarnedScore > totalMaxPoints) {
+      totalMaxPoints = Math.max(maxEarnedScore, qItemCount);
+    }
+
+    if (totalMaxPoints <= 0) {
+      totalMaxPoints = 20;
     }
 
     var totalStudentsCount = students.length;
@@ -548,62 +700,6 @@ function handleGetSummary(sheetUrlOrId) {
           status: "✅ มีผู้ส่งแล้ว"
         });
       }
-    }
-
-    // ตรวจสอบข้อมูลข้อสอบอัตนัย/เติมคำและคะแนนเต็มรวมจาก Metadata ใน summarySheet
-    var hasManualGrading = false;
-    var manualQuestions = [];
-    if (summarySheet) {
-      try {
-        var zVals = summarySheet.getRange("Z3:Z5").getValues();
-        var z3Val = zVals[0][0];
-        if (z3Val === "HAS_MANUAL_GRADING") {
-          hasManualGrading = true;
-          var z4Val = zVals[1][0];
-          if (z4Val) {
-            try { manualQuestions = JSON.parse(z4Val); } catch (e) {}
-          }
-        }
-        var z5Val = zVals[2][0];
-        if (typeof z5Val === "number" && z5Val > 0) {
-          totalMaxPoints = z5Val;
-        } else if (z5Val) {
-          var parsedZ5 = parseFloat(z5Val);
-          if (!isNaN(parsedZ5) && parsedZ5 > 0) totalMaxPoints = parsedZ5;
-        }
-      } catch (zErr) {
-        Logger.log("Read metadata error: " + zErr.message);
-      }
-
-      // ถ้ายังเป็น 0 ให้ลองอ่านจาก C6 (แถวคะแนนเต็มในตารางสรุป)
-      if (totalMaxPoints <= 0) {
-        try {
-          var c6Val = summarySheet.getRange("C6").getValue();
-          if (c6Val) {
-            var c6Match = c6Val.toString().match(/\d+(\.\d+)?/);
-            if (c6Match && parseFloat(c6Match[0]) > 0) {
-              totalMaxPoints = parseFloat(c6Match[0]);
-            }
-          }
-        } catch (c6Err) {}
-      }
-    }
-
-    if (totalMaxPoints <= 0) {
-      // นับจำนวนคอลัมน์ที่เป็นคำถามข้อสอบจริง (ตัดคอลัมน์ระบบ/ข้อมูลส่วนตัวออก)
-      var qItemCount = 0;
-      for (var h = 0; h < columnHeaders.length; h++) {
-        var hc = columnHeaders[h].toLowerCase().trim();
-        if (hc === "_rowindex" || hc.indexOf("ประทับเวลา") !== -1 || hc.indexOf("timestamp") !== -1 ||
-            hc === "คะแนน" || hc === "score" || hc === "total score" || hc === "คะแนนรวม" ||
-            hc.indexOf("ชื่อ") !== -1 || hc.indexOf("ชั้น") !== -1 || hc.indexOf("ห้อง") !== -1 ||
-            hc.indexOf("เลขที่") !== -1 || hc.indexOf("รหัส") !== -1 || hc.indexOf("อีเมล") !== -1 ||
-            hc.indexOf("คำนำหน้า") !== -1) {
-          continue;
-        }
-        qItemCount++;
-      }
-      totalMaxPoints = qItemCount > 0 ? qItemCount : ((columnHeaders.length > 5) ? (columnHeaders.length - 5) : 20);
     }
 
     var passThreshold = Math.ceil(totalMaxPoints * 0.5);
@@ -643,7 +739,10 @@ function handleGetSummary(sheetUrlOrId) {
       totalMaxPoints: totalMaxPoints,
       columnHeaders: columnHeaders,
       stats: stats,
-      students: students
+      students: students,
+      selectedSummarySheet: summarySheet ? summarySheet.getName() : null,
+      selectedResponseSheet: responseSheet ? responseSheet.getName() : null,
+      sheetsInfo: allSheetsInfo
     })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
@@ -690,7 +789,7 @@ function handleUpdateScore(data) {
     var scoreCol = -1;
     for (var c = 0; c < headerVals.length; c++) {
       var colName = headerVals[c].toString().trim().toLowerCase();
-      if (colName === "คะแนน" || colName === "score" || colName === "total score" || colName === "คะแนนรวม" || colName === "points") {
+      if (colName === "คะแนน" || colName === "score" || colName === "total score" || colName === "คะแนนรวม" || colName === "points" || colName.indexOf("คะแนน") !== -1 || colName.indexOf("score") !== -1) {
         scoreCol = c + 1;
         break;
       }

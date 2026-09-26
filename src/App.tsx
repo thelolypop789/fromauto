@@ -2345,7 +2345,7 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
     const clean = colName.trim().toLowerCase();
     if (clean === "_rowindex" || clean.startsWith("_")) return true;
     if (/^(ประทับเวลา|timestamp|time\s*stamp|submission\s*time|วันที่และเวลา)$/i.test(clean)) return true;
-    if (/^(คะแนน|score|total\s*score|คะแนนรวม|คะแนนที่ได้|points)$/i.test(clean)) return true;
+    if (/^(คะแนน|score|total\s*score|คะแนนรวม|คะแนนที่ได้|points)(\s*[/(\[].*)?$/i.test(clean) || clean.startsWith("คะแนน") || clean.startsWith("score")) return true;
     if (/^(ชื่อ|ชื่อ-สกุล|ชื่อ-นามสกุล|ชื่อ\s*-\s*สกุล|ชื่อ\s*-\s*นามสกุล|ชื่อผู้สอบ|ชื่อนักเรียน|name|full[\s\-_]*name|student[\s\-_]*name)$/i.test(clean)) return true;
     if (/^(ชั้น|ห้อง|ห้องเรียน|ระดับชั้น|ระดับชั้น[\s\-_/]*ห้อง|ชั้น[\s\-_/]*ห้อง|ห้อง[\s\-_/]*ชั้น|room|class|grade)$/i.test(clean)) return true;
     if (/^(เลขที่|ลำดับที่|เลขที่นักเรียน|no\.?|student\s*no\.?|roll\s*no\.?)$/i.test(clean)) return true;
@@ -2384,34 +2384,6 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
     return "";
   };
 
-  const totalMax = (data?.totalMaxPoints && data.totalMaxPoints > 0)
-    ? data.totalMaxPoints
-    : (data?.stats?.totalScore ? parseFloat(data.stats.totalScore) : 0) || exam.question_count || 20;
-
-  const parseScore = (s: any, defaultTotal: number = totalMax) => {
-    const raw = getStudentField(s, ["คะแนน", "score", "total score", "points", "คะแนนรวม"]);
-    if (!raw) return { str: "-", earned: 0, total: defaultTotal, isPass: false };
-    const rawStr = String(raw).trim();
-    if (rawStr.includes("/")) {
-      const parts = rawStr.split("/");
-      const earned = parseFloat(parts[0]) || 0;
-      const total = parseFloat(parts[1]) || defaultTotal;
-      return {
-        str: `${earned} / ${total}`,
-        earned,
-        total,
-        isPass: earned >= Math.ceil(total * 0.5)
-      };
-    }
-    const earned = parseFloat(rawStr) || 0;
-    return {
-      str: `${earned} / ${defaultTotal}`,
-      earned,
-      total: defaultTotal,
-      isPass: earned >= Math.ceil(defaultTotal * 0.5)
-    };
-  };
-
   const getStudentNo = (s: any): number => {
     const raw = getStudentField(s, ["เลขที่", "ลำดับที่", "เลขที่นักเรียน", "no.", "no", "number"]);
     if (!raw) return 9999;
@@ -2424,7 +2396,117 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
     return r || "ไม่ระบุห้อง";
   };
 
-  const rawStudents: any[] = data?.students || [];
+  // กรองเฉพาะแถวนักเรียนจริงที่มีข้อมูล (ตัดแถวว่างด้านล่างของชีตทิ้ง 100%)
+  const rawStudents: any[] = useMemo(() => {
+    const list: any[] = (data?.students && Array.isArray(data.students)) ? data.students : [];
+    return list.filter(s => {
+      if (!s || typeof s !== "object") return false;
+      const name = getStudentField(s, ["ชื่อ", "ชื่อ-สกุล", "ชื่อ-นามสกุล", "name", "student_name"]);
+      const time = getStudentField(s, ["ประทับเวลา", "timestamp", "time"]);
+      const rawScore = getStudentField(s, ["คะแนน", "score", "total score", "points", "คะแนนรวม"]);
+      const room = getStudentField(s, ["ชั้น", "ห้องเรียน", "ห้อง", "ระดับชั้น"]);
+      const no = getStudentField(s, ["เลขที่", "ลำดับที่", "no"]);
+      return Boolean(name || time || rawScore || (room && no));
+    });
+  }, [data?.students]);
+
+  // ดึงรายชื่อคอลัมน์ที่เป็นคำถามข้อสอบจริง (รองรับทั้ง data.columnHeaders และคีย์ของแถวนักเรียน)
+  const questionColumns: string[] = useMemo(() => {
+    const headers = (data?.columnHeaders && Array.isArray(data.columnHeaders) && data.columnHeaders.length > 0)
+      ? data.columnHeaders
+      : (rawStudents.length > 0 ? Object.keys(rawStudents[0]) : []);
+    return headers.filter((h: string) => !isSystemOrProfileColumn(h));
+  }, [data?.columnHeaders, rawStudents]);
+
+  // คำนวณคะแนนเต็ม (totalMax) อย่างแม่นยำ ไม่ให้คะแนนเต็มต่ำกว่าคะแนนที่นักเรียนได้จริง
+  const totalMax = useMemo(() => {
+    // 1. ตรวจสอบคะแนนสูงสุดที่นักเรียนทำได้จริง
+    let maxEarned = 0;
+    rawStudents.forEach(s => {
+      const raw = getStudentField(s, ["คะแนน", "score", "total score", "points", "คะแนนรวม"]);
+      if (raw) {
+        const p = parseFloat(String(raw).split("/")[0]);
+        if (!isNaN(p) && p > maxEarned) maxEarned = p;
+      }
+    });
+
+    // 2. ตรวจสอบจากหัวคอลัมน์คะแนน เช่น "คะแนน / 30", "คะแนน (เต็ม 40)"
+    let headerMax = 0;
+    const allHeaders = (data?.columnHeaders && data.columnHeaders.length > 0)
+      ? data.columnHeaders
+      : (rawStudents.length > 0 ? Object.keys(rawStudents[0]) : []);
+    for (const h of allHeaders) {
+      if (h.toLowerCase().includes("คะแนน") || h.toLowerCase().includes("score")) {
+        const match = h.match(/(?:\/|เต็ม|out of|\()\s*(\d+(?:\.\d+)?)/i);
+        if (match && parseFloat(match[1]) > 0) {
+          headerMax = parseFloat(match[1]);
+          break;
+        }
+      }
+    }
+
+    // 3. ตรวจสอบจากตัวส่วนในคะแนนนักเรียน เช่น "24 / 30"
+    let denomMax = 0;
+    rawStudents.forEach(s => {
+      const raw = getStudentField(s, ["คะแนน", "score", "total score", "points", "คะแนนรวม"]);
+      if (raw && String(raw).includes("/")) {
+        const p = parseFloat(String(raw).split("/")[1]);
+        if (!isNaN(p) && p > denomMax) denomMax = p;
+      }
+    });
+
+    // 4. จำนวนคำถามข้อสอบจริงที่ตรวจพบ
+    const qCount = questionColumns.length;
+
+    // 5. คะแนนเต็มที่ Google Apps Script รายงานมา
+    const backendMax = (data?.totalMaxPoints && data.totalMaxPoints > 0)
+      ? data.totalMaxPoints
+      : (data?.stats?.totalScore ? parseFloat(data.stats.totalScore) : 0);
+
+    let candidate = headerMax || denomMax;
+    if (!candidate || candidate < maxEarned) {
+      if (qCount > 0 && (backendMax <= 0 || (backendMax < qCount && maxEarned <= qCount) || backendMax < maxEarned)) {
+        candidate = qCount;
+      } else if (backendMax > 0 && backendMax >= maxEarned) {
+        candidate = backendMax;
+      } else {
+        candidate = exam.question_count || qCount || 20;
+      }
+    }
+
+    // กฎเหล็ก: คะแนนเต็มต้องไม่น้อยกว่าคะแนนสูงสุดที่นักเรียนทำได้
+    if (maxEarned > candidate) {
+      candidate = Math.max(maxEarned, qCount);
+    }
+
+    return candidate > 0 ? candidate : 20;
+  }, [data?.totalMaxPoints, data?.stats?.totalScore, data?.columnHeaders, rawStudents, questionColumns, exam.question_count]);
+
+  const parseScore = (s: any, defaultTotal: number = totalMax) => {
+    const raw = getStudentField(s, ["คะแนน", "score", "total score", "points", "คะแนนรวม"]);
+    if (!raw) return { str: "-", earned: 0, total: defaultTotal, isPass: false };
+    const rawStr = String(raw).trim();
+    if (rawStr.includes("/")) {
+      const parts = rawStr.split("/");
+      const earned = parseFloat(parts[0]) || 0;
+      const total = parseFloat(parts[1]) || defaultTotal;
+      const effectiveTotal = Math.max(total, defaultTotal, earned);
+      return {
+        str: `${earned} / ${effectiveTotal}`,
+        earned,
+        total: effectiveTotal,
+        isPass: earned >= Math.ceil(effectiveTotal * 0.5)
+      };
+    }
+    const earned = parseFloat(rawStr) || 0;
+    const effectiveTotal = Math.max(defaultTotal, earned);
+    return {
+      str: `${earned} / ${effectiveTotal}`,
+      earned,
+      total: effectiveTotal,
+      isPass: earned >= Math.ceil(effectiveTotal * 0.5)
+    };
+  };
 
   // Descriptive Statistics Calculation
   const studentScores = rawStudents.map(s => parseScore(s, totalMax).earned).filter(n => !isNaN(n));
@@ -2571,7 +2653,6 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
   const lowestRoom = [...classroomAnalysis].reverse().find(r => r.count > 0);
 
   // Item Analysis (วิเคราะห์ข้อสอบรายข้อ)
-  const questionColumns = (data?.columnHeaders || []).filter((h: string) => !isSystemOrProfileColumn(h));
   const itemAnalysis = questionColumns.map((colName: string, idx: number) => {
     const responses = rawStudents.map(s => getSafeStr(s[colName])).filter(Boolean);
     const totalResponses = responses.length;
@@ -4523,24 +4604,42 @@ function ScoreAnalyticsView({
       const sheetId = exam.sheet_url ? (exam.sheet_url.match(/[-\w]{25,}/)?.[0] || exam.sheet_url.trim()) : "";
       const realCached = sheetId ? examScoreCache.get(sheetId) : null;
       if (realCached && realCached.students && Array.isArray(realCached.students) && realCached.students.length > 0) {
-        const realSt = realCached.students;
-        const realMax = (realCached.totalMaxPoints && realCached.totalMaxPoints > 0) ? realCached.totalMaxPoints : (exam.question_count || 20);
-        const passThreshold = Math.ceil(realMax * 0.5);
+        const rawRealSt: any[] = realCached.students;
+        const realSt = rawRealSt.filter((s: any) => {
+          if (!s || typeof s !== "object") return false;
+          let hasVal = false;
+          for (const k in s) {
+            if (k !== "_rowIndex" && s[k] !== undefined && s[k] !== null && String(s[k]).trim() !== "") {
+              hasVal = true; break;
+            }
+          }
+          return hasVal;
+        });
+
+        let detectedMaxEarned = 0;
         const scores = realSt.map((s: any) => {
           let raw: any = s["คะแนน"] ?? s["score"] ?? s["คะแนนรวม"];
           if (raw === undefined) {
             for (const k in s) {
-              if (k.toLowerCase().trim() === "คะแนน" || k.toLowerCase().trim() === "score") { raw = s[k]; break; }
+              if (k.toLowerCase().includes("คะแนน") || k.toLowerCase().includes("score")) { raw = s[k]; break; }
             }
           }
           if (raw === undefined || raw === null || raw === "") return 0;
           const p = String(raw).split("/")[0];
           const n = parseFloat(p);
-          return isNaN(n) ? 0 : n;
+          const val = isNaN(n) ? 0 : n;
+          if (val > detectedMaxEarned) detectedMaxEarned = val;
+          return val;
         });
+
+        let realMax = (realCached.totalMaxPoints && realCached.totalMaxPoints > 0) ? realCached.totalMaxPoints : (exam.question_count || 20);
+        if (detectedMaxEarned > realMax) {
+          realMax = Math.max(detectedMaxEarned, exam.question_count || 0);
+        }
+        const passThreshold = Math.ceil(realMax * 0.5);
         const realCount = realSt.length;
         const realAvgNum = realCount > 0 ? (scores.reduce((a: number, b: number) => a + b, 0) / realCount) : 0;
-        const realAvgPct = Math.round((realAvgNum / realMax) * 100 * 10) / 10;
+        const realAvgPct = Math.min(100, Math.round((realAvgNum / realMax) * 100 * 10) / 10);
         const realPassCount = scores.filter((sc: number) => sc >= passThreshold).length;
         const realPassRate = realCount > 0 ? Math.round((realPassCount / realCount) * 100 * 10) / 10 : 0;
 

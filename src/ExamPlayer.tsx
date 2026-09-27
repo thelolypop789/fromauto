@@ -339,6 +339,31 @@ export default function ExamPlayer({ examIdProp, onExit }: ExamPlayerProps) {
     }
   };
 
+  // Handle subjective text answer
+  const handleTextAnswer = (questionId: string, text: string) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [questionId]: text,
+    }));
+
+    if (sessionId) {
+      supabase
+        .from("student_answers")
+        .upsert(
+          {
+            session_id: sessionId,
+            question_id: questionId,
+            selected_choice_id: null,
+            text_answer: text,
+            is_correct: null,
+            earned_points: 0,
+          },
+          { onConflict: "session_id,question_id" }
+        )
+        .then();
+    }
+  };
+
   // Toggle Flag
   const toggleFlag = (qId: string) => {
     setFlagged((prev) => {
@@ -1099,60 +1124,115 @@ export default function ExamPlayer({ examIdProp, onExit }: ExamPlayerProps) {
                   {currentQuestion.content}
                 </div>
 
-                {/* Choices List */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "28px" }}>
-                  {currentQuestion.question_choices.map((choice, cIdx) => {
-                    const isSelected = selectedChoiceId === choice.id;
-                    const letter = ["ก", "ข", "ค", "ง", "จ"][cIdx] || `${cIdx + 1}`;
+                {/* Choices or Subjective Text Area */}
+                {(() => {
+                  const isSubjective =
+                    currentQuestion.type === "PARAGRAPH" ||
+                    currentQuestion.type === "SHORT_ANSWER" ||
+                    currentQuestion.type === "ESSAY" ||
+                    !currentQuestion.question_choices ||
+                    currentQuestion.question_choices.length === 0;
 
+                  if (isSubjective) {
+                    const textVal = answers[currentQuestion.id] || "";
                     return (
-                      <div
-                        key={choice.id}
-                        onClick={() => handleSelectChoice(currentQuestion.id, choice.id)}
-                        style={{
+                      <div style={{ marginBottom: "28px" }}>
+                        <div style={{
                           display: "flex",
+                          justifyContent: "space-between",
                           alignItems: "center",
-                          gap: "12px",
-                          padding: "14px 18px",
-                          borderRadius: "12px",
-                          border: isSelected ? "2px solid #B91C1C" : "1.5px solid #E2E8F0",
-                          background: isSelected ? "#FEF2F2" : "white",
-                          cursor: "pointer",
-                          transition: "all 0.15s ease",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: "28px",
-                            height: "28px",
-                            borderRadius: "50%",
-                            border: isSelected ? "2px solid #B91C1C" : "1.5px solid #CBD5E1",
-                            background: isSelected ? "#B91C1C" : "white",
-                            color: isSelected ? "white" : "var(--gray-700)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "13px",
-                            fontWeight: 800,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {letter}
+                          marginBottom: "8px"
+                        }}>
+                          <label style={{ fontSize: "14px", fontWeight: 700, color: "#1E293B" }}>
+                            ✍️ พิมพ์คำตอบของนักเรียน (ข้อสอบอัตนัย / บรรยาย):
+                          </label>
+                          <span style={{ fontSize: "12px", color: "var(--gray-500)" }}>
+                            {textVal.length} ตัวอักษร
+                          </span>
                         </div>
-                        <div
+                        <textarea
+                          rows={6}
+                          placeholder="พิมพ์คำตอบ / คำอธิบายของคุณที่นี่ (ระบบจะบันทึกคำตอบอัตโนมัติ)..."
+                          value={textVal}
+                          onChange={(e) => handleTextAnswer(currentQuestion.id, e.target.value)}
                           style={{
+                            width: "100%",
+                            padding: "14px 16px",
+                            borderRadius: "12px",
+                            border: textVal ? "2px solid #059669" : "2px solid #CBD5E1",
                             fontSize: "15px",
-                            color: isSelected ? "#991B1B" : "#1E293B",
-                            fontWeight: isSelected ? 700 : 500,
-                            lineHeight: 1.5,
+                            lineHeight: 1.6,
+                            fontFamily: "'Sarabun', sans-serif",
+                            outline: "none",
+                            transition: "border-color 0.2s",
+                            resize: "vertical",
+                            background: "white",
                           }}
-                        >
-                          {choice.content}
+                        />
+                        <div style={{ fontSize: "12px", color: textVal ? "#059669" : "#64748B", marginTop: "6px", display: "flex", alignItems: "center", gap: "4px" }}>
+                          <span>{textVal ? "✅" : "ℹ️"}</span>
+                          <span>{textVal ? "บันทึกคำตอบอัตโนมัติแล้ว" : "กรุณาพิมพ์คำตอบลงในช่องด้านบน"}</span>
                         </div>
                       </div>
                     );
-                  })}
-                </div>
+                  }
+
+                  return (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "28px" }}>
+                      {currentQuestion.question_choices.map((choice, cIdx) => {
+                        const isSelected = selectedChoiceId === choice.id;
+                        const letter = ["ก", "ข", "ค", "ง", "จ"][cIdx] || `${cIdx + 1}`;
+
+                        return (
+                          <div
+                            key={choice.id}
+                            onClick={() => handleSelectChoice(currentQuestion.id, choice.id)}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "12px",
+                              padding: "14px 18px",
+                              borderRadius: "12px",
+                              border: isSelected ? "2px solid #B91C1C" : "1.5px solid #E2E8F0",
+                              background: isSelected ? "#FEF2F2" : "white",
+                              cursor: "pointer",
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: "28px",
+                                height: "28px",
+                                borderRadius: "50%",
+                                border: isSelected ? "2px solid #B91C1C" : "1.5px solid #CBD5E1",
+                                background: isSelected ? "#B91C1C" : "white",
+                                color: isSelected ? "white" : "var(--gray-700)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "13px",
+                                fontWeight: 800,
+                                flexShrink: 0,
+                              }}
+                            >
+                              {letter}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: "15px",
+                                color: isSelected ? "#991B1B" : "#1E293B",
+                                fontWeight: isSelected ? 700 : 500,
+                                lineHeight: 1.5,
+                              }}
+                            >
+                              {choice.content}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
 
                 {/* Prev / Next Navigation Buttons */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #F1F5F9", paddingTop: "20px" }}>

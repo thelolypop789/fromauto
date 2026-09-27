@@ -18,6 +18,7 @@ interface StudentAnswer {
   id: string;
   question_id: string;
   selected_choice_id: string;
+  text_answer?: string;
   is_correct: boolean;
   earned_points: number;
 }
@@ -41,6 +42,7 @@ interface ExamQuestion {
   question_bank?: {
     id: string;
     content: string;
+    type?: string;
     question_choices: {
       id: string;
       content: string;
@@ -70,7 +72,24 @@ export default function LiveProctorModal({ exam, onClose }: LiveProctorModalProp
   const [selectedSessionForDetail, setSelectedSessionForDetail] = useState<ExamSession | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
+  // Subjective grading state
+  const [manualScores, setManualScores] = useState<Record<string, number>>({});
+  const [savingQuestionId, setSavingQuestionId] = useState<string | null>(null);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+
   const examLink = `${window.location.origin}/?exam_id=${exam.id}`;
+
+  // Initialize manualScores when student detail modal opens
+  useEffect(() => {
+    if (selectedSessionForDetail) {
+      const initial: Record<string, number> = {};
+      (selectedSessionForDetail.student_answers || []).forEach((ans) => {
+        initial[ans.question_id] = ans.earned_points ?? 0;
+      });
+      setManualScores(initial);
+      setSaveSuccessMsg(null);
+    }
+  }, [selectedSessionForDetail?.id]);
 
   // Fetch session data & questions
   useEffect(() => {
@@ -99,6 +118,7 @@ export default function LiveProctorModal({ exam, onClose }: LiveProctorModalProp
         question_bank (
           id,
           content,
+          type,
           question_choices (*)
         )
       `)
@@ -107,6 +127,75 @@ export default function LiveProctorModal({ exam, onClose }: LiveProctorModalProp
 
     if (data) {
       setExamQuestions(data as any);
+    }
+  };
+
+  const handleSaveManualScore = async (
+    session: ExamSession,
+    qId: string,
+    maxPoints: number,
+    points: number
+  ) => {
+    setSavingQuestionId(qId);
+    try {
+      const isCorrect = points >= maxPoints;
+      const ansRecord = (session.student_answers || []).find((a) => a.question_id === qId);
+
+      if (ansRecord?.id) {
+        const { error } = await supabase
+          .from("student_answers")
+          .update({
+            earned_points: points,
+            is_correct: isCorrect,
+          })
+          .eq("id", ansRecord.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("student_answers")
+          .insert({
+            session_id: session.id,
+            question_id: qId,
+            earned_points: points,
+            is_correct: isCorrect,
+            text_answer: "",
+          });
+        if (error) throw error;
+      }
+
+      // Update in memory session detail immediately
+      setSelectedSessionForDetail((prev) => {
+        if (!prev) return null;
+        const currentAns = [...(prev.student_answers || [])];
+        const idx = currentAns.findIndex((a) => a.question_id === qId);
+        if (idx >= 0) {
+          currentAns[idx] = {
+            ...currentAns[idx],
+            earned_points: points,
+            is_correct: isCorrect,
+          };
+        } else {
+          currentAns.push({
+            id: `temp-${Date.now()}`,
+            question_id: qId,
+            selected_choice_id: "",
+            text_answer: "",
+            is_correct: isCorrect,
+            earned_points: points,
+          });
+        }
+        return { ...prev, student_answers: currentAns };
+      });
+
+      // Also refresh background sessions
+      await fetchSessions(false);
+
+      setSaveSuccessMsg(`บันทึกคะแนนข้อนี้สำเร็จ: ${points} / ${maxPoints} คะแนน`);
+      setTimeout(() => setSaveSuccessMsg(null), 3000);
+    } catch (err: any) {
+      alert("เกิดข้อผิดพลาดในการบันทึกคะแนน: " + err.message);
+    } finally {
+      setSavingQuestionId(null);
     }
   };
 
@@ -574,17 +663,20 @@ export default function LiveProctorModal({ exam, onClose }: LiveProctorModalProp
                           type="button"
                           onClick={() => setSelectedSessionForDetail(s)}
                           style={{
-                            background: "#F1F5F9",
-                            border: "1px solid #CBD5E1",
-                            color: "var(--gray-700)",
-                            padding: "4px 10px",
+                            background: "#EFF6FF",
+                            border: "1px solid #BFDBFE",
+                            color: "#1D4ED8",
+                            padding: "6px 12px",
                             borderRadius: "6px",
                             fontSize: "12px",
                             fontWeight: 700,
                             cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
                           }}
                         >
-                          🔍 ดูเฉลย/คำตอบ
+                          ✏️ ตรวจ/ดูคำตอบ
                         </button>
                       </td>
                     </tr>
@@ -645,13 +737,14 @@ export default function LiveProctorModal({ exam, onClose }: LiveProctorModalProp
           <div
             style={{
               background: "white",
-              maxWidth: "760px",
+              maxWidth: "780px",
               width: "100%",
-              maxHeight: "85vh",
+              maxHeight: "88vh",
               borderRadius: "16px",
               overflow: "hidden",
               display: "flex",
               flexDirection: "column",
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2)",
             }}
           >
             <div
@@ -666,10 +759,14 @@ export default function LiveProctorModal({ exam, onClose }: LiveProctorModalProp
             >
               <div>
                 <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 800 }}>
-                  รายละเอียดคำตอบของ: {selectedSessionForDetail.students?.first_name} {selectedSessionForDetail.students?.last_name}
+                  รายละเอียดคำตอบ: {selectedSessionForDetail.students?.first_name} {selectedSessionForDetail.students?.last_name}
                 </h3>
-                <div style={{ fontSize: "12px", opacity: 0.8, marginTop: "2px" }}>
-                  ห้อง {selectedSessionForDetail.students?.room} เลขที่ {selectedSessionForDetail.students?.number}
+                <div style={{ fontSize: "12.5px", opacity: 0.85, marginTop: "3px" }}>
+                  ห้อง {selectedSessionForDetail.students?.room} เลขที่ {selectedSessionForDetail.students?.number} • คะแนนรวม:{" "}
+                  <strong style={{ color: "#FDE047" }}>
+                    {(selectedSessionForDetail.student_answers || []).reduce((acc, a) => acc + (a.earned_points || 0), 0)}
+                  </strong>{" "}
+                  / {totalMaxScore} คะแนน
                 </div>
               </div>
               <button
@@ -688,6 +785,26 @@ export default function LiveProctorModal({ exam, onClose }: LiveProctorModalProp
             </div>
 
             <div style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
+              {saveSuccessMsg && (
+                <div
+                  style={{
+                    background: "#ECFDF5",
+                    color: "#065F46",
+                    border: "1px solid #A7F3D0",
+                    padding: "10px 14px",
+                    borderRadius: "8px",
+                    marginBottom: "16px",
+                    fontWeight: 700,
+                    fontSize: "13px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  ✅ {saveSuccessMsg}
+                </div>
+              )}
+
               {examQuestions.map((eq, qIdx) => {
                 const q = eq.question_bank;
                 if (!q) return null;
@@ -695,72 +812,266 @@ export default function LiveProctorModal({ exam, onClose }: LiveProctorModalProp
                 const ansRecord = (selectedSessionForDetail.student_answers || []).find(
                   (a) => a.question_id === q.id
                 );
-                const isCorrect = ansRecord?.is_correct ?? false;
+                const maxPoints = eq.points || 1;
+                const earnedPoints = ansRecord?.earned_points ?? 0;
+                const isSubjective =
+                  q.type === "PARAGRAPH" ||
+                  q.type === "SHORT_ANSWER" ||
+                  q.type === "ESSAY" ||
+                  !q.question_choices ||
+                  q.question_choices.length === 0 ||
+                  Boolean(ansRecord?.text_answer);
+
+                const currentScoreInput = manualScores[q.id] ?? earnedPoints;
+                const isCorrect = isSubjective ? earnedPoints >= maxPoints : (ansRecord?.is_correct ?? false);
                 const chosenChoiceId = ansRecord?.selected_choice_id;
 
                 return (
                   <div
                     key={q.id}
                     style={{
-                      background: isCorrect ? "#F0FDF4" : "#FEF2F2",
-                      border: `1.5px solid ${isCorrect ? "#BBF7D0" : "#FECACA"}`,
+                      background: isSubjective ? "#F8FAFC" : (isCorrect ? "#F0FDF4" : "#FEF2F2"),
+                      border: `1.5px solid ${isSubjective ? "#CBD5E1" : (isCorrect ? "#BBF7D0" : "#FECACA")}`,
                       borderRadius: "12px",
-                      padding: "14px 16px",
-                      marginBottom: "14px",
+                      padding: "16px",
+                      marginBottom: "16px",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                      <strong style={{ fontSize: "14px", color: isCorrect ? "#166534" : "#991B1B" }}>
-                        ข้อ {qIdx + 1}: {isCorrect ? "✅ ถูกต้อง (+1)" : "❌ ผิด (0 คะแนน)"}
-                      </strong>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <strong style={{ fontSize: "15px", color: isSubjective ? "#0F172A" : (isCorrect ? "#166534" : "#991B1B") }}>
+                          ข้อ {qIdx + 1}
+                        </strong>
+                        {isSubjective ? (
+                          <span
+                            style={{
+                              background: "#FEF3C7",
+                              color: "#B45309",
+                              border: "1px solid #FDE68A",
+                              padding: "2px 8px",
+                              borderRadius: "6px",
+                              fontSize: "12px",
+                              fontWeight: 700,
+                            }}
+                          >
+                            ✍️ ข้อสอบอัตนัย / บรรยาย
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              background: isCorrect ? "#DCFCE7" : "#FEE2E2",
+                              color: isCorrect ? "#15803D" : "#B91C1C",
+                              padding: "2px 8px",
+                              borderRadius: "6px",
+                              fontSize: "12px",
+                              fontWeight: 700,
+                            }}
+                          >
+                            {isCorrect ? `✅ ถูกต้อง (+${maxPoints})` : "❌ ผิด (0 คะแนน)"}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: "13px", fontWeight: 700, color: "#475569" }}>
+                        คะแนนที่ได้:{" "}
+                        <span style={{ color: earnedPoints > 0 ? "#16A34A" : "#64748B", fontSize: "15px" }}>
+                          {earnedPoints}
+                        </span>{" "}
+                        / {maxPoints} คะแนน
+                      </div>
                     </div>
 
-                    <div style={{ fontSize: "14px", color: "#1E293B", marginBottom: "12px" }}>
+                    <div style={{ fontSize: "14.5px", color: "#1E293B", marginBottom: "14px", lineHeight: 1.5 }}>
                       {q.content}
                     </div>
 
-                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      {q.question_choices.map((c) => {
-                        const isChosen = c.id === chosenChoiceId;
-                        const isAnswerKey = c.is_correct;
-
-                        let choiceBg = "white";
-                        let choiceBorder = "1px solid #E2E8F0";
-                        let badge = null;
-
-                        if (isAnswerKey) {
-                          choiceBg = "#DCFCE7";
-                          choiceBorder = "1.5px solid #22C55E";
-                          badge = <span style={{ color: "#16A34A", fontWeight: 700 }}>[เฉลยที่ถูกต้อง]</span>;
-                        }
-                        if (isChosen && !isAnswerKey) {
-                          choiceBg = "#FEE2E2";
-                          choiceBorder = "1.5px solid #EF4444";
-                          badge = <span style={{ color: "#DC2626", fontWeight: 700 }}>[คำตอบที่นักเรียนเลือก]</span>;
-                        } else if (isChosen && isAnswerKey) {
-                          badge = <span style={{ color: "#16A34A", fontWeight: 700 }}>[นักเรียนตอบถูก ✓]</span>;
-                        }
-
-                        return (
+                    {isSubjective ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        <div
+                          style={{
+                            background: "#F1F5F9",
+                            border: "1px solid #E2E8F0",
+                            borderRadius: "8px",
+                            padding: "12px",
+                          }}
+                        >
+                          <div style={{ fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "6px" }}>
+                            💬 คำตอบที่นักเรียนพิมพ์ส่งมา:
+                          </div>
                           <div
-                            key={c.id}
                             style={{
-                              padding: "8px 12px",
+                              fontSize: "14px",
+                              color: ansRecord?.text_answer ? "#0F172A" : "#94A3B8",
+                              fontStyle: ansRecord?.text_answer ? "normal" : "italic",
+                              background: "white",
+                              padding: "10px 12px",
                               borderRadius: "6px",
-                              background: choiceBg,
-                              border: choiceBorder,
-                              fontSize: "13px",
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
+                              border: "1px solid #CBD5E1",
+                              minHeight: "44px",
+                              whiteSpace: "pre-wrap",
+                              wordBreak: "break-word",
                             }}
                           >
-                            <span>{c.content}</span>
-                            {badge}
+                            {ansRecord?.text_answer ? ansRecord.text_answer : "(นักเรียนไม่ได้พิมพ์คำตอบ หรือยังไม่ได้ส่ง)"}
                           </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+
+                        {/* Grading Controls */}
+                        <div
+                          style={{
+                            background: "#FEFCE8",
+                            border: "1.5px solid #FEF08A",
+                            borderRadius: "8px",
+                            padding: "12px 14px",
+                            display: "flex",
+                            flexWrap: "wrap",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: "10px",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                            <span style={{ fontSize: "13px", fontWeight: 700, color: "#854D0E" }}>
+                              ✏️ ให้คะแนน (เต็ม {maxPoints}):
+                            </span>
+                            <input
+                              type="number"
+                              min={0}
+                              max={maxPoints}
+                              step={0.5}
+                              value={currentScoreInput}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value) || 0;
+                                setManualScores((prev) => ({ ...prev, [q.id]: Math.min(maxPoints, Math.max(0, val)) }));
+                              }}
+                              style={{
+                                width: "70px",
+                                padding: "6px 8px",
+                                borderRadius: "6px",
+                                border: "1.5px solid #CA8A04",
+                                fontWeight: 800,
+                                fontSize: "15px",
+                                textAlign: "center",
+                                color: "#854D0E",
+                                background: "white",
+                              }}
+                            />
+                            <div style={{ display: "flex", gap: "4px" }}>
+                              <button
+                                type="button"
+                                onClick={() => setManualScores((prev) => ({ ...prev, [q.id]: 0 }))}
+                                style={{
+                                  padding: "4px 8px",
+                                  fontSize: "11px",
+                                  background: "#F1F5F9",
+                                  border: "1px solid #CBD5E1",
+                                  borderRadius: "4px",
+                                  cursor: "pointer",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                0
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setManualScores((prev) => ({ ...prev, [q.id]: maxPoints / 2 }))}
+                                style={{
+                                  padding: "4px 8px",
+                                  fontSize: "11px",
+                                  background: "#FEF3C7",
+                                  border: "1px solid #FDE68A",
+                                  borderRadius: "4px",
+                                  cursor: "pointer",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                ครึ่งหนึ่ง ({maxPoints / 2})
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setManualScores((prev) => ({ ...prev, [q.id]: maxPoints }))}
+                                style={{
+                                  padding: "4px 8px",
+                                  fontSize: "11px",
+                                  background: "#DCFCE7",
+                                  border: "1px solid #86EFAC",
+                                  borderRadius: "4px",
+                                  cursor: "pointer",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                เต็ม ({maxPoints})
+                              </button>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            disabled={savingQuestionId === q.id}
+                            onClick={() => handleSaveManualScore(selectedSessionForDetail, q.id, maxPoints, currentScoreInput)}
+                            style={{
+                              background: "#0284C7",
+                              color: "white",
+                              border: "none",
+                              padding: "7px 16px",
+                              borderRadius: "6px",
+                              fontWeight: 700,
+                              fontSize: "13px",
+                              cursor: savingQuestionId === q.id ? "not-allowed" : "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+                            }}
+                          >
+                            {savingQuestionId === q.id ? "กำลังบันทึก..." : "💾 บันทึกคะแนนข้อนี้"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                        {q.question_choices.map((c) => {
+                          const isChosen = c.id === chosenChoiceId;
+                          const isAnswerKey = c.is_correct;
+
+                          let choiceBg = "white";
+                          let choiceBorder = "1px solid #E2E8F0";
+                          let badge = null;
+
+                          if (isAnswerKey) {
+                            choiceBg = "#DCFCE7";
+                            choiceBorder = "1.5px solid #22C55E";
+                            badge = <span style={{ color: "#16A34A", fontWeight: 700 }}>[เฉลยที่ถูกต้อง]</span>;
+                          }
+                          if (isChosen && !isAnswerKey) {
+                            choiceBg = "#FEE2E2";
+                            choiceBorder = "1.5px solid #EF4444";
+                            badge = <span style={{ color: "#DC2626", fontWeight: 700 }}>[คำตอบที่นักเรียนเลือก]</span>;
+                          } else if (isChosen && isAnswerKey) {
+                            badge = <span style={{ color: "#16A34A", fontWeight: 700 }}>[นักเรียนตอบถูก ✓]</span>;
+                          }
+
+                          return (
+                            <div
+                              key={c.id}
+                              style={{
+                                padding: "8px 12px",
+                                borderRadius: "6px",
+                                background: choiceBg,
+                                border: choiceBorder,
+                                fontSize: "13px",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                              }}
+                            >
+                              <span>{c.content}</span>
+                              {badge}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}

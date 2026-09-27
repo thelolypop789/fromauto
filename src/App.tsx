@@ -2599,10 +2599,21 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
     const topChoice = sortedChoices[0] || ["-", 0];
     const topChoicePct = totalResponses > 0 ? (topChoice[1] / totalResponses) * 100 : 0;
 
+    // ตรวจจับลักษณะข้อสอบว่าเป็น ข้อสอบอัตนัย / เขียนบรรยาย หรือไม่
+    const avgLen = totalResponses > 0 ? (responses.reduce((sum, r) => sum + r.length, 0) / totalResponses) : 0;
+    const isSubjectiveKeyword = /(อัตนัย|บรรยาย|อธิบาย|แสดงวิธีทำ|จงเขียน|ความคิดเห็น|essay|paragraph|ข้อเขียน)/i.test(colName);
+    const isHighVariance = totalResponses >= 4 && (sortedChoices.length / totalResponses) > 0.5 && avgLen > 15;
+    const isSubjective = isSubjectiveKeyword || avgLen > 28 || isHighVariance;
+
     let difficultyLabel = "ปานกลาง (เหมาะสม)";
     let difficultyColor = "#D97706";
     let difficultyBg = "#FFFBEB";
-    if (topChoicePct >= 70) {
+
+    if (isSubjective) {
+      difficultyLabel = "ข้อสอบอัตนัย (รอครูตรวจให้คะแนน)";
+      difficultyColor = "#7C3AED";
+      difficultyBg = "#F5F3FF";
+    } else if (topChoicePct >= 70) {
       difficultyLabel = "ค่อนข้างง่าย (เข้าใจดี)";
       difficultyColor = "#047857";
       difficultyBg = "#ECFDF5";
@@ -2616,9 +2627,11 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
       index: idx + 1,
       title: colName,
       totalResponses,
-      topChoice: topChoice[0],
+      isSubjective,
+      avgLen: Math.round(avgLen),
+      topChoice: isSubjective ? `คำตอบเขียนบรรยาย (${sortedChoices.length} รูปแบบ)` : topChoice[0],
       topChoiceCount: topChoice[1],
-      topChoicePct,
+      topChoicePct: isSubjective ? 100 : topChoicePct,
       choices: sortedChoices,
       distinctCount: sortedChoices.length,
       difficultyLabel,
@@ -2729,12 +2742,16 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
           const mText = typeof mq === "string" ? mq : mq?.text;
           return mText && (qTitle === mText || qTitle.includes(mText) || mText.includes(qTitle));
         });
-        const isManual = Boolean(manualInfo);
+
+        const strAns = getSafeStr(answerVal);
+        const isSubjectiveKeyword = /(อัตนัย|บรรยาย|อธิบาย|แสดงวิธีทำ|จงเขียน|ความคิดเห็น|essay|paragraph|ข้อเขียน|เติมคำ)/i.test(qTitle);
+        const isLongText = strAns.length >= 25;
+        const isManual = Boolean(manualInfo) || isSubjectiveKeyword || isLongText;
         const guideline = (typeof manualInfo === "object" ? manualInfo?.answerText : "") || "";
 
         return {
           title: qTitle,
-          answer: getSafeStr(answerVal),
+          answer: strAns,
           isManual,
           guideline
         };
@@ -3401,12 +3418,33 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
                               {q.totalResponses} คน
                             </td>
                             <td style={{padding: "10px 12px", color: "var(--gray-700)", fontSize: 12.5}}>
-                              <div style={{overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 210}}>
-                                {q.topChoice}
-                              </div>
+                              {q.isSubjective ? (
+                                <span style={{
+                                  background: "#F5F3FF",
+                                  color: "#7C3AED",
+                                  border: "1px solid #DDD6FE",
+                                  padding: "2px 8px",
+                                  borderRadius: 8,
+                                  fontWeight: 700,
+                                  fontSize: 11.5,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 4
+                                }}>
+                                  ✍️ อัตนัย ({q.distinctCount} รูปแบบ)
+                                </span>
+                              ) : (
+                                <div style={{overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 210}}>
+                                  {q.topChoice}
+                                </div>
+                              )}
                             </td>
                             <td style={{padding: "10px 12px", textAlign: "center", fontWeight: 700, color: q.difficultyColor}}>
-                              {q.topChoicePct.toFixed(1)}%
+                              {q.isSubjective ? (
+                                <span style={{fontSize: 11, color: "#7C3AED", fontWeight: 700}}>เขียนบรรยาย</span>
+                              ) : (
+                                `${q.topChoicePct.toFixed(1)}%`
+                              )}
                             </td>
                             <td style={{padding: "10px 12px", textAlign: "center"}}>
                               <span style={{
@@ -3421,13 +3459,32 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
                               </span>
                             </td>
                             <td style={{padding: "10px 12px", textAlign: "center"}}>
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-secondary"
-                                onClick={() => setSelectedQuestionModal(q)}
-                                style={{fontSize: 11.5, padding: "3px 8px"}}>
-                                ดูแจกแจงตัวเลือก 🔍
-                              </button>
+                              <div style={{display: "flex", gap: 4, justifyContent: "center", flexWrap: "wrap"}}>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-secondary"
+                                  onClick={() => setSelectedQuestionModal(q)}
+                                  style={{fontSize: 11.5, padding: "3px 8px"}}>
+                                  {q.isSubjective ? "คำตอบนักเรียน 🔍" : "แจกแจงตัวเลือก 🔍"}
+                                </button>
+                                {q.isSubjective && (
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm"
+                                    onClick={() => setActiveTab("students")}
+                                    style={{
+                                      fontSize: 11,
+                                      padding: "3px 8px",
+                                      background: "#FEF3C7",
+                                      color: "#92400E",
+                                      border: "1px solid #F59E0B",
+                                      fontWeight: 700
+                                    }}
+                                    title="ไปยังหน้ารายชื่อเพื่อตรวจให้คะแนนนักเรียน">
+                                    ✏️ ให้คะแนน
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -3531,6 +3588,33 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
           {activeTab === "students" && (
             <div>
               <div className="card">
+                {/* Subjective Grading Info Banner */}
+                <div style={{
+                  background: "linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)",
+                  border: "1.5px solid #FCD34D",
+                  borderRadius: "10px",
+                  padding: "14px 18px",
+                  marginBottom: "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: "10px",
+                  boxShadow: "0 2px 8px rgba(245,158,11,0.15)"
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <span style={{ fontSize: "28px" }}>✍️</span>
+                    <div>
+                      <div style={{ fontSize: "14px", fontWeight: 800, color: "#92400E" }}>
+                        ระบบตรวจคำตอบรายคน & บันทึกคะแนนข้อสอบอัตนัย (In-App Manual Grading)
+                      </div>
+                      <div style={{ fontSize: "12.5px", color: "#B45309", marginTop: "2px" }}>
+                        คุณครูสามารถคลิกปุ่ม <strong>"✏️ ตรวจคำตอบ & ให้คะแนน"</strong> ในตารางด้านล่าง เพื่อเปิดดูคำตอบที่นักเรียนแต่ละคนพิมพ์ส่งมา ใส่คะแนนรายข้อ และกดบันทึกกลับไปยัง Google Sheet ได้ทันที
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 14}}>
                   <div>
                     <div className="card-title" style={{margin: 0}}>
@@ -3661,10 +3745,21 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
                               <td style={{padding: "10px 12px", textAlign: "center"}}>
                                 <button
                                   type="button"
-                                  className="btn btn-sm btn-secondary"
+                                  className="btn btn-sm"
                                   onClick={() => handleOpenGrading(s)}
-                                  style={{fontSize: 11.5}}>
-                                  ✏️ ตรวจ/แก้คะแนน
+                                  style={{
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    background: "#FEF3C7",
+                                    color: "#92400E",
+                                    border: "1px solid #F59E0B",
+                                    padding: "4px 10px",
+                                    borderRadius: "6px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px"
+                                  }}>
+                                  ✏️ ตรวจ/ให้คะแนน
                                 </button>
                               </td>
                             </tr>
@@ -3727,14 +3822,21 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
           <div className="card" style={{maxWidth: 580, width: "100%", margin: 0, padding: 24, maxHeight: "90vh", overflowY: "auto"}}>
             <div style={{display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16}}>
               <div>
-                <span style={{fontSize: 12, fontWeight: 700, color: "var(--crimson)", background: "var(--crimson-light)", padding: "2px 8px", borderRadius: 8}}>
-                  ข้อที่ {selectedQuestionModal.index}
-                </span>
+                <div style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 4}}>
+                  <span style={{fontSize: 12, fontWeight: 700, color: "var(--crimson)", background: "var(--crimson-light)", padding: "2px 8px", borderRadius: 8}}>
+                    ข้อที่ {selectedQuestionModal.index}
+                  </span>
+                  {selectedQuestionModal.isSubjective && (
+                    <span style={{fontSize: 11.5, fontWeight: 700, color: "#7C3AED", background: "#F5F3FF", border: "1px solid #DDD6FE", padding: "2px 8px", borderRadius: 8}}>
+                      ✍️ ข้อสอบอัตนัย / เขียนบรรยาย
+                    </span>
+                  )}
+                </div>
                 <h3 style={{fontSize: 16, fontWeight: 700, color: "var(--gray-900)", marginTop: 6, marginBottom: 4}}>
                   {selectedQuestionModal.title}
                 </h3>
                 <div style={{fontSize: 12, color: "var(--gray-500)"}}>
-                  ผู้ตอบทั้งหมด {selectedQuestionModal.totalResponses} คน • ตัวเลือกที่แตกต่าง {selectedQuestionModal.distinctCount} แบบ
+                  ผู้ตอบทั้งหมด {selectedQuestionModal.totalResponses} คน • รูปแบบคำตอบที่นักเรียนพิมพ์ {selectedQuestionModal.distinctCount} แบบ
                 </div>
               </div>
               <button
@@ -3745,6 +3847,21 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
               </button>
             </div>
 
+            {selectedQuestionModal.isSubjective && (
+              <div style={{
+                background: "#FFFBEB",
+                border: "1.5px solid #FCD34D",
+                borderRadius: 8,
+                padding: "10px 14px",
+                fontSize: 12,
+                color: "#92400E",
+                marginBottom: 14,
+                lineHeight: 1.5
+              }}>
+                💡 <strong>คำชี้แจง:</strong> รายการด้านล่างคือคำตอบที่นักเรียนแต่ละคนพิมพ์ตอบ (ไม่ใช่เฉลยของแบบทดสอบ) คุณครูสามารถกดปุ่ม <strong>"✏️ ไปตรวจข้อสอบอัตนัย"</strong> ด้านล่างเพื่อดูคำตอบรายคนและใส่คะแนนได้
+              </div>
+            )}
+
             <div style={{display: "grid", gap: 10, marginTop: 16}}>
               {selectedQuestionModal.choices.map(([choiceText, count]: [string, number], cIdx: number) => {
                 const choicePct = selectedQuestionModal.totalResponses > 0 ? (count / selectedQuestionModal.totalResponses) * 100 : 0;
@@ -3753,16 +3870,16 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
                   <div
                     key={cIdx}
                     style={{
-                      background: isTop ? "#F0FDF4" : "var(--gray-50)",
-                      border: isTop ? "1.5px solid #86EFAC" : "1px solid var(--gray-200)",
+                      background: isTop && !selectedQuestionModal.isSubjective ? "#F0FDF4" : "var(--gray-50)",
+                      border: isTop && !selectedQuestionModal.isSubjective ? "1.5px solid #86EFAC" : "1px solid var(--gray-200)",
                       borderRadius: 8,
                       padding: "10px 14px"
                     }}>
                     <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4}}>
-                      <span style={{fontSize: 13, fontWeight: isTop ? 700 : 500, color: isTop ? "#065F46" : "var(--gray-800)"}}>
-                        {choiceText || "(เว้นว่าง/ไม่ได้ตอบ)"} {isTop && "⭐"}
+                      <span style={{fontSize: 13, fontWeight: isTop && !selectedQuestionModal.isSubjective ? 700 : 500, color: isTop && !selectedQuestionModal.isSubjective ? "#065F46" : "var(--gray-800)"}}>
+                        {choiceText || "(เว้นว่าง/ไม่ได้ตอบ)"} {isTop && !selectedQuestionModal.isSubjective && "⭐"}
                       </span>
-                      <span style={{fontSize: 13, fontWeight: 700, color: isTop ? "#047857" : "var(--gray-700)"}}>
+                      <span style={{fontSize: 13, fontWeight: 700, color: isTop && !selectedQuestionModal.isSubjective ? "#047857" : "var(--gray-700)"}}>
                         {count} คน ({choicePct.toFixed(1)}%)
                       </span>
                     </div>
@@ -3770,7 +3887,7 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
                       <div style={{
                         height: "100%",
                         width: `${choicePct}%`,
-                        background: isTop ? "#10B981" : "#94A3B8",
+                        background: isTop && !selectedQuestionModal.isSubjective ? "#10B981" : "#94A3B8",
                         borderRadius: 3
                       }} />
                     </div>
@@ -3779,7 +3896,24 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
               })}
             </div>
 
-            <div style={{marginTop: 20, textAlign: "right"}}>
+            <div style={{marginTop: 20, display: "flex", justifyContent: "flex-end", gap: 10}}>
+              {selectedQuestionModal.isSubjective && (
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => {
+                    setSelectedQuestionModal(null);
+                    setActiveTab("students");
+                  }}
+                  style={{
+                    background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+                    color: "white",
+                    fontWeight: 700,
+                    padding: "7px 16px"
+                  }}>
+                  ✏️ ไปตรวจข้อสอบอัตนัยรายคน ↗
+                </button>
+              )}
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
@@ -5601,6 +5735,7 @@ function ScoreAnalyticsView({
                           <th style={{padding: "8px 10px", textAlign: "center"}}>คะแนนที่ได้</th>
                           <th style={{padding: "8px 10px", textAlign: "center"}}>ร้อยละ</th>
                           <th style={{padding: "8px 10px", textAlign: "center"}}>ผลการประเมิน</th>
+                          <th style={{padding: "8px 10px", textAlign: "center"}}>ตรวจคำตอบ</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -5630,6 +5765,28 @@ function ScoreAnalyticsView({
                                 }}>
                                   {isPass ? "✅ ผ่าน" : "❌ ปรับปรุง"}
                                 </span>
+                              </td>
+                              <td style={{padding: "8px 10px", textAlign: "center"}}>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm"
+                                  onClick={() => {
+                                    setSelectedStudentScorecard(null);
+                                    setSelectedExamId(e.examId);
+                                    setAnalyticsMode("single_exam");
+                                  }}
+                                  style={{
+                                    fontSize: 11,
+                                    padding: "3px 8px",
+                                    background: "#FEF3C7",
+                                    color: "#92400E",
+                                    border: "1px solid #F59E0B",
+                                    fontWeight: 700,
+                                    borderRadius: 6,
+                                    cursor: "pointer"
+                                  }}>
+                                  ✏️ ตรวจคำตอบ ↗
+                                </button>
                               </td>
                             </tr>
                           );
@@ -7196,8 +7353,25 @@ export default function App() {
               <button
                 className={`sidebar-item ${tab==="sheets"?"active":""}`}
                 onClick={() => { setTab("sheets"); setSelectedGrade("all"); setSelectedRoom("all"); }}
-                style={tab==="sheets"?{background:"var(--crimson-light)",color:"var(--crimson)",fontWeight:700}:{}}>
-                <SheetIcon /> 📊 ผลการสอบ & ชีตคะแนน
+                style={tab==="sheets"?{
+                  background: "linear-gradient(135deg, #1E293B 0%, #0F172A 100%)",
+                  color: "#FDE047",
+                  fontWeight: 700,
+                  boxShadow: "0 2px 8px rgba(15,23,42,.3)"
+                }:{}}>
+                <SheetIcon /> 📋 ตรวจคำตอบ & ชีตคะแนน
+                <span style={{
+                  marginLeft: "auto",
+                  background: tab==="sheets" ? "rgba(253,224,71,0.2)" : "#FEF3C7",
+                  color: tab==="sheets" ? "#FEF08A" : "#92400E",
+                  fontSize: 10,
+                  fontWeight: 800,
+                  padding: "2px 7px",
+                  borderRadius: 10,
+                  border: "1px solid #FCD34D"
+                }}>
+                  ✍️ ตรวจรายคน
+                </span>
               </button>
 
               {/* Classroom Sub-Menu in Sidebar */}

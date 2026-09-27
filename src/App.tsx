@@ -4027,6 +4027,7 @@ function ScoreAnalyticsView({
   const [distributionMode, setDistributionMode] = useState<"unique_students" | "submissions">("unique_students");
 
   // ตัวกรองและการแสดงผลวิเคราะห์รายบุคคล (อ่อน / เก่ง / ยอดเยี่ยม รายวิชา)
+  const [showStudentDiagnosticsModal, setShowStudentDiagnosticsModal] = useState<boolean>(false);
   const [selectedTierFilter, setSelectedTierFilter] = useState<string>("all");
   const [selectedStudentRoom, setSelectedStudentRoom] = useState<string>("all");
   const [studentSearchTerm, setStudentSearchTerm] = useState<string>("");
@@ -4860,7 +4861,8 @@ function ScoreAnalyticsView({
                   <div
                     key={b.level}
                     onClick={() => {
-                      setSelectedTierFilter(prev => prev === b.level ? "all" : b.level);
+                      setSelectedTierFilter(b.level);
+                      setShowStudentDiagnosticsModal(true);
                     }}
                     style={{
                       background: b.bg,
@@ -4910,39 +4912,113 @@ function ScoreAnalyticsView({
                       alignItems: "center",
                       justifyContent: "space-between"
                     }}>
-                      <span>{isSelected ? "✓ กำลังกรองดูนักเรียนกลุ่มนี้" : "🔍 คลิกดูรายคน"}</span>
+                      <span>🔍 คลิกดูรายคน</span>
                       <span>{b.count} {activeUnit} →</span>
                     </div>
                   </div>
                 );
               })}
             </div>
+
+            {/* Quick Action Button to Open Student Diagnostics */}
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 10,
+              marginTop: 14,
+              paddingTop: 12,
+              borderTop: "1px dashed var(--gray-200)"
+            }}>
+              <div style={{fontSize: 12, color: "var(--gray-500)"}}>
+                💡 คลิกที่การ์ดระดับคะแนนใดก็ได้ หรือกดปุ่มด้านขวา เพื่อเปิดหน้าต่างดูจุดเด่น-จุดอ่อนนักเรียนรายบุคคล
+              </div>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => {
+                  setSelectedTierFilter("all");
+                  setShowStudentDiagnosticsModal(true);
+                }}
+                style={{
+                  background: "linear-gradient(135deg, #1E40AF 0%, #2563EB 100%)",
+                  color: "white",
+                  fontWeight: 700,
+                  fontSize: 12.5,
+                  padding: "7px 16px",
+                  borderRadius: "var(--radius)",
+                  boxShadow: "0 2px 6px rgba(37,99,235,0.25)"
+                }}>
+                👤 ดูวิเคราะห์นักเรียนรายบุคคล ({schoolwideData.uniqueStudentsTotal} คน) →
+              </button>
+            </div>
           </div>
 
 
           {/* ========================================================================= */}
-          {/* INDIVIDUAL STUDENT LEARNING DIAGNOSTICS & PROFILE (อ่อน / เก่ง / ยอดเยี่ยม รายวิชา) */}
+          {/* MODAL: INDIVIDUAL STUDENT LEARNING DIAGNOSTICS & PROFILE (อ่อน / เก่ง / ยอดเยี่ยม รายวิชา) */}
           {/* ========================================================================= */}
-          <div className="card" style={{marginBottom: 20}}>
+          {showStudentDiagnosticsModal && (
+            <div style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0,0,0,0.5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9998,
+              padding: 16
+            }}>
+              <div className="card" style={{
+                maxWidth: 1080,
+                width: "100%",
+                margin: 0,
+                padding: 24,
+                maxHeight: "92vh",
+                overflowY: "auto",
+                boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
+                borderTop: "4px solid var(--crimson)"
+              }}>
             <div style={{display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 14}}>
               <div>
-                <div className="card-title" style={{margin: 0, display: "flex", alignItems: "center", gap: 8}}>
-                  <span>👤 รายชื่อและการวิเคราะห์ศักยภาพนักเรียนรายบุคคล (Individual Student Diagnostics)</span>
+                <div className="card-title" style={{margin: 0, display: "flex", alignItems: "center", gap: 8, fontSize: 18}}>
+                  <span>👤 วิเคราะห์ศักยภาพนักเรียนรายบุคคล (อ่อน / เก่ง / ยอดเยี่ยม รายวิชา)</span>
                 </div>
                 <div className="card-sub" style={{marginTop: 4}}>
                   แสดงข้อมูลเจาะลึกนักเรียนแต่ละคน: <strong>วิชาที่ยอดเยี่ยม/เด่นที่สุด</strong> และ <strong>วิชาที่อ่อน/ควรได้รับการพัฒนาเร่งด่วน</strong> จากผลการสอบจริง
                 </div>
               </div>
 
-              {selectedTierFilter !== "all" && (
+              <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                {selectedTierFilter !== "all" && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setSelectedTierFilter("all")}
+                    style={{fontSize: 12, fontWeight: 700}}>
+                    ✕ ดูนักเรียนทุกระดับ
+                  </button>
+                )}
                 <button
                   type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setSelectedTierFilter("all")}
-                  style={{fontSize: 12, fontWeight: 700}}>
-                  ✕ ล้างตัวกรองระดับ (แสดงนักเรียนทุกคน {schoolwideData.uniqueStudentsTotal} คน)
+                  onClick={() => setShowStudentDiagnosticsModal(false)}
+                  style={{
+                    background: "var(--gray-100)",
+                    border: "1px solid var(--gray-200)",
+                    borderRadius: 8,
+                    padding: "6px 12px",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    color: "var(--gray-700)"
+                  }}>
+                  ✕ ปิดหน้าต่าง
                 </button>
-              )}
+              </div>
             </div>
 
             {/* Filter Bar: Tier, Classroom, Search, Sort */}
@@ -5261,7 +5337,19 @@ function ScoreAnalyticsView({
                 </div>
               );
             })()}
-          </div>
+
+                <div style={{marginTop: 18, textAlign: "right"}}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setShowStudentDiagnosticsModal(false)}
+                    style={{fontWeight: 700}}>
+                    ✕ ปิดหน้าต่างกลับสู่ภาพรวม 8 กลุ่มสาระฯ
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Modal: สมุดพกและประวัติผลการสอบนักเรียนรายบุคคล (Comprehensive Scorecard Modal) */}
           {selectedStudentScorecard && (

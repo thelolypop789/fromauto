@@ -4026,6 +4026,13 @@ function ScoreAnalyticsView({
   // Toggle ระหว่างการจำแนกตามรายบุคคล (Unique Students) VS จำแนกตามการส่งข้อสอบ (Exam Submissions)
   const [distributionMode, setDistributionMode] = useState<"unique_students" | "submissions">("unique_students");
 
+  // ตัวกรองและการแสดงผลวิเคราะห์รายบุคคล (อ่อน / เก่ง / ยอดเยี่ยม รายวิชา)
+  const [selectedTierFilter, setSelectedTierFilter] = useState<string>("all");
+  const [selectedStudentRoom, setSelectedStudentRoom] = useState<string>("all");
+  const [studentSearchTerm, setStudentSearchTerm] = useState<string>("");
+  const [studentSortBy, setStudentSortBy] = useState<"pct_desc" | "pct_asc" | "no" | "name">("pct_desc");
+  const [selectedStudentScorecard, setSelectedStudentScorecard] = useState<any>(null);
+
   // Background Batch Progressive Loading State
   const [batchProgress, setBatchProgress] = useState({
     loaded: 0,
@@ -4438,6 +4445,54 @@ function ScoreAnalyticsView({
     const overallSubmissionPassRate = totalSubmissionsCount > 0 ? ((passedSubmissionsCount / totalSubmissionsCount) * 100) : 0;
     const overallSubmissionLevel = calculateScoreLevel(overallSubmissionAvgPct, 100);
 
+    // สร้างรายการวิเคราะห์ผลสัมฤทธิ์นักเรียนรายบุคคล (อ่อน / เก่ง / ยอดเยี่ยม)
+    const uniqueStudentsList: any[] = [];
+    uniqueStudentsMap.forEach(st => {
+      if (st.exams.length === 0) return;
+      const meanPct = Math.round((st.exams.reduce((sum, e) => sum + e.pct, 0) / st.exams.length) * 10) / 10;
+      const stLevel = calculateScoreLevel(meanPct, 100);
+
+      // เรียงลำดับวิชาที่สอบจากคะแนนมากไปน้อย
+      const sortedExams = [...st.exams].sort((a, b) => b.pct - a.pct);
+      
+      // วิชาที่ยอดเยี่ยม / เด่นที่สุด (คะแนน >= 70% หรือวิชาที่ได้คะแนนสูงสุด)
+      const topStrengths = sortedExams.filter(e => e.pct >= 70);
+      const displayedStrengths = topStrengths.length > 0 ? topStrengths.slice(0, 3) : sortedExams.slice(0, 1);
+
+      // วิชาที่อ่อน / ต้องพัฒนาเร่งด่วน (คะแนน < 50%)
+      const weaknesses = sortedExams.filter(e => e.pct < 50).reverse();
+      const displayedWeaknesses = weaknesses.length > 0 ? weaknesses.slice(0, 3) : [];
+
+      // สรุปค่าเฉลี่ยตาม 8 กลุ่มสาระฯ สำหรับนักเรียนคนนี้
+      const subjectGroupMap: Record<string, { totalEarned: number, totalMax: number, count: number }> = {};
+      st.exams.forEach(e => {
+        if (!subjectGroupMap[e.subjectId]) {
+          subjectGroupMap[e.subjectId] = { totalEarned: 0, totalMax: 0, count: 0 };
+        }
+        subjectGroupMap[e.subjectId].totalEarned += e.earned;
+        subjectGroupMap[e.subjectId].totalMax += e.total;
+        subjectGroupMap[e.subjectId].count += 1;
+      });
+
+      const subjectGroupBreakdown = Object.entries(subjectGroupMap).map(([sgId, v]) => {
+        const sg = SUBJECT_GROUPS.find(g => g.id === sgId) || { id: sgId, name: sgId, shortName: sgId, icon: "📚", color: "#475569" };
+        const avgPct = v.totalMax > 0 ? Math.round((v.totalEarned / v.totalMax) * 100 * 10) / 10 : 0;
+        return { ...sg, avgPct, count: v.count };
+      }).sort((a, b) => b.avgPct - a.avgPct);
+
+      uniqueStudentsList.push({
+        ...st,
+        meanPct,
+        level: stLevel,
+        totalExamsTaken: st.exams.length,
+        passedExamsCount: st.exams.filter(e => e.pct >= 50).length,
+        displayedStrengths,
+        displayedWeaknesses,
+        hasFailingSubjects: weaknesses.length > 0,
+        subjectGroupBreakdown
+      });
+    });
+
     return {
       processedExamsCount,
       uniqueStudentsTotal,
@@ -4452,7 +4507,8 @@ function ScoreAnalyticsView({
       overallSubmissionLevel,
       subjectStatsMap,
       gradeStatsMap,
-      examListWithStats
+      examListWithStats,
+      uniqueStudentsList
     };
   }, [history, batchTick]);
 
@@ -4799,16 +4855,25 @@ function ScoreAnalyticsView({
                 { level: "ต้องปรับปรุง", range: "ต่ำกว่า 50%", count: activeLevelCounts["ต้องปรับปรุง"], color: "#DC2626", bg: "#FEF2F2", border: "#FECACA", desc: "ต้องได้รับการสอนเสริมช่วยเหลือเร่งด่วน" },
               ].map(b => {
                 const pct = activeTotalCount > 0 ? (b.count / activeTotalCount) * 100 : 0;
+                const isSelected = selectedTierFilter === b.level;
                 return (
                   <div
                     key={b.level}
+                    onClick={() => {
+                      setSelectedTierFilter(prev => prev === b.level ? "all" : b.level);
+                    }}
                     style={{
                       background: b.bg,
-                      border: `1.5px solid ${b.border}`,
+                      border: isSelected ? `2.5px solid ${b.color}` : `1.5px solid ${b.border}`,
                       borderRadius: "var(--radius)",
                       padding: "16px 14px",
-                      position: "relative"
-                    }}>
+                      position: "relative",
+                      cursor: "pointer",
+                      boxShadow: isSelected ? `0 6px 16px rgba(0,0,0,0.12), 0 0 0 2px ${b.color}` : "none",
+                      transform: isSelected ? "translateY(-3px)" : "none",
+                      transition: "all .18s ease"
+                    }}
+                    title={`คลิกเพื่อกรองดูรายชื่อนักเรียนกลุ่ม "${b.level}" ด้านล่าง`}>
                     <div style={{display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4}}>
                       <span style={{fontWeight: 700, color: b.color, fontSize: 15}}>{b.level}</span>
                       <span style={{fontSize: 11.5, color: "var(--gray-600)", fontWeight: 600}}>{b.range}</span>
@@ -4832,8 +4897,21 @@ function ScoreAnalyticsView({
                         transition: "width .5s ease"
                       }} />
                     </div>
-                    <div style={{fontSize: 11, color: "var(--gray-600)", lineHeight: 1.3}}>
+                    <div style={{fontSize: 11, color: "var(--gray-600)", lineHeight: 1.3, marginBottom: 8}}>
                       {b.desc}
+                    </div>
+                    <div style={{
+                      paddingTop: 6,
+                      borderTop: "1px dashed rgba(0,0,0,0.12)",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: b.color,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between"
+                    }}>
+                      <span>{isSelected ? "✓ กำลังกรองดูนักเรียนกลุ่มนี้" : "🔍 คลิกดูรายคน"}</span>
+                      <span>{b.count} {activeUnit} →</span>
                     </div>
                   </div>
                 );
@@ -4841,6 +4919,512 @@ function ScoreAnalyticsView({
             </div>
           </div>
 
+
+          {/* ========================================================================= */}
+          {/* INDIVIDUAL STUDENT LEARNING DIAGNOSTICS & PROFILE (อ่อน / เก่ง / ยอดเยี่ยม รายวิชา) */}
+          {/* ========================================================================= */}
+          <div className="card" style={{marginBottom: 20}}>
+            <div style={{display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 14}}>
+              <div>
+                <div className="card-title" style={{margin: 0, display: "flex", alignItems: "center", gap: 8}}>
+                  <span>👤 รายชื่อและการวิเคราะห์ศักยภาพนักเรียนรายบุคคล (Individual Student Diagnostics)</span>
+                </div>
+                <div className="card-sub" style={{marginTop: 4}}>
+                  แสดงข้อมูลเจาะลึกนักเรียนแต่ละคน: <strong>วิชาที่ยอดเยี่ยม/เด่นที่สุด</strong> และ <strong>วิชาที่อ่อน/ควรได้รับการพัฒนาเร่งด่วน</strong> จากผลการสอบจริง
+                </div>
+              </div>
+
+              {selectedTierFilter !== "all" && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setSelectedTierFilter("all")}
+                  style={{fontSize: 12, fontWeight: 700}}>
+                  ✕ ล้างตัวกรองระดับ (แสดงนักเรียนทุกคน {schoolwideData.uniqueStudentsTotal} คน)
+                </button>
+              )}
+            </div>
+
+            {/* Filter Bar: Tier, Classroom, Search, Sort */}
+            <div style={{
+              background: "#F8FAFC",
+              border: "1.5px solid var(--gray-200)",
+              borderRadius: "var(--radius)",
+              padding: "14px 16px",
+              marginBottom: 16,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12
+            }}>
+              {/* Row 1: Filter by Performance Tier */}
+              <div style={{display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap"}}>
+                <span style={{fontSize: 12.5, fontWeight: 700, color: "var(--gray-700)"}}>🎯 ระดับคะแนน:</span>
+                {[
+                  { id: "all", label: "ทุกระดับ", count: schoolwideData.uniqueStudentsTotal, color: "var(--gray-700)", bg: "var(--gray-100)" },
+                  { id: "ดีเยี่ยม", label: "🌟 ดีเยี่ยม", count: activeLevelCounts["ดีเยี่ยม"], color: "#047857", bg: "#ECFDF5" },
+                  { id: "ดีมาก", label: "👍 ดีมาก", count: activeLevelCounts["ดีมาก"], color: "#059669", bg: "#F0FDF4" },
+                  { id: "ดี", label: "📘 ดี", count: activeLevelCounts["ดี"], color: "#1D4ED8", bg: "#EFF6FF" },
+                  { id: "ผ่านเกณฑ์", label: "📙 ผ่านเกณฑ์", count: activeLevelCounts["ผ่านเกณฑ์"], color: "#D97706", bg: "#FFFBEB" },
+                  { id: "ต้องปรับปรุง", label: "⚠️ ต้องปรับปรุง", count: activeLevelCounts["ต้องปรับปรุง"], color: "#DC2626", bg: "#FEF2F2" },
+                ].map(t => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setSelectedTierFilter(t.id)}
+                    style={{
+                      padding: "5px 12px",
+                      borderRadius: 20,
+                      fontSize: 12,
+                      fontWeight: selectedTierFilter === t.id ? 800 : 600,
+                      cursor: "pointer",
+                      border: selectedTierFilter === t.id ? `2px solid ${t.color}` : "1px solid var(--gray-300)",
+                      background: selectedTierFilter === t.id ? t.bg : "white",
+                      color: selectedTierFilter === t.id ? t.color : "var(--gray-700)",
+                      boxShadow: selectedTierFilter === t.id ? "0 2px 6px rgba(0,0,0,0.08)" : "none",
+                      transition: "all .15s"
+                    }}>
+                    {t.label} ({t.count})
+                  </button>
+                ))}
+              </div>
+
+              {/* Row 2: Classroom Dropdown, Search Input, Sort Dropdown */}
+              <div style={{display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap"}}>
+                {/* Classroom Filter */}
+                <div style={{display: "flex", alignItems: "center", gap: 6}}>
+                  <span style={{fontSize: 12.5, fontWeight: 700, color: "var(--gray-700)"}}>🏫 ห้อง:</span>
+                  <select
+                    value={selectedStudentRoom}
+                    onChange={e => setSelectedStudentRoom(e.target.value)}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: "var(--radius)",
+                      border: "1.5px solid var(--gray-200)",
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      outline: "none",
+                      background: "white"
+                    }}>
+                    <option value="all">ทุกห้องเรียน (ทั้งโรงเรียน)</option>
+                    {(() => {
+                      const roomsSet = new Set<string>();
+                      schoolwideData.uniqueStudentsList.forEach((s: any) => {
+                        if (s.room && s.room !== "ไม่ระบุห้อง") roomsSet.add(s.room);
+                      });
+                      return Array.from(roomsSet).sort().map(rm => (
+                        <option key={rm} value={rm}>{rm}</option>
+                      ));
+                    })()}
+                  </select>
+                </div>
+
+                {/* Search Box */}
+                <div style={{flex: 1, minWidth: 200}}>
+                  <input
+                    type="text"
+                    placeholder="🔍 ค้นหาชื่อนักเรียน หรือ เลขที่..."
+                    value={studentSearchTerm}
+                    onChange={e => setStudentSearchTerm(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "6px 12px",
+                      borderRadius: "var(--radius)",
+                      border: "1.5px solid var(--gray-200)",
+                      fontSize: 12.5,
+                      outline: "none",
+                      background: "white"
+                    }}
+                  />
+                </div>
+
+                {/* Sort Option */}
+                <div style={{display: "flex", alignItems: "center", gap: 6}}>
+                  <span style={{fontSize: 12.5, fontWeight: 700, color: "var(--gray-700)"}}>เรียงตาม:</span>
+                  <select
+                    value={studentSortBy}
+                    onChange={e => setStudentSortBy(e.target.value as any)}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: "var(--radius)",
+                      border: "1.5px solid var(--gray-200)",
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      outline: "none",
+                      background: "white"
+                    }}>
+                    <option value="pct_desc">คะแนนเฉลี่ยรวม (สูงสุด → ต่ำสุด)</option>
+                    <option value="pct_asc">คะแนนเฉลี่ยรวม (ต่ำสุด → สูงสุด - ช่วยเด็กอ่อน)</option>
+                    <option value="no">เลขที่และห้องเรียน</option>
+                    <option value="name">ชื่อนักเรียน (ก - ฮ)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Filtered Students List */}
+            {(() => {
+              let list = schoolwideData.uniqueStudentsList.filter((s: any) => {
+                const matchTier = selectedTierFilter === "all" || s.level.level === selectedTierFilter;
+                const matchRoom = selectedStudentRoom === "all" || s.room === selectedStudentRoom;
+                const matchSearch = !studentSearchTerm ||
+                  s.name.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+                  String(s.no).includes(studentSearchTerm) ||
+                  s.room.toLowerCase().includes(studentSearchTerm.toLowerCase());
+                return matchTier && matchRoom && matchSearch;
+              });
+
+              // Sorting
+              list.sort((a: any, b: any) => {
+                if (studentSortBy === "pct_desc") return b.meanPct - a.meanPct;
+                if (studentSortBy === "pct_asc") return a.meanPct - b.meanPct;
+                if (studentSortBy === "no") {
+                  if (a.room !== b.room) return a.room.localeCompare(b.room, "th-TH");
+                  return (a.no || 999) - (b.no || 999);
+                }
+                return a.name.localeCompare(b.name, "th-TH");
+              });
+
+              if (list.length === 0) {
+                return (
+                  <div style={{textAlign: "center", padding: "36px 16px", color: "var(--gray-500)", background: "var(--gray-50)", borderRadius: 8}}>
+                    <div style={{fontSize: 32, marginBottom: 8}}>🔍</div>
+                    <div style={{fontWeight: 700, fontSize: 14, color: "var(--gray-800)"}}>ไม่พบรายชื่อนักเรียนตามเงื่อนไขที่เลือก</div>
+                    <div style={{fontSize: 12, marginTop: 4}}>ลองเลือก "ทุกระดับ" หรือเปลี่ยนคำค้นหา</div>
+                  </div>
+                );
+              }
+
+              return (
+                <div>
+                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, fontSize: 12.5, color: "var(--gray-600)", fontWeight: 600}}>
+                    <span>แสดงนักเรียน <strong>{list.length}</strong> คน (จากทั้งหมด {schoolwideData.uniqueStudentsTotal} คน)</span>
+                    <span>* คลิกที่ชื่อหรือปุ่ม "ดูสมุดพก" เพื่อดูผลการสอบครบทุกวิชา</span>
+                  </div>
+
+                  <div style={{overflowX: "auto"}}>
+                    <table style={{width: "100%", borderCollapse: "collapse", fontSize: 12.5}}>
+                      <thead>
+                        <tr style={{background: "var(--gray-50)", borderBottom: "2px solid var(--gray-200)", color: "var(--gray-700)"}}>
+                          <th style={{padding: "10px 10px", textAlign: "center", width: 90}}>ห้อง / เลขที่</th>
+                          <th style={{padding: "10px 12px", textAlign: "left", minWidth: 160}}>ชื่อ-นามสกุล นักเรียน</th>
+                          <th style={{padding: "10px 10px", textAlign: "center", width: 120}}>คะแนนเฉลี่ยรวม</th>
+                          <th style={{padding: "10px 12px", textAlign: "left", minWidth: 200}}>🌟 วิชาที่ยอดเยี่ยม / เด่นที่สุด</th>
+                          <th style={{padding: "10px 12px", textAlign: "left", minWidth: 200}}>⚠️ วิชาที่อ่อน / ควรพัฒนา</th>
+                          <th style={{padding: "10px 10px", textAlign: "center", width: 100}}>สมุดพก</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {list.map((st: any, idx: number) => {
+                          return (
+                            <tr
+                              key={st.key || idx}
+                              style={{
+                                borderBottom: "1px solid var(--gray-100)",
+                                background: idx % 2 === 0 ? "white" : "#FAFAFA",
+                                transition: "background .12s"
+                              }}>
+                              {/* ห้อง และ เลขที่ */}
+                              <td style={{padding: "12px 10px", textAlign: "center", verticalAlign: "middle"}}>
+                                <div style={{fontWeight: 700, color: "var(--gray-900)"}}>
+                                  {st.room}
+                                </div>
+                                <div style={{fontSize: 11, color: "var(--gray-500)", marginTop: 2}}>
+                                  เลขที่ {st.no !== 9999 ? st.no : "-"}
+                                </div>
+                              </td>
+
+                              {/* ชื่อ-นามสกุล นักเรียน */}
+                              <td style={{padding: "12px 12px", verticalAlign: "middle"}}>
+                                <div
+                                  onClick={() => setSelectedStudentScorecard(st)}
+                                  style={{
+                                    fontWeight: 700,
+                                    color: "var(--gray-900)",
+                                    cursor: "pointer",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 6
+                                  }}>
+                                  <span>👤</span>
+                                  <span style={{textDecoration: "underline", textUnderlineOffset: 3}}>{st.name}</span>
+                                </div>
+                                <div style={{fontSize: 11, color: "var(--gray-500)", marginTop: 2}}>
+                                  สอบแล้ว {st.totalExamsTaken} วิชา • สอบผ่าน {st.passedExamsCount} วิชา
+                                </div>
+                              </td>
+
+                              {/* คะแนนเฉลี่ยรวม */}
+                              <td style={{padding: "12px 10px", textAlign: "center", verticalAlign: "middle"}}>
+                                <div style={{
+                                  display: "inline-block",
+                                  padding: "3px 8px",
+                                  borderRadius: 12,
+                                  background: st.level.bg,
+                                  border: `1px solid ${st.level.border}`,
+                                  color: st.level.color,
+                                  fontWeight: 800,
+                                  fontSize: 13
+                                }}>
+                                  {st.meanPct}%
+                                </div>
+                                <div style={{fontSize: 11, fontWeight: 600, color: st.level.color, marginTop: 2}}>
+                                  {st.level.level}
+                                </div>
+                              </td>
+
+                              {/* 🌟 วิชาที่ยอดเยี่ยม / เด่นที่สุด */}
+                              <td style={{padding: "12px 12px", verticalAlign: "middle"}}>
+                                <div style={{display: "flex", flexDirection: "column", gap: 4}}>
+                                  {st.displayedStrengths.map((e: any, eIdx: number) => {
+                                    const sg = SUBJECT_GROUPS.find(g => g.id === e.subjectId);
+                                    return (
+                                      <div
+                                        key={eIdx}
+                                        style={{
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 6,
+                                          background: "#ECFDF5",
+                                          border: "1px solid #A7F3D0",
+                                          padding: "3px 8px",
+                                          borderRadius: 6,
+                                          fontSize: 11.5,
+                                          color: "#065F46"
+                                        }}>
+                                        <span>{sg?.icon || "🌟"}</span>
+                                        <span style={{fontWeight: 700, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>
+                                          {e.examTitle}
+                                        </span>
+                                        <span style={{fontWeight: 800, color: "#047857", marginLeft: "auto"}}>
+                                          {e.pct.toFixed(0)}%
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </td>
+
+                              {/* ⚠️ วิชาที่อ่อน / ควรพัฒนาเร่งด่วน */}
+                              <td style={{padding: "12px 12px", verticalAlign: "middle"}}>
+                                {st.displayedWeaknesses.length > 0 ? (
+                                  <div style={{display: "flex", flexDirection: "column", gap: 4}}>
+                                    {st.displayedWeaknesses.map((e: any, eIdx: number) => {
+                                      const sg = SUBJECT_GROUPS.find(g => g.id === e.subjectId);
+                                      return (
+                                        <div
+                                          key={eIdx}
+                                          style={{
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: 6,
+                                            background: "#FEF2F2",
+                                            border: "1px solid #FECACA",
+                                            padding: "3px 8px",
+                                            borderRadius: 6,
+                                            fontSize: 11.5,
+                                            color: "#991B1B"
+                                          }}>
+                                          <span>{sg?.icon || "⚠️"}</span>
+                                          <span style={{fontWeight: 700, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>
+                                            {e.examTitle}
+                                          </span>
+                                          <span style={{fontWeight: 800, color: "#DC2626", marginLeft: "auto"}}>
+                                            {e.pct.toFixed(0)}%
+                                          </span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  <div style={{display: "inline-flex", alignItems: "center", gap: 4, background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#166534", padding: "3px 8px", borderRadius: 6, fontSize: 11.5, fontWeight: 700}}>
+                                    <span>✅ ผ่านเกณฑ์ทุกวิชา</span>
+                                  </div>
+                                )}
+                              </td>
+
+                              {/* ปุ่มเปิดสมุดพก */}
+                              <td style={{padding: "12px 10px", textAlign: "center", verticalAlign: "middle"}}>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-secondary"
+                                  onClick={() => setSelectedStudentScorecard(st)}
+                                  style={{fontSize: 11.5, padding: "5px 10px", fontWeight: 700}}>
+                                  📋 สมุดพก
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Modal: สมุดพกและประวัติผลการสอบนักเรียนรายบุคคล (Comprehensive Scorecard Modal) */}
+          {selectedStudentScorecard && (
+            <div style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0,0,0,0.5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+              padding: 16
+            }}>
+              <div className="card" style={{maxWidth: 720, width: "100%", margin: 0, padding: 24, maxHeight: "90vh", overflowY: "auto"}}>
+                <div style={{display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16}}>
+                  <div style={{display: "flex", alignItems: "center", gap: 12}}>
+                    <div style={{fontSize: 36, background: "#FEF2F2", borderRadius: "50%", width: 54, height: 54, display: "flex", alignItems: "center", justifyContent: "center"}}>
+                      🎓
+                    </div>
+                    <div>
+                      <div style={{fontSize: 18, fontWeight: 800, color: "var(--gray-900)"}}>
+                        {selectedStudentScorecard.name}
+                      </div>
+                      <div style={{fontSize: 13, color: "var(--gray-600)", marginTop: 2}}>
+                        ห้องเรียน: <strong>{selectedStudentScorecard.room}</strong> | เลขที่: <strong>{selectedStudentScorecard.no !== 9999 ? selectedStudentScorecard.no : "-"}</strong>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStudentScorecard(null)}
+                    style={{background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "var(--gray-500)"}}>
+                    ✕
+                  </button>
+                </div>
+
+                {/* Scorecard Overview KPI */}
+                <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 16}}>
+                  <div style={{background: selectedStudentScorecard.level.bg, border: `1.5px solid ${selectedStudentScorecard.level.border}`, padding: "12px", borderRadius: 8, textAlign: "center"}}>
+                    <div style={{fontSize: 11, fontWeight: 700, color: selectedStudentScorecard.level.color}}>คะแนนเฉลี่ยรวมทุกวิชา</div>
+                    <div style={{fontSize: 24, fontWeight: 800, color: selectedStudentScorecard.level.color, marginTop: 2}}>
+                      {selectedStudentScorecard.meanPct}%
+                    </div>
+                    <div style={{fontSize: 11, fontWeight: 600, color: selectedStudentScorecard.level.color}}>ระดับ: {selectedStudentScorecard.level.level}</div>
+                  </div>
+
+                  <div style={{background: "#F8FAFC", border: "1.5px solid var(--gray-200)", padding: "12px", borderRadius: 8, textAlign: "center"}}>
+                    <div style={{fontSize: 11, fontWeight: 700, color: "var(--gray-600)"}}>จำนวนวิชาที่สอบ</div>
+                    <div style={{fontSize: 24, fontWeight: 800, color: "var(--gray-900)", marginTop: 2}}>
+                      {selectedStudentScorecard.totalExamsTaken}
+                    </div>
+                    <div style={{fontSize: 11, color: "var(--gray-500)"}}>ชุดข้อสอบ</div>
+                  </div>
+
+                  <div style={{background: "#F0FDF4", border: "1.5px solid #BBF7D0", padding: "12px", borderRadius: 8, textAlign: "center"}}>
+                    <div style={{fontSize: 11, fontWeight: 700, color: "#166534"}}>ผ่านเกณฑ์ (≥50%)</div>
+                    <div style={{fontSize: 24, fontWeight: 800, color: "#166534", marginTop: 2}}>
+                      {selectedStudentScorecard.passedExamsCount}
+                    </div>
+                    <div style={{fontSize: 11, color: "#166534"}}>จาก {selectedStudentScorecard.totalExamsTaken} วิชา</div>
+                  </div>
+                </div>
+
+                {/* จุดเด่น vs จุดพัฒนา */}
+                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16}}>
+                  <div style={{background: "#ECFDF5", border: "1.5px solid #A7F3D0", borderRadius: 8, padding: 12}}>
+                    <div style={{fontSize: 12.5, fontWeight: 700, color: "#065F46", marginBottom: 6}}>
+                      🌟 วิชาที่ยอดเยี่ยม / โดดเด่น:
+                    </div>
+                    <div style={{display: "grid", gap: 4}}>
+                      {selectedStudentScorecard.displayedStrengths.map((e: any, idx: number) => (
+                        <div key={idx} style={{fontSize: 12, color: "#047857", fontWeight: 600}}>
+                          • {e.examTitle} (ได้ {e.pct.toFixed(0)}%)
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{background: selectedStudentScorecard.displayedWeaknesses.length > 0 ? "#FEF2F2" : "#F0FDF4", border: `1.5px solid ${selectedStudentScorecard.displayedWeaknesses.length > 0 ? "#FECACA" : "#BBF7D0"}`, borderRadius: 8, padding: 12}}>
+                    <div style={{fontSize: 12.5, fontWeight: 700, color: selectedStudentScorecard.displayedWeaknesses.length > 0 ? "#991B1B" : "#166534", marginBottom: 6}}>
+                      {selectedStudentScorecard.displayedWeaknesses.length > 0 ? "⚠️ วิชาที่ควรได้รับการสอนเสริม:" : "✅ ผลการประเมินรายวิชา:"}
+                    </div>
+                    {selectedStudentScorecard.displayedWeaknesses.length > 0 ? (
+                      <div style={{display: "grid", gap: 4}}>
+                        {selectedStudentScorecard.displayedWeaknesses.map((e: any, idx: number) => (
+                          <div key={idx} style={{fontSize: 12, color: "#DC2626", fontWeight: 600}}>
+                            • {e.examTitle} (ได้ {e.pct.toFixed(0)}% ต่ำกว่าเกณฑ์)
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{fontSize: 12, color: "#166534", fontWeight: 600}}>
+                        นักเรียนสอบผ่านเกณฑ์ทุกวิชา ไม่พบวิชาที่ตก
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* ตารางแจกแจงทุกวิชาที่สอบ */}
+                <div style={{marginBottom: 16}}>
+                  <div style={{fontSize: 13, fontWeight: 700, color: "var(--gray-800)", marginBottom: 8}}>
+                    📋 ผลคะแนนจำแนกตามรายวิชา ({selectedStudentScorecard.exams.length} วิชา):
+                  </div>
+                  <div style={{maxHeight: 240, overflowY: "auto", border: "1px solid var(--gray-200)", borderRadius: 8}}>
+                    <table style={{width: "100%", borderCollapse: "collapse", fontSize: 12}}>
+                      <thead>
+                        <tr style={{background: "var(--gray-50)", borderBottom: "1.5px solid var(--gray-200)"}}>
+                          <th style={{padding: "8px 10px", textAlign: "left"}}>แบบทดสอบ / วิชา</th>
+                          <th style={{padding: "8px 10px", textAlign: "center"}}>คะแนนที่ได้</th>
+                          <th style={{padding: "8px 10px", textAlign: "center"}}>ร้อยละ</th>
+                          <th style={{padding: "8px 10px", textAlign: "center"}}>ผลการประเมิน</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedStudentScorecard.exams.map((e: any, idx: number) => {
+                          const sg = SUBJECT_GROUPS.find(g => g.id === e.subjectId);
+                          const isPass = e.pct >= 50;
+                          return (
+                            <tr key={idx} style={{borderBottom: "1px solid var(--gray-100)"}}>
+                              <td style={{padding: "8px 10px"}}>
+                                <div style={{fontWeight: 700, color: "var(--gray-900)"}}>{e.examTitle}</div>
+                                <div style={{fontSize: 11, color: "var(--gray-500)"}}>{sg?.icon} {sg?.shortName}</div>
+                              </td>
+                              <td style={{padding: "8px 10px", textAlign: "center", fontWeight: 700}}>
+                                {e.earned} / {e.total}
+                              </td>
+                              <td style={{padding: "8px 10px", textAlign: "center", fontWeight: 800, color: isPass ? "#047857" : "#DC2626"}}>
+                                {e.pct.toFixed(1)}%
+                              </td>
+                              <td style={{padding: "8px 10px", textAlign: "center"}}>
+                                <span style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  padding: "2px 8px",
+                                  borderRadius: 10,
+                                  background: isPass ? "#ECFDF5" : "#FEF2F2",
+                                  color: isPass ? "#047857" : "#DC2626"
+                                }}>
+                                  {isPass ? "✅ ผ่าน" : "❌ ปรับปรุง"}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div style={{textAlign: "right"}}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setSelectedStudentScorecard(null)}>
+                    ปิดหน้าต่าง
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           {/* 8 Learning Areas Benchmark Cards */}
           <div className="card" style={{marginBottom: 20}}>
             <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6}}>

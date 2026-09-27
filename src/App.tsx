@@ -1377,12 +1377,27 @@ function StepHeaders({ headers, setHeaders }: any) {
 }
 
 // ============ STEP 2: QUESTIONS ============
-function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
+function StepQuestions({ questions, setQuestions, licenseKey, onParsed, targetTotalScore, setTargetTotalScore }: any) {
   const [fileName, setFileName] = useState("");
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState("");
   const [hasAnswer, setHasAnswer] = useState<boolean | null>(null);
   const labels = ["ก","ข","ค","ง"];
+
+  const handleDistributeTargetPoints = () => {
+    if (questions.length === 0) return;
+    const target = (targetTotalScore && targetTotalScore > 0) ? targetTotalScore : 20;
+    const avgPts = target / questions.length;
+    const isInteger = Number.isInteger(avgPts);
+
+    if (isInteger && avgPts >= 1) {
+      setQuestions((prev: any[]) => prev.map(q => ({ ...q, points: avgPts })));
+      alert(`คำนวณและเฉลี่ยคะแนนให้เท่ากันทุกข้อเรียบร้อยแล้ว: ข้อละ ${avgPts} คะแนน (รวม ${target} คะแนนเต็ม)`);
+    } else {
+      setQuestions((prev: any[]) => prev.map(q => ({ ...q, points: 1 })));
+      alert(`ตั้งค่าคะแนนเต็มรวมของชุดข้อสอบเป็น ${target} คะแนนเรียบร้อยแล้ว!\n(เฉลี่ยข้อละ ${avgPts.toFixed(2)} คะแนน ระบบจะแปลงและแสดงสัดส่วนคะแนนให้สัมพันธ์กับคะแนนเต็ม ${target} คะแนนในชีตและแดชบอร์ดโดยอัตโนมัติ)`);
+    }
+  };
 
   const PROMPT = `อ่านข้อสอบต่อไปนี้แล้วแปลงเป็น JSON ตามรูปแบบนี้เท่านั้น ไม่ต้องมีข้อความอื่นนอกจาก JSON:
 {
@@ -1606,6 +1621,75 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
 
       {/* รายการข้อสอบ */}
       <div className="card">
+        {/* กล่องกำหนดคะแนนเต็มรวมที่ครูต้องการ (Request 5) */}
+        {questions.length > 0 && (
+          <div style={{
+            background: "linear-gradient(135deg, #FEF2F2 0%, #FFFBEB 100%)",
+            border: "1.5px solid #F59E0B",
+            borderRadius: "var(--radius)",
+            padding: "14px 18px",
+            marginBottom: 16,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12
+          }}>
+            <div style={{display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap"}}>
+              <span style={{fontSize: 22}}>🎯</span>
+              <div>
+                <div style={{fontSize: 14, fontWeight: 700, color: "var(--gray-900)"}}>
+                  กำหนดคะแนนเต็มรวมของแบบทดสอบ (Target Total Points):
+                </div>
+                <div style={{fontSize: 12, color: "var(--gray-600)", marginTop: 2}}>
+                  คุณครูตั้งคะแนนเต็มเท่าไหร่ก็ได้ ({questions.length} ข้อ) • ระบบจะเฉลี่ยและแปลงคะแนนแต่ละข้อให้สัมพันธ์กับคะแนนเต็มโดยอัตโนมัติ
+                </div>
+              </div>
+            </div>
+
+            <div style={{display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap"}}>
+              <div style={{display: "flex", alignItems: "center", gap: 6, background: "white", padding: "5px 12px", borderRadius: 8, border: "1.5px solid #D97706"}}>
+                <span style={{fontSize: 13, fontWeight: 700, color: "#92400E"}}>คะแนนเต็ม:</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="1000"
+                  step="1"
+                  value={targetTotalScore || totalPoints || questions.length}
+                  onChange={e => {
+                    const val = Math.max(1, parseInt(e.target.value, 10) || 1);
+                    if (setTargetTotalScore) setTargetTotalScore(val);
+                  }}
+                  style={{
+                    width: 55,
+                    textAlign: "center",
+                    fontWeight: 800,
+                    fontSize: 15,
+                    color: "var(--crimson)",
+                    border: "none",
+                    outline: "none"
+                  }}
+                />
+                <span style={{fontSize: 12, fontWeight: 600, color: "var(--gray-600)"}}>คะแนน</span>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={handleDistributeTargetPoints}
+                style={{
+                  background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+                  color: "white",
+                  fontWeight: 700,
+                  fontSize: 12.5,
+                  boxShadow: "0 2px 6px rgba(217,119,6,.25)"
+                }}>
+                ⚖️ หารคะแนนเฉลี่ยเท่ากันทุกข้อ (ข้อละ {((targetTotalScore || totalPoints || questions.length) / questions.length).toFixed(2)} คะแนน)
+              </button>
+            </div>
+          </div>
+        )}
+
         <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12, marginBottom:16}}>
           <div>
             <div className="card-title" style={{display:"flex", alignItems:"center", gap:8, flexWrap:"wrap"}}>
@@ -2009,44 +2093,76 @@ export function calculateScoreLevel(earned: number, total: number) {
 const examScoreCache = new Map<string, any>();
 
 // ============ STUDENT DEDUPLICATION & IDENTIFIER NORMALIZATION ============
-// แก้ไขปัญหา: เด็กนักเรียน 1 คน ทำข้อสอบหลายวิชา เพื่อจำแนกตามรายบุคคล (คน) อย่างแม่นยำ
-export function normalizeStudentKey(student: any, fallbackIndex?: number): string {
+// แก้ไขปัญหา: เด็กนักเรียน 1 คน ทำข้อสอบหลายวิชา (ทั้งโรงเรียนมี ~800 กว่าคน ไม่มีทางเป็น 1,100 คน)
+// แท็กจาก "ห้อง" และ "เลขที่" เป็นกุญแจหลักตามคำขอของผู้ใช้ ป้องกันชื่อสะกดผิด/เว้นวรรคไม่ตรงกัน
+export function normalizeRoomName(r: any): string {
+  if (!r) return "";
+  const str = String(r).trim().toLowerCase().replace(/\s+/g, "");
+  const m = str.match(/(?:ม\.?|มัธยมศึกษาปีที่)?([1-6])(?:[\/\.\-]|ห้อง|ทับ)+([0-9]+)/);
+  if (m) return `m${m[1]}_${m[2]}`;
+  return str.replace(/[^a-z0-9ก-๙]/g, "");
+}
+
+export function normalizeStudentNo(n: any): string {
+  if (n === undefined || n === null) return "";
+  const digits = String(n).replace(/[^\d]/g, "");
+  if (!digits) return "";
+  const num = parseInt(digits, 10);
+  return (isNaN(num) || num <= 0 || num > 70) ? "" : String(num);
+}
+
+export function normalizeStudentKey(student: any, fallbackIndex?: number, examContext?: any): string {
   if (!student || typeof student !== "object") return `anon_${fallbackIndex ?? Math.random()}`;
 
-  // 1. ตรวจสอบเลขประจำตัวนักเรียน (Primary Key ที่แม่นยำที่สุด)
+  // 1. ตรวจสอบเลขประจำตัวนักเรียน (ถ้ามีเลข 4-6 หลัก เช่น 12345)
   for (const k of ["เลขประจำตัว", "รหัสประจำตัว", "รหัสนักเรียน", "student_id", "std_id", "id"]) {
     const v = student[k];
     if (v !== undefined && v !== null && String(v).trim().length >= 4) {
-      return `id_${String(v).trim()}`;
+      const clean = String(v).replace(/[^\d]/g, "");
+      if (clean.length >= 4) return `id_${clean}`;
     }
   }
 
-  // 2. ดึงชื่อ-สกุล และตัดคำนำหน้า (ด.ช., ด.ญ., นาย, น.ส.)
+  // 2. ดึงชั้น/ห้อง และ เลขที่ (ตามที่ผู้ใช้สั่ง: แท็กจาก ห้อง และ เลขที่ เป็นหลัก)
+  let rawRoom = "";
+  for (const k of ["ชั้น", "ห้อง", "ห้องเรียน", "ระดับชั้น", "ระดับชั้น/ห้อง", "room", "class"]) {
+    if (student[k]) { rawRoom = String(student[k]).trim(); break; }
+  }
+  // ถ้าในแถวคำตอบไม่มีห้อง ให้ดึงจากชื่อข้อสอบหรือรายละเอียดของข้อสอบ
+  if (!rawRoom && examContext) {
+    const textToScan = `${examContext.form_title || ""} ${examContext.form_desc || ""}`;
+    const m = textToScan.match(/(?:ม\.?|มัธยมศึกษาปีที่)?([1-6])(?:[\/\.\-]|ห้อง|ทับ)+([0-9]+)/);
+    if (m) rawRoom = `ม.${m[1]}/${m[2]}`;
+  }
+  const normR = normalizeRoomName(rawRoom);
+
+  let rawNo = "";
+  for (const k of ["เลขที่", "ลำดับที่", "no", "no."]) {
+    if (student[k] !== undefined && student[k] !== null && String(student[k]).trim() !== "") {
+      rawNo = String(student[k]).trim();
+      break;
+    }
+  }
+  const normN = normalizeStudentNo(rawNo);
+
+  // สำคัญที่สุด: หากมี ห้อง + เลขที่ ให้ใช้เป็นกุญแจหลักทันที! เพราะในห้องเดียวกันเลขที่ไม่ซ้ำกัน
+  if (normR && normN) {
+    return `r_${normR}_no_${normN}`;
+  }
+
+  // 3. Fallback: ถ้าไม่มีเลขที่ หรือเลขที่ไม่สมบูรณ์ จึงใช้ ห้อง + ชื่อ (ตัดคำนำหน้าและช่องว่าง)
   let rawName = "";
   for (const k of ["ชื่อ-สกุล", "ชื่อ-นามสกุล", "ชื่อ", "name", "student_name", "fullname"]) {
     if (student[k]) { rawName = String(student[k]).trim(); break; }
   }
   const cleanName = rawName
-    .replace(/^(ด\.ช\.|ด\.ญ\.|นาย|นางสาว|น\.ส\.|เด็กชาย|เด็กหญิง)\s*/, "")
-    .replace(/\s+/g, " ")
-    .trim()
+    .replace(/^(ด\.ช\.|ด\.ญ\.|นาย|นางสาว|น\.ส\.|เด็กชาย|เด็กหญิง)\s*/g, "")
+    .replace(/\s+/g, "")
     .toLowerCase();
 
-  // 3. ดึงชั้น/ห้อง และเลขที่
-  let rawRoom = "";
-  for (const k of ["ชั้น", "ห้อง", "ห้องเรียน", "ระดับชั้น", "room", "class"]) {
-    if (student[k]) { rawRoom = String(student[k]).trim(); break; }
-  }
-  const cleanRoom = rawRoom.replace(/\s+/g, "").toLowerCase();
-
-  let rawNo = "";
-  for (const k of ["เลขที่", "ลำดับที่", "no", "no."]) {
-    if (student[k]) { rawNo = String(student[k]).trim(); break; }
-  }
-
-  if (cleanRoom && cleanName) return `rn_${cleanRoom}_${cleanName}`;
-  if (cleanRoom && rawNo) return `rno_${cleanRoom}_${rawNo}`;
+  if (normR && cleanName) return `r_${normR}_name_${cleanName}`;
   if (cleanName) return `name_${cleanName}`;
+  if (normN) return `no_${normN}`;
   return `idx_${fallbackIndex ?? Math.random()}`;
 }
 
@@ -2071,6 +2187,7 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
   const [savingScore, setSavingScore] = useState(false);
   const [gradeSuccessMsg, setGradeSuccessMsg] = useState("");
   const [gradeErrorMsg, setGradeErrorMsg] = useState("");
+  const [questionScores, setQuestionScores] = useState<Record<number, number>>({});
 
   // Modal for viewing item option distribution breakdown
   const [selectedQuestionModal, setSelectedQuestionModal] = useState<any>(null);
@@ -2580,6 +2697,25 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
     setNewScoreInput(String(parsed.earned));
     setGradeSuccessMsg("");
     setGradeErrorMsg("");
+
+    // เตรียมคะแนนรายข้อเริ่มต้นสำหรับตรวจข้อสอบอัตนัย
+    const qaList = getStudentQuestionAnswers(student);
+    const initScores: Record<number, number> = {};
+    const defaultPtsPerQ = qaList.length > 0 ? (totalMax / qaList.length) : 1;
+    qaList.forEach((_qa, idx) => {
+      initScores[idx] = defaultPtsPerQ;
+    });
+    setQuestionScores(initScores);
+  };
+
+  const handleQuestionScoreChange = (qIdx: number, val: string) => {
+    const num = val === "" ? 0 : parseFloat(val);
+    const updated = { ...questionScores, [qIdx]: isNaN(num) ? 0 : num };
+    setQuestionScores(updated);
+
+    // รวมคะแนนรายข้อทั้งหมดเข้าสู่คะแนนรวมโดยอัตโนมัติ
+    const sum = Object.values(updated).reduce((acc, v) => acc + (typeof v === "number" ? v : 0), 0);
+    setNewScoreInput(String(Math.round(sum * 10) / 10));
   };
 
   const getStudentQuestionAnswers = (s: any) => {
@@ -3729,21 +3865,113 @@ function ExamScoreDashboard({ exam, onBack, user }: { exam: any; onBack: () => v
               </div>
             </div>
 
-            <div style={{maxHeight: 280, overflowY: "auto", border: "1px solid var(--gray-200)", borderRadius: 8, padding: 12, marginBottom: 16}}>
-              <div style={{fontSize: 12.5, fontWeight: 700, color: "var(--gray-700)", marginBottom: 8}}>
-                📝 คำตอบที่นักเรียนส่งมา ({getStudentQuestionAnswers(gradingStudent).length} ข้อ):
+            <div style={{maxHeight: 340, overflowY: "auto", border: "1px solid var(--gray-200)", borderRadius: 8, padding: 12, marginBottom: 16}}>
+              <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 6}}>
+                <div style={{fontSize: 12.5, fontWeight: 700, color: "var(--gray-700)"}}>
+                  📝 คำตอบและช่องให้คะแนนรายข้อ ({getStudentQuestionAnswers(gradingStudent).length} ข้อ):
+                </div>
+                <div style={{fontSize: 11.5, color: "var(--gray-500)"}}>
+                  (กรอกคะแนนข้อสอบอัตนัย ระบบจะคำนวณรวมคะแนนให้อัตโนมัติ)
+                </div>
               </div>
-              <div style={{display: "grid", gap: 10}}>
-                {getStudentQuestionAnswers(gradingStudent).map((qa, qIdx) => (
-                  <div key={qIdx} style={{background: "#F8FAFC", padding: "10px 12px", borderRadius: 6, fontSize: 12.5}}>
-                    <div style={{fontWeight: 700, color: "var(--gray-900)", marginBottom: 4}}>
-                      ข้อ {qIdx + 1}. {qa.title}
+              <div style={{display: "grid", gap: 12}}>
+                {getStudentQuestionAnswers(gradingStudent).map((qa, qIdx) => {
+                  const defaultMaxQ = Math.max(1, Math.round(totalMax / Math.max(1, getStudentQuestionAnswers(gradingStudent).length)));
+                  const qMax = (qa as any).points || defaultMaxQ;
+                  return (
+                    <div key={qIdx} style={{
+                      background: qa.isManual ? "#FFFBEB" : "#F8FAFC",
+                      border: qa.isManual ? "1.5px solid #FCD34D" : "1px solid var(--gray-200)",
+                      padding: "12px 14px",
+                      borderRadius: 8,
+                      fontSize: 12.5
+                    }}>
+                      <div style={{display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6}}>
+                        <div style={{fontWeight: 700, color: "var(--gray-900)"}}>
+                          ข้อ {qIdx + 1}. {qa.title}
+                        </div>
+                        {qa.isManual && (
+                          <span style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            background: "#FEF3C7",
+                            color: "#92400E",
+                            padding: "2px 8px",
+                            borderRadius: 12,
+                            whiteSpace: "nowrap"
+                          }}>
+                            ✍️ ข้อสอบอัตนัย / ข้อเขียน
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{
+                        color: "#1E3A8A",
+                        background: "white",
+                        padding: "8px 12px",
+                        borderRadius: 6,
+                        border: "1px solid var(--gray-200)",
+                        lineHeight: 1.4
+                      }}>
+                        <span style={{color: "var(--gray-500)", fontSize: 11.5}}>คำตอบที่นักเรียนพิมพ์: </span>
+                        <strong>{qa.answer || "(ไม่ได้ตอบ / ว่างเปล่า)"}</strong>
+                      </div>
+
+                      {qa.guideline && (
+                        <div style={{
+                          fontSize: 11.5,
+                          color: "#065F46",
+                          background: "#ECFDF5",
+                          padding: "6px 10px",
+                          borderRadius: 6,
+                          marginTop: 6,
+                          border: "1px solid #A7F3D0"
+                        }}>
+                          💡 เกณฑ์การให้คะแนน / แนวคำตอบ: <strong>{qa.guideline}</strong>
+                        </div>
+                      )}
+
+                      {/* ช่องให้คะแนนรายข้อ (สำหรับข้อสอบอัตนัย และข้อที่ครูต้องการให้คะแนนเอง) */}
+                      <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "flex-end",
+                        gap: 8,
+                        marginTop: 10,
+                        paddingTop: 8,
+                        borderTop: "1px dashed var(--gray-200)"
+                      }}>
+                        <span style={{fontSize: 12, fontWeight: 700, color: qa.isManual ? "#92400E" : "var(--gray-700)"}}>
+                          {qa.isManual ? "✍️ คะแนนข้อสอบอัตนัยข้อนี้:" : "คะแนนข้อนี้:"}
+                        </span>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          max={qMax}
+                          placeholder="0"
+                          value={questionScores[qIdx] !== undefined ? questionScores[qIdx] : ""}
+                          onChange={e => handleQuestionScoreChange(qIdx, e.target.value)}
+                          style={{
+                            width: 72,
+                            textAlign: "center",
+                            padding: "4px 8px",
+                            borderRadius: 6,
+                            border: qa.isManual ? "2px solid #D97706" : "1.5px solid var(--gray-300)",
+                            fontWeight: 800,
+                            fontSize: 14,
+                            color: "var(--crimson)",
+                            background: "white",
+                            outline: "none"
+                          }}
+                        />
+                        <span style={{fontSize: 12, fontWeight: 600, color: "var(--gray-600)"}}>
+                          / {qMax} คะแนน
+                        </span>
+                      </div>
                     </div>
-                    <div style={{color: "#1E3A8A", background: "white", padding: "6px 10px", borderRadius: 4, border: "1px solid var(--gray-200)"}}>
-                      คำตอบ: <strong>{qa.answer || "(ไม่ได้ตอบ)"}</strong>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -3829,80 +4057,121 @@ function ScoreAnalyticsView({
     fetchHistory();
   }, []);
 
-  // Background Batch Progressive Loader: ดึงข้อมูลคะแนนจริงจาก Google Sheets ต่อเนื่องทีละชุด
+  // On-Demand Batch Loader: ดึงข้อมูลเป็นครั้ง ๆ ตามความต้องการของผู้ใช้ (Request 3)
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
+
+  // อ่านแคชเดิมที่มีอยู่แล้วทันที เพื่อแสดงผลทันทีแบบ 0ms ไม่ต้องรอโหลด
   useEffect(() => {
     if (history.length === 0) return;
-
-    let isCancelled = false;
     const examsWithSheet = history.filter(h => h.sheet_url && h.sheet_url.trim().length > 10);
     const totalSheets = examsWithSheet.length;
+    let cachedCount = 0;
+    examsWithSheet.forEach(exam => {
+      const sheetId = exam.sheet_url.match(/[-\w]{25,}/)?.[0] || exam.sheet_url.trim();
+      if (examScoreCache.has(sheetId)) {
+        cachedCount++;
+      } else {
+        try {
+          const saved = localStorage.getItem(`exam_score_${sheetId}`) || sessionStorage.getItem(`exam_score_${sheetId}`);
+          if (saved) {
+            const p = JSON.parse(saved);
+            if (p && p.success) { examScoreCache.set(sheetId, p); cachedCount++; }
+          }
+        } catch (e) {}
+      }
+    });
+    setBatchProgress({
+      loaded: cachedCount,
+      total: totalSheets,
+      isFetching: false,
+      currentExamTitle: ""
+    });
+    setBatchTick(t => t + 1);
+  }, [history]);
 
-    const runBatchLoader = async () => {
-      setBatchProgress(prev => ({ ...prev, total: totalSheets, isFetching: true }));
+  const startBatchLoader = async (forceRefresh: boolean = false) => {
+    const examsWithSheet = history.filter(h => h.sheet_url && h.sheet_url.trim().length > 10);
+    const totalSheets = examsWithSheet.length;
+    if (totalSheets === 0) return;
 
-      // นับชีตที่แคชไว้แล้ว
-      let cachedCount = 0;
+    if (forceRefresh) {
       examsWithSheet.forEach(exam => {
         const sheetId = exam.sheet_url.match(/[-\w]{25,}/)?.[0] || exam.sheet_url.trim();
-        if (examScoreCache.has(sheetId)) cachedCount++;
-        else {
-          try {
-            const saved = sessionStorage.getItem(`exam_score_${sheetId}`);
-            if (saved) {
-              const p = JSON.parse(saved);
-              if (p && p.success) { examScoreCache.set(sheetId, p); cachedCount++; }
-            }
-          } catch (e) {}
-        }
+        examScoreCache.delete(sheetId);
+        try { localStorage.removeItem(`exam_score_${sheetId}`); } catch(e) {}
+        try { sessionStorage.removeItem(`exam_score_${sheetId}`); } catch(e) {}
       });
+    }
 
-      setBatchProgress(prev => ({ ...prev, loaded: cachedCount, total: totalSheets, isFetching: cachedCount < totalSheets }));
-      setBatchTick(t => t + 1);
+    const controller = new AbortController();
+    setAbortController(controller);
+    setBatchProgress(prev => ({ ...prev, total: totalSheets, isFetching: true }));
 
-      // โหลดชุดที่ยังไม่มีในแคชแบบเป็นชุด (concurrency 3-4 ชุด)
-      const uncachedExams = examsWithSheet.filter(exam => {
+    let cachedCount = 0;
+    examsWithSheet.forEach(exam => {
+      const sheetId = exam.sheet_url.match(/[-\w]{25,}/)?.[0] || exam.sheet_url.trim();
+      if (examScoreCache.has(sheetId)) cachedCount++;
+    });
+
+    const uncachedExams = examsWithSheet.filter(exam => {
+      const sheetId = exam.sheet_url.match(/[-\w]{25,}/)?.[0] || exam.sheet_url.trim();
+      return !examScoreCache.has(sheetId);
+    });
+
+    setBatchProgress(prev => ({
+      ...prev,
+      loaded: cachedCount,
+      total: totalSheets,
+      isFetching: uncachedExams.length > 0
+    }));
+    setBatchTick(t => t + 1);
+
+    if (uncachedExams.length === 0) {
+      setBatchProgress(prev => ({ ...prev, isFetching: false, currentExamTitle: "" }));
+      return;
+    }
+
+    const chunkSize = 3;
+    for (let i = 0; i < uncachedExams.length; i += chunkSize) {
+      if (controller.signal.aborted) break;
+      const chunk = uncachedExams.slice(i, i + chunkSize);
+
+      await Promise.allSettled(chunk.map(async exam => {
         const sheetId = exam.sheet_url.match(/[-\w]{25,}/)?.[0] || exam.sheet_url.trim();
-        return !examScoreCache.has(sheetId);
-      });
+        try {
+          setBatchProgress(prev => ({ ...prev, currentExamTitle: exam.form_title }));
+          const res = await fetch(`${SCRIPT_URL}?sheetId=${encodeURIComponent(sheetId)}`, { signal: controller.signal });
+          const json = await res.json();
+          if (json && json.success && Array.isArray(json.students)) {
+            examScoreCache.set(sheetId, json);
+            try { localStorage.setItem(`exam_score_${sheetId}`, JSON.stringify(json)); } catch (e) {}
+            try { sessionStorage.setItem(`exam_score_${sheetId}`, JSON.stringify(json)); } catch (e) {}
+          }
+        } catch (e) {}
+      }));
 
-      const chunkSize = 3;
-      for (let i = 0; i < uncachedExams.length; i += chunkSize) {
-        if (isCancelled) break;
-        const chunk = uncachedExams.slice(i, i + chunkSize);
-        
-        await Promise.allSettled(chunk.map(async exam => {
-          const sheetId = exam.sheet_url.match(/[-\w]{25,}/)?.[0] || exam.sheet_url.trim();
-          try {
-            setBatchProgress(prev => ({ ...prev, currentExamTitle: exam.form_title }));
-            const res = await fetch(`${SCRIPT_URL}?sheetId=${encodeURIComponent(sheetId)}`);
-            const json = await res.json();
-            if (json && json.success && Array.isArray(json.students)) {
-              examScoreCache.set(sheetId, json);
-              try { sessionStorage.setItem(`exam_score_${sheetId}`, JSON.stringify(json)); } catch (e) {}
-            }
-          } catch (e) {}
+      if (!controller.signal.aborted) {
+        cachedCount += chunk.length;
+        setBatchProgress(prev => ({
+          ...prev,
+          loaded: Math.min(totalSheets, cachedCount),
+          isFetching: cachedCount < totalSheets
         }));
-
-        if (!isCancelled) {
-          cachedCount += chunk.length;
-          setBatchProgress(prev => ({
-            ...prev,
-            loaded: Math.min(totalSheets, cachedCount),
-            isFetching: cachedCount < totalSheets
-          }));
-          setBatchTick(t => t + 1);
-        }
+        setBatchTick(t => t + 1);
       }
+    }
 
-      if (!isCancelled) {
-        setBatchProgress(prev => ({ ...prev, isFetching: false, currentExamTitle: "" }));
-      }
-    };
+    setBatchProgress(prev => ({ ...prev, isFetching: false, currentExamTitle: "" }));
+    setAbortController(null);
+  };
 
-    runBatchLoader();
-
-    return () => { isCancelled = true; };
-  }, [history]);
+  const stopBatchLoader = () => {
+    if (abortController) {
+      abortController.abort();
+      setAbortController(null);
+    }
+    setBatchProgress(prev => ({ ...prev, isFetching: false, currentExamTitle: "" }));
+  };
 
   const subjectCounts = useMemo(() => {
     const map: Record<string, number> = {};
@@ -4004,8 +4273,8 @@ function ScoreAnalyticsView({
           }
           if (earned > detectedMaxEarned) detectedMaxEarned = earned;
 
-          // Deduplication: สร้าง Key ประจำตัวนักเรียน
-          const studentKey = normalizeStudentKey(s, sIdx);
+          // Deduplication: สร้าง Key ประจำตัวนักเรียน โดยอิงจากห้องและเลขที่เป็นหลัก
+          const studentKey = normalizeStudentKey(s, sIdx, exam);
           const rawRoom = (s["ชั้น"] || s["ห้อง"] || "").toString().trim();
           const rawName = (s["ชื่อ-สกุล"] || s["ชื่อ-นามสกุล"] || s["ชื่อ"] || "").toString().trim();
           const rawNo = parseInt((s["เลขที่"] || s["ลำดับที่"] || "").toString().replace(/\D/g, ""), 10) || 9999;
@@ -4026,8 +4295,15 @@ function ScoreAnalyticsView({
           return { s, earned, studentKey, rawRoom, rawName, rawNo, studentGrade };
         });
 
+        // ตรวจสอบคะแนนเต็มเป้าหมายที่คุณครูกำหนดไว้ (เช่น [คะแนนเต็ม: 20]) หรือจาก metadata
+        const descMatch = (exam.form_desc || "").match(/\[คะแนนเต็ม:\s*(\d+(?:\.\d+)?)\]/);
+        const targetTeacherMax = descMatch ? parseFloat(descMatch[1]) : 0;
         let realMax = (realCached.totalMaxPoints && realCached.totalMaxPoints > 0) ? realCached.totalMaxPoints : (exam.question_count || 20);
-        if (detectedMaxEarned > realMax) realMax = Math.max(detectedMaxEarned, exam.question_count || 0);
+        if (targetTeacherMax > 0) {
+          realMax = targetTeacherMax;
+        } else if (detectedMaxEarned > realMax) {
+          realMax = Math.max(detectedMaxEarned, exam.question_count || 0);
+        }
         const passThreshold = Math.ceil(realMax * 0.5);
         const realCount = realSt.length;
 
@@ -4051,14 +4327,24 @@ function ScoreAnalyticsView({
           if (!uniqueStudentsMap.has(item.studentKey)) {
             uniqueStudentsMap.set(item.studentKey, {
               key: item.studentKey,
-              name: item.rawName || "ไม่ระบุชื่อ",
+              name: item.rawName || (item.rawNo && item.rawNo !== 9999 ? `นักเรียนเลขที่ ${item.rawNo}` : "ไม่ระบุชื่อ"),
               room: item.rawRoom || "ไม่ระบุห้อง",
               no: item.rawNo,
               grade: item.studentGrade,
               exams: []
             });
           }
-          uniqueStudentsMap.get(item.studentKey)!.exams.push({
+          const existingSt = uniqueStudentsMap.get(item.studentKey)!;
+          if (item.rawName && (!existingSt.name || existingSt.name === "ไม่ระบุชื่อ" || item.rawName.length > existingSt.name.length)) {
+            existingSt.name = item.rawName;
+          }
+          if (item.rawRoom && (!existingSt.room || existingSt.room === "ไม่ระบุห้อง")) {
+            existingSt.room = item.rawRoom;
+          }
+          if (item.rawNo && item.rawNo !== 9999 && existingSt.no === 9999) {
+            existingSt.no = item.rawNo;
+          }
+          existingSt.exams.push({
             examId: exam.id,
             examTitle: exam.form_title,
             subjectId: sg.id,
@@ -4306,59 +4592,80 @@ function ScoreAnalyticsView({
         </button>
       </div>
 
-      {/* Progressive Background Loading Banner */}
-      {batchProgress.isFetching ? (
-        <div style={{
-          background: "linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)",
-          border: "1.5px solid #3B82F6",
-          borderRadius: "var(--radius)",
-          padding: "12px 18px",
-          marginBottom: 16,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 12,
-          boxShadow: "0 2px 8px rgba(59, 130, 246, 0.12)"
-        }}>
-          <div style={{display: "flex", alignItems: "center", gap: 10}}>
-            <div className="spinner" style={{width: 22, height: 22, borderColor: "#2563EB", borderTopColor: "transparent"}} />
-            <div>
-              <div style={{fontSize: 13.5, fontWeight: 700, color: "#1E40AF"}}>
-                กำลังประมวลผลคะแนนจริงจาก Google Sheets... (โหลดแล้ว {batchProgress.loaded} / {batchProgress.total} ชุด)
-              </div>
-              <div style={{fontSize: 12, color: "#1D4ED8", marginTop: 2}}>
-                {batchProgress.currentExamTitle ? `กำลังอ่าน: ${batchProgress.currentExamTitle}` : "ระบบกำลังดึงข้อมูลคะแนนจริงเพื่อคำนวณสถิติและกระจายตัวระดับบุคคล..."}
-              </div>
+      {/* On-Demand Data Sync Control Banner (Request 3) */}
+      <div style={{
+        background: batchProgress.isFetching ? "linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)" : "white",
+        border: batchProgress.isFetching ? "1.5px solid #3B82F6" : "1.5px solid var(--gray-200)",
+        borderRadius: "var(--radius-lg)",
+        padding: "16px 20px",
+        marginBottom: 18,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexWrap: "wrap",
+        gap: 14,
+        boxShadow: "var(--shadow-sm)"
+      }}>
+        <div style={{display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap"}}>
+          {batchProgress.isFetching ? (
+            <div className="spinner" style={{width: 24, height: 24, borderColor: "#2563EB", borderTopColor: "transparent"}} />
+          ) : (
+            <div style={{fontSize: 24}}>⚡</div>
+          )}
+          <div>
+            <div style={{fontSize: 14, fontWeight: 700, color: batchProgress.isFetching ? "#1E40AF" : "var(--gray-900)"}}>
+              {batchProgress.isFetching
+                ? `กำลังประมวลผลคะแนนจริงจาก Google Sheets... (โหลดแล้ว ${batchProgress.loaded} / ${batchProgress.total} ชุด)`
+                : `ข้อมูลคะแนนจาก Google Sheets: ประมวลผลแล้ว ${schoolwideData.processedExamsCount} จาก ${history.length} ชุด (นักเรียนรวม ${schoolwideData.uniqueStudentsTotal} คน)`}
+            </div>
+            <div style={{fontSize: 12, color: batchProgress.isFetching ? "#1D4ED8" : "var(--gray-600)", marginTop: 2}}>
+              {batchProgress.isFetching
+                ? (batchProgress.currentExamTitle ? `กำลังอ่าน: ${batchProgress.currentExamTitle}` : "ระบบกำลังดึงข้อมูลคะแนนจริงเพื่อคำนวณสถิติ...")
+                : "ดึงข้อมูลเป็นครั้ง ๆ ตามความต้องการ เพื่อความรวดเร็วและประหยัดเวลา (ไม่ต้องโหลดใหม่ทุกครั้ง)"}
             </div>
           </div>
-          <div style={{fontWeight: 800, fontSize: 14, color: "#1E40AF"}}>
-            {batchProgress.total > 0 ? Math.round((batchProgress.loaded / batchProgress.total) * 100) : 0}%
-          </div>
         </div>
-      ) : (
-        <div style={{
-          background: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)",
-          border: "1.5px solid #10B981",
-          borderRadius: "var(--radius)",
-          padding: "10px 16px",
-          marginBottom: 16,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 10
-        }}>
-          <div style={{display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#065F46", fontWeight: 600}}>
-            <span>✅ ข้อมูลคะแนนจริงจาก Google Sheets ครบถ้วน ({schoolwideData.processedExamsCount} ชุดข้อสอบ | นักเรียนรวม {schoolwideData.uniqueStudentsTotal} คน)</span>
-            <span>•</span>
-            <span>ไม่มีข้อมูลจำลอง (Real-Time Data 100%)</span>
-          </div>
-          <div style={{fontSize: 12, color: "#047857", fontWeight: 600}}>
-            กระดาษคำตอบส่งรวม: {schoolwideData.totalSubmissionsCount} ฉบับ
-          </div>
+
+        <div style={{display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap"}}>
+          {batchProgress.isFetching ? (
+            <button
+              type="button"
+              className="btn btn-sm btn-red"
+              onClick={stopBatchLoader}
+              style={{fontWeight: 700}}>
+              ⏹️ หยุดการดึงข้อมูล
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => startBatchLoader(false)}
+                style={{
+                  background: "linear-gradient(135deg, #1E40AF 0%, #2563EB 100%)",
+                  color: "white",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  padding: "8px 16px",
+                  boxShadow: "0 2px 6px rgba(37,99,235,0.25)"
+                }}>
+                🔄 ดึงข้อมูลคะแนนทั้งหมดจาก Google Sheets ({batchProgress.total - batchProgress.loaded > 0 ? `เหลืออีก ${batchProgress.total - batchProgress.loaded} ชุด` : "อัปเดตล่าสุด"})
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm btn-secondary"
+                onClick={() => {
+                  if (confirm("ต้องการล้างแคชและดึงข้อมูลคะแนนใหม่ทั้งหมดจาก Google Sheets ใช่หรือไม่?")) {
+                    startBatchLoader(true);
+                  }
+                }}
+                style={{fontSize: 12}}>
+                🧹 ดึงใหม่ทั้งหมด (ล้างแคช)
+              </button>
+            </>
+          )}
         </div>
-      )}
+      </div>
 
       {/* ========================================================================= */}
       {/* VIEW 1: SCHOOLWIDE EXECUTIVE DASHBOARD */}
@@ -4851,7 +5158,7 @@ function ScoreAnalyticsView({
                 </select>
               </div>
 
-              <div style={{display: "flex", alignItems: "center", gap: 10}}>
+              <div style={{display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap"}}>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
@@ -4859,6 +5166,26 @@ function ScoreAnalyticsView({
                   style={{fontSize: 12, fontWeight: 700}}>
                   ← กลับไปดูภาพรวมทั้งโรงเรียน
                 </button>
+                {currentExam && (
+                  <button
+                    type="button"
+                    className="btn-delete"
+                    onClick={async () => {
+                      if (!confirm(`คุณครูต้องการลบแบบทดสอบ "${currentExam.form_title}" ออกจากระบบใช่หรือไม่?\n(สำหรับลบฟอร์มทดสอบ)`)) return;
+                      await supabase.from("form_history").delete().eq("id", currentExam.id);
+                      if (currentExam.sheet_url) {
+                        const sid = currentExam.sheet_url.match(/[-\w]{25,}/)?.[0] || currentExam.sheet_url.trim();
+                        examScoreCache.delete(sid);
+                        try { localStorage.removeItem(`exam_score_${sid}`); } catch(e){}
+                        try { sessionStorage.removeItem(`exam_score_${sid}`); } catch(e){}
+                      }
+                      setHistory(prev => prev.filter(h => h.id !== currentExam.id));
+                      setAnalyticsMode("schoolwide");
+                    }}
+                    style={{fontSize: 12}}>
+                    <TrashIcon /> ลบฟอร์มทดสอบนี้
+                  </button>
+                )}
                 <div style={{fontSize: 12, color: "var(--gray-600)", fontWeight: 600}}>
                   แสดง {filteredExams.length} ชุด
                 </div>
@@ -4916,6 +5243,26 @@ function SheetsTab({
     const { data } = await query;
     setHistory(data || []);
     setLoading(false);
+  };
+
+  const handleDeleteForm = async (item: any) => {
+    if (!window.confirm(`คุณครูต้องการลบแบบทดสอบ "${item.form_title}" ออกจากระบบใช่หรือไม่?\n\n⚠️ คำเตือน: ฟอร์มนี้จะถูกลบออกจากฐานข้อมูลระบบ และจะไม่แสดงในแดชบอร์ดสรุปผลคะแนนอีกต่อไป (เหมาะสำหรับลบฟอร์มทดสอบ)`)) {
+      return;
+    }
+    try {
+      const { error } = await supabase.from("form_history").delete().eq("id", item.id);
+      if (error) throw error;
+      if (item.sheet_url) {
+        const sheetId = item.sheet_url.match(/[-\w]{25,}/)?.[0] || item.sheet_url.trim();
+        examScoreCache.delete(sheetId);
+        try { localStorage.removeItem(`exam_score_${sheetId}`); } catch(e){}
+        try { sessionStorage.removeItem(`exam_score_${sheetId}`); } catch(e){}
+      }
+      setHistory(prev => prev.filter(h => h.id !== item.id));
+      alert(`ลบแบบทดสอบ "${item.form_title}" เรียบร้อยแล้ว`);
+    } catch (err: any) {
+      alert(`เกิดข้อผิดพลาดในการลบ: ${err.message}`);
+    }
   };
 
   useEffect(() => { fetchHistory(); }, []);
@@ -5520,6 +5867,12 @@ function SheetsTab({
                       title="เปิดหน้าทำข้อสอบสำหรับนักเรียน">
                       <ExternalIcon /> 👁️ หน้าสอบนักเรียน
                     </button>
+                    <button
+                      className="btn-delete"
+                      onClick={() => handleDeleteForm(item)}
+                      title="ลบฟอร์มนี้ออกจากระบบ (สำหรับลบฟอร์มทดสอบ)">
+                      <TrashIcon /> ลบฟอร์ม
+                    </button>
                     {item.sheet_url && (
                       <button
                         className={`btn btn-secondary btn-sm ${copied[item.id] ? "btn-green" : ""}`}
@@ -5647,6 +6000,7 @@ export default function App() {
     {id:3,label:"เลขที่",required:true,type:"text"},
   ]);
   const [questions, setQuestions] = useState<any[]>([]);
+  const [targetTotalScore, setTargetTotalScore] = useState<number>(0);
   const [submitError, setSubmitError] = useState("");
 
   const steps = ["รายละเอียด","ส่วนหัว","ข้อสอบ","สร้าง Form","ผลลัพธ์"];
@@ -5732,6 +6086,10 @@ export default function App() {
         ? `${formDesc ? formDesc + " " : ""}${combinedTags}`
         : formDesc;
 
+      const calculatedTotal = targetTotalScore > 0 ? targetTotalScore : cleanedQuestions.reduce((sum: number, q: any) => sum + (q.points || 1), 0);
+      const pointsTag = `[คะแนนเต็ม: ${calculatedTotal}]`;
+      const enrichedDesc = finalDesc ? `${finalDesc} ${pointsTag}` : pointsTag;
+
       const res = await fetch(SCRIPT_URL, {
         method:"POST",
         body: JSON.stringify({
@@ -5739,6 +6097,7 @@ export default function App() {
           description: formDesc.trim(),
           headers,
           questions: cleanedQuestions,
+          targetTotalPoints: calculatedTotal,
           teacherEmail: user.is_google ? user.key : undefined
         }),
       });
@@ -5754,7 +6113,7 @@ export default function App() {
       await supabase.from("form_history").insert({
         license_key: user.key,
         form_title: formTitle,
-        form_desc: finalDesc || null,
+        form_desc: enrichedDesc || null,
         edit_url: data.editUrl?.trim(),
         view_url: data.viewUrl?.trim(),
         sheet_url: data.sheetUrl?.trim() || null,
@@ -6156,7 +6515,7 @@ export default function App() {
                         🚫 โควต้าวันนี้เต็มแล้ว ({usageCount}/{user.daily_limit ?? 10}) — ไม่สามารถอ่านไฟล์ใหม่ได้ กรุณาลองพรุ่งนี้
                       </div>
                     )}
-                    <StepQuestions questions={questions} setQuestions={setQuestions} licenseKey={user.key} onParsed={async () => {
+                    <StepQuestions questions={questions} setQuestions={setQuestions} licenseKey={user.key} targetTotalScore={targetTotalScore} setTargetTotalScore={setTargetTotalScore} onParsed={async () => {
                       const { data } = await supabase.rpc("get_my_usage", { p_key: user.key });
                       setUsageCount(data ?? 0);
                     }}/>

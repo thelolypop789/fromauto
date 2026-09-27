@@ -114,7 +114,9 @@ function doPost(e) {
       });
     }
 
-    if (totalMaxPoints === 0) {
+    if (data.targetTotalPoints && Number(data.targetTotalPoints) > 0) {
+      totalMaxPoints = Number(data.targetTotalPoints);
+    } else if (totalMaxPoints === 0) {
       totalMaxPoints = (data.questions && data.questions.length) ? data.questions.length : 10;
     }
 

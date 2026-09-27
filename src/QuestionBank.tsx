@@ -30,37 +30,43 @@ export const SUBJECT_GROUPS: SubjectGroup[] = [
   { id: "activity", name: "กิจกรรมพัฒนาผู้เรียน / อื่นๆ", shortName: "กิจกรรม/อื่นๆ", icon: "🧭", color: "#0891B2", bgColor: "#ECFEFF", borderColor: "#A5F3FC", codePrefix: "ก/I" },
 ];
 
-export const detectSubjectGroup = (text: string): SubjectGroup => {
-  const str = text.toLowerCase();
-  if (/(พ[\d๐-๙]{5}|สุขศึกษา|พลศึกษา|ยิมนาส|ฟุตซอล|บาสเกตบอล|ตะกร้อ|ลีลาศ|รุมบ้า|เตะโทษ|ฟุตบอล|ปิงปอง|เทเบิลเทนนิส|มวย|สุขภาพ|ตั้งครรภ์|กล้ามเนื้อ|สารอาหาร)/.test(str)) {
-    return SUBJECT_GROUPS.find(g => g.id === "health")!;
-  }
-  if (/(ศ[\d๐-๙]{5}|ศิลปะ|ทัศนศิลป์|ประวัติศาสตร์ศิลป์|ดนตรี|นาฏศิลป์|บลูส์|แจ๊ส|เพลง|ภาพวาด|สีเอกรงค์|ค่านิยมของงานศิลปะ)/.test(str)) {
-    return SUBJECT_GROUPS.find(g => g.id === "art")!;
-  }
-  if (/(ง[\d๐-๙]{5}|การงานอาชีพ|งานช่าง|เกษตร|พืชดอก|ขยายพันธุ์|fine dining|อาชีวอนามัย|ความปลอดภัย)/.test(str)) {
-    return SUBJECT_GROUPS.find(g => g.id === "career")!;
-  }
-  if (/(ท[\d๐-๙]{5}|ภาษาไทย|วรรณกรรม|การอ่าน|การเขียน|วรรณคดี|ย่อความ|สุภาษิต|คำสมาส|โคลง|กลอน|พระบรมราโชวาท|ราชาศัพท์|รายงาน|อภิปราย|โน้มน้าว)/.test(str)) {
-    return SUBJECT_GROUPS.find(g => g.id === "thai")!;
-  }
-  if (/(อ[\d๐-๙]{5}|จ[\d๐-๙]{5}|ภาษาอังกฤษ|ภาษาจีน|chinese|english|verb|pronoun|tense|vocabulary|\bthe\b|\bis\b|\bare\b|\bwhat\b|\bwhere\b|汉语|中文)/.test(str)) {
-    return SUBJECT_GROUPS.find(g => g.id === "foreign")!;
-  }
-  if (/(ค[\d๐-๙]{5}|คณิตศาสตร์|คณิต|พีชคณิต|เรขาคณิต|แคลคูลัส|สถิติ|สมการ|sin|cos|tan|ความน่าจะเป็น|ฟังก์ชัน)/.test(str)) {
-    return SUBJECT_GROUPS.find(g => g.id === "math")!;
-  }
-  if (/(ว[\d๐-๙]{5}|วิทยาศาสตร์|วิทยาศษสตร์|ฟิสิกส์|เคมี|ชีววิทยา|ชีวภาพ|ดาราศาสตร์|คอมพิวเตอร์|วิทยาการคำนวณ|เซลล์|คาร์โบไฮเดรต|ดีเอ็นเอ|พันธุกรรม|แรงเสียดทาน|ดาวเคราะห์)/.test(str)) {
-    return SUBJECT_GROUPS.find(g => g.id === "science")!;
-  }
-  if (/(ส[\d๐-๙]{5}|สังคมศึกษา|สังคม|ประวัติศาสตร์|หน้าที่พลเมือง|ภูมิศาสตร์|ศาสนา|ศีลธรรม|เศรษฐศาสตร์|สหกรณ์|อยุธยา|รัตนโกสินทร์|ร\.4|ร\.5)/.test(str)) {
-    return SUBJECT_GROUPS.find(g => g.id === "social")!;
-  }
-  return SUBJECT_GROUPS.find(g => g.id === "activity")!;
+export const detectSubjectFromTitle = (title: string, desc = ""): string => {
+  const text = `${title} ${desc}`.toLowerCase();
+
+  // Health & PE (พ)
+  if (/(พ[\d๐-๙]{5}|[ (]พ[\d๐-๙]|สุขศึกษา|พลศึกษา|ยิมนาส|ฟุตซอล|บาสเกตบอล|ตะกร้อ|ลีลาศ|ธุรกิจการกีฬา|การจัดการแข่งขัน|กีฬา|สุขภาพ)/.test(text)) return "health";
+  // Art (ศ - ศิลปะ, ดนตรี, นาฏศิลป์)
+  if (/(ศ[\d๐-๙]{5}|[ (]ศ[\d๐-๙]|ศิลปะ|ทัศนศิลป์|ประวัติศาสตร์ศิลป์|ดนตรี|นาฏศิลป์)/.test(text)) return "art";
+  // Career (ง)
+  if (/(ง[\d๐-๙]{5}|[ (]ง[\d๐-๙]|การงานอาชีพ|งานช่าง|เกษตร|ขยายพันธ์|การดำรงชีวิตและครอบครัว|อาชีวอนามัย|เครื่องมือวัด)/.test(text)) return "career";
+  // Thai (ท)
+  if (/(ท[\d๐-๙]{5}|[ (]ท[\d๐-๙]|ภาษาไทย|วรรณกรรม|การอ่าน|การเขียน|วรรณคดี|เรียงความ)/.test(text)) return "thai";
+  // Foreign (อ, จ)
+  if (/(อ[\d๐-๙]{5}|จ[\d๐-๙]{5}|[ (][อจ][\d๐-๙]|ภาษาอังกฤษ|อังกฤษ|ภาษาจีน|汉语|english|listening|speaking)/.test(text)) return "foreign";
+  // Math (ค)
+  if (/(ค[\d๐-๙]{5}|[ (]ค[\d๐-๙]|คณิตศาสตร์|คณิต|พีชคณิต|เรขาคณิต|แคลคูลัส|สถิติ)/.test(text)) return "math";
+  // Science & Tech (ว)
+  if (/(ว[\d๐-๙]{5}|[ (]ว[\d๐-๙]|วิทยาศาสตร์|วิทยาศษสตร์|ฟิสิกส์|เคมี|ชีววิทยา|ชีวภาพ|ดาราศาสตร์|คอมพิวเตอร์|เทคโนโลยี|วิทยาการคำนวณ|coding)/.test(text)) return "science";
+  // Social (ส)
+  if (/(ส[\d๐-๙]{5}|[ (]ส[\d๐-๙]|สังคมศึกษา|สังคม|ประวัติศาสตร์|หน้าที่พลเมือง|ภูมิศาสตร์|ศาสนา|ศีลธรรม|เศรษฐศาสตร์)/.test(text)) return "social";
+  // Activity (I, ก - strictly IS / การค้นคว้าอิสระ)
+  if (/(i[\d๐-๙]{5}|การค้นคว้าอิสระ|\bis\b)/.test(text)) return "activity";
+
+  return "";
 };
 
-export const extractGrade = (text: string): string => {
-  const str = text.toLowerCase();
+export const detectSubjectGroup = (topic?: string): SubjectGroup => {
+  const t = topic || "";
+  const detectedId = detectSubjectFromTitle(t);
+  if (detectedId) {
+    const found = SUBJECT_GROUPS.find((g) => g.id === detectedId);
+    if (found) return found;
+  }
+  return SUBJECT_GROUPS.find((g) => g.id === "thai")!;
+};
+
+export const extractGrade = (topic?: string, content?: string): string => {
+  const str = `${topic || ""} ${content || ""}`.toLowerCase();
   if (str.includes("ม.1") || str.includes("มัธยมศึกษาปีที่ 1") || str.includes("ม. 1") || /[ก-ฮa-z]21\d{3}/i.test(str)) return "ม.1";
   if (str.includes("ม.2") || str.includes("มัธยมศึกษาปีที่ 2") || str.includes("ม. 2") || /[ก-ฮa-z]22\d{3}/i.test(str)) return "ม.2";
   if (str.includes("ม.3") || str.includes("มัธยมศึกษาปีที่ 3") || str.includes("ม. 3") || /[ก-ฮa-z]23\d{3}/i.test(str)) return "ม.3";
@@ -73,24 +79,30 @@ export const extractGrade = (text: string): string => {
 export const cleanSubjectTitle = (t?: string): string => {
   if (!t) return "วิชาทั่วไป";
   let s = t
-    .replace(/แบบทดสอบวัดผลปลายภาคเรียนที่\s*[\d๑-๙\.\/]+/g, "")
-    .replace(/แบบทดสอบวัดผลปลายภาค/g, "")
-    .replace(/ข้อสอบวัดผลปลายภาค/g, "")
-    .replace(/แบบทดสอบปลายภาค/g, "")
-    .replace(/ข้อสอบปลายภาค/g, "")
-    .replace(/ข้อสอบกปลายภาค/g, "")
-    .replace(/ภาคเรียนที่\s*[\d๑-๙\.\/]+/g, "")
-    .replace(/ประจำปีการศึกษา\s*[\d๑-๙]+/g, "")
-    .replace(/ปีการศึกษา\s*[\d๑-๙]+/g, "")
-    .replace(/โรงเรียนวังหลวงพิทยาสรรพ์/g, "")
-    .replace(/เวลา\s*\d+\s*ชั่วโมง/g, "")
-    .replace(/คะแนนเต็ม\s*\d+\s*คะแนน/g, "")
-    .replace(/ครู[\u0E00-\u0E7Fa-zA-Z\s]+/g, "")
-    .replace(/สอนโดย[\u0E00-\u0E7Fa-zA-Z\s]+/g, "")
-    .replace(/สอนดดย[\u0E00-\u0E7Fa-zA-Z\s]+/g, "")
-    .replace(/ผลปลายภาค/g, "")
-    .replace(/^[\s,]+/g, "")
-    .replace(/[\s,]+$/g, "")
+    .replace(/แบบทดสอบวัดผลปลายภาคเรียนที่\s*[\d๑-๙\.\/]+/gi, "")
+    .replace(/แบบทดสอบวัดผลปลายภาค/gi, "")
+    .replace(/ข้อสอบวัดผลปลายภาค/gi, "")
+    .replace(/แบบทดสอบปลายภาค/gi, "")
+    .replace(/ข้อสอบปลายภาค/gi, "")
+    .replace(/ข้อสอบกปลายภาค/gi, "")
+    .replace(/ภาคเรียนที่\s*[\d๑-๙\.\/]+/gi, "")
+    .replace(/เรียนที่[่\s]*[\d๑-๙\.\/]+/gi, "")
+    .replace(/[\d๑-๙]\/256[\d๑-๙]/gi, "")
+    .replace(/ประจำปีการศึกษา\s*[\d๑-๙]+/gi, "")
+    .replace(/ปีการศึกษา\s*[\d๑-๙]+/gi, "")
+    .replace(/โรงเรียนวังหลวงพิทยาสรรพ์/gi, "")
+    .replace(/เวลา\s*\d+\s*ชั่วโมง/gi, "")
+    .replace(/คะแนนเต็ม\s*\d+\s*คะแนน/gi, "")
+    .replace(/\(ครู[^\)]*\)/gi, "")
+    .replace(/ครู[\u0E00-\u0E7Fa-zA-Z\s\.]+/gi, "")
+    .replace(/สอนโดยนาย?[\u0E00-\u0E7Fa-zA-Z\s\.]+/gi, "")
+    .replace(/สอนดดยนาย?[\u0E00-\u0E7Fa-zA-Z\s\.]+/gi, "")
+    .replace(/ผลปลายภาค/gi, "")
+    .replace(/,ษโ/g, "")
+    .replace(/ปรนัย.*$/g, "")
+    .replace(/\(\s*\)/g, "")
+    .replace(/^[,\-\s\.\/]+/g, "")
+    .replace(/[,\-\s\.\/]+$/g, "")
     .trim();
   return s || t;
 };
@@ -273,7 +285,7 @@ export default function QuestionBank() {
   const subjectGroupCounts = useMemo(() => {
     const counts: Record<string, number> = { all: questions.length };
     questions.forEach((q) => {
-      const sg = detectSubjectGroup((q.topic || "") + " " + q.content);
+      const sg = detectSubjectGroup(q.topic);
       counts[sg.id] = (counts[sg.id] || 0) + 1;
     });
     return counts;
@@ -283,9 +295,8 @@ export default function QuestionBank() {
   const availableCoursesInGroup = useMemo(() => {
     const map = new Map<string, number>();
     questions.forEach((q) => {
-      const combined = (q.topic || "") + " " + q.content;
-      const sg = detectSubjectGroup(combined);
-      const qGrade = extractGrade(combined);
+      const sg = detectSubjectGroup(q.topic);
+      const qGrade = extractGrade(q.topic, q.content);
 
       if (selectedSubjectGroup !== "all" && sg.id !== selectedSubjectGroup) return;
       if (selectedGrade !== "all" && qGrade && qGrade !== selectedGrade) return;
@@ -299,12 +310,12 @@ export default function QuestionBank() {
   // Filtered questions
   const filteredQuestions = useMemo(() => {
     return questions.filter((q) => {
-      const combined = (q.topic || "") + " " + q.content;
+      const combined = `${q.topic || ""} ${q.content}`;
       const matchSearch =
         !searchTerm ||
         combined.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const sg = detectSubjectGroup(combined);
+      const sg = detectSubjectGroup(q.topic);
       const matchSubjectGroup =
         selectedSubjectGroup === "all" || sg.id === selectedSubjectGroup;
 
@@ -312,7 +323,7 @@ export default function QuestionBank() {
       const matchCourse =
         selectedCourse === "all" || courseName === selectedCourse;
 
-      const qGrade = extractGrade(combined);
+      const qGrade = extractGrade(q.topic, q.content);
       const matchGrade = selectedGrade === "all" || qGrade === selectedGrade;
 
       const metrics = getItemAnalysisMetrics(q);
@@ -801,8 +812,8 @@ export default function QuestionBank() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(370px, 1fr))", gap: "16px" }}>
               {filteredQuestions.map((q) => {
                 const isSelected = selectedQuestionIds.has(q.id);
-                const sg = detectSubjectGroup((q.topic || "") + " " + q.content);
-                const grade = extractGrade((q.topic || "") + " " + q.content);
+                const sg = detectSubjectGroup(q.topic);
+                const grade = extractGrade(q.topic, q.content);
                 const metrics = getItemAnalysisMetrics(q);
 
                 return (
@@ -1443,8 +1454,8 @@ export default function QuestionBank() {
       {analyzingQuestion && (() => {
         const q = analyzingQuestion;
         const metrics = getItemAnalysisMetrics(q);
-        const sg = detectSubjectGroup((q.topic || "") + " " + q.content);
-        const grade = extractGrade((q.topic || "") + " " + q.content);
+        const sg = detectSubjectGroup(q.topic);
+        const grade = extractGrade(q.topic, q.content);
 
         return (
           <div

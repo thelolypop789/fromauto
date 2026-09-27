@@ -70,6 +70,31 @@ export const extractGrade = (text: string): string => {
   return "";
 };
 
+export const cleanSubjectTitle = (t?: string): string => {
+  if (!t) return "วิชาทั่วไป";
+  let s = t
+    .replace(/แบบทดสอบวัดผลปลายภาคเรียนที่\s*[\d๑-๙\.\/]+/g, "")
+    .replace(/แบบทดสอบวัดผลปลายภาค/g, "")
+    .replace(/ข้อสอบวัดผลปลายภาค/g, "")
+    .replace(/แบบทดสอบปลายภาค/g, "")
+    .replace(/ข้อสอบปลายภาค/g, "")
+    .replace(/ข้อสอบกปลายภาค/g, "")
+    .replace(/ภาคเรียนที่\s*[\d๑-๙\.\/]+/g, "")
+    .replace(/ประจำปีการศึกษา\s*[\d๑-๙]+/g, "")
+    .replace(/ปีการศึกษา\s*[\d๑-๙]+/g, "")
+    .replace(/โรงเรียนวังหลวงพิทยาสรรพ์/g, "")
+    .replace(/เวลา\s*\d+\s*ชั่วโมง/g, "")
+    .replace(/คะแนนเต็ม\s*\d+\s*คะแนน/g, "")
+    .replace(/ครู[\u0E00-\u0E7Fa-zA-Z\s]+/g, "")
+    .replace(/สอนโดย[\u0E00-\u0E7Fa-zA-Z\s]+/g, "")
+    .replace(/สอนดดย[\u0E00-\u0E7Fa-zA-Z\s]+/g, "")
+    .replace(/ผลปลายภาค/g, "")
+    .replace(/^[\s,]+/g, "")
+    .replace(/[\s,]+$/g, "")
+    .trim();
+  return s || t;
+};
+
 interface Choice {
   id: string;
   content: string;
@@ -105,6 +130,7 @@ export default function QuestionBank() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSubjectGroup, setSelectedSubjectGroup] = useState<string>("all");
+  const [selectedCourse, setSelectedCourse] = useState<string>("all");
   const [selectedGrade, setSelectedGrade] = useState<string>("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
   
@@ -253,6 +279,23 @@ export default function QuestionBank() {
     return counts;
   }, [questions]);
 
+  // Distinct courses within the selected Subject Group and Grade
+  const availableCoursesInGroup = useMemo(() => {
+    const map = new Map<string, number>();
+    questions.forEach((q) => {
+      const combined = (q.topic || "") + " " + q.content;
+      const sg = detectSubjectGroup(combined);
+      const qGrade = extractGrade(combined);
+
+      if (selectedSubjectGroup !== "all" && sg.id !== selectedSubjectGroup) return;
+      if (selectedGrade !== "all" && qGrade && qGrade !== selectedGrade) return;
+
+      const courseName = cleanSubjectTitle(q.topic || sg.name);
+      map.set(courseName, (map.get(courseName) || 0) + 1);
+    });
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  }, [questions, selectedSubjectGroup, selectedGrade]);
+
   // Filtered questions
   const filteredQuestions = useMemo(() => {
     return questions.filter((q) => {
@@ -265,6 +308,10 @@ export default function QuestionBank() {
       const matchSubjectGroup =
         selectedSubjectGroup === "all" || sg.id === selectedSubjectGroup;
 
+      const courseName = cleanSubjectTitle(q.topic || sg.name);
+      const matchCourse =
+        selectedCourse === "all" || courseName === selectedCourse;
+
       const qGrade = extractGrade(combined);
       const matchGrade = selectedGrade === "all" || qGrade === selectedGrade;
 
@@ -275,9 +322,9 @@ export default function QuestionBank() {
         (selectedDifficulty === "medium" && metrics.difficultyLabel.includes("ปานกลาง")) ||
         (selectedDifficulty === "hard" && metrics.difficultyLabel.includes("ยาก"));
 
-      return matchSearch && matchSubjectGroup && matchGrade && matchDifficulty;
+      return matchSearch && matchSubjectGroup && matchCourse && matchGrade && matchDifficulty;
     });
-  }, [questions, searchTerm, selectedSubjectGroup, selectedGrade, selectedDifficulty]);
+  }, [questions, searchTerm, selectedSubjectGroup, selectedCourse, selectedGrade, selectedDifficulty]);
 
   // Toggle selection
   const toggleSelectQuestion = (id: string) => {
@@ -497,7 +544,10 @@ export default function QuestionBank() {
               return (
                 <button
                   key={sg.id}
-                  onClick={() => setSelectedSubjectGroup(sg.id)}
+                  onClick={() => {
+                    setSelectedSubjectGroup(sg.id);
+                    setSelectedCourse("all");
+                  }}
                   style={{
                     padding: "10px 8px",
                     borderRadius: "12px",
@@ -547,6 +597,7 @@ export default function QuestionBank() {
               gap: "14px",
             }}
           >
+            {/* Row 1: Search & Difficulty Filter */}
             <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
               <div style={{ flex: "1 1 300px" }}>
                 <input
@@ -585,6 +636,66 @@ export default function QuestionBank() {
                   <option value="hard">🔴 ค่อนข้างยาก (p &lt; 0.45)</option>
                 </select>
               </div>
+            </div>
+
+            {/* Row 2: Specific Course Selector within Selected Learning Group */}
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                alignItems: "center",
+                flexWrap: "wrap",
+                background: "var(--gray-50)",
+                padding: "10px 14px",
+                borderRadius: "10px",
+                border: "1px solid var(--gray-200)",
+              }}
+            >
+              <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--gray-800)", display: "flex", alignItems: "center", gap: "6px" }}>
+                <span>📖</span> รายวิชาเฉพาะในกลุ่มนี้:
+              </span>
+              <select
+                value={selectedCourse}
+                onChange={(e) => setSelectedCourse(e.target.value)}
+                style={{
+                  flex: "1 1 320px",
+                  padding: "8px 12px",
+                  borderRadius: "8px",
+                  border: "1.5px solid var(--gray-300)",
+                  fontSize: "13.5px",
+                  background: "white",
+                  fontWeight: 600,
+                  color: "var(--gray-900)",
+                }}
+              >
+                <option value="all">
+                  -- ทุกรายวิชาใน{SUBJECT_GROUPS.find((g) => g.id === selectedSubjectGroup)?.shortName || "กลุ่มสาระนี้"} ({availableCoursesInGroup.reduce((a, b) => a + b[1], 0)} ข้อ) --
+                </option>
+                {availableCoursesInGroup.map(([cName, count]) => (
+                  <option key={cName} value={cName}>
+                    {cName} ({count} ข้อ)
+                  </option>
+                ))}
+              </select>
+
+              {selectedCourse !== "all" && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedCourse("all")}
+                  style={{
+                    border: "none",
+                    background: "var(--gray-200)",
+                    color: "var(--gray-700)",
+                    padding: "6px 12px",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  ✕ แสดงทุกวิชาในกลุ่มนี้
+                </button>
+              )}
             </div>
 
             {/* Grade Level Selector */}
@@ -727,6 +838,24 @@ export default function QuestionBank() {
                           }}
                         >
                           {sg.icon} {sg.shortName}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            color: "var(--gray-800)",
+                            background: "var(--gray-100)",
+                            padding: "2px 7px",
+                            borderRadius: "6px",
+                            border: "1px solid var(--gray-300)",
+                            maxWidth: "180px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                          title={cleanSubjectTitle(q.topic || sg.name)}
+                        >
+                          📖 {cleanSubjectTitle(q.topic || sg.name)}
                         </span>
                         {grade && (
                           <span

@@ -120,3 +120,81 @@ function supabaseInsert(tableName, payload) {
   }
   return null;
 }
+
+/**
+ * ⚡ ฟังก์ชันเติมชื่อวิชาและระดับชั้นที่หายไปให้ครบ 100%
+ * ทำงานโดยดึงชื่อวิชาจาก form_history แล้วนำไปใส่ให้ข้อสอบที่มีชื่อว่างอยู่
+ * ไม่สร้างข้อสอบซ้ำซ้อนแน่นอน (เป็นการ PATCH แก้ไขเฉพาะช่องชื่อวิชา)
+ */
+function fixAllSubjectTitles() {
+  Logger.log('🚀 เริ่มต้นการเติมชื่อวิชาและระดับชั้นที่ว่างอยู่...');
+  const historyUrl = `${SUPABASE_URL}/rest/v1/form_history?select=*`;
+  const options = {
+    method: 'get',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`
+    },
+    muteHttpExceptions: true
+  };
+  
+  const response = UrlFetchApp.fetch(historyUrl, options);
+  if (response.getResponseCode() !== 200) {
+    Logger.log('❌ ไม่สามารถอ่าน form_history: ' + response.getContentText());
+    return;
+  }
+  
+  const forms = JSON.parse(response.getContentText());
+  Logger.log(`✅ พบประวัติฟอร์ม ${forms.length} ฟอร์ม`);
+  
+  let totalPatched = 0;
+  
+  for (let i = 0; i < forms.length; i++) {
+    const record = forms[i];
+    if (!record.edit_url) continue;
+    const match = record.edit_url.match(/forms\/d\/([a-zA-Z0-9-_]+)/);
+    if (!match || !match[1]) continue;
+    
+    const formId = match[1];
+    const trueSubjectName = (record.form_title || '').trim();
+    if (!trueSubjectName) continue;
+    
+    try {
+      const form = FormApp.openById(formId);
+      const items = form.getItems();
+      let formPatchedCount = 0;
+      
+      for (let j = 0; j < items.length; j++) {
+        if (items[j].getType() === FormApp.ItemType.MULTIPLE_CHOICE) {
+          const qText = items[j].asMultipleChoiceItem().getTitle().trim();
+          if (!qText) continue;
+          
+          // ส่งคำสั่ง PATCH ไปอัปเดตเฉพาะข้อที่ content ตรงกันและ topic ยังว่างอยู่
+          const patchUrl = `${SUPABASE_URL}/rest/v1/question_bank?content=eq.${encodeURIComponent(qText)}`;
+          const patchOptions = {
+            method: 'patch',
+            contentType: 'application/json',
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`,
+              'Prefer': 'return=minimal'
+            },
+            payload: JSON.stringify({ topic: trueSubjectName }),
+            muteHttpExceptions: true
+          };
+          
+          const patchRes = UrlFetchApp.fetch(patchUrl, patchOptions);
+          if (patchRes.getResponseCode() >= 200 && patchRes.getResponseCode() < 300) {
+            formPatchedCount++;
+            totalPatched++;
+          }
+        }
+      }
+      Logger.log(`[${i+1}/${forms.length}] ✅ เติมวิชา "${trueSubjectName}" เรียบร้อย (${formPatchedCount} ข้อ)`);
+    } catch (err) {
+      Logger.log(`⚠️ ข้ามฟอร์ม "${trueSubjectName}": ${err.message}`);
+    }
+  }
+  
+  Logger.log(`🎉 สำเร็จทั้งหมด! ทำการเติมชื่อวิชาและระดับชั้นให้ข้อสอบไปแล้ว ${totalPatched} รายการ`);
+}

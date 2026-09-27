@@ -59,6 +59,8 @@ export default function QuestionBank() {
   const [existingExams, setExistingExams] = useState<Exam[]>([]);
   const [loadingExams, setLoadingExams] = useState(false);
 
+  const [selectedGrade, setSelectedGrade] = useState("all");
+
   useEffect(() => {
     fetchQuestions();
     fetchExams();
@@ -66,20 +68,44 @@ export default function QuestionBank() {
 
   const fetchQuestions = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("question_bank")
-      .select(`
-        *,
-        question_choices (*)
-      `)
-      .order("created_at", { ascending: false });
+    try {
+      const all: any[] = [];
+      let from = 0;
+      const step = 1000;
+      let hasMore = true;
 
-    if (error) {
-      console.error("Error fetching questions:", error);
-    } else {
-      setQuestions(data || []);
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("question_bank")
+          .select(`
+            *,
+            question_choices (*)
+          `)
+          .range(from, from + step - 1)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Error fetching questions:", error);
+          break;
+        }
+
+        if (data && data.length > 0) {
+          all.push(...data);
+          if (data.length < step) {
+            hasMore = false;
+          } else {
+            from += step;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+      setQuestions(all);
+    } catch (err) {
+      console.error("Error:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const fetchExams = async () => {
@@ -101,6 +127,19 @@ export default function QuestionBank() {
     setLoadingExams(false);
   };
 
+  // Helper to extract grade from topic or course code
+  const getGrade = (text?: string): string => {
+    if (!text) return "";
+    const str = text.toLowerCase();
+    if (str.includes("ม.1") || str.includes("มัธยมศึกษาปีที่ 1") || str.includes("ม. 1") || /[ก-ฮa-z]21\d{3}/i.test(str)) return "ม.1";
+    if (str.includes("ม.2") || str.includes("มัธยมศึกษาปีที่ 2") || str.includes("ม. 2") || /[ก-ฮa-z]22\d{3}/i.test(str)) return "ม.2";
+    if (str.includes("ม.3") || str.includes("มัธยมศึกษาปีที่ 3") || str.includes("ม. 3") || /[ก-ฮa-z]23\d{3}/i.test(str)) return "ม.3";
+    if (str.includes("ม.4") || str.includes("มัธยมศึกษาปีที่ 4") || str.includes("ม. 4") || /[ก-ฮa-z]31\d{3}/i.test(str)) return "ม.4";
+    if (str.includes("ม.5") || str.includes("มัธยมศึกษาปีที่ 5") || str.includes("ม. 5") || /[ก-ฮa-z]32\d{3}/i.test(str)) return "ม.5";
+    if (str.includes("ม.6") || str.includes("มัธยมศึกษาปีที่ 6") || str.includes("ม. 6") || /[ก-ฮa-z]33\d{3}/i.test(str)) return "ม.6";
+    return "";
+  };
+
   // Distinct topics / subjects
   const availableTopics = useMemo(() => {
     const topics = new Set<string>();
@@ -117,10 +156,17 @@ export default function QuestionBank() {
         !searchTerm ||
         (q.topic && q.topic.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (q.content && q.content.toLowerCase().includes(searchTerm.toLowerCase()));
-      const matchTopic = selectedTopic === "all" || q.topic === selectedTopic;
-      return matchSearch && matchTopic;
+      
+      const matchTopic =
+        selectedTopic === "all" ||
+        (selectedTopic === "unspecified" ? (!q.topic || !q.topic.trim()) : q.topic === selectedTopic);
+
+      const qGrade = getGrade(q.topic);
+      const matchGrade = selectedGrade === "all" || qGrade === selectedGrade;
+
+      return matchSearch && matchTopic && matchGrade;
     });
-  }, [questions, searchTerm, selectedTopic]);
+  }, [questions, searchTerm, selectedTopic, selectedGrade]);
 
   // Toggle selection
   const toggleSelectQuestion = (id: string) => {
@@ -359,7 +405,7 @@ export default function QuestionBank() {
                 />
               </div>
 
-              <div style={{ minWidth: "220px" }}>
+              <div style={{ minWidth: "260px", flex: "1 1 260px" }}>
                 <select
                   value={selectedTopic}
                   onChange={(e) => setSelectedTopic(e.target.value)}
@@ -372,7 +418,10 @@ export default function QuestionBank() {
                     background: "white",
                   }}
                 >
-                  <option value="all">📂 ทุกกลุ่มสาระ/วิชา ({availableTopics.length} วิชา)</option>
+                  <option value="all">📂 ทุกกลุ่มสาระ/วิชา ({availableTopics.length} วิชาที่มีชื่อ)</option>
+                  <option value="unspecified">
+                    📌 ข้อสอบรอระบุชื่อวิชา ({questions.filter((q) => !q.topic || !q.topic.trim()).length} ข้อ)
+                  </option>
                   {availableTopics.map((t) => (
                     <option key={t} value={t}>
                       {t}
@@ -380,6 +429,33 @@ export default function QuestionBank() {
                   ))}
                 </select>
               </div>
+            </div>
+
+            {/* Grade Level Selector */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--gray-700)" }}>
+                🎓 เลือกระดับชั้น:
+              </span>
+              {["all", "ม.1", "ม.2", "ม.3", "ม.4", "ม.5", "ม.6"].map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => setSelectedGrade(g)}
+                  style={{
+                    padding: "5px 12px",
+                    borderRadius: "20px",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    border: selectedGrade === g ? "none" : "1px solid var(--gray-300)",
+                    background: selectedGrade === g ? "var(--crimson)" : "var(--gray-50)",
+                    color: selectedGrade === g ? "white" : "var(--gray-700)",
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {g === "all" ? "ทุกระดับชั้น" : g}
+                </button>
+              ))}
             </div>
 
             {/* Quick Actions Bar */}

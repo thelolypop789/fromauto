@@ -4028,6 +4028,7 @@ function ScoreAnalyticsView({
 
   // ตัวกรองและการแสดงผลวิเคราะห์รายบุคคล (อ่อน / เก่ง / ยอดเยี่ยม รายวิชา)
   const [showStudentDiagnosticsModal, setShowStudentDiagnosticsModal] = useState<boolean>(false);
+  const [showEmptyExamsModal, setShowEmptyExamsModal] = useState<boolean>(false);
   const [selectedTierFilter, setSelectedTierFilter] = useState<string>("all");
   const [selectedStudentRoom, setSelectedStudentRoom] = useState<string>("all");
   const [studentSearchTerm, setStudentSearchTerm] = useState<string>("");
@@ -4246,6 +4247,7 @@ function ScoreAnalyticsView({
     };
 
     let processedExamsCount = 0;
+    const emptyExamsList: any[] = [];
 
     const examListWithStats = history.map(exam => {
       const sg = getExamSubjectGroup(exam);
@@ -4398,7 +4400,16 @@ function ScoreAnalyticsView({
         };
       }
 
-      // หากยังโหลดไม่เสร็จ: แสดงสถานะซื่อตรงว่ากำลังโหลด หรือยังไม่มีข้อมูล
+      // ตรวจสอบว่าดึงชีตมาแล้วแต่ยังไม่มีนักเรียนส่งคำตอบหรือไม่ (0 คน)
+      if (realCached && realCached.success && Array.isArray(realCached.students) && realCached.students.length === 0) {
+        emptyExamsList.push({
+          ...exam,
+          subjectGroup: sg,
+          reason: "ชีตว่างเปล่า ยังไม่มีนักเรียนส่งกระดาษคำตอบในระบบ Google Form"
+        });
+      }
+
+      // หากยังโหลดไม่เสร็จ หรือเป็นชีตว่าง
       return {
         ...exam,
         subjectGroup: sg,
@@ -4407,7 +4418,7 @@ function ScoreAnalyticsView({
         studentCount: 0,
         scoreLevel: null,
         isRealData: false,
-        isLoading: Boolean(exam.sheet_url)
+        isLoading: !realCached && Boolean(exam.sheet_url)
       };
     });
 
@@ -4509,7 +4520,8 @@ function ScoreAnalyticsView({
       subjectStatsMap,
       gradeStatsMap,
       examListWithStats,
-      uniqueStudentsList
+      uniqueStudentsList,
+      emptyExamsList
     };
   }, [history, batchTick]);
 
@@ -4673,12 +4685,30 @@ function ScoreAnalyticsView({
             <div style={{fontSize: 14, fontWeight: 700, color: batchProgress.isFetching ? "#1E40AF" : "var(--gray-900)"}}>
               {batchProgress.isFetching
                 ? `กำลังประมวลผลคะแนนจริงจาก Google Sheets... (โหลดแล้ว ${batchProgress.loaded} / ${batchProgress.total} ชุด)`
-                : `ข้อมูลคะแนนจาก Google Sheets: ประมวลผลแล้ว ${schoolwideData.processedExamsCount} จาก ${history.length} ชุด (นักเรียนรวม ${schoolwideData.uniqueStudentsTotal} คน)`}
+                : `ข้อมูลคะแนนจาก Google Sheets: ดึงครบทั้ง ${history.length} ชุดแล้ว (มีผู้สอบ ${schoolwideData.processedExamsCount} ชุด | ว่างยังไม่มีผู้สอบ ${schoolwideData.emptyExamsList.length} ชุด)`}
             </div>
-            <div style={{fontSize: 12, color: batchProgress.isFetching ? "#1D4ED8" : "var(--gray-600)", marginTop: 2}}>
-              {batchProgress.isFetching
-                ? (batchProgress.currentExamTitle ? `กำลังอ่าน: ${batchProgress.currentExamTitle}` : "ระบบกำลังดึงข้อมูลคะแนนจริงเพื่อคำนวณสถิติ...")
-                : "ดึงข้อมูลเป็นครั้ง ๆ ตามความต้องการ เพื่อความรวดเร็วและประหยัดเวลา (ไม่ต้องโหลดใหม่ทุกครั้ง)"}
+            <div style={{fontSize: 12, color: batchProgress.isFetching ? "#1D4ED8" : "var(--gray-600)", marginTop: 2, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap"}}>
+              <span>{batchProgress.isFetching ? (batchProgress.currentExamTitle ? `กำลังอ่าน: ${batchProgress.currentExamTitle}` : "ระบบกำลังดึงข้อมูลคะแนนจริง...") : `ระบบดึงข้อมูลจากชีตครบ 100% แล้วทุกชุด (นักเรียนรวมทั้งโรงเรียน ${schoolwideData.uniqueStudentsTotal} คน)`}</span>
+              {!batchProgress.isFetching && schoolwideData.emptyExamsList.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowEmptyExamsModal(true)}
+                  style={{
+                    background: "#FEF3C7",
+                    color: "#92400E",
+                    border: "1.5px solid #FCD34D",
+                    borderRadius: 12,
+                    padding: "2px 10px",
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4
+                  }}>
+                  <span>ℹ️ ดูรายชื่อ {schoolwideData.emptyExamsList.length} ชุดที่ยังไม่มีผู้สอบ</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -4706,7 +4736,7 @@ function ScoreAnalyticsView({
                   padding: "8px 16px",
                   boxShadow: "0 2px 6px rgba(37,99,235,0.25)"
                 }}>
-                🔄 ดึงข้อมูลคะแนนทั้งหมดจาก Google Sheets ({batchProgress.total - batchProgress.loaded > 0 ? `เหลืออีก ${batchProgress.total - batchProgress.loaded} ชุด` : "อัปเดตล่าสุด"})
+                🔄 ซิงค์คะแนนล่าสุดจาก Google Sheets ({batchProgress.total - batchProgress.loaded > 0 ? `เหลืออีก ${batchProgress.total - batchProgress.loaded} ชุด` : `ดึงครบ ${history.length} ชุดแล้ว`})
               </button>
               <button
                 type="button"
@@ -5351,7 +5381,112 @@ function ScoreAnalyticsView({
             </div>
           )}
 
-          {/* Modal: สมุดพกและประวัติผลการสอบนักเรียนรายบุคคล (Comprehensive Scorecard Modal) */}
+          {/* Modal: รายชื่อชุดข้อสอบที่ยังไม่มีนักเรียนส่งคำตอบ */}
+      {showEmptyExamsModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0,0,0,0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999,
+          padding: 16
+        }}>
+          <div className="card" style={{maxWidth: 620, width: "100%", margin: 0, padding: 24, maxHeight: "90vh", overflowY: "auto"}}>
+            <div style={{display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16}}>
+              <div>
+                <h3 style={{fontSize: 17, fontWeight: 700, color: "var(--gray-900)", margin: 0}}>
+                  📋 รายชื่อชุดข้อสอบที่ดึงแล้วแต่ยังไม่มีนักเรียนส่งคำตอบ ({schoolwideData.emptyExamsList.length} ชุด)
+                </h3>
+                <div style={{fontSize: 12.5, color: "var(--gray-500)", marginTop: 4}}>
+                  ระบบดึงข้อมูลจาก Google Sheets สำเร็จแล้ว 100% แต่ในชีตเหล่านี้ยังไม่มีแถวคำตอบของนักเรียน
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEmptyExamsModal(false)}
+                style={{background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "var(--gray-500)"}}>
+                ✕
+              </button>
+            </div>
+
+            <div style={{display: "grid", gap: 10, marginBottom: 18}}>
+              {schoolwideData.emptyExamsList.map((ex: any, idx: number) => {
+                const sg = ex.subjectGroup;
+                return (
+                  <div
+                    key={ex.id || idx}
+                    style={{
+                      background: "#FFFBEB",
+                      border: "1.5px solid #FDE68A",
+                      borderRadius: 8,
+                      padding: "12px 14px"
+                    }}>
+                    <div style={{display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4}}>
+                      <div style={{fontWeight: 700, color: "var(--gray-900)", fontSize: 13.5}}>
+                        {idx + 1}. {ex.form_title}
+                      </div>
+                      <span style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        background: "#FEF3C7",
+                        color: "#92400E",
+                        padding: "2px 8px",
+                        borderRadius: 10,
+                        whiteSpace: "nowrap"
+                      }}>
+                        ผู้สอบ 0 คน
+                      </span>
+                    </div>
+
+                    <div style={{display: "flex", gap: 8, alignItems: "center", fontSize: 11.5, color: "var(--gray-600)", marginTop: 4}}>
+                      <span>{sg?.icon} {sg?.shortName}</span>
+                      <span>•</span>
+                      <span>คำถาม {ex.question_count || 0} ข้อ</span>
+                    </div>
+
+                    <div style={{display: "flex", gap: 8, marginTop: 8}}>
+                      {ex.sheet_url && (
+                        <a
+                          href={ex.sheet_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{fontSize: 11.5, color: "#1D4ED8", textDecoration: "underline", fontWeight: 600}}>
+                          📄 ตรวจสอบใน Google Sheets ↗
+                        </a>
+                      )}
+                      {ex.view_url && (
+                        <a
+                          href={ex.view_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{fontSize: 11.5, color: "#059669", textDecoration: "underline", fontWeight: 600}}>
+                          👁️ ลิงก์ทำข้อสอบนักเรียน ↗
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{textAlign: "right"}}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowEmptyExamsModal(false)}>
+                ปิดหน้าต่าง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: สมุดพกและประวัติผลการสอบนักเรียนรายบุคคล (Comprehensive Scorecard Modal) */}
           {selectedStudentScorecard && (
             <div style={{
               position: "fixed",

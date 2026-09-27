@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@supabase/supabase-js";
+import LiveProctorModal from "./LiveProctorModal";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
@@ -166,6 +167,9 @@ export default function QuestionBank() {
 
   // Modal Item Analysis State
   const [analyzingQuestion, setAnalyzingQuestion] = useState<Question | null>(null);
+
+  // Live Proctor State
+  const [proctoringExam, setProctoringExam] = useState<Exam | null>(null);
 
   useEffect(() => {
     fetchQuestions();
@@ -1421,26 +1425,48 @@ export default function QuestionBank() {
                       </span>
                     </div>
 
-                    <div style={{ display: "flex", gap: "8px" }}>
-                      <button
-                        className="btn btn-secondary"
-                        onClick={() => {
-                          navigator.clipboard.writeText(link);
-                          alert("คัดลอกลิงก์เข้าสอบสำหรับนักเรียนแล้ว!");
-                        }}
-                        style={{ flex: 1, fontSize: "12px", padding: "8px" }}
-                      >
-                        🔗 คัดลอกลิงก์สอบ
-                      </button>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                       <button
                         className="btn btn-primary"
-                        onClick={() => {
-                          window.open(link, "_blank");
+                        onClick={() => setProctoringExam(ex)}
+                        style={{
+                          background: "linear-gradient(135deg, #0F172A 0%, #1E293B 100%)",
+                          color: "#38BDF8",
+                          border: "1px solid rgba(56,189,248,0.3)",
+                          padding: "9px 12px",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          boxShadow: "0 2px 8px rgba(15,23,42,0.25)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "6px",
+                          cursor: "pointer",
                         }}
-                        style={{ flex: 1, fontSize: "12px", padding: "8px" }}
                       >
-                        👁️ ทดลองสอบ
+                        📡 คุมสอบสด & ดูผลสอบเรียลไทม์ (Live Proctor)
                       </button>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => {
+                            navigator.clipboard.writeText(link);
+                            alert("คัดลอกลิงก์เข้าสอบสำหรับนักเรียนแล้ว!\n\n" + link);
+                          }}
+                          style={{ flex: 1, fontSize: "12px", padding: "8px" }}
+                        >
+                          🔗 คัดลอกลิงก์สอบ
+                        </button>
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => {
+                            window.open(link, "_blank");
+                          }}
+                          style={{ flex: 1, fontSize: "12px", padding: "8px" }}
+                        >
+                          👁️ ทดลองสอบ
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -1697,6 +1723,14 @@ export default function QuestionBank() {
           </div>
         );
       })()}
+
+      {/* ==================== LIVE PROCTOR MODAL ==================== */}
+      {proctoringExam && (
+        <LiveProctorModal
+          exam={proctoringExam}
+          onClose={() => setProctoringExam(null)}
+        />
+      )}
     </div>
   );
 }

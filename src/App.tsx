@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@supabase/supabase-js";
 import QuestionBank from "./QuestionBank";
+import ExamPlayer from "./ExamPlayer";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
@@ -6765,6 +6766,23 @@ function ResultView({ result, onReset, userRole, usageCount, dailyLimit }: any) 
 
 // ============ MAIN APP ============
 export default function App() {
+  // Check URL parameters for direct student exam access
+  const urlParams = new URLSearchParams(window.location.search);
+  const examIdFromUrl = urlParams.get("exam_id") || urlParams.get("exam") || urlParams.get("id");
+  const isExamRoute = window.location.pathname.includes("/exam") || window.location.hash.includes("/exam");
+
+  if (examIdFromUrl || isExamRoute) {
+    return (
+      <ExamPlayer
+        examIdProp={examIdFromUrl || undefined}
+        onExit={() => {
+          window.history.replaceState({}, "", window.location.pathname);
+          window.location.reload();
+        }}
+      />
+    );
+  }
+
   const [user, setUser] = useState<any>(() => {
     try { return JSON.parse(localStorage.getItem("fromauto_user") || "null"); } catch { return null; }
   });
@@ -7123,6 +7141,31 @@ export default function App() {
             </button>
 
             <button
+              className={`sidebar-item ${tab==="exam_player"?"active":""}`}
+              onClick={() => setTab("exam_player")}
+              style={tab==="exam_player" ? {
+                background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                color: "white",
+                fontWeight: 700,
+                boxShadow: "0 2px 8px rgba(5,150,105,.25)"
+              } : {}}
+            >
+              📝 ระบบทำข้อสอบออนไลน์
+              <span style={{
+                marginLeft: "auto",
+                background: tab==="exam_player" ? "rgba(255,255,255,0.25)" : "#ECFDF5",
+                color: tab==="exam_player" ? "white" : "#047857",
+                fontSize: 10,
+                fontWeight: 700,
+                padding: "2px 7px",
+                borderRadius: 10,
+                border: "1px solid #A7F3D0"
+              }}>
+                Secure Player
+              </span>
+            </button>
+
+            <button
               className={`sidebar-item ${tab==="dashboard"?"active":""}`}
               onClick={() => { setTab("dashboard"); setSelectedGrade("all"); setSelectedRoom("all"); }}
               style={tab==="dashboard" ? {
@@ -7263,6 +7306,7 @@ export default function App() {
           <div className="content">
            {tab==="admin" && user.role==="admin" ? <AdminPanel adminKey={user.key} /> :
             tab==="question_bank" ? <QuestionBank /> :
+            tab==="exam_player" ? <ExamPlayer onExit={() => setTab("question_bank")} /> :
             tab==="dashboard" ? (
               <ScoreAnalyticsView
                 user={user}

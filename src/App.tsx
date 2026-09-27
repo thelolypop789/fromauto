@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@supabase/supabase-js";
+import QuestionBank from "./QuestionBank";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
@@ -7098,6 +7099,30 @@ export default function App() {
             </button>
 
             <button
+              className={`sidebar-item ${tab==="question_bank"?"active":""}`}
+              onClick={() => setTab("question_bank")}
+              style={tab==="question_bank" ? {
+                background: "linear-gradient(135deg, #1E293B 0%, #0F172A 100%)",
+                color: "white",
+                fontWeight: 700,
+                boxShadow: "0 2px 8px rgba(15,23,42,.25)"
+              } : {}}
+            >
+              📚 คลังข้อสอบกลาง
+              <span style={{
+                marginLeft: "auto",
+                background: tab==="question_bank" ? "rgba(255,255,255,0.25)" : "var(--gray-200)",
+                color: tab==="question_bank" ? "white" : "var(--gray-800)",
+                fontSize: 10,
+                fontWeight: 700,
+                padding: "2px 7px",
+                borderRadius: 10
+              }}>
+                2,176 ข้อ
+              </span>
+            </button>
+
+            <button
               className={`sidebar-item ${tab==="dashboard"?"active":""}`}
               onClick={() => { setTab("dashboard"); setSelectedGrade("all"); setSelectedRoom("all"); }}
               style={tab==="dashboard" ? {
@@ -7237,6 +7262,7 @@ export default function App() {
 
           <div className="content">
            {tab==="admin" && user.role==="admin" ? <AdminPanel adminKey={user.key} /> :
+            tab==="question_bank" ? <QuestionBank /> :
             tab==="dashboard" ? (
               <ScoreAnalyticsView
                 user={user}

@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
-  ExamItem,
+  type ExamItem,
   SUBJECT_COLORS,
   detectSubjectFromTitle,
   detectGradeFromTitle,

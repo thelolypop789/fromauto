@@ -1,18 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { ExecutiveDashboard } from "./ExecutiveDashboard";
+import { INITIAL_EXAM_BANK } from "./examBankData";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-function genKey(role: string) {
-  const prefix = role === "admin" ? "ADMIN" : "USER";
-  const bytes = new Uint8Array(8);
-  crypto.getRandomValues(bytes);
-  const hex = Array.from(bytes).map(b => b.toString(36).padStart(2,"0")).join("").toUpperCase();
-  return `${prefix}-${hex.slice(0,6)}-${hex.slice(6,10)}`;
-}
+const supabase = createClient(
+  SUPABASE_URL || "https://placeholder.supabase.co",
+  SUPABASE_KEY || "placeholder"
+);
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=Prompt:wght@500;600;700&display=swap');
@@ -187,7 +184,758 @@ const css = `
   .history-table th { text-align:left; font-size:12px; font-weight:600; color:var(--gray-600); padding:8px 12px; border-bottom:2px solid var(--gray-200); }
   .history-table td { padding:12px; border-bottom:1px solid var(--gray-100); font-size:14px; vertical-align:middle; }
   .history-table tr:last-child td { border:none; }
-  .history-table tr:hover td { background:var(--gray-50); }`;
+  .history-table tr:hover td { background:var(--gray-50); }
+
+  /* ================= EXECUTIVE & EXAM BANK STYLES ================= */
+  .exec-container { max-width: 1280px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px; animation: slideUp .35s ease; }
+  .exec-hero-card {
+    background: linear-gradient(135deg, #4C1D95 0%, #6D28D9 45%, #2563EB 100%);
+    border-radius: var(--radius-lg);
+    padding: 30px 34px;
+    color: white;
+    box-shadow: 0 10px 25px -5px rgba(109, 40, 217, 0.35);
+    position: relative;
+    overflow: hidden;
+  }
+  .exec-hero-card::after {
+    content: "";
+    position: absolute;
+    right: -40px;
+    bottom: -40px;
+    width: 260px;
+    height: 260px;
+    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .exec-hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+  }
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4ADE80;
+    box-shadow: 0 0 8px #4ADE80;
+    animation: livePulse 1.8s infinite;
+  }
+  @keyframes livePulse { 0% { opacity: 0.5; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.2); } 100% { opacity: 0.5; transform: scale(0.9); } }
+  .exec-hero-title {
+    font-family: 'Prompt', sans-serif;
+    font-size: 25px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 8px;
+  }
+  .exec-hero-subtitle {
+    font-size: 14px;
+    opacity: 0.92;
+    line-height: 1.6;
+    max-width: 880px;
+    margin-bottom: 20px;
+  }
+  .exec-quick-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    background: rgba(0, 0, 0, 0.16);
+    padding: 12px 18px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  .exec-term-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .exec-term-selector select {
+    background: white;
+    color: var(--gray-900);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+  }
+  .btn-exec {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none;
+    white-space: nowrap;
+  }
+  .btn-exec-primary {
+    background: #FBBF24;
+    color: #78350F;
+    box-shadow: 0 2px 8px rgba(251, 191, 36, 0.4);
+  }
+  .btn-exec-primary:hover {
+    background: #F59E0B;
+    transform: translateY(-1px);
+  }
+  .btn-exec-secondary {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  .btn-exec-secondary:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+  .btn-exec-outline {
+    background: white;
+    color: #4C1D95;
+    font-weight: 700;
+  }
+  .btn-exec-outline:hover {
+    background: #F5F3FF;
+  }
+  .exec-nav-pills {
+    display: flex;
+    gap: 8px;
+    background: #EDE9FE;
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid #DDD6FE;
+    flex-wrap: wrap;
+  }
+  .exec-nav-pill {
+    padding: 9px 18px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: #6D28D9;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Prompt', sans-serif;
+  }
+  .exec-nav-pill:hover {
+    background: rgba(255, 255, 255, 0.6);
+  }
+  .exec-nav-pill.active {
+    background: white;
+    color: #4C1D95;
+    box-shadow: var(--shadow-sm);
+  }
+  .exec-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+  }
+  .exec-kpi-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+  }
+  .exec-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: #DDD6FE;
+  }
+  .kpi-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    margin-bottom: 14px;
+  }
+  .kpi-label {
+    font-size: 13px;
+    color: var(--gray-600);
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .kpi-value {
+    font-family: 'Prompt', sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--gray-900);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .kpi-unit {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gray-500);
+  }
+  .kpi-trend {
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .kpi-trend.positive { color: #059669; }
+  .kpi-trend.highlight { color: #7C3AED; }
+  .kpi-trend.neutral { color: var(--gray-600); }
+  .exec-analytics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .exec-panel-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+  }
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+  .panel-title {
+    font-family: 'Prompt', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gray-900);
+  }
+  .panel-subtitle {
+    font-size: 12px;
+    color: var(--gray-500);
+    margin-top: 2px;
+  }
+  .subject-bar-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .subject-bar-item {
+    cursor: pointer;
+    padding: 8px 10px;
+    border-radius: 8px;
+    transition: background 0.15s;
+  }
+  .subject-bar-item:hover {
+    background: var(--gray-50);
+  }
+  .subject-bar-item.selected {
+    background: #F5F3FF;
+    outline: 1.5px solid #7C3AED;
+  }
+  .subject-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+  .subject-icon { margin-right: 6px; }
+  .subject-name { font-weight: 600; color: var(--gray-800); }
+  .subject-counts { font-size: 12px; color: var(--gray-600); }
+  .subject-track {
+    height: 8px;
+    background: var(--gray-100);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .subject-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+  .grade-pill-row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+  }
+  .grade-pill {
+    background: var(--gray-50);
+    border: 1.5px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 10px 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .grade-pill:hover {
+    border-color: #7C3AED;
+    background: #F5F3FF;
+  }
+  .grade-pill.active {
+    background: #7C3AED;
+    border-color: #7C3AED;
+    color: white;
+  }
+  .grade-badge-title {
+    font-family: 'Prompt', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .grade-pill.active .grade-badge-title { color: white; }
+  .grade-badge-count {
+    font-size: 11px;
+    color: var(--gray-500);
+    margin-top: 2px;
+  }
+  .grade-pill.active .grade-badge-count { color: #E9D5FF; }
+  .bloom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .bloom-card {
+    background: var(--gray-50);
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid var(--gray-200);
+  }
+  .bloom-name { font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 4px; }
+  .bloom-pct { font-family: 'Prompt', sans-serif; font-size: 22px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .bloom-desc { font-size: 11px; color: var(--gray-500); line-height: 1.3; }
+  .bloom-standard-callout {
+    background: #F5F3FF;
+    border: 1px solid #DDD6FE;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #5B21B6;
+    line-height: 1.5;
+  }
+  .exec-bank-section {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-200);
+  }
+  .bank-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .bank-section-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: #7C3AED;
+    background: #EDE9FE;
+    padding: 3px 8px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-bottom: 6px;
+    letter-spacing: 0.8px;
+  }
+  .bank-section-title {
+    font-family: 'Prompt', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--gray-900);
+  }
+  .bank-section-desc {
+    font-size: 13px;
+    color: var(--gray-600);
+    margin-top: 4px;
+  }
+  .view-mode-btn {
+    padding: 6px 12px;
+    border: 1.5px solid var(--gray-200);
+    background: white;
+    color: var(--gray-600);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .view-mode-btn.active {
+    background: #7C3AED;
+    border-color: #7C3AED;
+    color: white;
+  }
+  .bank-filter-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .search-input-wrap {
+    flex: 1;
+    min-width: 260px;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    color: var(--gray-400);
+    font-size: 14px;
+    pointer-events: none;
+  }
+  .search-input {
+    width: 100%;
+    padding: 10px 36px 10px 36px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-input:focus { border-color: #7C3AED; }
+  .clear-search-btn {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--gray-400);
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .filter-select-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .filter-select {
+    padding: 9px 12px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius);
+    font-size: 13px;
+    background: white;
+    color: var(--gray-800);
+    outline: none;
+    font-weight: 500;
+  }
+  .filter-select:focus { border-color: #7C3AED; }
+  .btn-reset-filters {
+    padding: 8px 12px;
+    background: var(--red-light);
+    color: var(--red);
+    border: none;
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .exam-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 18px;
+  }
+  .exam-card {
+    background: white;
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+  }
+  .exam-card:hover {
+    border-color: #7C3AED;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .exam-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .subject-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .grade-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: #F1F5F9;
+    color: #334155;
+  }
+  .type-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: #FEF3C7;
+    color: #92400E;
+  }
+  .exam-code {
+    font-family: monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: #6D28D9;
+    margin-bottom: 4px;
+  }
+  .exam-title {
+    font-family: 'Prompt', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gray-900);
+    line-height: 1.4;
+    margin-bottom: 8px;
+  }
+  .exam-desc {
+    font-size: 12px;
+    color: var(--gray-600);
+    line-height: 1.5;
+    margin-bottom: 14px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .exam-details-list {
+    background: var(--gray-50);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .detail-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+  }
+  .detail-label { color: var(--gray-500); }
+  .detail-val { font-weight: 600; color: var(--gray-800); }
+  .exam-card-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--gray-100);
+    padding-top: 14px;
+  }
+  .btn-card-action {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 11px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-card-action.preview-btn {
+    background: #EDE9FE;
+    color: #7C3AED;
+    flex: 1;
+  }
+  .btn-card-action.preview-btn:hover { background: #DDD6FE; }
+  .btn-card-action.link-btn {
+    background: #ECFDF5;
+    color: #047857;
+  }
+  .btn-card-action.link-btn:hover { background: #D1FAE5; }
+  .btn-card-action.edit-btn {
+    background: #EFF6FF;
+    color: #1D4ED8;
+  }
+  .btn-card-action.edit-btn:hover { background: #DBEAFE; }
+  .btn-card-action.clone-btn {
+    background: #F3F4F6;
+    color: #374151;
+  }
+  .btn-card-action.clone-btn:hover { background: #E5E7EB; }
+
+  /* Modal preview */
+  .modal.exec-preview-modal {
+    max-width: 720px;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+  }
+  .modal-header-banner {
+    padding: 24px 28px;
+    background: #F8FAFC;
+    border-bottom: 1px solid var(--gray-200);
+  }
+  .modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: var(--gray-400);
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+  }
+  .modal-close-btn:hover { color: var(--gray-800); }
+  .preview-meta-strip {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--gray-600);
+    margin-top: 12px;
+    flex-wrap: wrap;
+    background: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--gray-200);
+  }
+  .modal-body-scroll {
+    padding: 24px 28px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .preview-questions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .preview-question-card {
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 16px;
+    background: white;
+  }
+  .pq-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .pq-num {
+    font-size: 12px;
+    font-weight: 700;
+    color: #7C3AED;
+    background: #EDE9FE;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .pq-bloom-tag {
+    font-size: 11px;
+    color: var(--gray-600);
+    background: var(--gray-100);
+    padding: 2px 8px;
+    border-radius: 12px;
+  }
+  .pq-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+  .pq-choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .pq-choice-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--gray-200);
+    background: var(--gray-50);
+    font-size: 13px;
+  }
+  .pq-choice-item.correct {
+    border-color: #10B981;
+    background: #ECFDF5;
+    font-weight: 600;
+    color: #065F46;
+  }
+  .pq-choice-bullet {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    background: white;
+    border: 1.5px solid var(--gray-300);
+    color: var(--gray-600);
+    flex-shrink: 0;
+  }
+  .pq-choice-bullet.correct {
+    background: #10B981;
+    border-color: #10B981;
+    color: white;
+  }
+  .pq-choice-text { flex: 1; }
+  .correct-tag {
+    font-size: 10px;
+    background: #10B981;
+    color: white;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-weight: 700;
+  }
+  .pq-explanation {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: #FFFBEB;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #92400E;
+    line-height: 1.4;
+  }
+  .modal-footer-actions {
+    padding: 16px 28px;
+    border-top: 1px solid var(--gray-200);
+    background: #F8FAFC;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  /* PRINT STYLING FOR EXECUTIVE PRESENTATION */
+  @media print {
+    .topbar, .sidebar, .exec-quick-actions, .exec-nav-pills, .bank-filter-bar, .exam-card-actions, .btn { display: none !important; }
+    .main-layout { display: block !important; }
+    .content { padding: 0 !important; }
+    .exec-container { max-width: 100% !important; gap: 16px !important; }
+    .exec-hero-card { background: #4C1D95 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .exec-kpi-card, .exec-panel-card, .exec-bank-section { box-shadow: none !important; border: 1px solid #ccc !important; }
+  }
+`;
 
 // ICONS
 const Logo = () => (
@@ -198,331 +946,25 @@ const Logo = () => (
     <path d="M22 22l1.5 1.5L26 20" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
+const ExecutiveIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <path d="M2 14h12M3 14V6l5-3 5 3v8M6 14V9h4v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+const ExamBankIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <path d="M3 2.5h10a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1v-9a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.5"/>
+    <path d="M6 2.5v11M2.5 6.5h3.5M2.5 9.5h3.5" stroke="currentColor" strokeWidth="1.4"/>
+  </svg>
+);
 const PlusIcon = () => <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>;
 const TrashIcon = () => <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M3 4h9M5 4V3h5v1M6 7v4M9 7v4M4 4l.5 8h6l.5-8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 const CopyIcon = () => <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><rect x="5" y="5" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><path d="M3 10V3h7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 const ExternalIcon = () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M7 2h4v4M11 2L6 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M5 3H3a1 1 0 00-1 1v6a1 1 0 001 1h6a1 1 0 001-1V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>;
 const CheckIcon = () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7l3.5 3.5 5.5-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
-const LogoutIcon = () => <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3h3a1 1 0 011 1v8a1 1 0 01-1 1h-3M7 11l3-3-3-3M10 8H3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>;
-const KeyIcon = () => <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.5"/><path d="M9 8h5M12 8v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>;
 const FormIcon = () => <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="M5 5.5h6M5 8h6M5 10.5h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>;
 const UploadIcon = () => <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M14 18V8M10 12l4-4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M6 20h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>;
 const RefreshIcon = () => <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 8A5 5 0 113 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><path d="M13 4v4h-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>;
-
-// ============ LOGIN ============
-function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
-  const [key, setKey] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showKey, setShowKey] = useState(false);
-
-  const handleLogin = async () => {
-    if (!key.trim()) { setError("กรุณากรอก License Key"); return; }
-    setLoading(true); setError("");
-    try {
-      const { data: rows, error: err } = await supabase.rpc("validate_license", { p_key: key.trim().toUpperCase() });
-      const data = Array.isArray(rows) ? (rows[0] ?? null) : (rows ?? null);
-      if (err || !data) { setError("License Key ไม่ถูกต้องหรือถูกปิดใช้งาน"); setLoading(false); return; }
-      if (data.expires_at && new Date(data.expires_at) < new Date()) { setError("License Key หมดอายุแล้ว"); setLoading(false); return; }
-      setLoading(false);
-      onLogin({ key: data.key, role: data.role, note: data.note, daily_limit: data.daily_limit ?? 10 });
-    } catch { setError("เกิดข้อผิดพลาด กรุณาลองใหม่"); setLoading(false); }
-  };
-
-  return (
-    <div className="login-page">
-      {/* Decorative bg circles */}
-      <div style={{position:"fixed",inset:0,overflow:"hidden",pointerEvents:"none",zIndex:0}}>
-        <div style={{position:"absolute",top:"-8%",right:"-4%",width:420,height:420,borderRadius:"50%",background:"rgba(124,58,237,.07)"}}/>
-        <div style={{position:"absolute",bottom:"-8%",left:"-4%",width:320,height:320,borderRadius:"50%",background:"rgba(147,51,234,.05)"}}/>
-        <div style={{position:"absolute",top:"40%",left:"5%",width:180,height:180,borderRadius:"50%",background:"rgba(167,139,250,.06)"}}/>
-      </div>
-
-      <div className="login-card" style={{position:"relative",zIndex:1}}>
-        {/* Brand */}
-        <div style={{textAlign:"center",marginBottom:24}}>
-          <div style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:72,height:72,background:"linear-gradient(135deg,#7C3AED 0%,#9333EA 100%)",borderRadius:20,marginBottom:14,boxShadow:"0 8px 28px rgba(124,58,237,.35)"}}>
-            <svg width="38" height="38" viewBox="0 0 32 32" fill="none">
-              <path d="M8 10h16M8 16h10M8 22h12" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-              <circle cx="24" cy="22" r="4" fill="#A78BFA"/>
-              <path d="M22 22l1.5 1.5L26 20" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <div style={{fontFamily:"'Prompt',sans-serif",fontSize:28,fontWeight:700,color:"var(--gray-900)",lineHeight:1.2}}>FormAuto</div>
-          <div style={{fontSize:14,color:"var(--gray-500)",marginTop:6}}>สร้าง Google Form ข้อสอบ ใน 1 นาที</div>
-        </div>
-
-        {/* Feature chips */}
-        <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:28,flexWrap:"wrap"}}>
-          <span style={{fontSize:11,background:"var(--blue-light)",color:"var(--blue)",padding:"4px 11px",borderRadius:20,fontWeight:600}}>⚡ AI อ่านข้อสอบ</span>
-          <span style={{fontSize:11,background:"var(--green-light)",color:"var(--green)",padding:"4px 11px",borderRadius:20,fontWeight:600}}>✅ มีเฉลยอัตโนมัติ</span>
-          <span style={{fontSize:11,background:"var(--purple-light)",color:"var(--purple)",padding:"4px 11px",borderRadius:20,fontWeight:600}}>📋 .docx .pdf .txt</span>
-        </div>
-
-        {/* Input */}
-        <div className="field">
-          <label style={{fontWeight:600}}>License Key</label>
-          <div style={{position:"relative"}}>
-            <input type={showKey?"text":"password"} placeholder="XXXX-XXXXXX-XXXX" value={key}
-              onChange={e => { setKey(e.target.value); setError(""); }}
-              onKeyDown={e => e.key==="Enter" && handleLogin()}
-              className={error?"error":""}
-              style={{paddingRight:52,letterSpacing:showKey?"normal":"0.12em",fontFamily:"monospace",fontSize:15}}/>
-            <button onClick={() => setShowKey(v => !v)}
-              style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"6px 10px",minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center",borderRadius:6}}>
-              {showKey?"🙈":"👁️"}
-            </button>
-          </div>
-          {error && <div className="error-msg">⚠️ {error}</div>}
-        </div>
-
-        <button className="btn btn-primary" onClick={handleLogin} disabled={loading}
-          style={{borderRadius:12,fontSize:15,padding:"13px",marginTop:4}}>
-          {loading
-            ? <><span style={{display:"inline-block",width:15,height:15,border:"2px solid rgba(255,255,255,.35)",borderTopColor:"white",borderRadius:"50%",animation:"spin .7s linear infinite",marginRight:8,verticalAlign:"middle"}}/>กำลังตรวจสอบ...</>
-            : "🔓 เข้าใช้งาน"}
-        </button>
-
-        <div style={{textAlign:"center",marginTop:18,fontSize:12,color:"var(--gray-400)"}}>
-          กรุณาติดต่อผู้ดูแลระบบเพื่อรับ Key
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ============ ADMIN PANEL ============
-const GLOBAL_DAILY_LIMIT = 200;
-const USER_DAILY_LIMIT = 10;
-
-function AdminPanel({ adminKey }: { adminKey: string }) {
-  const [licenses, setLicenses] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [newKey, setNewKey] = useState({ role:"user", note:"", expires_at:"" });
-  const [generatedKey, setGeneratedKey] = useState("");
-  const [copied, setCopied] = useState(false);
-  const [usageToday, setUsageToday] = useState<Record<string, number>>({});
-  const [totalToday, setTotalToday] = useState(0);
-
-  const adminCall = async (action: string, params?: any) => {
-    const { data, error } = await supabase.functions.invoke("admin-action", {
-      body: { admin_key: adminKey, action, params },
-    });
-    if (error) throw new Error(error.message);
-    if (data?.error) throw new Error(data.error);
-    return data;
-  };
-
-  const fetchLicenses = async () => {
-    setLoading(true);
-    try {
-      const [{ data: licenses }, { data: usage }] = await Promise.all([
-        adminCall("list_licenses"),
-        adminCall("get_usage"),
-      ]);
-      setLicenses(licenses || []);
-      const map: Record<string, number> = {};
-      let total = 0;
-      for (const row of usage ?? []) { map[row.license_key] = row.requests; total += row.requests; }
-      setUsageToday(map);
-      setTotalToday(total);
-    } catch (e: any) { alert("โหลดข้อมูลล้มเหลว: " + e.message); }
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchLicenses(); }, []);
-
-  const createLicense = async () => {
-    const key = genKey(newKey.role);
-    try {
-      await adminCall("create_license", { key, role: newKey.role, note: newKey.note, expires_at: newKey.expires_at });
-      setGeneratedKey(key);
-      fetchLicenses();
-    } catch (e: any) { alert("สร้าง Key ไม่สำเร็จ: " + e.message); }
-  };
-
-  const toggleActive = async (id: string, current: boolean, role: string) => {
-    try {
-      await adminCall("toggle_license", { id, is_active: current, role });
-      fetchLicenses();
-    } catch (e: any) { alert(e.message); }
-  };
-
-  const deleteLicense = async (id: string) => {
-    if (!confirm("ต้องการลบ Key นี้ไหม?")) return;
-    try {
-      await adminCall("delete_license", { id });
-      fetchLicenses();
-    } catch (e: any) { alert("ลบ Key ไม่สำเร็จ: " + e.message); }
-  };
-
-  const copy = (text: string) => {
-    navigator.clipboard.writeText(text).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div>
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-number" style={{color:"var(--blue)"}}>{licenses.length}</div>
-          <div className="stat-label">Key ทั้งหมด</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-number" style={{color:"var(--green)"}}>{licenses.filter(l=>l.is_active).length}</div>
-          <div className="stat-label">ใช้งานได้</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-number" style={{color:"var(--purple)"}}>{licenses.filter(l=>l.role==="admin").length}</div>
-          <div className="stat-label">Admin</div>
-        </div>
-      </div>
-
-      <div className="stats-grid" style={{marginBottom:24}}>
-        <div className="stat-card">
-          <div className="stat-number" style={{color:"var(--blue)"}}>{totalToday}</div>
-          <div className="stat-label">AI ใช้วันนี้</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-number" style={{color: GLOBAL_DAILY_LIMIT - totalToday <= 20 ? "var(--red)" : "var(--green)"}}>
-            {GLOBAL_DAILY_LIMIT - totalToday}
-          </div>
-          <div className="stat-label">เหลือวันนี้</div>
-        </div>
-        <div className="stat-card">
-          <div style={{position:"relative",height:8,background:"var(--gray-200)",borderRadius:4,margin:"8px 0 6px"}}>
-            <div style={{
-              position:"absolute",inset:0,right:"auto",
-              width:`${Math.min(100, Math.round(totalToday/GLOBAL_DAILY_LIMIT*100))}%`,
-              background: totalToday/GLOBAL_DAILY_LIMIT > 0.8 ? "var(--red)" : "var(--blue)",
-              borderRadius:4,transition:"width .3s"
-            }}/>
-          </div>
-          <div className="stat-label">{Math.round(totalToday/GLOBAL_DAILY_LIMIT*100)}% ของโควต้ารายวัน</div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-          <div className="card-title">🔑 จัดการ License Keys</div>
-          <div style={{display:"flex",gap:8}}>
-            <button className="btn btn-secondary btn-sm" onClick={fetchLicenses}><RefreshIcon /> รีเฟรช</button>
-            <button className="btn btn-purple btn-sm" onClick={() => { setShowModal(true); setGeneratedKey(""); setNewKey({role:"user",note:"",expires_at:""}); }}>
-              <PlusIcon /> สร้าง Key ใหม่
-            </button>
-          </div>
-        </div>
-        {loading ? (
-          <div className="empty-state"><div className="spinner" style={{margin:"0 auto"}}/></div>
-        ) : licenses.length===0 ? (
-          <div className="empty-state"><div className="empty-icon">🔑</div><p>ยังไม่มี Key</p></div>
-        ) : (
-          <table className="license-table">
-            <thead><tr>
-              <th>Key</th><th>Role</th><th>หมายเหตุ</th><th>หมดอายุ</th><th>โควต้า/วัน</th><th>วันนี้</th><th>สถานะ</th><th>จัดการ</th>
-            </tr></thead>
-            <tbody>
-              {licenses.map(l => (
-                <tr key={l.id}>
-                  <td>
-                    <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{fontFamily:"monospace",fontSize:13,fontWeight:600}}>{l.key}</span>
-                      <button className="btn btn-icon" style={{padding:"3px 6px"}} onClick={() => copy(l.key)}><CopyIcon /></button>
-                    </div>
-                  </td>
-                  <td><span className={`badge ${l.role==="admin"?"badge-purple":"badge-blue"}`}>{l.role==="admin"?"👑 Admin":"👤 User"}</span></td>
-                  <td style={{fontSize:13,color:"var(--gray-600)"}}>{l.note||"-"}</td>
-                  <td style={{fontSize:13,color:"var(--gray-600)"}}>{l.expires_at?new Date(l.expires_at).toLocaleDateString("th-TH"):"ไม่มีวันหมดอายุ"}</td>
-                  <td>
-                    {l.role === "admin"
-                      ? <span className="badge badge-purple">∞</span>
-                      : <input
-                          type="number" min={1} max={9999}
-                          defaultValue={l.daily_limit ?? 10}
-                          style={{width:60,padding:"3px 6px",border:"1.5px solid var(--gray-200)",borderRadius:6,fontSize:13,textAlign:"center",fontFamily:"inherit"}}
-                          onBlur={async e => {
-                            const val = parseInt(e.target.value);
-                            if (!val || val < 1) { e.target.value = String(l.daily_limit ?? 10); return; }
-                            await adminCall("update_quota", { id: l.id, daily_limit: val });
-                          }}
-                          onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                        />
-                    }
-                  </td>
-                  <td>
-                    {l.role === "admin"
-                      ? <span className="badge badge-purple">∞</span>
-                      : <span className={`badge ${(usageToday[l.key]??0) >= (l.daily_limit ?? USER_DAILY_LIMIT) ? "badge-red" : "badge-blue"}`}>
-                          {usageToday[l.key]??0}/{l.daily_limit ?? USER_DAILY_LIMIT}
-                        </span>
-                    }
-                  </td>
-                  <td><span className={`badge ${l.is_active?"badge-green":"badge-red"}`}>{l.is_active?"✅ ใช้งานได้":"❌ ปิดแล้ว"}</span></td>
-                  <td>
-                    <div style={{display:"flex",gap:6}}>
-                      <button className={`btn btn-sm ${l.is_active?"btn-red":"btn-green"}`} onClick={() => toggleActive(l.id, l.is_active, l.role)}>
-                        {l.is_active?"ปิด":"เปิด"}
-                      </button>
-                      <button className="btn btn-sm btn-red" onClick={() => deleteLicense(l.id)}><TrashIcon /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">🔑 สร้าง License Key ใหม่</div>
-            {generatedKey ? (
-              <div>
-                <div style={{background:"var(--green-light)",border:"2px solid var(--green)",borderRadius:"var(--radius)",padding:16,marginBottom:16,textAlign:"center"}}>
-                  <div style={{fontSize:12,color:"var(--green)",fontWeight:600,marginBottom:8}}>Key ที่สร้างได้</div>
-                  <div style={{fontFamily:"monospace",fontSize:20,fontWeight:700,letterSpacing:"0.1em"}}>{generatedKey}</div>
-                </div>
-                <button className="btn btn-green" style={{width:"100%"}} onClick={() => copy(generatedKey)}>
-                  {copied ? <><CheckIcon /> คัดลอกแล้ว!</> : <><CopyIcon /> คัดลอก Key</>}
-                </button>
-                <div style={{marginTop:10}}>
-                  <button className="btn btn-secondary" style={{width:"100%"}} onClick={() => { setGeneratedKey(""); setNewKey({role:"user",note:"",expires_at:""}); }}>
-                    + สร้าง Key อีก
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="field">
-                  <label>Role</label>
-                  <select value={newKey.role} onChange={e => setNewKey({...newKey,role:e.target.value})}>
-                    <option value="user">👤 User — ใช้สร้างฟอร์ม</option>
-                    <option value="admin">👑 Admin — จัดการระบบ</option>
-                  </select>
-                </div>
-                <div className="field">
-                  <label>หมายเหตุ (ชื่อลูกค้า)</label>
-                  <input type="text" placeholder="เช่น ครูสมศรี โรงเรียนบ้านนา" value={newKey.note} onChange={e => setNewKey({...newKey,note:e.target.value})}/>
-                </div>
-                <div className="field">
-                  <label>วันหมดอายุ (ไม่บังคับ)</label>
-                  <input type="date" value={newKey.expires_at} onChange={e => setNewKey({...newKey,expires_at:e.target.value})}/>
-                </div>
-                <div className="modal-actions">
-                  <button className="btn btn-secondary" onClick={() => setShowModal(false)}>ยกเลิก</button>
-                  <button className="btn btn-purple" onClick={createLicense}>✨ สร้าง Key</button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ============ STEP 0: DETAILS ============
 function StepDetails({ formTitle, setFormTitle, formDesc, setFormDesc }: any) {
@@ -612,8 +1054,37 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
 - ตัดข้อความที่ไม่ใช่ข้อสอบออก เช่น คำชี้แจง หัวข้อ คำอวยพร`;
 
   const callGemini = async (parts: any[]) => {
+    const geminiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (geminiKey) {
+      const models = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"];
+      let lastErr = "";
+      for (const model of models) {
+        try {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts }],
+              generationConfig: {
+                response_mime_type: "application/json",
+                temperature: 0.1,
+              },
+            }),
+          });
+          const d = await res.json();
+          if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
+          const raw = d.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+          const clean = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+          return JSON.parse(clean);
+        } catch (err: any) {
+          lastErr = err.message;
+        }
+      }
+      throw new Error(lastErr || "Failed to parse exam with Gemini");
+    }
+
     const { data, error } = await supabase.functions.invoke("parse-exam", {
-      body: { parts, license_key: licenseKey },
+      body: { parts, license_key: licenseKey || "DIRECT" },
     });
     if (error) throw new Error(error.message);
     if (data?.error) throw new Error(data.error);
@@ -822,21 +1293,37 @@ function StepQuestions({ questions, setQuestions, licenseKey, onParsed }: any) {
   );
 }
 // ============ HISTORY ============
-function HistoryTab({ user }: any) {
-  const [history, setHistory] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+function HistoryTab({ user, history: passedHistory, onRefresh }: any) {
+  const [history, setHistory] = useState<any[]>(passedHistory || []);
+  const [loading, setLoading] = useState(!passedHistory);
   const [copied, setCopied] = useState<Record<string,boolean>>({});
 
   const fetchHistory = async () => {
     setLoading(true);
-    let query = supabase.from("form_history").select("*").order("created_at", { ascending:false });
-    if (user.role !== "admin") query = query.eq("license_key", user.key);
-    const { data } = await query;
-    setHistory(data || []);
+    try {
+      const { data, error } = await supabase.from("form_history").select("*").order("created_at", { ascending:false });
+      if (error) throw error;
+      setHistory(data || []);
+      if (onRefresh) onRefresh();
+    } catch {
+      try {
+        const local = JSON.parse(localStorage.getItem("fromauto_history") || "[]");
+        setHistory(local);
+      } catch {
+        setHistory([]);
+      }
+    }
     setLoading(false);
   };
 
-  useEffect(() => { fetchHistory(); }, []);
+  useEffect(() => {
+    if (passedHistory) {
+      setHistory(passedHistory);
+      setLoading(false);
+    } else {
+      fetchHistory();
+    }
+  }, [passedHistory]);
 
   const copy = (k: string, val: string) => {
     navigator.clipboard.writeText(val).catch(()=>{});
@@ -846,7 +1333,13 @@ function HistoryTab({ user }: any) {
 
   const deleteHistory = async (id: string) => {
     if (!confirm("ต้องการลบประวัตินี้ไหม?")) return;
-    await supabase.from("form_history").delete().eq("id", id);
+    try {
+      await supabase.from("form_history").delete().eq("id", id);
+    } catch {}
+    try {
+      const local = JSON.parse(localStorage.getItem("fromauto_history") || "[]");
+      localStorage.setItem("fromauto_history", JSON.stringify(local.filter((x: any) => x.id !== id)));
+    } catch {}
     fetchHistory();
   };
 
@@ -856,7 +1349,7 @@ function HistoryTab({ user }: any) {
         <div>
           <div className="card-title">📜 ประวัติการสร้างฟอร์ม</div>
           <div style={{fontSize:13,color:"var(--gray-600)"}}>
-            {user.role==="admin" ? "ประวัติทั้งหมดในระบบ" : "ประวัติของคุณ"}
+            ประวัติการสร้างฟอร์มทั้งหมด
           </div>
         </div>
         <button className="btn btn-secondary btn-sm" onClick={fetchHistory}><RefreshIcon /> รีเฟรช</button>
@@ -933,7 +1426,7 @@ function HistoryTab({ user }: any) {
   );
 }
 // ============ RESULT ============
-function ResultView({ result, onReset, userRole, usageCount, dailyLimit }: any) {
+function ResultView({ result, onReset }: any) {
   const [copied, setCopied] = useState<Record<string,boolean>>({});
   const copy = (k: string, val: string) => {
     navigator.clipboard.writeText(val).catch(()=>{});
@@ -969,38 +1462,14 @@ function ResultView({ result, onReset, userRole, usageCount, dailyLimit }: any) 
       <div style={{textAlign:"center"}}>
         <button className="btn btn-secondary" onClick={onReset}>+ สร้างข้อสอบชุดใหม่</button>
       </div>
-
-      {userRole !== "admin" && (
-        <div style={{marginTop:16,background:"linear-gradient(135deg,#7C3AED 0%,#9333EA 100%)",borderRadius:16,padding:"24px",color:"white",textAlign:"center"}}>
-          <div style={{fontSize:16,fontWeight:700,marginBottom:6}}>🔥 ปลดล็อก Pro</div>
-          <div style={{fontSize:13,opacity:.85,marginBottom:4}}>อ่านไฟล์ข้อสอบวันนี้ <strong>{usageCount}/{dailyLimit??10}</strong> ครั้ง</div>
-          <div style={{fontSize:13,opacity:.75,marginBottom:16}}>อัปเกรด → สร้างได้ไม่จำกัด • ไม่มีวันหมดอายุ</div>
-          <button className="btn" style={{background:"white",color:"#7C3AED",fontWeight:700,borderRadius:20,padding:"10px 28px",fontSize:14}}>
-            ✨ อัปเกรด Pro
-          </button>
-        </div>
-      )}
     </div>
   );
 }
 
 // ============ MAIN APP ============
 export default function App() {
-  const [user, setUser] = useState<any>(() => {
-    try { return JSON.parse(localStorage.getItem("fromauto_user") || "null"); } catch { return null; }
-  });
-  const [usageCount, setUsageCount] = useState(0);
-
-  const handleLogin = (u: any) => {
-    localStorage.setItem("fromauto_user", JSON.stringify(u));
-    setUser(u);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("fromauto_user");
-    setUser(null);
-  };
-  const [tab, setTab] = useState("create");
+  const user = { role: "admin", key: "DIRECT", note: "Direct Access", daily_limit: 999999 };
+  const [tab, setTab] = useState<"executive" | "bank" | "create" | "history">("executive");
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState("");
@@ -1014,6 +1483,42 @@ export default function App() {
   ]);
   const [questions, setQuestions] = useState<any[]>([]);
   const [submitError, setSubmitError] = useState("");
+  const [realHistory, setRealHistory] = useState<any[]>([]);
+
+  const fetchGlobalHistory = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.from("form_history").select("*").order("created_at", { ascending:false });
+      if (error) throw error;
+      setRealHistory(data || []);
+    } catch {
+      try {
+        const local = JSON.parse(localStorage.getItem("fromauto_history") || "[]");
+        setRealHistory(local);
+      } catch {
+        setRealHistory([]);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchGlobalHistory();
+  }, [fetchGlobalHistory]);
+
+  const handleUseTemplate = (templateData?: { title: string; desc: string; questions: any[] }) => {
+    if (templateData) {
+      setFormTitle(templateData.title);
+      setFormDesc(templateData.desc);
+      if (templateData.questions && templateData.questions.length > 0) {
+        setQuestions(templateData.questions);
+        setStep(2);
+      } else {
+        setStep(0);
+      }
+    } else {
+      setStep(0);
+    }
+    setTab("create");
+  };
 
   const steps = ["รายละเอียด","ส่วนหัว","ข้อสอบ","สร้าง Form","ผลลัพธ์"];
 
@@ -1056,15 +1561,30 @@ export default function App() {
       const data = await res.json();
       clearInterval(iv); setLoading(false);
       if (!data.success) throw new Error(data.error);
-      await supabase.from("form_history").insert({
-  license_key: user.key,
-  form_title: formTitle,
-  form_desc: formDesc || null,
-  edit_url: data.editUrl?.trim(),
-  view_url: data.viewUrl?.trim(),
-  question_count: questions.length,
-  header_count: headers.length,
-});
+
+      const newHistoryItem = {
+        id: Date.now().toString(),
+        license_key: user.key,
+        form_title: formTitle,
+        form_desc: formDesc || null,
+        edit_url: data.editUrl?.trim(),
+        view_url: data.viewUrl?.trim(),
+        question_count: questions.length,
+        header_count: headers.length,
+        created_at: new Date().toISOString(),
+      };
+      try {
+        await supabase.from("form_history").insert(newHistoryItem);
+      } catch (e) {
+        console.warn("Supabase insert skipped:", e);
+      }
+      try {
+        const local = JSON.parse(localStorage.getItem("fromauto_history") || "[]");
+        localStorage.setItem("fromauto_history", JSON.stringify([newHistoryItem, ...local]));
+      } catch {}
+
+      fetchGlobalHistory();
+
       setResult({ title:formTitle, questionCount:questions.length, headerCount:headers.length, links:{ edit:data.editUrl?.trim(), view:data.viewUrl?.trim() } });
       setStep(4);
     } catch(err: any) {
@@ -1074,14 +1594,6 @@ export default function App() {
   };
 
   const handleReset = () => { setStep(0); setResult(null); setQuestions([]); setFormTitle(""); setFormDesc(""); setSubmitError(""); };
-
-  useEffect(() => {
-    if (!user || user.role === "admin") return;
-    supabase.rpc("get_my_usage", { p_key: user.key })
-      .then(({ data }) => setUsageCount(data ?? 0));
-  }, [user]);
-
-  if (!user) return <><style>{css}</style><LoginPage onLogin={handleLogin}/></>;
 
   return (
     <>
@@ -1095,47 +1607,137 @@ export default function App() {
           </div>
         )}
         <div className="topbar">
-          <div className="topbar-brand"><Logo /><span className="topbar-title">FormAuto</span></div>
-          <div className="topbar-user">
-            {user.role !== "admin" && (
-              <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,.15)",borderRadius:20,padding:"4px 12px"}}>
-                <span style={{fontSize:12,color:"rgba(255,255,255,.85)"}}>อ่านไฟล์วันนี้</span>
-                <span style={{fontSize:13,fontWeight:700,color:"white"}}>{usageCount}/{user.daily_limit??10}</span>
-                <div style={{width:36,height:4,background:"rgba(255,255,255,.3)",borderRadius:2,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${Math.min(100,usageCount/(user.daily_limit??10)*100)}%`,background:usageCount>=(user.daily_limit??10)?"#fca5a5":"white",borderRadius:2,transition:"width .3s"}}/>
-                </div>
-              </div>
-            )}
-            <span className={`role-badge ${user.role==="admin"?"role-admin":"role-user"}`}>
-              {user.role==="admin"?"👑 Admin":"👤 User"}
+          <div className="topbar-brand">
+            <Logo />
+            <span className="topbar-title">FormAuto</span>
+            <span style={{
+              fontSize: "11px",
+              background: "rgba(255,255,255,0.18)",
+              color: "white",
+              padding: "3px 10px",
+              borderRadius: "20px",
+              fontWeight: 600,
+              marginLeft: "6px",
+              border: "1px solid rgba(255,255,255,0.25)"
+            }}>
+              ระบบคลังข้อสอบ & ศูนย์ข้อมูลผู้บริหาร
             </span>
-            <button className="btn btn-icon" style={{borderColor:"rgba(255,255,255,.3)",color:"white"}} onClick={handleLogout}><LogoutIcon /></button>
+          </div>
+
+          <div className="topbar-user">
+            <button
+              className="btn btn-sm"
+              style={{
+                background: tab === "executive" ? "white" : "rgba(255,255,255,0.18)",
+                color: tab === "executive" ? "#6D28D9" : "white",
+                fontWeight: 700,
+                borderRadius: "20px",
+                border: "1px solid rgba(255,255,255,0.3)"
+              }}
+              onClick={() => setTab("executive")}
+            >
+              <ExecutiveIcon /> แดชบอร์ดผู้บริหาร
+            </button>
+            <button
+              className="btn btn-sm"
+              style={{
+                background: tab === "bank" ? "white" : "rgba(255,255,255,0.18)",
+                color: tab === "bank" ? "#6D28D9" : "white",
+                fontWeight: 700,
+                borderRadius: "20px",
+                border: "1px solid rgba(255,255,255,0.3)"
+              }}
+              onClick={() => setTab("bank")}
+            >
+              <ExamBankIcon /> คลังข้อสอบ
+            </button>
+            <button
+              className="btn btn-sm"
+              style={{
+                background: "#FBBF24",
+                color: "#78350F",
+                fontWeight: 700,
+                borderRadius: "20px"
+              }}
+              onClick={() => { handleReset(); setTab("create"); }}
+            >
+              + ออกแบบข้อสอบ AI
+            </button>
+            <span className="role-badge role-admin">
+              👑 Executive Director
+            </span>
           </div>
         </div>
 
         <div className="main-layout">
           <div className="sidebar">
+            <div className="sidebar-section">แดชบอร์ด & คลังข้อสอบ</div>
+            <button className={`sidebar-item ${tab==="executive"?"active":""}`} onClick={() => setTab("executive")}>
+              <ExecutiveIcon /> แดชบอร์ดผู้บริหาร
+            </button>
+            <button className={`sidebar-item ${tab==="bank"?"active":""}`} onClick={() => setTab("bank")}>
+              <ExamBankIcon /> ระบบคลังข้อสอบ
+            </button>
+
+            <div className="sidebar-section">สร้างฟอร์มอัตโนมัติ</div>
             <button className={`sidebar-item ${tab==="create"?"active":""}`} onClick={() => { setTab("create"); }}>
-            <FormIcon /> สร้างข้อสอบใหม่
-          </button>
-          <button className={`sidebar-item ${tab==="history"?"active":""}`} onClick={() => setTab("history")}>
-            <FormIcon /> ประวัติฟอร์ม
-          </button>
-            {user.role==="admin" && (
-              <>
-                <div className="sidebar-section">Admin</div>
-                <button className={`sidebar-item ${tab==="admin"?"admin-active":""}`} onClick={() => setTab("admin")}>
-                  <KeyIcon /> จัดการ License Keys
+              <FormIcon /> สร้างข้อสอบใหม่ (AI)
+            </button>
+            <button className={`sidebar-item ${tab==="history"?"active":""}`} onClick={() => setTab("history")}>
+              <FormIcon /> ประวัติฟอร์มทั้งหมด
+            </button>
+
+            <div style={{ marginTop: "auto", paddingTop: "24px" }}>
+              <div style={{
+                background: "linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)",
+                border: "1px solid #DDD6FE",
+                borderRadius: "10px",
+                padding: "14px",
+                textAlign: "center"
+              }}>
+                <div style={{ fontSize: "12px", fontWeight: 700, color: "#6D28D9", marginBottom: "4px" }}>
+                  🏛️ โหมดนำเสนอผู้บริหาร
+                </div>
+                <div style={{ fontSize: "11px", color: "var(--gray-600)", lineHeight: "1.4", marginBottom: "10px" }}>
+                  ข้อมูลคลังข้อสอบและสถิติวัดผลพร้อมนำเสนอวันนี้
+                </div>
+                <button
+                  className="btn btn-sm"
+                  style={{ background: "#7C3AED", color: "white", width: "100%", fontSize: "11px", padding: "6px" }}
+                  onClick={() => window.print()}
+                >
+                  🖨️ พิมพ์รายงานสรุป
                 </button>
-              </>
-            )}
-            <div className="sidebar-section">บัญชี</div>
-            <button className="sidebar-item" onClick={handleLogout}><LogoutIcon /> ออกจากระบบ</button>
+              </div>
+            </div>
           </div>
 
           <div className="content">
-           {tab==="admin" && user.role==="admin" ? <AdminPanel adminKey={user.key} /> :
- tab==="history" ? <HistoryTab user={user} /> : (
+            {tab === "executive" && (
+              <ExecutiveDashboard
+                realHistory={realHistory}
+                initialBank={INITIAL_EXAM_BANK}
+                onNavigateToCreate={handleUseTemplate}
+                onRefresh={fetchGlobalHistory}
+                defaultSection="all"
+              />
+            )}
+
+            {tab === "bank" && (
+              <ExecutiveDashboard
+                realHistory={realHistory}
+                initialBank={INITIAL_EXAM_BANK}
+                onNavigateToCreate={handleUseTemplate}
+                onRefresh={fetchGlobalHistory}
+                defaultSection="bank"
+              />
+            )}
+
+            {tab === "history" && (
+              <HistoryTab user={user} history={realHistory} onRefresh={fetchGlobalHistory} />
+            )}
+
+            {tab === "create" && (
               <>
                 <div className="stepper">
                   {steps.map((s,i) => (
@@ -1154,17 +1756,7 @@ export default function App() {
                 {step===0 && <StepDetails formTitle={formTitle} setFormTitle={setFormTitle} formDesc={formDesc} setFormDesc={setFormDesc}/>}
                 {step===1 && <StepHeaders headers={headers} setHeaders={setHeaders}/>}
                 {step===2 && (
-                  <>
-                    {user.role !== "admin" && usageCount >= (user.daily_limit ?? 10) && (
-                      <div style={{marginBottom:16,padding:"12px 16px",background:"var(--red-light)",borderRadius:"var(--radius)",fontSize:13,color:"var(--red)",fontWeight:600}}>
-                        🚫 โควต้าวันนี้เต็มแล้ว ({usageCount}/{user.daily_limit ?? 10}) — ไม่สามารถอ่านไฟล์ใหม่ได้ กรุณาลองพรุ่งนี้
-                      </div>
-                    )}
-                    <StepQuestions questions={questions} setQuestions={setQuestions} licenseKey={user.key} onParsed={async () => {
-                      const { data } = await supabase.rpc("get_my_usage", { p_key: user.key });
-                      setUsageCount(data ?? 0);
-                    }}/>
-                  </>
+                  <StepQuestions questions={questions} setQuestions={setQuestions} licenseKey={user.key} />
                 )}
                 {step===3 && (
                   <div className="card">
@@ -1196,7 +1788,7 @@ export default function App() {
                     </button>
                   </div>
                 )}
-                {step===4 && result && <ResultView result={result} onReset={handleReset} userRole={user.role} usageCount={usageCount} dailyLimit={user.daily_limit??10}/>}
+                {step===4 && result && <ResultView result={result} onReset={handleReset} />}
 
                 {step < 3 && (
                   <div className="nav-row">

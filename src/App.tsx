@@ -1244,8 +1244,13 @@ const UploadIcon = () => <svg width="28" height="28" viewBox="0 0 28 28" fill="n
 const RefreshIcon = () => <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 8A5 5 0 113 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><path d="M13 4v4h-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 const SheetIcon = () => <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2.5" y="2" width="11" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><path d="M2.5 6h11M6.5 6v8M10.5 6v8" stroke="currentColor" strokeWidth="1.2"/></svg>;
 const ChartIcon = () => <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 13.5h12M4 11V7M8 11V4M12 11V8.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+const LogoutIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+    <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M11 11.5l3.5-3.5L11 4.5M14.5 8H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
 // ============ LOGIN ============
-export function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
+export function LoginPage({ onLogin, onClose }: { onLogin: (u: any) => void; onClose?: () => void }) {
   const [key, setKey] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1309,6 +1314,33 @@ export function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
       </div>
 
       <div className="login-card" style={{position:"relative",zIndex:1,maxWidth:440}}>
+        {onClose && (
+          <button
+            onClick={onClose}
+            style={{
+              position: "absolute",
+              top: 14,
+              right: 14,
+              background: "var(--gray-100)",
+              border: "1px solid var(--gray-300)",
+              borderRadius: "50%",
+              width: 32,
+              height: 32,
+              cursor: "pointer",
+              fontSize: 14,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--gray-600)",
+              fontWeight: 700,
+              zIndex: 10
+            }}
+            title="ปิด / กลับสู่โหมดผู้บริหาร"
+          >
+            ✕
+          </button>
+        )}
+
         {/* School Logo & Brand */}
         <div style={{textAlign:"center",marginBottom:20}}>
           <img
@@ -1329,7 +1361,7 @@ export function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
             FormAuto
           </div>
           <div style={{fontSize:13.5,color:"var(--gray-600)",marginTop:4}}>
-            ระบบสร้างและวิเคราะห์ข้อสอบออนไลน์
+            เข้าสู่ระบบสำหรับคุณครูและบุคลากร
           </div>
         </div>
 
@@ -1390,11 +1422,22 @@ export function LoginPage({ onLogin }: { onLogin: (u: any) => void }) {
             : "🔓 เข้าใช้งาน"}
         </button>
 
+        {onClose && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
+            style={{ width: "100%", marginTop: 10, borderRadius: 12, padding: "11px", fontSize: 13.5, fontWeight: 600 }}
+          >
+            🏛️ กลับสู่หน้าแดชบอร์ดผู้บริหาร (ไม่ต้องล็อกอิน)
+          </button>
+        )}
+
         <div style={{textAlign:"center",marginTop:18,fontSize:12,color:"var(--gray-400)"}}>
           กรุณาติดต่อผู้ดูแลระบบเพื่อรับ Key
         </div>
 
-        <div style={{textAlign:"center",marginTop:20,fontSize:11.5,color:"var(--gray-400)",opacity:0.7,letterSpacing:0.3,userSelect:"none"}}>
+        <div style={{textAlign:"center",marginTop:16,fontSize:11.5,color:"var(--gray-400)",opacity:0.7,letterSpacing:0.3,userSelect:"none"}}>
           develop by พงศกร ดรโคตร์กอก
         </div>
       </div>
@@ -7749,40 +7792,75 @@ export default function App() {
   }
 
   // Default executive user - NO LOGIN REQUIRED! Everyone can immediately view data and dashboards
+  const GUEST_EXECUTIVE = {
+    role: "guest_executive",
+    is_guest: true,
+    is_google: false,
+    key: "guest_executive",
+    email: "executive@wangluangpitt.ac.th",
+    name: "ผู้บริหารสถานศึกษา (ผู้เยี่ยมชม)",
+    daily_limit: 0
+  };
+
   const [user, setUser] = useState<any>(() => {
     try {
       const saved = localStorage.getItem("fromauto_user");
       if (saved) return JSON.parse(saved);
     } catch {}
-    return {
-      role: "admin",
-      is_google: true,
-      key: "director@wangluangpitt.ac.th",
-      email: "director@wangluangpitt.ac.th",
-      name: "ผู้บริหารสถานศึกษา",
-      daily_limit: 999999
-    };
+    return GUEST_EXECUTIVE;
   });
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginRedirectTab, setLoginRedirectTab] = useState<string | null>(null);
   const [usageCount, setUsageCount] = useState(0);
+
+  const isTeacherLoggedIn = Boolean(user && !user.is_guest);
 
   const handleLogin = (u: any) => {
     localStorage.setItem("fromauto_user", JSON.stringify(u));
     setUser(u);
+    setShowLoginModal(false);
+    if (loginRedirectTab) {
+      setTab(loginRedirectTab);
+      setLoginRedirectTab(null);
+    } else {
+      setTab("create");
+    }
   };
-  void handleLogin;
 
   const handleLogout = async () => {
     localStorage.removeItem("fromauto_user");
-    setUser({
-      role: "admin",
-      is_google: true,
-      key: "director@wangluangpitt.ac.th",
-      email: "director@wangluangpitt.ac.th",
-      name: "ผู้บริหารสถานศึกษา",
-      daily_limit: 999999
-    });
+    setUser(GUEST_EXECUTIVE);
+    setTab("executive");
     await supabase.auth.signOut().catch(() => {});
   };
+
+  const requireTeacherAccess = (targetTab: string) => {
+    if (isTeacherLoggedIn) {
+      if (targetTab === "create") handleReset();
+      setTab(targetTab);
+    } else {
+      setLoginRedirectTab(targetTab);
+      setShowLoginModal(true);
+    }
+  };
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email && session.user.email.endsWith("@wangluangpitt.ac.th")) {
+        const isAdmin = session.user.email.toLowerCase() === "pongsarkon@wangluangpitt.ac.th";
+        const teacher = {
+          key: session.user.email,
+          role: isAdmin ? "admin" : "user",
+          note: session.user.user_metadata?.full_name || session.user.email,
+          daily_limit: 999999,
+          is_google: true,
+          is_guest: false
+        };
+        setUser(teacher);
+        localStorage.setItem("fromauto_user", JSON.stringify(teacher));
+      }
+    });
+  }, []);
 
   const [tab, setTab] = useState("executive");
   const [selectedGrade, setSelectedGrade] = useState("all");
@@ -7825,7 +7903,12 @@ export default function App() {
     } else {
       setStep(0);
     }
-    setTab("create");
+    if (!isTeacherLoggedIn) {
+      setLoginRedirectTab("create");
+      setShowLoginModal(true);
+    } else {
+      setTab("create");
+    }
   };
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -8152,13 +8235,58 @@ export default function App() {
                 fontWeight: 700,
                 borderRadius: "20px"
               }}
-              onClick={() => { handleReset(); setTab("create"); }}
+              onClick={() => requireTeacherAccess("create")}
             >
               + ออกแบบข้อสอบ AI
             </button>
-            <span className="role-badge role-admin">
-              👑 ผู้บริหารสถานศึกษา
-            </span>
+
+            {isTeacherLoggedIn ? (
+              <>
+                <span className="role-badge role-admin">
+                  {user.role === "admin" ? "👑 Admin" : "🏫 คุณครู ว.พ."} ({user.note || user.name || user.email})
+                </span>
+                <button
+                  className="btn btn-sm"
+                  style={{
+                    background: "rgba(255,255,255,0.18)",
+                    color: "white",
+                    borderRadius: "16px",
+                    padding: "4px 10px",
+                    border: "1px solid rgba(255,255,255,0.25)"
+                  }}
+                  onClick={handleLogout}
+                  title="ออกจากระบบคุณครู"
+                >
+                  <LogoutIcon /> ออกจากระบบ
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="role-badge" style={{
+                  background: "rgba(255,255,255,0.18)",
+                  color: "#FEF3C7",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  padding: "4px 10px"
+                }}>
+                  🏛️ ผู้บริหาร (ผู้เยี่ยมชม)
+                </span>
+                <button
+                  className="btn btn-sm"
+                  style={{
+                    background: "white",
+                    color: "var(--crimson)",
+                    fontWeight: 700,
+                    borderRadius: "20px",
+                    padding: "5px 14px",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                    border: "none"
+                  }}
+                  onClick={() => { setLoginRedirectTab("create"); setShowLoginModal(true); }}
+                >
+                  🔐 เข้าสู่ระบบคุณครู
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -8267,10 +8395,22 @@ export default function App() {
               </span>
             </button>
 
+            <div className="sidebar-section">เครื่องมือคุณครู (ต้องล็อกอิน)</div>
+            <button
+              className={`sidebar-item ${tab==="create"?"active":""}`}
+              onClick={() => requireTeacherAccess("create")}
+            >
+              <FormIcon /> สร้างข้อสอบใหม่ (AI)
+            </button>
+
             <div style={{marginTop: 2, marginBottom: 4}}>
               <button
                 className={`sidebar-item ${tab==="sheets"?"active":""}`}
-                onClick={() => { setTab("sheets"); setSelectedGrade("all"); setSelectedRoom("all"); }}
+                onClick={() => {
+                  requireTeacherAccess("sheets");
+                  setSelectedGrade("all");
+                  setSelectedRoom("all");
+                }}
                 style={tab==="sheets"?{
                   background: "linear-gradient(135deg, #1E293B 0%, #0F172A 100%)",
                   color: "#FDE047",
@@ -8377,21 +8517,45 @@ export default function App() {
               </div>
             </div>
 
-            <button className={`sidebar-item ${tab==="history"?"active":""}`} onClick={() => setTab("history")}>
+            <button className={`sidebar-item ${tab==="history"?"active":""}`} onClick={() => requireTeacherAccess("history")}>
               <FormIcon /> ประวัติฟอร์ม
             </button>
-            {user.role==="admin" && (
+            {isTeacherLoggedIn ? (
               <>
-                <div className="sidebar-section">Admin</div>
-                <button className={`sidebar-item ${tab==="admin"?"admin-active":""}`} onClick={() => setTab("admin")}>
-                  <KeyIcon /> จัดการ License Keys
+                {user.role==="admin" && (
+                  <>
+                    <div className="sidebar-section">Admin</div>
+                    <button className={`sidebar-item ${tab==="admin"?"admin-active":""}`} onClick={() => setTab("admin")}>
+                      <KeyIcon /> จัดการ License Keys
+                    </button>
+                  </>
+                )}
+                <div className="sidebar-section">คุณครูผู้ใช้งาน</div>
+                <div style={{ padding: "8px 12px", background: "var(--gray-100)", borderRadius: 8, fontSize: 12, marginBottom: 6 }}>
+                  <div style={{ fontWeight: 700, color: "var(--gray-900)" }}>{user.note || user.name || user.email}</div>
+                  <div style={{ color: "var(--gray-500)", fontSize: 11 }}>{user.role === "admin" ? "👑 ผู้ดูแลระบบ (Admin)" : "🏫 คุณครู ว.พ."}</div>
+                </div>
+                <button className="sidebar-item" onClick={handleLogout} title="ออกจากระบบคุณครู">
+                  <LogoutIcon /> ออกจากระบบ (กลับสู่โหมดผู้บริหาร)
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="sidebar-section">สำหรับคุณครู</div>
+                <button
+                  className="sidebar-item"
+                  style={{
+                    background: "var(--crimson-light)",
+                    color: "var(--crimson)",
+                    fontWeight: 700,
+                    borderRadius: 8
+                  }}
+                  onClick={() => { setLoginRedirectTab("create"); setShowLoginModal(true); }}
+                >
+                  🔐 เข้าสู่ระบบคุณครู (@wangluangpitt)
                 </button>
               </>
             )}
-            <div className="sidebar-section">ระบบ</div>
-            <button className="sidebar-item" onClick={handleLogout} title="รีเซ็ตสิทธิ์">
-              <RefreshIcon /> รีเซ็ตสิทธิ์ผู้บริหาร
-            </button>
             <div style={{ marginTop: "16px", marginBottom: "16px" }}>
               <div style={{
                 background: "linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)",
@@ -8453,19 +8617,113 @@ export default function App() {
                 setSelectedSubject={setSelectedSubject}
               />
             ) : tab === "sheets" ? (
-              <SheetsTab
-                user={user}
-                selectedGrade={selectedGrade}
-                setSelectedGrade={setSelectedGrade}
-                selectedRoom={selectedRoom}
-                setSelectedRoom={setSelectedRoom}
-                selectedSubject={selectedSubject}
-                setSelectedSubject={setSelectedSubject}
-              />
+              !isTeacherLoggedIn ? (
+                <div className="card" style={{ maxWidth: 620, margin: "40px auto", textAlign: "center", padding: "44px 28px", borderRadius: 16 }}>
+                  <div style={{ fontSize: 52, marginBottom: 16 }}>📊</div>
+                  <div style={{ display: "inline-block", background: "var(--crimson-light)", color: "var(--crimson)", fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 20, marginBottom: 12 }}>
+                    ระบบเฉพาะสำหรับคุณครู
+                  </div>
+                  <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--gray-900)", marginBottom: 8 }}>
+                    ระบบตรวจคำตอบ & ชีตคะแนน
+                  </h2>
+                  <p style={{ color: "var(--gray-600)", fontSize: 14.5, lineHeight: 1.6, marginBottom: 26 }}>
+                    ระบบตรวจคำตอบและบันทึกคะแนนเป็นพื้นที่สำหรับคุณครูผู้สอนในการจัดการคะแนนนักเรียน<br />
+                    กรุณาเข้าสู่ระบบด้วยอีเมลโรงเรียน <strong>@wangluangpitt.ac.th</strong> เพื่อเข้าถึงข้อมูล
+                  </p>
+                  <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                    <button
+                      className="btn btn-primary"
+                      style={{ padding: "12px 24px", fontSize: 14.5, fontWeight: 600, borderRadius: 10 }}
+                      onClick={() => { setLoginRedirectTab("sheets"); setShowLoginModal(true); }}
+                    >
+                      🔐 เข้าสู่ระบบคุณครู (@wangluangpitt)
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      style={{ padding: "12px 24px", fontSize: 14.5, borderRadius: 10 }}
+                      onClick={() => setTab("executive")}
+                    >
+                      🏛️ กลับสู่หน้าแดชบอร์ดผู้บริหาร
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <SheetsTab
+                  user={user}
+                  selectedGrade={selectedGrade}
+                  setSelectedGrade={setSelectedGrade}
+                  selectedRoom={selectedRoom}
+                  setSelectedRoom={setSelectedRoom}
+                  selectedSubject={selectedSubject}
+                  setSelectedSubject={setSelectedSubject}
+                />
+              )
             ) : tab === "admin" && user.role === "admin" ? (
               <AdminPanel adminKey={user.key} />
             ) : tab === "history" ? (
-              <HistoryTab user={user} history={realHistory} onRefresh={fetchGlobalHistory} />
+              !isTeacherLoggedIn ? (
+                <div className="card" style={{ maxWidth: 620, margin: "40px auto", textAlign: "center", padding: "44px 28px", borderRadius: 16 }}>
+                  <div style={{ fontSize: 52, marginBottom: 16 }}>📁</div>
+                  <div style={{ display: "inline-block", background: "var(--crimson-light)", color: "var(--crimson)", fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 20, marginBottom: 12 }}>
+                    ระบบเฉพาะสำหรับคุณครู
+                  </div>
+                  <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--gray-900)", marginBottom: 8 }}>
+                    ประวัติฟอร์มข้อสอบของคุณครู
+                  </h2>
+                  <p style={{ color: "var(--gray-600)", fontSize: 14.5, lineHeight: 1.6, marginBottom: 26 }}>
+                    คุณครูสามารถเข้าสู่ระบบเพื่อดูประวัติและจัดการแบบทดสอบ Google Forms ส่วนบุคคล<br />
+                    (สำหรับผู้บริหาร สามารถเข้าชมคลังข้อสอบมาตรฐานได้ที่เมนู <strong>คลังข้อสอบกลาง</strong>)
+                  </p>
+                  <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                    <button
+                      className="btn btn-primary"
+                      style={{ padding: "12px 24px", fontSize: 14.5, fontWeight: 600, borderRadius: 10 }}
+                      onClick={() => { setLoginRedirectTab("history"); setShowLoginModal(true); }}
+                    >
+                      🔐 เข้าสู่ระบบคุณครู (@wangluangpitt)
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      style={{ padding: "12px 24px", fontSize: 14.5, borderRadius: 10 }}
+                      onClick={() => setTab("executive")}
+                    >
+                      🏛️ กลับสู่หน้าแดชบอร์ดผู้บริหาร
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <HistoryTab user={user} history={realHistory} onRefresh={fetchGlobalHistory} />
+              )
+            ) : !isTeacherLoggedIn ? (
+              <div className="card" style={{ maxWidth: 620, margin: "40px auto", textAlign: "center", padding: "44px 28px", borderRadius: 16 }}>
+                <div style={{ fontSize: 52, marginBottom: 16 }}>✨</div>
+                <div style={{ display: "inline-block", background: "var(--crimson-light)", color: "var(--crimson)", fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 20, marginBottom: 12 }}>
+                  ระบบเฉพาะสำหรับคุณครู
+                </div>
+                <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--gray-900)", marginBottom: 8 }}>
+                  ระบบออกแบบข้อสอบ AI สำหรับคุณครู
+                </h2>
+                <p style={{ color: "var(--gray-600)", fontSize: 14.5, lineHeight: 1.6, marginBottom: 26 }}>
+                  การสร้างข้อสอบและส่งออก Google Forms จำเป็นต้องใช้สิทธิ์บัญชีคุณครูโรงเรียนวังหลวงพิทยาสรรพ์<br />
+                  เข้าสู่ระบบด้วยอีเมล <strong>@wangluangpitt.ac.th</strong> หรือใส่ License Key เพื่อเริ่มสร้างข้อสอบ
+                </p>
+                <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                  <button
+                    className="btn btn-primary"
+                    style={{ padding: "12px 24px", fontSize: 14.5, fontWeight: 600, borderRadius: 10 }}
+                    onClick={() => { setLoginRedirectTab("create"); setShowLoginModal(true); }}
+                  >
+                    🔐 เข้าสู่ระบบคุณครู (@wangluangpitt)
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    style={{ padding: "12px 24px", fontSize: 14.5, borderRadius: 10 }}
+                    onClick={() => setTab("executive")}
+                  >
+                    🏛️ ดูแดชบอร์ดผู้บริหาร (โหมดผู้เยี่ยมชม)
+                  </button>
+                </div>
+              </div>
             ) : (
               <>
                 <div className="stepper">
@@ -8702,6 +8960,30 @@ export default function App() {
           </div>
         </div>
       </div>
+      {showLoginModal && (
+        <div
+          className="loading-overlay"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(15, 23, 42, 0.75)",
+            backdropFilter: "blur(6px)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16
+          }}
+        >
+          <LoginPage
+            onLogin={handleLogin}
+            onClose={() => setShowLoginModal(false)}
+          />
+        </div>
+      )}
     </>
   );
 }

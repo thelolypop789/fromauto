@@ -134,7 +134,12 @@ export async function handleSgsAction(actionName: string, req: any, res: any) {
       }
       return sendJson(res, fJson, fRes.status);
     } catch (bridgeErr: any) {
-      console.warn('Bridge forward failed, falling back to direct:', bridgeErr);
+      const cause = bridgeErr?.cause?.code || bridgeErr?.cause?.message || bridgeErr?.cause || bridgeErr?.code || '';
+      return sendJson(res, {
+        ok: false,
+        error: `Bridge Error: ${bridgeErr.message} (${cause})`,
+        bridgeUrl: `${THAI_BRIDGE_URL}/api/sgs/${action}`
+      }, 502);
     }
   }
 

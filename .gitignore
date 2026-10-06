@@ -26,3 +26,4 @@ dist-ssr
 .temp_home/
 supabase/.temp/
 scratch/
+cloudflared.exe

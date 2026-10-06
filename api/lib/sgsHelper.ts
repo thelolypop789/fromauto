@@ -106,6 +106,37 @@ export async function handleSgsAction(actionName: string, req: any, res: any) {
   }
 
   const action = (actionName || '').toLowerCase().replace(/^\/api\/sgs\/?/, '').replace(/^\//, '');
+  const THAI_BRIDGE_URL = process.env.SGS_THAI_BRIDGE_URL || 'https://bottom-deadline-jay-fuzzy.trycloudflare.com';
+  const isVercel = Boolean(process.env.VERCEL);
+
+  if (isVercel && THAI_BRIDGE_URL) {
+    try {
+      const forwardUrl = `${THAI_BRIDGE_URL.replace(/\/$/, '')}/api/sgs/${action}`;
+      const forwardHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'User-Agent': USER_AGENT,
+      };
+      const cookieHeader = req.headers?.['x-sgs-cookie'] || req.headers?.authorization;
+      if (cookieHeader) forwardHeaders['x-sgs-cookie'] = cookieHeader;
+      if (req.headers?.cookie) forwardHeaders['Cookie'] = req.headers.cookie;
+
+      const bodyData = req.method === 'POST' ? await parseRequestBody(req) : undefined;
+      const fRes = await fetch(forwardUrl, {
+        method: req.method || 'GET',
+        headers: forwardHeaders,
+        body: bodyData ? JSON.stringify(bodyData) : undefined,
+      });
+
+      const fJson = await fRes.json();
+      const setCookie = fRes.headers.get('set-cookie');
+      if (setCookie && typeof res.setHeader === 'function') {
+        res.setHeader('Set-Cookie', setCookie);
+      }
+      return sendJson(res, fJson, fRes.status);
+    } catch (bridgeErr: any) {
+      console.warn('Bridge forward failed, falling back to direct:', bridgeErr);
+    }
+  }
 
   try {
     // 0. Diagnostic Ping

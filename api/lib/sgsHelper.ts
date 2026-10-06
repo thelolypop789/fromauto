@@ -1,3 +1,7 @@
+try {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+} catch {}
+
 export function updateCookieJar(jar: string, setCookies?: string[]): string {
   const map = new Map<string, string>();
   if (jar) {
@@ -104,6 +108,30 @@ export async function handleSgsAction(actionName: string, req: any, res: any) {
   const action = (actionName || '').toLowerCase().replace(/^\/api\/sgs\/?/, '').replace(/^\//, '');
 
   try {
+    // 0. Diagnostic Ping
+    if (action.startsWith('ping')) {
+      try {
+        const pingStart = Date.now();
+        const pRes = await fetch(`${SGS_BASE}/sgs/Security/SignIn.aspx`, {
+          headers: { 'User-Agent': USER_AGENT }
+        });
+        const pTime = Date.now() - pingStart;
+        return sendJson(res, {
+          ok: true,
+          status: pRes.status,
+          latencyMs: pTime,
+          headers: Object.fromEntries(pRes.headers.entries())
+        });
+      } catch (err: any) {
+        return sendJson(res, {
+          ok: false,
+          error: err.message,
+          cause: err.cause?.message || err.cause?.code || err.cause,
+          code: err.code
+        }, 500);
+      }
+    }
+
     // 1. Status
     if (action.startsWith('status')) {
       const cookie = extractSessionCookie(req);
@@ -682,6 +710,8 @@ export async function handleSgsAction(actionName: string, req: any, res: any) {
 
     return sendJson(res, { ok: false, error: 'Endpoint not found' }, 404);
   } catch (err: any) {
-    return sendJson(res, { ok: false, error: err.message || 'SGS Bridge Server Error' }, 500);
+    const cause = err?.cause?.code || err?.cause?.message || err?.cause || err?.code || '';
+    const msg = cause ? `${err.message} (${cause})` : (err.message || 'SGS Bridge Server Error');
+    return sendJson(res, { ok: false, error: msg }, 500);
   }
 }

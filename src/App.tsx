@@ -4,6 +4,7 @@ import { ExecutiveDashboard } from "./ExecutiveDashboard";
 import { INITIAL_EXAM_BANK } from "./examBankData";
 import QuestionBank from "./QuestionBank";
 import ExamPlayer from "./ExamPlayer";
+import { SgsGradebook } from "./SgsGradebook";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
@@ -8432,6 +8433,35 @@ export default function App() {
                 </span>
               </button>
 
+              <button
+                className={`sidebar-item ${tab==="sgs"?"active":""}`}
+                onClick={() => {
+                  setTab("sgs");
+                }}
+                style={tab==="sgs"?{
+                  background: "linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 100%)",
+                  color: "white",
+                  fontWeight: 700,
+                  boxShadow: "0 2px 8px rgba(29,78,216,.35)"
+                }:{
+                  color: "#1D4ED8",
+                  fontWeight: 600
+                }}>
+                <span>⚡</span> <span>ระบบคะแนน SGS & Auto-Fill</span>
+                <span style={{
+                  marginLeft: "auto",
+                  background: tab==="sgs" ? "rgba(255,255,255,0.25)" : "#DBEAFE",
+                  color: tab==="sgs" ? "white" : "#1E40AF",
+                  fontSize: 10,
+                  fontWeight: 800,
+                  padding: "2px 7px",
+                  borderRadius: 10,
+                  border: "1px solid #BFDBFE"
+                }}>
+                  SGS Direct
+                </span>
+              </button>
+
               {/* Classroom Sub-Menu in Sidebar */}
               <div style={{
                 marginLeft: 10,
@@ -8658,6 +8688,8 @@ export default function App() {
                   setSelectedSubject={setSelectedSubject}
                 />
               )
+            ) : tab === "sgs" ? (
+              <SgsGradebook realHistory={realHistory} user={user} />
             ) : tab === "admin" && user.role === "admin" ? (
               <AdminPanel adminKey={user.key} />
             ) : tab === "history" ? (

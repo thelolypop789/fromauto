@@ -67,9 +67,21 @@ export function SgsGradebook({ realHistory }: { realHistory: any[]; user?: any }
 
   const [copiedNotification, setCopiedNotification] = useState<string | null>(null);
 
+  // Session cookie management
+  const [sgsSessionCookie, setSgsSessionCookie] = useState<string>(() => {
+    try {
+      return sessionStorage.getItem("sgs_cookie") || "";
+    } catch {
+      return "";
+    }
+  });
+
   // ตรวจสอบสถานะการเชื่อมต่อเดิมเมื่อเปิดหน้านี้
   useEffect(() => {
-    fetch("/api/sgs/status")
+    const activeCookie = sgsSessionCookie || (typeof sessionStorage !== "undefined" ? sessionStorage.getItem("sgs_cookie") || "" : "");
+    fetch("/api/sgs/status", {
+      headers: activeCookie ? { "x-sgs-cookie": activeCookie } : {}
+    })
       .then((res) => res.json())
       .then((data) => {
         if (data.ok && data.connected) {
@@ -79,7 +91,7 @@ export function SgsGradebook({ realHistory }: { realHistory: any[]; user?: any }
         }
       })
       .catch(() => {});
-  }, []);
+  }, [sgsSessionCookie]);
 
   // ฟังก์ชันล็อกอินเข้า SGS จริงผ่าน Bridge
   const handleSgsLogin = async (e?: React.FormEvent) => {
@@ -100,6 +112,10 @@ export function SgsGradebook({ realHistory }: { realHistory: any[]; user?: any }
       const data = await res.json();
       if (data.ok) {
         setSgsConnected(true);
+        if (data.sessionCookie) {
+          setSgsSessionCookie(data.sessionCookie);
+          try { sessionStorage.setItem("sgs_cookie", data.sessionCookie); } catch {}
+        }
         if (data.teacher?.name) {
           setTeacherName(data.teacher.name);
         } else {
@@ -110,7 +126,7 @@ export function SgsGradebook({ realHistory }: { realHistory: any[]; user?: any }
         setSubjects(fetchedSubs);
         if (fetchedSubs.length > 0) {
           setSelectedSubjectIdx(0);
-          loadRosterForSubject(fetchedSubs[0]);
+          loadRosterForSubject(fetchedSubs[0], data.sessionCookie);
         }
         setCopiedNotification("เข้าสู่ระบบ SGS สำเร็จ! ดึงข้อมูลรายวิชาสดเรียบร้อยแล้ว");
         setTimeout(() => setCopiedNotification(null), 3500);
@@ -125,16 +141,28 @@ export function SgsGradebook({ realHistory }: { realHistory: any[]; user?: any }
   };
 
   // ดึงรายชื่อนักเรียนของวิชาที่เลือก
-  const loadRosterForSubject = async (sub: SgsSubject) => {
+  const loadRosterForSubject = async (sub: SgsSubject, cookieOverride?: string) => {
     setLoadingRoster(true);
+    const activeCookie = cookieOverride || sgsSessionCookie || (typeof sessionStorage !== "undefined" ? sessionStorage.getItem("sgs_cookie") || "" : "");
     try {
       const res = await fetch("/api/sgs/roster", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subjectValue: sub.value || sub.sgsClassId, room: sub.room })
+        headers: {
+          "Content-Type": "application/json",
+          ...(activeCookie ? { "x-sgs-cookie": activeCookie } : {})
+        },
+        body: JSON.stringify({
+          subjectValue: sub.value || sub.sgsClassId,
+          room: sub.room,
+          sessionCookie: activeCookie
+        })
       });
       const data = await res.json();
       if (data.ok) {
+        if (data.sessionCookie) {
+          setSgsSessionCookie(data.sessionCookie);
+          try { sessionStorage.setItem("sgs_cookie", data.sessionCookie); } catch {}
+        }
         if (data.teacherName) {
           setTeacherName(data.teacherName);
         }
@@ -162,6 +190,8 @@ export function SgsGradebook({ realHistory }: { realHistory: any[]; user?: any }
       await fetch("/api/sgs/logout");
     } catch {}
     setSgsConnected(false);
+    setSgsSessionCookie("");
+    try { sessionStorage.removeItem("sgs_cookie"); } catch {}
     setSubjects([]);
     setStudents([]);
     setTeacherName("");

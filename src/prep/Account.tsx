@@ -80,7 +80,7 @@ export default function Account({ me, email, profile, onMajor, onChanged }: Prop
           <ul className="pp-perks">
             <li><IconCheck />สร้างชุดใหม่ได้ไม่จำกัดในหมวดของแพ็ก (ชุดละสูงสุด 200 ข้อ)</li>
             <li><IconCheck />ดึงข้อใหม่จากคลังทั้งหมด พร้อมเฉลยและคำอธิบายทุกข้อ</li>
-            <li><IconCheck /><span>เลือกได้ทั้ง <b>รายรอบสอบ</b>{SHOP.roundText ? ` (${SHOP.roundText})` : ""} หรือ <b>ซื้อขาด</b> ใช้ได้ตลอด</span></li>
+            <li><IconCheck /><span>เลือกได้ทั้ง <b>รายรอบ</b>{SHOP.roundText ? ` (${SHOP.roundText})` : ""} หรือ <b>ซื้อขาด</b> ใช้ได้ตลอด · ซื้อรายรอบซ้ำจะต่อเวลาจากวันหมดอายุเดิม</span></li>
           </ul>
           <div className="pp-pkgs">
             {PACKAGES.filter(p => p.key !== "A" || !owned.has("A")).map(p => (
@@ -89,7 +89,7 @@ export default function Account({ me, email, profile, onMajor, onChanged }: Prop
                 <b>{p.name}</b>
                 <span className="pp-muted small">{p.desc}</span>
                 <div className="pp-pkg-prices">
-                  <div><span>รายรอบ</span><b>{p.round || "สอบถาม"}</b></div>
+                  <div><span>รายรอบ 3 เดือน</span><b>{p.round || "สอบถาม"}</b></div>
                   <div><span>ซื้อขาด</span><b>{p.lifetime || "สอบถาม"}</b></div>
                 </div>
                 {owned.has(p.key) && <span className="pp-mine">มีแล้ว · ซื้อซ้ำเพื่อต่ออายุ</span>}

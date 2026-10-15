@@ -9,7 +9,7 @@ type KeyRow = { id: number; note: string | null; created_at: string; redeemed_at
   package?: PackageKey; duration_days?: number | null; expires_on?: string | null; access_until?: string | null };
 const keyTerm = (r: { duration_days?: number | null; expires_on?: string | null }) =>
   r.expires_on ? `ถึง ${new Date(r.expires_on + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}`
-    : r.duration_days ? `${r.duration_days} วัน` : "ซื้อขาด";
+    : r.duration_days ? (r.duration_days === 90 ? "รายรอบ 3 เดือน" : `${r.duration_days} วัน`) : "ซื้อขาด";
 type QItem = { id: number; topic: string; stem: string; choices: string[]; answer: number; explanation: string;
   law_ref: string | null; status: string; source: string | null; reports: string[] };
 
@@ -171,8 +171,8 @@ function KeysTab() {
   const [count, setCount] = useState(1);
   const [note, setNote] = useState("");
   const [pkg, setPkg] = useState<PackageKey>("ALL");
-  const [term, setTerm] = useState<"lifetime" | "days" | "until">("lifetime");
-  const [days, setDays] = useState(180);
+  const [term, setTerm] = useState<"lifetime" | "days" | "until">("days");
+  const [days, setDays] = useState(90);
   const [until, setUntil] = useState("");
   const [fresh, setFresh] = useState<string[]>([]);
   const [error, setError] = useState("");
@@ -206,13 +206,14 @@ function KeysTab() {
         </div>
         <label className="small pp-muted">ระยะเวลา</label>
         <div className="pp-seg">
+          <button className={term === "days" && days === 90 ? "on" : ""} onClick={() => { setTerm("days"); setDays(90); }}>รายรอบ 3 เดือน</button>
           <button className={term === "lifetime" ? "on" : ""} onClick={() => setTerm("lifetime")}>ซื้อขาด</button>
-          <button className={term === "days" ? "on" : ""} onClick={() => setTerm("days")}>ตามจำนวนวัน</button>
+          <button className={term === "days" && days !== 90 ? "on" : ""} onClick={() => { setTerm("days"); setDays(30); }}>จำนวนวันอื่น</button>
           <button className={term === "until" ? "on" : ""} onClick={() => setTerm("until")}>ถึงวันที่ (รอบสอบ)</button>
         </div>
-        {term === "days" && (
+        {term === "days" && days !== 90 && (
           <div className="pp-seg">
-            {[30, 90, 180, 365].map(n => <button key={n} className={days === n ? "on" : ""} onClick={() => setDays(n)}>{n} วัน</button>)}
+            {[7, 30, 180, 365].map(n => <button key={n} className={days === n ? "on" : ""} onClick={() => setDays(n)}>{n} วัน</button>)}
           </div>
         )}
         {term === "until" && <input className="pp-input" type="date" value={until} min={new Date().toISOString().slice(0, 10)} onChange={e => setUntil(e.target.value)} />}
@@ -220,7 +221,7 @@ function KeysTab() {
         <input className="pp-input" placeholder="หมายเหตุ: ชื่อผู้ซื้อ / อีเมล / ยอด / เวลาโอน" value={note} onChange={e => setNote(e.target.value)} />
         <div className="pp-row">
           <input className="pp-input" type="number" min={1} max={50} value={count} onChange={e => setCount(Number(e.target.value) || 1)} style={{ width: 90 }} />
-          <button className="pp-btn pp-btn-primary" onClick={create}>สร้าง {count} คีย์ · {PACKAGE_LABEL[pkg]} · {term === "lifetime" ? "ซื้อขาด" : term === "days" ? `${days} วัน` : until || "เลือกวันที่"}</button>
+          <button className="pp-btn pp-btn-primary" onClick={create}>สร้าง {count} คีย์ · {PACKAGE_LABEL[pkg]} · {term === "lifetime" ? "ซื้อขาด" : term === "days" ? (days === 90 ? "รายรอบ 3 เดือน" : `${days} วัน`) : until || "เลือกวันที่"}</button>
         </div>
         {fresh.length > 0 && (
           <div className="pp-success">

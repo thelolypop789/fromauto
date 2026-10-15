@@ -14,6 +14,7 @@ export type Me = {
   free_sets_limit: number;
   max_set_size: number;
   is_admin: boolean;
+  packages?: { package: PackageKey; expires_at: string | null }[];
   answered_today: number;
   daily_cap: number;
 };
@@ -66,8 +67,10 @@ export type Dashboard = {
 
 const ERRORS: Record<string, string> = {
   not_authenticated: "กรุณาเข้าสู่ระบบใหม่",
-  free_quota_exceeded: "ใช้ชุดฟรีครบ 3 ชุดแล้ว — อัปเกรดเพื่อสร้างชุดใหม่ได้ไม่จำกัด",
-  invalid_size: "จำนวนข้อไม่ถูกต้อง",
+  free_quota_exceeded: "ใช้ชุดฟรีครบ 3 ชุดแล้ว — หมวดที่เลือกอยู่นอกแพ็กของคุณ ซื้อแพ็กที่ครอบคลุมเพื่อสร้างชุดได้ไม่จำกัด",
+  invalid_size: "จำนวนข้อไม่ถูกต้อง (ชุดที่มีหมวดนอกแพ็กของคุณสร้างได้ไม่เกิน 40 ข้อ)",
+  invalid_package: "แพ็กไม่ถูกต้อง",
+  invalid_duration: "ระยะเวลาไม่ถูกต้อง",
   duplicate_question: "มีข้อสอบที่โจทย์และตัวเลือกเหมือนกันอยู่แล้ว",
   invalid_choices: "ต้องมี 4 ตัวเลือก",
   invalid_stem: "กรุณากรอกโจทย์",
@@ -81,6 +84,9 @@ const ERRORS: Record<string, string> = {
   forbidden: "ไม่มีสิทธิ์",
   too_many_reports: "แจ้งปัญหาวันนี้ครบจำนวนแล้ว",
   empty_reason: "กรุณาระบุรายละเอียดของปัญหา",
+  invalid_slip: "อัปโหลดสลิปไม่สำเร็จ ลองใหม่อีกครั้ง",
+  too_many_orders: "มีรายการรอตรวจอยู่แล้ว 3 รายการ กรุณารอทีมงานตรวจก่อน",
+  already_reviewed: "รายการนี้ตรวจไปแล้ว",
 };
 
 export function thaiError(e: unknown): string {
@@ -161,3 +167,23 @@ export const REPORT_CATEGORIES: [string, string, string][] = [
 ];
 
 export type Profile = { major: string | null; major_name: string | null };
+
+export type PackageKey = "A" | "B" | "ALL";
+export const PACKAGE_LABEL: Record<PackageKey, string> = { A: "ภาค ก", B: "ภาค ข + วิชาเอก", ALL: "ครบทุกภาค" };
+
+// True when the user's packages cover every section in the list ("A" / "B").
+export function covers(me: Me, sections: string[]): boolean {
+  const owned = new Set((me.packages ?? []).map(p => p.package));
+  if (owned.has("ALL")) return true;
+  return sections.length > 0 && sections.every(s => owned.has(s as PackageKey));
+}
+
+export const fmtUntil = (iso: string | null) =>
+  iso ? `ถึง ${new Date(new Date(iso).getTime() - 1).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}` : "ตลอดชีพ";
+
+export type Order = {
+  id: number; package: PackageKey; term: "round" | "lifetime"; amount: number | null;
+  status: "pending" | "approved" | "rejected"; admin_note: string | null;
+  created_at: string; reviewed_at: string | null; access_until?: string | null;
+};
+export const TERM_LABEL = { round: "รายรอบ 3 เดือน", lifetime: "ซื้อขาด" } as const;

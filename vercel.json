@@ -20,6 +20,14 @@
       "destination": "/api/$1"
     },
     {
+      "source": "/prep",
+      "destination": "/prep.html"
+    },
+    {
+      "source": "/prep/(.*)",
+      "destination": "/prep.html"
+    },
+    {
       "source": "/((?!assets/).*)",
       "destination": "/index.html"
     }

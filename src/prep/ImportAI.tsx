@@ -183,12 +183,23 @@ async function buildChunks(file: File, opts: { pagesPer: number; imagesPer: numb
   return splitText(text, TEXT_CHUNK).map((t, i, all) => ({ label: `ส่วน ${i + 1}/${all.length}`, body: { ...common, kind: "text", text: t } }));
 }
 
+// fatal: account-level problem (spending cap, bad key) — retrying or moving on to the next slice cannot help.
+class ImportError extends Error {
+  fatal: boolean;
+  status: number;
+  constructor(message: string, fatal = false, status = 0) { super(message); this.fatal = fatal; this.status = status; }
+}
+const isTimeout = (e: unknown) =>
+  e instanceof ImportError && ([504, 546].includes(e.status) || /WORKER_LIMIT|timeout|timed out|Failed to send/i.test(e.message));
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
 async function callImport(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke("prep-import", { body });
   if (error) {
-    let msg = error.message;
-    try { const j = await (error as { context?: Response }).context?.json(); if (j?.error) msg = j.error; } catch { /* keep generic */ }
-    throw new Error(msg);
+    let msg = error.message, fatal = false;
+    const status = (error as { context?: Response }).context?.status ?? 0;
+    try { const j = await (error as { context?: Response }).context?.json(); if (j?.error) msg = j.error; fatal = j?.fatal === true; } catch { /* keep generic */ }
+    throw new ImportError(msg, fatal, status);
   }
   if (data?.error) throw new Error(data.error);
   return data as { items: Omit<Draft, "keep" | "src" | "file">[]; dropped: string[]; model: string; truncated: boolean; more?: boolean; usage: { promptTokenCount?: number; candidatesTokenCount?: number } | null };
@@ -227,7 +238,7 @@ export default function ImportAI() {
     const seen = new Set<string>();
     const common = { mode, hint, quality };
     const cap = Number(limit) > 0 ? Number(limit) : Infinity;
-    let total = 0;
+    let total = 0, failedSlices = 0, halted = false;
     const jobs: { file: string; chunk: Chunk }[] = [];
     try {
       // Photos are treated as one document (pages of the same exam), in the order they were picked.
@@ -272,9 +283,18 @@ export default function ImportAI() {
             r = await callImport({ ...c.body, count: Math.min(batch, cap - total), avoid: done.slice(-400) });
             fails = 0;
           } catch (e) {
+            if (e instanceof ImportError && e.fatal) {
+              say(`⛔ หยุดทั้งหมด: ${e.message}`);
+              cancel.current = true; halted = true;
+              break;
+            }
             // Long answers can hit the function time limit: retry the same round with a smaller batch.
-            if (++fails <= 2 && batch > 8) { batch = Math.max(8, Math.floor(batch / 2)); round--; say(`${where}: ลองใหม่ด้วยรอบละ ${batch} ข้อ (${thaiError(e)})`); continue; }
+            if (isTimeout(e) && ++fails <= 2 && batch > 8) { batch = Math.max(8, Math.floor(batch / 2)); round--; say(`${where}: ใช้เวลานานเกิน ลองใหม่ด้วยรอบละ ${batch} ข้อ`); continue; }
+            // Other errors (overload etc.): wait a moment and retry the same round once.
+            if (!isTimeout(e) && ++fails <= 1) { round--; say(`${where}: AI ไม่ว่าง รอ 5 วินาทีแล้วลองใหม่`); await sleep(5000); continue; }
             say(`${where}: ผิดพลาด — ${thaiError(e)}`);
+            // Several slices failing in a row usually means the service is down: stop instead of burning through the file.
+            if (++failedSlices >= 3) { say("⛔ หยุด: ผิดพลาดติดกัน 3 ช่วง ลองใหม่ภายหลัง (ร่างที่ได้แล้วยังบันทึกได้)"); cancel.current = true; halted = true; }
             break;
           }
           const fresh = r.items.filter(q => {
@@ -283,7 +303,7 @@ export default function ImportAI() {
             seen.add(k); return true;
           }).slice(0, cap - total);
           r.items.forEach(q => done.push(q.stem.slice(0, 100)));
-          total += fresh.length; sliceTotal += fresh.length;
+          total += fresh.length; sliceTotal += fresh.length; failedSlices = 0;
           setDrafts(d => [...d, ...fresh.map(q => ({ ...q, keep: true, src: where, file }))]);
           setTokens(t => ({ inp: t.inp + (r.usage?.promptTokenCount ?? 0), out: t.out + (r.usage?.candidatesTokenCount ?? 0) }));
           if (!r.more || fresh.length === 0) {
@@ -294,7 +314,7 @@ export default function ImportAI() {
         }
         setProgress({ done: i + 1, total: jobs.length, round: 0, found: total });
       }
-      if (cancel.current) say("หยุดตามคำสั่ง");
+      if (cancel.current && !halted) say("หยุดตามคำสั่ง");
       if (total >= cap) say(`ครบ ${cap} ข้อตามที่กำหนด`);
       say(`เสร็จ: ได้ร่างทั้งหมด ${total} ข้อ`);
     } catch (e) {

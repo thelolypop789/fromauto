@@ -109,6 +109,17 @@ serve(async (req) => {
       const data = await res.json().catch(() => ({}));
       if (data.error) {
         lastError = `${model}: ${data.error.message ?? JSON.stringify(data.error)}`;
+        // Account-level problems apply to every model: stop at once and tell the browser not to retry.
+        const msg = String(data.error.message ?? "");
+        if (/spending cap|billing|API key not valid|API_KEY_INVALID|PERMISSION_DENIED|has been suspended/i.test(msg) || data.error.code === 403) {
+          const cap = /spending cap/i.test(msg);
+          return json({
+            error: cap
+              ? "โปรเจกต์ Gemini ใช้เงินถึงวงเงินรายเดือนแล้ว — เพิ่มวงเงินที่ https://ai.studio/spend แล้วลองใหม่"
+              : "คีย์ Gemini ใช้งานไม่ได้ (คีย์ผิด ถูกระงับ หรือยังไม่เปิด billing) — ตรวจ GEMINI_KEY ใน Supabase",
+            fatal: true, detail: msg.slice(0, 300),
+          }, 402);
+        }
         // Retry the next model on overload or when this model name is unknown to the API.
         const unknownModel = data.error.code === 400 && /models\/|not found|not supported/i.test(String(data.error.message ?? ""));
         if ([404, 429, 500, 503].includes(data.error.code) || unknownModel) continue;

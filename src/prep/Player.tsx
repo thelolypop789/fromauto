@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { choiceOrder, rpc, thaiError, type AnswerResult, type Item, type Round, type SubmitResult } from "./api";
 import { IconBack, IconCheck, IconFlag, IconGrid, IconNext, IconX } from "./icons";
+import ReportDialog from "./ReportDialog";
 
 type Props = { round: Round; onExit: () => void; onSubmitted: (r: SubmitResult) => void };
 
@@ -13,6 +14,7 @@ export default function Player({ round, onExit, onSubmitted }: Props) {
   const [error, setError] = useState("");
   const [showGrid, setShowGrid] = useState(false);
   const [reported, setReported] = useState<Set<number>>(new Set());
+  const [reporting, setReporting] = useState(false);
 
   const item = items[pos];
   const answered = items.filter(i => i.picked != null).length;
@@ -51,15 +53,6 @@ export default function Player({ round, onExit, onSubmitted }: Props) {
     }
   };
 
-  const report = async () => {
-    const reason = prompt("ข้อนี้มีปัญหาอะไร? (เช่น เฉลยผิด, โจทย์ไม่ชัด)");
-    if (!reason?.trim()) return;
-    try {
-      await rpc("prep_report", { p_question: item.question_id, p_reason: reason.trim() });
-      setReported(prev => new Set(prev).add(item.question_id));
-    } catch (e) { alert(thaiError(e)); }
-  };
-
   const allDone = answered === items.length;
   const explainRef = useRef<HTMLDivElement>(null);
 
@@ -71,7 +64,7 @@ export default function Player({ round, onExit, onSubmitted }: Props) {
   // Keyboard: 1–4 or ก ข ค ง to answer, Enter / → for next, ← for previous.
   const keyRef = useRef<(e: KeyboardEvent) => void>(() => {});
   useEffect(() => { keyRef.current = e => {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (reporting || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.metaKey || e.ctrlKey || e.altKey) return;
     const d = "1234".indexOf(e.key) >= 0 ? "1234".indexOf(e.key) : LABELS.indexOf(e.key);
     if (d >= 0 && item.picked == null) { e.preventDefault(); pick(order[d]); return; }
     if ((e.key === "Enter" || e.key === "ArrowRight") && item.picked != null) {
@@ -114,7 +107,12 @@ export default function Player({ round, onExit, onSubmitted }: Props) {
 
       <main className="pp-main">
         <div className="pp-card pp-q">
-          <div className="pp-q-topic">{item.topic}</div>
+          <div className="pp-q-head">
+            <div className="pp-q-topic">{item.topic}</div>
+            {reported.has(item.question_id)
+              ? <span className="pp-report-btn done"><IconCheck size={14} />รายงานแล้ว</span>
+              : <button className="pp-report-btn" onClick={() => setReporting(true)}><IconFlag size={14} />รายงานข้อนี้</button>}
+          </div>
           <div className="pp-q-stem"><span className="pp-q-no">{pos + 1}.</span> {item.stem}</div>
           <div className="pp-choices">
             {order.map((orig, d) => {
@@ -138,15 +136,20 @@ export default function Player({ round, onExit, onSubmitted }: Props) {
               </div>
               {item.explanation && <p>{item.explanation}</p>}
               {item.law_ref && <p className="pp-muted">อ้างอิง: {item.law_ref}</p>}
-              <button className="pp-link small" disabled={reported.has(item.question_id)} onClick={report}>
-                <IconFlag />{reported.has(item.question_id) ? "ส่งรายงานแล้ว ขอบคุณครับ" : "แจ้งข้อนี้มีปัญหา"}
-              </button>
+              {!reported.has(item.question_id) && (
+                <button className="pp-link small" onClick={() => setReporting(true)}><IconFlag />เฉลยหรือโจทย์มีปัญหา? รายงานข้อนี้</button>
+              )}
             </div>
           )}
           {error && <div className="pp-error">{error}</div>}
           <div className="pp-kbd">แป้นลัด: <kbd>1</kbd>–<kbd>4</kbd> เลือกคำตอบ · <kbd>Enter</kbd> ข้อต่อไป · <kbd>←</kbd> ย้อนกลับ</div>
         </div>
       </main>
+
+      {reporting && (
+        <ReportDialog questionId={item.question_id} stem={item.stem} onClose={() => setReporting(false)}
+          onSent={() => setReported(prev => new Set(prev).add(item.question_id))} />
+      )}
 
       <footer className="pp-foot">
         <div className="pp-foot-in">

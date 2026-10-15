@@ -254,7 +254,10 @@ export default function ImportAI() {
           const cs = await buildChunks(f, { pagesPer, imagesPer }, common);
           if (!cs.length) say(`${f.name}: ไม่พบเนื้อหาที่อ่านได้`);
           cs.forEach(c => jobs.push({ file: f.name, chunk: c }));
-        } catch (e) { say(`${f.name}: อ่านไฟล์ไม่ได้ — ${thaiError(e)}`); }
+        } catch (e) {
+          const stale = /dynamically imported module|MIME type|Importing a module script failed/i.test(thaiError(e));
+          say(stale ? "มีเวอร์ชันใหม่ของเว็บ — กรุณารีเฟรชหน้าแล้วเลือกไฟล์ใหม่" : `${f.name}: อ่านไฟล์ไม่ได้ — ${thaiError(e)}`);
+        }
       }
       if (imgs.length) {
         say(`กำลังย่อรูป ${imgs.length} ไฟล์...`);

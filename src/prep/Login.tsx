@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { supabase, thaiError } from "./api";
 
+// Set VITE_PREP_EMAIL_LOGIN=off (Vercel env) to hide email-code login until SMTP is configured.
+const EMAIL_LOGIN = import.meta.env.VITE_PREP_EMAIL_LOGIN !== "off";
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -50,9 +53,9 @@ export default function Login() {
           <span className="pp-g">G</span> เข้าสู่ระบบด้วย Google
         </button>
 
-        <div className="pp-or">หรือใช้อีเมล</div>
+        {EMAIL_LOGIN && <div className="pp-or">หรือใช้อีเมล</div>}
 
-        {!sent ? (
+        {EMAIL_LOGIN && (!sent ? (
           <>
             <input className="pp-input" type="email" inputMode="email" autoComplete="email" placeholder="อีเมลของคุณ"
               value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && sendCode()} />
@@ -70,7 +73,7 @@ export default function Login() {
             </button>
             <button className="pp-link" onClick={() => { setSent(false); setCode(""); }}>เปลี่ยนอีเมล / ขอรหัสใหม่</button>
           </>
-        )}
+        ))}
         {error && <div className="pp-error">{error}</div>}
       </div>
     </div>

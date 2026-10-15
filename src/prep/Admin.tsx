@@ -58,31 +58,88 @@ function StatsTab() {
 function ReviewTab() {
   const [items, setItems] = useState<QItem[] | null>(null);
   const [error, setError] = useState("");
+  const [size, setSize] = useState(30);
+  const [picked, setPicked] = useState<Set<number>>(new Set());
+  const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
+  const [msg, setMsg] = useState("");
   const load = useCallback(() => {
-    rpc<QItem[]>("prep_admin_review_queue", { p_limit: 30 }).then(setItems).catch(e => setError(thaiError(e)));
-  }, []);
+    rpc<QItem[]>("prep_admin_review_queue", { p_limit: size })
+      .then(r => { setItems(r); setPicked(new Set()); })
+      .catch(e => setError(thaiError(e)));
+  }, [size]);
   useEffect(load, [load]);
+
+  // Saves the (possibly edited) question with a new status.
+  const update = (q: QItem, status: "approved" | "hidden") => rpc("prep_admin_update_question", {
+    p_id: q.id, p_status: status, p_stem: q.stem, p_choices: q.choices, p_answer: q.answer, p_explanation: q.explanation,
+  });
 
   const save = async (q: QItem, status: "approved" | "hidden") => {
     try {
-      await rpc("prep_admin_update_question", {
-        p_id: q.id, p_status: status, p_stem: q.stem, p_choices: q.choices, p_answer: q.answer, p_explanation: q.explanation,
-      });
+      await update(q, status);
       setItems(prev => prev?.filter(x => x.id !== q.id) ?? null);
+      setPicked(prev => { const n = new Set(prev); n.delete(q.id); return n; });
     } catch (e) { alert(thaiError(e)); }
   };
   const edit = (id: number, patch: Partial<QItem>) => setItems(prev => prev?.map(x => (x.id === id ? { ...x, ...patch } : x)) ?? null);
 
+  const toggle = (id: number) => setPicked(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const allPicked = !!items?.length && items.every(q => picked.has(q.id));
+
+  const saveMany = async (status: "approved" | "hidden") => {
+    const list = (items ?? []).filter(q => picked.has(q.id));
+    if (!list.length || bulk) return;
+    const verb = status === "approved" ? "เผยแพร่" : "ซ่อน";
+    if (!confirm(`${verb} ${list.length} ข้อที่เลือก? (ข้อที่แก้ไขในช่องไว้จะถูกบันทึกด้วย)`)) return;
+    setBulk({ done: 0, total: list.length }); setMsg("");
+    const ok: number[] = [];
+    let failed = 0;
+    // Five at a time keeps it quick without flooding the database.
+    for (let i = 0; i < list.length; i += 5) {
+      const res = await Promise.allSettled(list.slice(i, i + 5).map(q => update(q, status).then(() => q.id)));
+      res.forEach(r => (r.status === "fulfilled" ? ok.push(r.value) : failed++));
+      setBulk({ done: Math.min(i + 5, list.length), total: list.length });
+    }
+    setBulk(null);
+    setMsg(`${verb}แล้ว ${ok.length} ข้อ${failed ? ` · ไม่สำเร็จ ${failed} ข้อ (ยังอยู่ในรายการ)` : ""}`);
+    const left = (items ?? []).filter(q => !ok.includes(q.id));
+    setItems(left);
+    setPicked(new Set());
+    if (!left.length) load();
+  };
+
   if (error) return <div className="pp-error">{error}</div>;
   if (!items) return <div className="pp-spinner" />;
-  if (!items.length) return <div className="pp-card pp-empty"><p>ไม่มีข้อรอตรวจ 🎉</p><button className="pp-btn pp-btn-ghost" onClick={load}>โหลดใหม่</button></div>;
+  if (!items.length) return <div className="pp-card pp-empty"><p>ไม่มีข้อรอตรวจ 🎉</p>{msg && <p className="pp-muted">{msg}</p>}<button className="pp-btn pp-btn-ghost" onClick={load}>โหลดใหม่</button></div>;
 
   return (
     <>
-      <p className="pp-muted">แก้ได้ในช่อง แล้วกด "อนุมัติ" (บันทึกและเผยแพร่) หรือ "ซ่อน" · แสดงทีละ 30 ข้อ</p>
+      <p className="pp-muted">แก้ได้ในช่อง แล้วกด "อนุมัติ" (บันทึกและเผยแพร่) หรือ "ซ่อน" ทีละข้อ หรือติ๊กเลือกหลายข้อแล้วกดปุ่มด้านบน</p>
+      <div className="pp-card pp-bulkbar">
+        <label className="pp-group-head">
+          <input type="checkbox" checked={allPicked} disabled={!!bulk}
+            onChange={e => setPicked(e.target.checked ? new Set(items.map(q => q.id)) : new Set())} />
+          <b>เลือกทั้งหมด ({items.length})</b>
+          <span className="pp-muted small">· เลือกแล้ว {picked.size}</span>
+        </label>
+        <select className="pp-input" value={size} disabled={!!bulk} onChange={e => setSize(Number(e.target.value))} aria-label="แสดงทีละ">
+          {[30, 50, 100, 200].map(n => <option key={n} value={n}>แสดงทีละ {n} ข้อ</option>)}
+        </select>
+        <div className="pp-row">
+          <button className="pp-btn pp-btn-ghost" disabled={!picked.size || !!bulk} onClick={() => saveMany("hidden")}>ซ่อนที่เลือก</button>
+          <button className="pp-btn pp-btn-gold" disabled={!picked.size || !!bulk} onClick={() => saveMany("approved")}>
+            {bulk ? `กำลังบันทึก ${bulk.done}/${bulk.total}...` : `เผยแพร่ที่เลือก (${picked.size})`}
+          </button>
+        </div>
+        {bulk && <div className="pp-bar"><div style={{ width: `${(100 * bulk.done) / bulk.total}%` }} /></div>}
+        {msg && !bulk && <div className="pp-success">{msg}</div>}
+      </div>
       {items.map(q => (
-        <div key={q.id} className="pp-card pp-review">
-          <div className="pp-muted small">#{q.id} · {q.topic} · {q.status === "review" ? "รอตรวจ" : "มีรายงานปัญหา"}{q.source ? ` · ${q.source}` : ""}</div>
+        <div key={q.id} className={`pp-card pp-review ${picked.has(q.id) ? "picked" : ""}`}>
+          <label className="pp-group-head">
+            <input type="checkbox" checked={picked.has(q.id)} disabled={!!bulk} onChange={() => toggle(q.id)} />
+            <span className="pp-muted small">#{q.id} · {q.topic} · {q.status === "review" ? "รอตรวจ" : "มีรายงานปัญหา"}{q.source ? ` · ${q.source}` : ""}</span>
+          </label>
           {q.reports.length > 0 && <div className="pp-error">รายงาน: {q.reports.join(" | ")}</div>}
           <textarea className="pp-input" rows={3} value={q.stem} onChange={e => edit(q.id, { stem: e.target.value })} />
           {q.choices.map((c, i) => (
@@ -95,12 +152,12 @@ function ReviewTab() {
           <textarea className="pp-input" rows={3} value={q.explanation} onChange={e => edit(q.id, { explanation: e.target.value })} />
           {q.law_ref && <div className="pp-muted small">อ้างอิง: {q.law_ref}</div>}
           <div className="pp-row">
-            <button className="pp-btn pp-btn-ghost" onClick={() => save(q, "hidden")}>ซ่อน</button>
-            <button className="pp-btn pp-btn-primary" onClick={() => save(q, "approved")}>อนุมัติ</button>
+            <button className="pp-btn pp-btn-ghost" disabled={!!bulk} onClick={() => save(q, "hidden")}>ซ่อน</button>
+            <button className="pp-btn pp-btn-primary" disabled={!!bulk} onClick={() => save(q, "approved")}>อนุมัติ</button>
           </div>
         </div>
       ))}
-      <button className="pp-btn pp-btn-ghost" onClick={load}>โหลดชุดถัดไป</button>
+      <button className="pp-btn pp-btn-ghost" disabled={!!bulk} onClick={load}>โหลดชุดถัดไป</button>
     </>
   );
 }

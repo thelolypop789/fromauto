@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { rpc, thaiError, type Me, type SetSummary } from "./api";
+import { GROUPS, PASS_PCT, SECTIONS, rpc, thaiError, type Dashboard, type Me, type SetSummary } from "./api";
+import type { Preset } from "./CreateSet";
 import { IconCheck, IconCrown, IconPlus, IconTarget } from "./icons";
 import InstallBanner from "./InstallBanner";
 
 type Props = {
   me: Me;
-  onCreate: () => void;
+  onCreate: (preset?: Preset) => void;
   onStart: (setId: string, mode: "full" | "wrong") => void;
   onUpgrade: () => void;
 };
@@ -13,9 +14,11 @@ type Props = {
 export default function Home({ me, onCreate, onStart, onUpgrade }: Props) {
   const [sets, setSets] = useState<SetSummary[] | null>(null);
   const [error, setError] = useState("");
+  const [dash, setDash] = useState<Dashboard | null>(null);
 
   useEffect(() => {
     rpc<SetSummary[]>("prep_list_sets").then(setSets).catch(e => setError(thaiError(e)));
+    rpc<Dashboard>("prep_dashboard").then(setDash).catch(() => { /* explorer just shows without progress */ });
   }, []);
 
   const canCreate = me.plan === "paid" || me.free_sets_used < me.free_sets_limit;
@@ -34,7 +37,7 @@ export default function Home({ me, onCreate, onStart, onUpgrade }: Props) {
             <div className="pp-big">{me.answered_today.toLocaleString()} <small>ข้อ</small></div>
           </div>
           {canCreate
-            ? <button className="pp-btn pp-btn-gold" onClick={onCreate}><IconPlus />สร้างชุดใหม่</button>
+            ? <button className="pp-btn pp-btn-gold" onClick={() => onCreate()}><IconPlus />สร้างชุดใหม่</button>
             : <button className="pp-btn pp-btn-gold" onClick={onUpgrade}><IconCrown size={20} />อัปเกรดเพื่อสร้างชุดใหม่</button>}
         </div>
         <div className="pp-hero-stats">
@@ -44,6 +47,38 @@ export default function Home({ me, onCreate, onStart, onUpgrade }: Props) {
         </div>
       </section>
 
+      <div className="pp-h"><h2>เลือกฝึกตามภาค</h2><span className="pp-muted small">แตะหมวดเพื่อเริ่ม</span></div>
+      <div className="pp-explore">
+        {(["A", "B"] as const).map(sec => {
+          const ts = dash?.topics.filter(t => t.section === sec) ?? [];
+          const avail = ts.reduce((s, t) => s + t.available, 0);
+          const n = ts.reduce((s, t) => s + t.n, 0), c = ts.reduce((s, t) => s + t.correct, 0);
+          const seen = ts.reduce((s, t) => s + t.seen, 0);
+          return (
+            <section key={sec} className="pp-card pp-sec">
+              <div className="pp-sec-head">
+                <span className="pp-sec-badge">{SECTIONS[sec].short}</span>
+                <div className="pp-sec-t"><b>{SECTIONS[sec].name}</b><span className="pp-muted small">{dash ? `${avail.toLocaleString()} ข้อ · เคยเห็น ${seen}` : "…"}</span></div>
+                {n > 0 && <span className={`pp-pct ${Math.round(100 * c / n) >= PASS_PCT ? "ok" : "low"}`}>{Math.round(100 * c / n)}%</span>}
+              </div>
+              {SECTIONS[sec].groups.map(g => {
+                const gt = ts.filter(t => t.grp === g && t.available > 0);
+                if (dash && !gt.length) return null;
+                const gn = gt.reduce((s, t) => s + t.n, 0), gc = gt.reduce((s, t) => s + t.correct, 0);
+                return (
+                  <button key={g} className="pp-sec-grp" disabled={!canCreate} onClick={() => onCreate({ section: sec, topics: gt.map(t => t.code) })}>
+                    <span className="pp-sec-grp-t">{GROUPS[g]}<small>{gt.length} หมวด · {gt.reduce((s, t) => s + t.available, 0)} ข้อ</small></span>
+                    {gn > 0 ? <span className="pp-sec-grp-p">{Math.round(100 * gc / gn)}%</span> : <span className="pp-sec-grp-p new">ใหม่</span>}
+                  </button>
+                );
+              })}
+              <button className="pp-btn pp-btn-ghost pp-sec-all" disabled={!canCreate} onClick={() => onCreate({ section: sec })}>เลือกหมวดย่อยใน{SECTIONS[sec].short}</button>
+            </section>
+          );
+        })}
+      </div>
+      {!canCreate && <p className="pp-note">ใช้ชุดฟรีครบแล้ว — ทำซ้ำชุดเดิมด้านล่างได้ไม่จำกัด หรืออัปเกรดเพื่อสร้างชุดใหม่</p>}
+
       {error && <div className="pp-error">{error}</div>}
       {sets === null && !error && <div className="pp-spinner" />}
 
@@ -52,7 +87,7 @@ export default function Home({ me, onCreate, onStart, onUpgrade }: Props) {
           <div className="pp-empty-ico"><IconTarget size={30} /></div>
           <h3>เริ่มชุดแรกกันเลย</h3>
           <p className="pp-muted">เลือกหมวดที่อยากซ้อม ระบบจะจัดข้อสอบให้ ทำซ้ำได้ไม่จำกัดจนกว่าจะถูกครบ</p>
-          <button className="pp-btn pp-btn-primary" onClick={onCreate}><IconPlus />สร้างชุดแรก</button>
+          <button className="pp-btn pp-btn-primary" onClick={() => onCreate()}><IconPlus />สร้างชุดแรก</button>
         </div>
       )}
 

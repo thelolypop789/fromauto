@@ -3,7 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 import { rpc, supabase, thaiError, type Me, type Round, type SubmitResult } from "./api";
 import Login from "./Login";
 import Home from "./Home";
-import CreateSet from "./CreateSet";
+import CreateSet, { type Preset } from "./CreateSet";
 import Player from "./Player";
 import RoundResult from "./RoundResult";
 import Stats from "./Stats";
@@ -17,7 +17,7 @@ setupPwa();
 
 type View =
   | { name: "home" }
-  | { name: "create" }
+  | { name: "create"; preset?: Preset }
   | { name: "play"; round: Round }
   | { name: "result"; result: SubmitResult; title: string }
   | { name: "stats" }
@@ -82,6 +82,7 @@ export default function PrepApp() {
   ];
   const active = (k: View["name"]) => view.name === k || (k === "home" && (view.name === "create" || view.name === "result"));
   const go = (k: View["name"]) => { setView({ name: k } as View); window.scrollTo(0, 0); };
+  const practice = (preset?: Preset) => { setView({ name: "create", preset }); window.scrollTo(0, 0); };
 
   return (
     <div className="pp-app">
@@ -101,12 +102,12 @@ export default function PrepApp() {
         </div>
       </header>
       <main className="pp-main">
-        {view.name === "home" && <Home me={me} onCreate={() => go("create")} onStart={startRound} onUpgrade={() => go("account")} />}
-        {view.name === "create" && <CreateSet me={me} onCancel={() => go("home")}
+        {view.name === "home" && <Home me={me} onCreate={practice} onStart={startRound} onUpgrade={() => go("account")} />}
+        {view.name === "create" && <CreateSet me={me} preset={view.preset} onCancel={() => go("home")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} onUpgrade={() => go("account")} />}
         {view.name === "result" && <RoundResult result={view.result} title={view.title} me={me} onStart={startRound}
           onHome={() => go("home")} onUpgrade={() => go("account")} />}
-        {view.name === "stats" && <Stats me={me} onWeakSet={() => go("create")} />}
+        {view.name === "stats" && <Stats me={me} onPractice={practice} />}
         {view.name === "account" && <Account me={me} email={session.user.email ?? ""} onChanged={refreshMe} />}
         {view.name === "admin" && me.is_admin && <Admin />}
       </main>

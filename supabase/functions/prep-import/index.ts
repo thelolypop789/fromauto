@@ -1,4 +1,4 @@
-// Admin-only: turns a study sheet / old exam (text or PDF slice) into draft questions with Gemini.
+// Admin-only: turns a study sheet / old exam (text, PDF slice, images, Word with pictures) into draft questions with Gemini.
 // Uses the same GEMINI_KEY secret as parse-exam. Drafts are returned to the browser, which sends
 // the ones the admin keeps to public.prep_admin_import (status = review).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -9,13 +9,19 @@ const GEMINI_KEY = Deno.env.get("GEMINI_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-// Cheapest tier first. Only same-tier "flash" fallbacks on overload / unknown model — never "pro".
-const PRIMARY = Deno.env.get("PREP_IMPORT_MODEL") || "gemini-3.5-flash-lite";
-const FALLBACKS = ["gemini-3.5-flash", "gemini-flash-latest"];
+// Model chain per quality level; the next model is tried on overload / unknown model name.
+// PREP_IMPORT_MODEL (secret) overrides the first model of "fast".
+const MODELS: Record<string, string[]> = {
+  best: ["gemini-3.5-pro", "gemini-pro-latest", "gemini-3.5-flash", "gemini-flash-latest"],
+  balanced: ["gemini-3.5-flash", "gemini-flash-latest", "gemini-3.5-pro"],
+  fast: [Deno.env.get("PREP_IMPORT_MODEL") || "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-latest"],
+};
 
-const MAX_BODY_BYTES = 8 * 1024 * 1024;
-const MAX_TEXT_CHARS = 60_000;
-const MAX_COUNT = 40;
+const MAX_BODY_BYTES = 9 * 1024 * 1024;
+const MAX_TEXT_CHARS = 200_000;
+const MAX_COUNT = 60;
+const MAX_FILES = 16;
+const MEDIA_TYPES = new Set(["application/pdf", "image/png", "image/jpeg", "image/webp", "image/heic", "image/heif"]);
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -38,20 +44,35 @@ serve(async (req) => {
     if (adminErr || isAdmin !== true) return json({ error: "ไม่มีสิทธิ์แอดมิน" }, 403);
 
     const raw = await req.text();
-    if (raw.length > MAX_BODY_BYTES) return json({ error: "ไฟล์ใหญ่เกินไป (ส่งทีละไม่เกินประมาณ 5 MB)" }, 413);
+    if (raw.length > MAX_BODY_BYTES) return json({ error: "ไฟล์ใหญ่เกินไป (ส่งทีละไม่เกินประมาณ 6 MB)" }, 413);
     const body = JSON.parse(raw);
 
     const mode: Mode = body.mode === "extract" ? "extract" : "generate";
     const count = Math.max(1, Math.min(MAX_COUNT, Math.floor(Number(body.count) || 20)));
     const hint = typeof body.hint === "string" ? body.hint.slice(0, 500) : "";
-    const pages = typeof body.pages === "string" ? body.pages.slice(0, 40) : undefined;
+    const pages = typeof body.pages === "string" ? body.pages.slice(0, 80) : undefined;
+    const quality = typeof body.quality === "string" && Object.hasOwn(MODELS, body.quality) ? body.quality : "best";
 
+    // kind "pdf" (legacy): one PDF slice. kind "text": plain text.
+    // kind "media": up to MAX_FILES files (PDF / images) plus optional text, e.g. a Word file's text and its pictures.
     const parts: unknown[] = [];
+    const text = typeof body.text === "string" ? body.text.trim() : "";
     if (body.kind === "pdf") {
       if (typeof body.pdf_base64 !== "string" || body.pdf_base64.length < 100) return json({ error: "ไม่พบไฟล์ PDF" }, 400);
       parts.push({ inlineData: { mimeType: "application/pdf", data: body.pdf_base64 } });
+    } else if (body.kind === "media") {
+      const files = Array.isArray(body.files) ? body.files : [];
+      if (!files.length && text.length < 50) return json({ error: "ไม่พบไฟล์หรือเนื้อหา" }, 400);
+      if (files.length > MAX_FILES) return json({ error: `ส่งได้ครั้งละไม่เกิน ${MAX_FILES} ไฟล์` }, 400);
+      if (text) parts.push({ text: "เนื้อหาเอกสาร (รูปที่อ้างถึงแนบตามลำดับด้านล่าง):\n" + text.slice(0, MAX_TEXT_CHARS) });
+      for (const f of files) {
+        if (!f || !MEDIA_TYPES.has(f.mimeType) || typeof f.data !== "string" || f.data.length < 100) {
+          return json({ error: "ชนิดไฟล์ไม่รองรับ (รองรับ PDF, PNG, JPG, WebP, HEIC)" }, 400);
+        }
+        if (typeof f.label === "string" && f.label) parts.push({ text: f.label.slice(0, 120) + ":" });
+        parts.push({ inlineData: { mimeType: f.mimeType, data: f.data } });
+      }
     } else {
-      const text = typeof body.text === "string" ? body.text.trim() : "";
       if (text.length < 50) return json({ error: "เนื้อหาสั้นเกินไป" }, 400);
       parts.push({ text: "เนื้อหาเอกสาร:\n" + text.slice(0, MAX_TEXT_CHARS) });
     }
@@ -67,14 +88,14 @@ serve(async (req) => {
       contents: [{ role: "user", parts }],
       generationConfig: {
         temperature: 0.4,
-        maxOutputTokens: 24000,
+        maxOutputTokens: quality === "fast" ? 24000 : 65536,
         responseMimeType: "application/json",
         responseSchema: responseSchema([...topicCodes]),
       },
     });
 
     let lastError = "";
-    for (const model of [PRIMARY, ...FALLBACKS]) {
+    for (const model of MODELS[quality]) {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_KEY },
@@ -83,7 +104,9 @@ serve(async (req) => {
       const data = await res.json().catch(() => ({}));
       if (data.error) {
         lastError = `${model}: ${data.error.message ?? JSON.stringify(data.error)}`;
-        if ([404, 429, 500, 503].includes(data.error.code)) continue;
+        // Retry the next model on overload or when this model name is unknown to the API.
+        const unknownModel = data.error.code === 400 && /models\/|not found|not supported/i.test(String(data.error.message ?? ""));
+        if ([404, 429, 500, 503].includes(data.error.code) || unknownModel) continue;
         return json({ error: "Gemini: " + lastError }, 502);
       }
       const cand = data.candidates?.[0];

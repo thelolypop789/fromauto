@@ -104,11 +104,15 @@ select id from auth.users where email = 'อีเมลของคุณ@gmail
 2. Supabase → **Edge Functions → Deploy a new function → Via Editor**
 3. ตั้งชื่อ **`prep-import`** (ต้องตรงตัว) → ลบโค้ดตัวอย่างทั้งหมด → วางโค้ดที่คัดลอก → **Deploy**
 4. ตรวจ **Edge Functions → Secrets** ว่ามี `GEMINI_KEY` อยู่ (ใช้ตัวเดียวกับ `parse-exam`) ถ้าไม่มีให้เพิ่ม
-5. ตัวเลือก: เพิ่ม secret `PREP_IMPORT_MODEL` เพื่อเปลี่ยนโมเดล (ค่าเริ่มต้น `gemini-3.5-flash-lite`)
+5. ตัวเลือก: เพิ่ม secret `PREP_IMPORT_MODEL` เพื่อเปลี่ยนโมเดลของระดับ "ประหยัด" (ค่าเริ่มต้น `gemini-3.5-flash-lite`)
+   ระดับ "ละเอียดสุด" (ค่าเริ่มต้นในหน้าแอดมิน) ใช้ Gemini Pro และถอยไปใช้ Flash อัตโนมัติถ้าโมเดลไม่พร้อม
 6. ปล่อย **Verify JWT** เปิดไว้ตามค่าเริ่มต้น
 
 ถ้าใช้ CLI: `supabase functions deploy prep-import` (ใช้ไฟล์ `index.ts` + `logic.ts` ได้เลย)
 หลังแก้โค้ดใน `index.ts`/`logic.ts` ให้รัน `python3 scripts/prep/bundle_import_fn.py` เพื่อสร้างไฟล์ single-file ใหม่
+
+ไฟล์ที่รองรับ (เลือกหลายไฟล์พร้อมกันได้): PDF, Word `.docx` (อ่านตารางและรูปในไฟล์ด้วย), รูปถ่าย/สแกน PNG JPG WebP HEIC, TXT
+ไฟล์ `.doc` แบบเก่าต้องบันทึกเป็น `.docx` หรือ PDF ก่อน · รูปหลายรูปถูกอ่านต่อกันเป็นชุดเดียวตามลำดับที่เลือก
 
 ทดสอบ: ล็อกอินเป็นแอดมินที่ `/prep` → แอดมิน → นำเข้า AI → อัปโหลดไฟล์ .txt สั้นๆ ที่มีเนื้อหา → ต้องได้ร่างข้อสอบ
 (ถ้าขึ้น "ไม่มีสิทธิ์แอดมิน" แปลว่าข้อ 4 ยังไม่สำเร็จ ถ้าขึ้น Gemini error ให้ดู Edge Functions → prep-import → Logs)

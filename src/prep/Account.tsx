@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { rpc, supabase, thaiError, type Me } from "./api";
 import { SHOP } from "./config";
+import { IconCheck, IconCrown, IconLogout } from "./icons";
+import InstallBanner from "./InstallBanner";
 
 type Props = { me: Me; email: string; onChanged: () => void };
 
@@ -23,20 +25,26 @@ export default function Account({ me, email, onChanged }: Props) {
   return (
     <>
       <div className="pp-card">
-        <h2>บัญชีของฉัน</h2>
-        <p>{email}</p>
-        <p>สถานะ: <b>{me.plan === "paid" ? "สมาชิก (ไม่จำกัด)" : `ฟรี — ใช้ไป ${me.free_sets_used}/${me.free_sets_limit} ชุด`}</b></p>
-        <button className="pp-btn pp-btn-ghost" onClick={() => supabase.auth.signOut()}>ออกจากระบบ</button>
+        <div className="pp-profile">
+          <div className="pp-avatar">{(email[0] ?? "?").toUpperCase()}</div>
+          <div className="pp-profile-t">
+            <b>{email}</b>
+            <span className="pp-muted small">{me.plan === "paid" ? "สมาชิก · ใช้งานได้ไม่จำกัด" : `บัญชีฟรี · ใช้ไป ${me.free_sets_used}/${me.free_sets_limit} ชุด`}</span>
+          </div>
+          <button className="pp-btn pp-btn-ghost" onClick={() => supabase.auth.signOut()} aria-label="ออกจากระบบ"><IconLogout />ออก</button>
+        </div>
       </div>
 
+      <InstallBanner always />
+
       {me.plan !== "paid" && (
-        <div className="pp-card">
-          <h2>อัปเกรดเป็นสมาชิก</h2>
-          <ul className="pp-list">
-            <li>สร้างชุดใหม่ได้ไม่จำกัด (ชุดละสูงสุด 200 ข้อ)</li>
-            <li>ดึงข้อใหม่จากคลังทั้งหมด พร้อมเฉลยและคำอธิบายทุกข้อ</li>
-            <li>วิเคราะห์จุดแข็งจุดอ่อนจากข้อมูลที่มากขึ้น แม่นขึ้น</li>
-            <li>จ่ายครั้งเดียว</li>
+        <div className="pp-card pp-upgrade">
+          <h2><IconCrown size={22} /> อัปเกรดเป็นสมาชิก</h2>
+          <ul className="pp-perks">
+            <li><IconCheck />สร้างชุดใหม่ได้ไม่จำกัด (ชุดละสูงสุด 200 ข้อ)</li>
+            <li><IconCheck />ดึงข้อใหม่จากคลังทั้งหมด พร้อมเฉลยและคำอธิบายทุกข้อ</li>
+            <li><IconCheck />วิเคราะห์จุดแข็งจุดอ่อนจากข้อมูลที่มากขึ้น แม่นขึ้น</li>
+            <li><IconCheck />จ่ายครั้งเดียว</li>
           </ul>
           {SHOP.priceText && <p className="pp-price">{SHOP.priceText}</p>}
           <ol className="pp-list">

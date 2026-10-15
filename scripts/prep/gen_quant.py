@@ -302,7 +302,110 @@ def logic_cond():
     return make("A1-LOGIC-COND", "analyze", stem, ans, dis, exp)
 
 
-GENERATORS = [(series, 90), (percent, 70), (ratio, 50), (word, 60), (logic_cond, 90)]
+# ---------- ตาราง / ข้อมูล ----------
+
+TABLES = [
+    ("จำนวนนักเรียนที่เข้าร่วมกิจกรรม", "ห้อง", ["ม.1/1", "ม.1/2", "ม.1/3", "ม.1/4"], ["ชาย", "หญิง"], (8, 25)),
+    ("ยอดขายสินค้าสหกรณ์โรงเรียน (บาท)", "เดือน", ["มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย."], ["เครื่องเขียน", "อาหาร"], (1200, 9000)),
+    ("จำนวนหนังสือที่ห้องสมุดให้ยืม (เล่ม)", "ภาคเรียน", ["1/2566", "2/2566", "1/2567", "2/2567"], ["ประถม", "มัธยม"], (150, 900)),
+    ("คะแนนสอบเฉลี่ย", "วิชา", ["ไทย", "คณิต", "วิทย์", "อังกฤษ"], ["ห้อง A", "ห้อง B"], (40, 95)),
+]
+
+
+def data_table():
+    title, rowname, rows, cols, (lo, hi) = random.choice(TABLES)
+    step = 5 if hi >= 1000 else 1
+    vals = [[random.randrange(lo, hi + 1, step) if step > 1 else random.randint(lo, hi) for _ in cols] for _ in rows]
+    table = f"{title}\n{rowname} | " + " | ".join(cols) + "\n" + "\n".join(
+        f"{r} | " + " | ".join(fmt(v) for v in vs) for r, vs in zip(rows, vals))
+    kind = random.choice(["total", "col_total", "diff", "avg", "max", "pct"])
+    c = random.randrange(len(cols))
+    if kind == "total":
+        i = random.randrange(len(rows))
+        ans = sum(vals[i])
+        stem = f"{table}\n\nจากตาราง {rowname} {rows[i]} มีทั้งหมดเท่าใด"
+        exp = f"{' + '.join(fmt(v) for v in vals[i])} = {fmt(ans)}"
+        dis = [ans + d for d in (step * 10, -step * 10, step * 5, -step * 5, vals[i][0], -vals[i][-1]) if ans + d > 0]
+    elif kind == "col_total":
+        ans = sum(v[c] for v in vals)
+        stem = f"{table}\n\nจากตาราง ผลรวมของ{cols[c]}ทุก{rowname}เท่ากับเท่าใด"
+        exp = f"{' + '.join(fmt(v[c]) for v in vals)} = {fmt(ans)}"
+        dis = [ans + d for d in (step * 10, -step * 10, step * 20, -step * 20, step) if ans + d > 0]
+    elif kind == "diff":
+        i, j = random.sample(range(len(rows)), 2)
+        ans = abs(vals[i][c] - vals[j][c])
+        if ans == 0:
+            return None
+        stem = f"{table}\n\nจากตาราง {cols[c]}ของ{rowname} {rows[i]} กับ {rows[j]} ต่างกันเท่าใด"
+        exp = f"|{fmt(vals[i][c])} − {fmt(vals[j][c])}| = {fmt(ans)}"
+        dis = [ans + step * k for k in (1, -1, 2, 10, -10) if ans + step * k > 0] + [vals[i][c] + vals[j][c]]
+    elif kind == "avg":
+        total = sum(v[c] for v in vals)
+        if total % len(rows):
+            return None
+        ans = total // len(rows)
+        stem = f"{table}\n\nจากตาราง ค่าเฉลี่ยของ{cols[c]}ต่อ{rowname}เท่ากับเท่าใด"
+        exp = f"ผลรวม {fmt(total)} ÷ {len(rows)} = {fmt(ans)}"
+        dis = [ans + step * k for k in (1, -1, 2, -2, 5) if ans + step * k > 0] + [total]
+    elif kind == "max":
+        tot = [sum(v) for v in vals]
+        if tot.count(max(tot)) > 1:
+            return None
+        ans = rows[tot.index(max(tot))]
+        stem = f"{table}\n\nจากตาราง {rowname}ใดมีผลรวมของ{' และ '.join(cols)}มากที่สุด"
+        exp = "ผลรวมแต่ละ" + rowname + ": " + ", ".join(f"{r} = {fmt(t)}" for r, t in zip(rows, tot))
+        dis = [r for r in rows if r != ans]
+    else:
+        i = random.randrange(len(rows))
+        part, whole = vals[i][c], sum(vals[i])
+        if (part * 100) % whole:
+            return None
+        ans = f"{part * 100 // whole}%"
+        stem = f"{table}\n\nจากตาราง {cols[c]}ของ{rowname} {rows[i]} คิดเป็นร้อยละเท่าใดของทั้ง{rowname}"
+        exp = f"{fmt(part)} ÷ {fmt(whole)} × 100 = {ans}"
+        p = part * 100 // whole
+        dis = [f"{x}%" for x in (p + 5, p - 5, p + 10, 100 - p) if 0 < x < 100 and x != p]
+    return make("A1-QUANT-DATA", "apply", stem, ans, dis, exp)
+
+
+# ---------- การสรุปความเชิงตรรกะ (เฉพาะรูปแบบที่สรุปได้แน่นอน) ----------
+
+TERMS = ["ครู", "ข้าราชการ", "นักกีฬา", "นักดนตรี", "คนขยัน", "คนใจดี", "นักวิจัย", "นักเขียน", "ศิลปิน",
+         "นักเรียน", "คนตรงต่อเวลา", "ผู้นำ", "นักอ่าน", "คนซื่อสัตย์", "อาสาสมัคร", "นักวิทยาศาสตร์"]
+
+
+def syllogism():
+    a, b, c = random.sample(TERMS, 3)
+    all_ = lambda x, y: f"{x}ทุกคนเป็น{y}"
+    some = lambda x, y: f"{x}บางคนเป็น{y}"
+    none = lambda x, y: f"ไม่มี{x}คนใดเป็น{y}"
+    some_not = lambda x, y: f"{x}บางคนไม่เป็น{y}"
+    form = random.randrange(5)
+    if form == 0:   # All A are B, All B are C => All A are C
+        prem, ans = [all_(a, b), all_(b, c)], all_(a, c)
+        dis = [all_(c, a), none(a, c), some_not(a, c)]
+        why = f"{a}อยู่ในกลุ่ม{b} และ{b}ทั้งหมดอยู่ในกลุ่ม{c} {a}ทุกคนจึงเป็น{c}"
+    elif form == 1:  # All A are B, No B is C => No A is C
+        prem, ans = [all_(a, b), none(b, c)], none(a, c)
+        dis = [some(a, c), all_(c, a), some(c, b)]
+        why = f"{a}ทุกคนอยู่ในกลุ่ม{b} ซึ่งไม่มีใครเป็น{c} จึงไม่มี{a}คนใดเป็น{c}"
+    elif form == 2:  # Some A are B, All B are C => Some A are C
+        prem, ans = [some(a, b), all_(b, c)], some(a, c)
+        dis = [all_(a, c), none(a, c), all_(c, a)]
+        why = f"{a}ที่เป็น{b}ย่อมเป็น{c}ด้วย จึงมี{a}อย่างน้อยบางคนเป็น{c} แต่สรุปว่าทุกคนไม่ได้"
+    elif form == 3:  # No A is B, Some C are B => Some C are not A
+        prem, ans = [none(a, b), some(c, b)], some_not(c, a)
+        dis = [none(c, a), all_(c, a), some(a, c)]
+        why = f"{c}ที่เป็น{b}ไม่อาจเป็น{a}ได้ จึงมี{c}บางคนไม่เป็น{a}"
+    else:            # All A are B, Some C are not B => Some C are not A
+        prem, ans = [all_(a, b), some_not(c, b)], some_not(c, a)
+        dis = [none(c, a), some_not(a, b), all_(c, b)]
+        why = f"ถ้า{c}คนใดไม่เป็น{b} ก็ไม่อาจเป็น{a}ได้ (เพราะ{a}ทุกคนเป็น{b}) จึงมี{c}บางคนไม่เป็น{a}"
+    stem = "กำหนดให้\n" + "\n".join(f"{i + 1}) {p}" for i, p in enumerate(prem)) + "\nข้อใดสรุปได้ถูกต้องแน่นอน"
+    return make("A1-LOGIC-SYLLOGISM", "analyze", stem, ans, dis, why)
+
+
+GENERATORS = [(series, 90), (percent, 70), (ratio, 50), (word, 60), (logic_cond, 90), (data_table, 100), (syllogism, 100)]
 
 
 def main():

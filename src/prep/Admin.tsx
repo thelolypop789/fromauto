@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { PACKAGE_LABEL, fmtUntil, rpc, thaiError, type PackageKey } from "./api";
 import ImportAI from "./ImportAI";
 import AdminBank from "./AdminBank";
+import AdminOrders from "./AdminOrders";
 
 type Stats = { users: number; paid: number; answered_today: number; active_today: number;
   questions: Record<string, number> | null; open_reports: number; keys_unused: number };
@@ -17,18 +18,22 @@ const LABELS = ["ก", "ข", "ค", "ง"];
 const fmt = (s: string | null) => (s ? new Date(s).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "");
 
 export default function Admin() {
-  const [tab, setTab] = useState<"stats" | "bank" | "reports" | "review" | "ai" | "keys" | "import">("stats");
+  const [tab, setTab] = useState<"stats" | "orders" | "bank" | "reports" | "review" | "ai" | "keys" | "import">("stats");
+  const [pending, setPending] = useState<number | null>(null);
+  const loadPending = useCallback(() => { rpc<unknown[]>("prep_admin_orders", { p_status: "pending", p_limit: 200 }).then(r => setPending(r.length)).catch(() => { /* badge only */ }); }, []);
+  useEffect(loadPending, [loadPending]);
   const [open, setOpen] = useState<number | null>(null);
   const loadCount = useCallback(() => { rpc<Stats>("prep_admin_stats").then(s => setOpen(s.open_reports)).catch(() => { /* badge only */ }); }, []);
   useEffect(loadCount, [loadCount]);
   return (
     <>
       <div className="pp-seg">
-        {([["stats", "ภาพรวม"], ["bank", "คลังข้อสอบ"], ["reports", open ? `รายงาน (${open})` : "รายงาน"], ["review", "ตรวจข้อสอบ"], ["ai", "นำเข้า AI"], ["keys", "คีย์"], ["import", "นำเข้า JSON"]] as const).map(([k, l]) => (
+        {([["stats", "ภาพรวม"], ["orders", pending ? `คำสั่งซื้อ (${pending})` : "คำสั่งซื้อ"], ["bank", "คลังข้อสอบ"], ["reports", open ? `รายงาน (${open})` : "รายงาน"], ["review", "ตรวจข้อสอบ"], ["ai", "นำเข้า AI"], ["keys", "คีย์"], ["import", "นำเข้า JSON"]] as const).map(([k, l]) => (
           <button key={k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
       {tab === "stats" && <StatsTab />}
+      {tab === "orders" && <AdminOrders onChanged={loadPending} />}
       {tab === "bank" && <AdminBank onChanged={loadCount} />}
       {tab === "reports" && <AdminBank reportsOnly onChanged={loadCount} />}
       {tab === "review" && <ReviewTab />}

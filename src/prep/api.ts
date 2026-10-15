@@ -84,6 +84,9 @@ const ERRORS: Record<string, string> = {
   forbidden: "ไม่มีสิทธิ์",
   too_many_reports: "แจ้งปัญหาวันนี้ครบจำนวนแล้ว",
   empty_reason: "กรุณาระบุรายละเอียดของปัญหา",
+  invalid_slip: "อัปโหลดสลิปไม่สำเร็จ ลองใหม่อีกครั้ง",
+  too_many_orders: "มีรายการรอตรวจอยู่แล้ว 3 รายการ กรุณารอทีมงานตรวจก่อน",
+  already_reviewed: "รายการนี้ตรวจไปแล้ว",
 };
 
 export function thaiError(e: unknown): string {
@@ -177,3 +180,10 @@ export function covers(me: Me, sections: string[]): boolean {
 
 export const fmtUntil = (iso: string | null) =>
   iso ? `ถึง ${new Date(new Date(iso).getTime() - 1).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}` : "ตลอดชีพ";
+
+export type Order = {
+  id: number; package: PackageKey; term: "round" | "lifetime"; amount: number | null;
+  status: "pending" | "approved" | "rejected"; admin_note: string | null;
+  created_at: string; reviewed_at: string | null; access_until?: string | null;
+};
+export const TERM_LABEL = { round: "รายรอบ 3 เดือน", lifetime: "ซื้อขาด" } as const;

@@ -5,6 +5,7 @@ import { PACKAGES, SHOP } from "./config";
 import { IconCheck, IconCrown, IconLogout } from "./icons";
 import InstallBanner from "./InstallBanner";
 import MyReports from "./MyReports";
+import PayForm from "./PayForm";
 
 type Props = { me: Me; email: string; profile: Profile; onMajor: (code: string, name: string) => void; onChanged: () => void };
 
@@ -15,6 +16,7 @@ export default function Account({ me, email, profile, onMajor, onChanged }: Prop
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const pkgs = me.packages ?? [];
   const owned = new Set(pkgs.map(p => p.package));
+  const lifetimeAll = pkgs.some(p => p.package === "ALL" && !p.expires_at);
   const [now] = useState(() => Date.now());
   const daysLeft = (iso: string | null) => {
     if (!iso) return "";
@@ -74,7 +76,7 @@ export default function Account({ me, email, profile, onMajor, onChanged }: Prop
         </div>
       )}
 
-      {!owned.has("ALL") && (
+      {!lifetimeAll && (
         <div className="pp-card pp-upgrade">
           <h2><IconCrown size={22} /> {pkgs.length ? "ซื้อแพ็กเพิ่ม / ต่ออายุ" : "อัปเกรดเป็นสมาชิก"}</h2>
           <ul className="pp-perks">
@@ -110,9 +112,10 @@ export default function Account({ me, email, profile, onMajor, onChanged }: Prop
           )}
           <ol className="pp-list">
             <li>เลือกแพ็กและแบบ (รายรอบ / ซื้อขาด) แล้วโอนเงิน{SHOP.bankText ? `: ${SHOP.bankText}` : ""}</li>
-            <li>ส่งสลิปพร้อมแจ้งแพ็กและอีเมลที่ใช้สมัคร ({email}){SHOP.contactText ? ` — ${SHOP.contactText}` : ""}</li>
-            <li>รับคีย์ แล้วกรอกด้านล่างเพื่อเปิดใช้งาน</li>
+            <li>แนบรูปสลิปในแบบฟอร์มด้านล่าง แล้วกดส่ง</li>
+            <li>ทีมงานตรวจยอดแล้วเปิดสิทธิ์ให้บัญชีนี้ ({email}) ไม่ต้องกรอกคีย์{SHOP.contactText ? ` · สอบถาม: ${SHOP.contactText}` : ""}</li>
           </ol>
+          <PayForm email={email} onApproved={onChanged} />
           {SHOP.contactUrl && <a className="pp-btn pp-btn-gold" href={SHOP.contactUrl} target="_blank" rel="noopener noreferrer">ติดต่อซื้อ</a>}
         </div>
       )}

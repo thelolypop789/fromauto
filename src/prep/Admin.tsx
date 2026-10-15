@@ -202,7 +202,7 @@ function ImportTab() {
       {items && <p>{fileName}: {items.length} ข้อ</p>}
       <div className="pp-row">
         <select className="pp-input" value={origin} onChange={e => setOrigin(e.target.value)} style={{ width: 160 }}>
-          <option value="sheet">จากชีท/ข้อสอบเก่า</option>
+          <option value="sheet">ข้อสอบเก่า / เอกสารสรุป</option>
           <option value="template">สร้างด้วยโค้ด</option>
           <option value="ai">AI สร้าง</option>
           <option value="manual">เขียนเอง</option>

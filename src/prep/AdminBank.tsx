@@ -14,7 +14,7 @@ type Filters = { section: string; grp: string; topic: string; status: string; se
 
 const LABELS = ["ก", "ข", "ค", "ง"];
 const STATUS: Record<string, string> = { approved: "เผยแพร่", review: "รอตรวจ", hidden: "ซ่อน" };
-const ORIGIN: Record<string, string> = { sheet: "ชีท/ข้อสอบเก่า", template: "สร้างด้วยโค้ด", ai: "AI", manual: "พิมพ์เอง" };
+const ORIGIN: Record<string, string> = { sheet: "ข้อสอบเก่า / เอกสารสรุป", template: "สร้างด้วยโค้ด", ai: "AI", manual: "พิมพ์เอง" };
 const SORTS: [string, string][] = [["new", "ใหม่สุด"], ["old", "เก่าสุด"], ["hardest", "ยากสุด (ตอบถูกน้อย)"], ["easiest", "ง่ายสุด"], ["most_answered", "มีคนทำมากสุด"], ["reports", "ถูกรายงานมากสุด"]];
 const PAGE = 30;
 const EMPTY: Filters = { section: "", grp: "", topic: "", status: "", search: "", sort: "new" };

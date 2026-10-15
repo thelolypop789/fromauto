@@ -40,10 +40,15 @@ ${opts.pages ? `ให้ใช้เฉพาะเนื้อหาในช�
 4. ตัวลวงต้องสมเหตุสมผล ชนิดเดียวกับคำตอบ แต่ผิดชัดเจน
 5. โจทย์ต้องอ่านเข้าใจได้ในตัวเอง ห้ามอ้างถึงรูปภาพหรือข้อก่อนหน้า ถ้าต้นฉบับมีตาราง กราฟ หรือรูปที่จำเป็นต่อการตอบ ให้ถอดข้อมูลเป็นข้อความในโจทย์ (เช่น ตารางเป็นบรรทัด) ถ้าถอดไม่ได้ให้ข้ามข้อนั้น
    เอกสารอาจเป็นภาพถ่าย/สแกน ให้อ่านตัวอักษรอย่างระมัดระวัง ถ้าอ่านไม่ชัดให้ตั้ง needs_review=true หรือข้าม
-6. explanation 1-3 ประโยค บอกว่าทำไมข้อนั้นถูก (และตัวลวงที่น่าสับสนผิดเพราะอะไร)
+6. explanation 1-3 ประโยค เขียนแบบตำราเรียนที่เป็นทางการ บอกว่าทำไมข้อนั้นถูก (และตัวลวงที่น่าสับสนผิดเพราะอะไร)
+   ห้ามอ้างถึงแหล่งที่มา เช่น "ชีทระบุว่า" "ตามเอกสาร" "ตามเนื้อหา" "ผู้บรรยาย" ให้เขียนเป็นข้อเท็จจริงโดยตรง และห้ามใส่หมายเหตุภายใน เช่น อ่านไม่ชัด หรือควรตรวจสอบ (ให้ใช้ needs_review แทน)
 7. law_ref ใส่เฉพาะเมื่อเอกสารระบุมาตรา+กฎหมาย+ปี ไม่เช่นนั้นใส่ null
 8. needs_review=true ถ้าต้องเดาหรืออนุมานอะไรที่ไม่ได้เขียนไว้ตรงๆ หรือเอกสารอ่านยาก
 9. ข้อ "ข้อใดไม่ใช่" ไม่เกิน 25% ห้ามมีข้อซ้ำหรือใกล้เคียงกัน
+11. แนวข้อสอบครูผู้ช่วยจริงถามสาระและการนำไปใช้ ไม่ถามให้จำเลขมาตรา เลขอนุมาตรา หรือเลขคำพิพากษาฎีกา
+    ห้ามสร้างข้อที่คำตอบหรือตัวเลือกเป็นเลขมาตรา และห้ามขึ้นต้นโจทย์ด้วย "ตามมาตรา..." หรือ "ตามคำพิพากษาฎีกาที่..." ให้ถามถึงสาระของกฎหมายแทน (เช่น สิทธิ หน้าที่ ระยะเวลา ผู้มีอำนาจ)
+    ในโหมดคัดข้อ ข้อเดิมที่ถามเลขมาตราหรือเลขฎีกาให้ข้ามไป
+12. ห้ามเขียนในโจทย์ว่า "ตามชีท" "ตามเอกสารประกอบการบรรยาย" ให้อ้างชื่อกฎหมายหรือหลักสูตรโดยตรงแทน
 10. level เลือก remember/understand/apply/analyze
 
 เลือก topic จากรายการนี้เท่านั้น (ใช้ code ที่ใกล้เคียงที่สุด):
@@ -74,6 +79,10 @@ function responseSchema(topicCodes: string[]) {
 }
 
 const STRIP_PREFIX = /^\s*(?:[ก-ง][\.\)]|\(?[ก-ง]\)|[A-Da-d][\.\)]|\(?[1-4][\.\)])\s*/;
+// Real exams ask what the law says, not which section number says it.
+const SECTION_RECALL = /(?:อนุ)?มาตรา\s*(?:ใด|อะไร|ที่เท่าไร|ไหน)|คำพิพากษาฎีกาที่|^\s*ตามมาตรา/;
+const SECTION_CHOICE = /^\s*(?:มาตรา\s*[0-9๐-๙]+|\([0-9๐-๙]+\))/;
+const SOURCE_REF = /^(?:ตาม|จาก|ใน)?\s*(?:ชีท|เอกสาร(?:ประกอบการบรรยาย)?|เนื้อหา)(?:สรุป)?\s*(?:ระบุ|กำหนด|กล่าว|อธิบาย|ยกตัวอย่าง|สรุป)?(?:ไว้)?(?:ว่า)?\s*/;
 const SELF_REFERENCE = /ถูกทุกข้อ|ผิดทุกข้อ|ไม่มีข้อใดถูก|ไม่มีข้อถูก|ข้อ\s*ก\s*และ\s*ข|ทั้ง\s*[1-4]\s*และ\s*[1-4]|ทุกข้อข้างต้น|ข้อใดข้อหนึ่ง/;
 
 function stripPrefix(s: string): string {
@@ -91,6 +100,9 @@ function normalize(raw: unknown, topicCodes: Set<string>): { q?: DraftQuestion; 
   if (choices.some(c => !c)) return { drop: "มีตัวเลือกว่าง" };
   if (new Set(choices.map(c => c.replace(/\s/g, "").toLowerCase())).size !== 4) return { drop: "ตัวเลือกซ้ำกัน" };
   if (choices.some(c => SELF_REFERENCE.test(c))) return { drop: "ตัวเลือกอ้างถึงตัวเลือกอื่น" };
+  if (SECTION_RECALL.test(stem) && !/การวัด|มาตราวัด|มาตราส่วน/.test(stem)) return { drop: "ถามเลขมาตรา/ฎีกา" };
+  if (choices.filter(c => SECTION_CHOICE.test(c)).length >= 3) return { drop: "ตัวเลือกเป็นเลขมาตรา" };
+  if (/ชีท|เอกสารประกอบการบรรยาย/.test(stem)) return { drop: "โจทย์อ้างถึงชีท/เอกสาร" };
   const answer = Number(r.answer);
   if (!Number.isInteger(answer) || answer < 0 || answer > 3) return { drop: "เฉลยไม่ถูกต้อง" };
   const topic = String(r.topic ?? "");
@@ -100,9 +112,9 @@ function normalize(raw: unknown, topicCodes: Set<string>): { q?: DraftQuestion; 
   return {
     q: {
       topic, level, stem, choices, answer,
-      explanation: typeof r.explanation === "string" ? r.explanation.trim() : "",
+      explanation: typeof r.explanation === "string" ? r.explanation.trim().replace(SOURCE_REF, "") : "",
       law_ref: law,
-      needs_review: r.needs_review === true || !r.explanation,
+      needs_review: r.needs_review === true || !r.explanation || /ชีท|เอกสาร(?:ระบุ|กำหนด)/.test(String(r.explanation)),
     },
   };
 }

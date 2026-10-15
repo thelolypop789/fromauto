@@ -335,7 +335,7 @@ export default function ImportAI() {
         <h3>สิ่งที่ให้ AI ทำ</h3>
         <div className="pp-seg">
           <button className={mode === "extract" ? "on" : ""} onClick={() => setMode("extract")} disabled={busy}>เป็นข้อสอบอยู่แล้ว → คัดข้อ</button>
-          <button className={mode === "generate" ? "on" : ""} onClick={() => setMode("generate")} disabled={busy}>ชีทสรุป → แต่งข้อสอบ</button>
+          <button className={mode === "generate" ? "on" : ""} onClick={() => setMode("generate")} disabled={busy}>เอกสารสรุปเนื้อหา → แต่งข้อสอบ</button>
         </div>
         <h3>ความละเอียดของ AI</h3>
         <div className="pp-modes">

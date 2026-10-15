@@ -167,3 +167,8 @@ body { background: var(--pp-bg); }
 
 .pp-spinner { width: 34px; height: 34px; margin: 30px auto; border: 3px solid var(--pp-primary-soft); border-top-color: var(--pp-primary); border-radius: 50%; animation: pp-spin .8s linear infinite; }
 @keyframes pp-spin { to { transform: rotate(360deg); } }
+
+/* AI import drafts */
+.pp-draft.off { opacity: .45; }
+.pp-draft-choice { padding: 6px 10px; border-radius: 8px; margin: 4px 0; font-size: 15px; background: #faf8fe; }
+.pp-draft-choice.right { background: var(--pp-ok-soft); color: var(--pp-ok); font-weight: 600; }

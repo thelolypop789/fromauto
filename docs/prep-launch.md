@@ -7,6 +7,7 @@
 1. **SQL Editor** รันตามลำดับ:
    - `supabase/migrations/20261015120000_prep_schema.sql`
    - `supabase/migrations/20261015120100_prep_topics_seed.sql`
+   - `supabase/migrations/20261015130000_prep_admin_check.sql`
 2. **Settings → API → Exposed schemas**: ต้อง **ไม่มี** `prep` (มีแค่ `public`)
 3. **Authentication → Providers → Google**: เปิดอยู่แล้ว (ใช้ร่วมกับระบบครู)
 4. **Authentication → URL Configuration → Redirect URLs**: เพิ่ม `https://<โดเมน>/prep`
@@ -19,7 +20,22 @@
    select id from auth.users where email = 'อีเมลของคุณ';
    ```
 
+## 1.1 Deploy Edge Function สำหรับนำเข้าด้วย AI
+
+```
+supabase functions deploy prep-import
+```
+
+ใช้ secret `GEMINI_KEY` ตัวเดียวกับ `parse-exam` (ไม่ต้องตั้งเพิ่ม) · เปลี่ยนโมเดลได้ด้วย
+`supabase secrets set PREP_IMPORT_MODEL=<ชื่อโมเดล>` (ค่าเริ่มต้น `gemini-3.5-flash-lite`, สำรอง flash เมื่อโดน 429/503/ไม่พบโมเดล, ไม่ใช้ pro)
+
 ## 2. นำเข้าข้อสอบ
+
+**นำเข้า AI (แท็บ แอดมิน → นำเข้า AI):** อัปโหลด .docx/.pdf/.txt → เลือก "ชีทสรุป → แต่งข้อสอบ" หรือ "เป็นข้อสอบอยู่แล้ว → คัดข้อ"
+ระบบแบ่งไฟล์เป็นช่วง (PDF ตามจำนวนหน้า, ข้อความทีละ ~6,000 ตัวอักษร) ส่งทีละช่วงให้ Gemini แล้วแสดง "ร่าง" ให้ติ๊กเลือก
+→ บันทึกเข้าคิว **รอตรวจ** เสมอ (ไม่เผยแพร่ทันที) → แท็บ ตรวจข้อสอบ → อนุมัติ · มีตัวนับ token ระหว่างทำงาน
+
+**นำเข้า JSON (แท็บ นำเข้า JSON):** สำหรับไฟล์สำเร็จรูป
 
 เข้า `/prep` → แท็บ **แอดมิน → นำเข้า** แล้วอัปโหลดตามลำดับ:
 

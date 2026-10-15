@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { rpc, thaiError } from "./api";
+import ImportAI from "./ImportAI";
 
 type Stats = { users: number; paid: number; answered_today: number; active_today: number;
   questions: Record<string, number> | null; open_reports: number; keys_unused: number };
@@ -11,16 +12,17 @@ const LABELS = ["ก", "ข", "ค", "ง"];
 const fmt = (s: string | null) => (s ? new Date(s).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "");
 
 export default function Admin() {
-  const [tab, setTab] = useState<"stats" | "review" | "keys" | "import">("stats");
+  const [tab, setTab] = useState<"stats" | "review" | "ai" | "keys" | "import">("stats");
   return (
     <>
       <div className="pp-seg">
-        {([["stats", "ภาพรวม"], ["review", "ตรวจข้อสอบ"], ["keys", "คีย์"], ["import", "นำเข้า"]] as const).map(([k, l]) => (
+        {([["stats", "ภาพรวม"], ["review", "ตรวจข้อสอบ"], ["ai", "นำเข้า AI"], ["keys", "คีย์"], ["import", "นำเข้า JSON"]] as const).map(([k, l]) => (
           <button key={k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
       {tab === "stats" && <StatsTab />}
       {tab === "review" && <ReviewTab />}
+      {tab === "ai" && <ImportAI />}
       {tab === "keys" && <KeysTab />}
       {tab === "import" && <ImportTab />}
     </>

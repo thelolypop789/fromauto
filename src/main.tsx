@@ -16,7 +16,7 @@ window.addEventListener('vite:preloadError', (event) => {
 
 // /prep is a separate app (exam practice for ครูผู้ช่วย) with its own bundle and auth session.
 // Two separate lazy() calls so each route only downloads its own chunk and CSS.
-const isPrep = window.location.pathname === '/prep' || window.location.pathname.startsWith('/prep/')
+const isPrep = ['/prep', '/prep.html'].includes(window.location.pathname) || window.location.pathname.startsWith('/prep/')
 const PrepApp = lazy(() => import('./prep/PrepApp.tsx'))
 const App = lazy(() => import('./App.tsx'))
 

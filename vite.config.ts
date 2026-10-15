@@ -20,6 +20,12 @@ function sgsBridgePlugin() {
 
 export default defineConfig({
   plugins: [react(), sgsBridgePlugin()],
+  // prep.html: same app entry, but its own <head> (title, link-preview banner) for /prep.
+  build: {
+    rollupOptions: {
+      input: { main: 'index.html', prep: 'prep.html' },
+    },
+  },
   server: {
     port: 5173,
     host: true,

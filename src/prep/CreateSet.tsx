@@ -3,7 +3,7 @@ import { GROUPS, SECTIONS, rpc, thaiError, type Me, type Topic } from "./api";
 import { IconCrown } from "./icons";
 
 export type Preset = { section?: "A" | "B"; topics?: string[]; mode?: "new" | "weak" | "mixed" };
-type Props = { me: Me; preset?: Preset; onCancel: () => void; onCreated: (setId: string) => void; onUpgrade: () => void };
+type Props = { me: Me; major?: string | null; preset?: Preset; onCancel: () => void; onCreated: (setId: string) => void; onUpgrade: () => void };
 
 const MODES = [
   { key: "new", label: "ข้อใหม่ก่อน", hint: "ดึงข้อที่ยังไม่เคยทำก่อน" },
@@ -11,7 +11,7 @@ const MODES = [
   { key: "mixed", label: "สุ่มทั้งหมด", hint: "ผสมทุกข้อในหมวดที่เลือก" },
 ] as const;
 
-export default function CreateSet({ me, preset, onCancel, onCreated, onUpgrade }: Props) {
+export default function CreateSet({ me, major = null, preset, onCancel, onCreated, onUpgrade }: Props) {
   const [topics, setTopics] = useState<Topic[] | null>(null);
   const [picked, setPicked] = useState<Set<string>>(() => new Set(preset?.topics ?? []));
   const [section, setSection] = useState<"A" | "B">(preset?.section ?? "A");
@@ -35,8 +35,11 @@ export default function CreateSet({ me, preset, onCancel, onCreated, onUpgrade }
   const groups = useMemo(() => {
     const g = new Map<string, Topic[]>();
     topics?.filter(t => t.section === section).forEach(t => g.set(t.grp, [...(g.get(t.grp) ?? []), t]));
+    // The user's own major goes first in วิชาเอก.
+    const b3 = g.get("B3");
+    if (b3 && major) g.set("B3", [...b3.filter(t => t.code === major), ...b3.filter(t => t.code !== major)]);
     return [...g.entries()];
-  }, [topics, section]);
+  }, [topics, section, major]);
   const sectionTopics = (sec: "A" | "B") => topics?.filter(t => t.section === sec) ?? [];
   const pickedIn = (sec: "A" | "B") => sectionTopics(sec).filter(t => picked.has(t.code)).length;
   const allSection = sectionTopics(section).length > 0 && sectionTopics(section).every(t => picked.has(t.code));
@@ -111,7 +114,7 @@ export default function CreateSet({ me, preset, onCancel, onCreated, onUpgrade }
               {list.map(t => (
                 <label key={t.code} className={`pp-topic ${picked.has(t.code) ? "on" : ""}`}>
                   <input type="checkbox" checked={picked.has(t.code)} onChange={e => toggle([t.code], e.target.checked)} />
-                  {t.name} <span className="pp-muted">({t.available})</span>
+                  {t.name} <span className="pp-muted">({t.available})</span>{t.code === major && <span className="pp-mine">วิชาเอกของฉัน</span>}
                 </label>
               ))}
             </div>

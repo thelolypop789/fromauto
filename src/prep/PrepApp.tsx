@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { rpc, supabase, thaiError, type Me, type Round, type SubmitResult } from "./api";
+import { rpc, supabase, thaiError, type Me, type Profile, type Round, type SubmitResult } from "./api";
 import Login from "./Login";
 import Home from "./Home";
 import CreateSet, { type Preset } from "./CreateSet";
@@ -27,6 +27,7 @@ type View =
 export default function PrepApp() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [me, setMe] = useState<Me | null>(null);
+  const [profile, setProfile] = useState<Profile>({ major: null, major_name: null });
   const [view, setView] = useState<View>({ name: "home" });
   const [error, setError] = useState("");
 
@@ -40,7 +41,9 @@ export default function PrepApp() {
   const refreshMe = useCallback(async () => {
     try { setMe(await rpc<Me>("prep_me")); setError(""); }
     catch (e) { setError(thaiError(e)); }
+    rpc<Profile>("prep_profile").then(setProfile).catch(() => { /* major is optional */ });
   }, []);
+  const setMajor = (code: string, name: string) => setProfile({ major: code, major_name: name });
 
   useEffect(() => { if (session) refreshMe(); else setMe(null); }, [session, refreshMe]);
 
@@ -102,13 +105,13 @@ export default function PrepApp() {
         </div>
       </header>
       <main className="pp-main">
-        {view.name === "home" && <Home me={me} onCreate={practice} onStart={startRound} onUpgrade={() => go("account")} />}
-        {view.name === "create" && <CreateSet me={me} preset={view.preset} onCancel={() => go("home")}
+        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onCreate={practice} onStart={startRound} onUpgrade={() => go("account")} />}
+        {view.name === "create" && <CreateSet me={me} major={profile.major} preset={view.preset} onCancel={() => go("home")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} onUpgrade={() => go("account")} />}
         {view.name === "result" && <RoundResult result={view.result} title={view.title} me={me} onStart={startRound}
           onHome={() => go("home")} onUpgrade={() => go("account")} />}
         {view.name === "stats" && <Stats me={me} onPractice={practice} />}
-        {view.name === "account" && <Account me={me} email={session.user.email ?? ""} onChanged={refreshMe} />}
+        {view.name === "account" && <Account me={me} email={session.user.email ?? ""} profile={profile} onMajor={setMajor} onChanged={refreshMe} />}
         {view.name === "admin" && me.is_admin && <Admin />}
       </main>
       <nav className="pp-nav" aria-label="เมนูหลัก">

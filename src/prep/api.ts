@@ -121,11 +121,12 @@ export const GROUPS: Record<string, string> = {
   A3: "ความรู้และลักษณะการเป็นข้าราชการที่ดี",
   B1: "วิชาการศึกษา",
   B2: "กฎหมายและนโยบายการศึกษา",
+  B3: "วิชาเอก",
 };
 
 export const SECTIONS: Record<"A" | "B", { short: string; name: string; groups: string[] }> = {
   A: { short: "ภาค ก", name: "ความรู้ความสามารถทั่วไป", groups: ["A1", "A2", "A3"] },
-  B: { short: "ภาค ข", name: "ความรู้ความสามารถที่ใช้เฉพาะตำแหน่ง", groups: ["B1", "B2"] },
+  B: { short: "ภาค ข", name: "ความรู้ความสามารถที่ใช้เฉพาะตำแหน่ง", groups: ["B1", "B2", "B3"] },
 };
 
 export const LEVELS: Record<string, string> = {
@@ -158,3 +159,5 @@ export const REPORT_CATEGORIES: [string, string, string][] = [
   ["outdated", "ข้อมูลล้าสมัย", "กฎหมาย/นโยบายเปลี่ยนแล้ว"],
   ["other", "อื่นๆ", "ระบุรายละเอียด"],
 ];
+
+export type Profile = { major: string | null; major_name: string | null };

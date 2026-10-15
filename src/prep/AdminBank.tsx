@@ -29,6 +29,12 @@ export default function AdminBank({ reportsOnly = false, onChanged }: { reportsO
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [open, setOpen] = useState<number | null>(null);
+  const [newMajor, setNewMajor] = useState("");
+  const addMajor = async () => {
+    if (!newMajor.trim()) return;
+    try { await rpc("prep_admin_add_major", { p_name: newMajor.trim() }); setNewMajor(""); loadSummary(); }
+    catch (e) { setError(thaiError(e)); }
+  };
 
   const loadSummary = useCallback(() => {
     rpc<TopicRow[]>("prep_admin_bank_summary").then(setSummary).catch(e => setError(thaiError(e)));
@@ -103,6 +109,13 @@ export default function AdminBank({ reportsOnly = false, onChanged }: { reportsO
                           <BankCounts a={t.approved} r={t.review} h={t.hidden} rep={t.reports} />
                         </button>
                       ))}
+                      {g === "B3" && (
+                        <div className="pp-row pp-add-major">
+                          <input className="pp-input" placeholder="เพิ่มวิชาเอกที่ยังไม่มี เช่น ภาษาญี่ปุ่น" value={newMajor}
+                            onChange={e => setNewMajor(e.target.value)} onKeyDown={e => e.key === "Enter" && addMajor()} />
+                          <button className="pp-btn pp-btn-ghost" disabled={!newMajor.trim()} onClick={addMajor}>เพิ่มวิชาเอก</button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

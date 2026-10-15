@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { rpc, thaiError } from "./api";
+import { PACKAGE_LABEL, fmtUntil, rpc, thaiError, type PackageKey } from "./api";
 import ImportAI from "./ImportAI";
 import AdminBank from "./AdminBank";
 
 type Stats = { users: number; paid: number; answered_today: number; active_today: number;
   questions: Record<string, number> | null; open_reports: number; keys_unused: number };
-type KeyRow = { id: number; note: string | null; created_at: string; redeemed_at: string | null; redeemed_email: string | null; revoked_at: string | null };
+type KeyRow = { id: number; note: string | null; created_at: string; redeemed_at: string | null; redeemed_email: string | null; revoked_at: string | null;
+  package?: PackageKey; duration_days?: number | null; expires_on?: string | null; access_until?: string | null };
+const keyTerm = (r: { duration_days?: number | null; expires_on?: string | null }) =>
+  r.expires_on ? `ถึง ${new Date(r.expires_on + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}`
+    : r.duration_days ? `${r.duration_days} วัน` : "ซื้อขาด";
 type QItem = { id: number; topic: string; stem: string; choices: string[]; answer: number; explanation: string;
   law_ref: string | null; status: string; source: string | null; reports: string[] };
 
@@ -166,20 +170,28 @@ function KeysTab() {
   const [rows, setRows] = useState<KeyRow[] | null>(null);
   const [count, setCount] = useState(1);
   const [note, setNote] = useState("");
+  const [pkg, setPkg] = useState<PackageKey>("ALL");
+  const [term, setTerm] = useState<"lifetime" | "days" | "until">("lifetime");
+  const [days, setDays] = useState(180);
+  const [until, setUntil] = useState("");
   const [fresh, setFresh] = useState<string[]>([]);
   const [error, setError] = useState("");
   const load = useCallback(() => { rpc<KeyRow[]>("prep_admin_list_keys").then(setRows).catch(e => setError(thaiError(e))); }, []);
   useEffect(load, [load]);
 
   const create = async () => {
+    if (term === "until" && !until) { alert("เลือกวันที่หมดอายุ"); return; }
     if (!note.trim() && !confirm("ไม่ได้ใส่หมายเหตุ (ชื่อผู้ซื้อ/ยอดโอน) สร้างต่อไหม?")) return;
     try {
-      setFresh(await rpc<string[]>("prep_admin_create_keys", { p_count: count, p_note: note.trim() || null }));
+      setFresh(await rpc<string[]>("prep_admin_create_package_keys", {
+        p_count: count, p_note: note.trim() || null, p_package: pkg,
+        p_duration_days: term === "days" ? days : null, p_expires_on: term === "until" ? until : null,
+      }));
       setNote(""); load();
     } catch (e) { alert(thaiError(e)); }
   };
   const revoke = async (id: number) => {
-    if (!confirm("ยกเลิกคีย์นี้? ถ้าถูกใช้แล้ว บัญชีนั้นจะกลับเป็นฟรี")) return;
+    if (!confirm("ยกเลิกคีย์นี้? ถ้าถูกใช้แล้ว บัญชีนั้นจะเสียสิทธิ์แพ็กที่ได้จากคีย์นี้")) return;
     try { await rpc("prep_admin_revoke_key", { p_id: id }); load(); } catch (e) { alert(thaiError(e)); }
   };
 
@@ -188,10 +200,27 @@ function KeysTab() {
       <div className="pp-card">
         <h3>สร้างคีย์</h3>
         <p className="pp-note">เช็กยอดเงินเข้าในแอปธนาคารก่อนทุกครั้ง (สลิปปลอมมีเยอะ)</p>
+        <label className="small pp-muted">แพ็ก</label>
+        <div className="pp-seg">
+          {(["A", "B", "ALL"] as const).map(k => <button key={k} className={pkg === k ? "on" : ""} onClick={() => setPkg(k)}>{PACKAGE_LABEL[k]}</button>)}
+        </div>
+        <label className="small pp-muted">ระยะเวลา</label>
+        <div className="pp-seg">
+          <button className={term === "lifetime" ? "on" : ""} onClick={() => setTerm("lifetime")}>ซื้อขาด</button>
+          <button className={term === "days" ? "on" : ""} onClick={() => setTerm("days")}>ตามจำนวนวัน</button>
+          <button className={term === "until" ? "on" : ""} onClick={() => setTerm("until")}>ถึงวันที่ (รอบสอบ)</button>
+        </div>
+        {term === "days" && (
+          <div className="pp-seg">
+            {[30, 90, 180, 365].map(n => <button key={n} className={days === n ? "on" : ""} onClick={() => setDays(n)}>{n} วัน</button>)}
+          </div>
+        )}
+        {term === "until" && <input className="pp-input" type="date" value={until} min={new Date().toISOString().slice(0, 10)} onChange={e => setUntil(e.target.value)} />}
+        <p className="pp-muted small">ผู้ที่มีแพ็กเดิมแบบมีวันหมดอายุอยู่แล้ว คีย์ "ตามจำนวนวัน" จะต่อจากวันหมดอายุเดิม · คีย์ "ถึงวันที่" ใช้ได้ถึงสิ้นวันนั้น และกรอกไม่ได้หลังวันนั้น</p>
         <input className="pp-input" placeholder="หมายเหตุ: ชื่อผู้ซื้อ / อีเมล / ยอด / เวลาโอน" value={note} onChange={e => setNote(e.target.value)} />
         <div className="pp-row">
           <input className="pp-input" type="number" min={1} max={50} value={count} onChange={e => setCount(Number(e.target.value) || 1)} style={{ width: 90 }} />
-          <button className="pp-btn pp-btn-primary" onClick={create}>สร้าง {count} คีย์</button>
+          <button className="pp-btn pp-btn-primary" onClick={create}>สร้าง {count} คีย์ · {PACKAGE_LABEL[pkg]} · {term === "lifetime" ? "ซื้อขาด" : term === "days" ? `${days} วัน` : until || "เลือกวันที่"}</button>
         </div>
         {fresh.length > 0 && (
           <div className="pp-success">
@@ -207,10 +236,10 @@ function KeysTab() {
         {rows?.map(r => (
           <div key={r.id} className="pp-keyrow">
             <div>
-              <div>{r.note || <span className="pp-muted">ไม่มีหมายเหตุ</span>}</div>
+              <div><span className="pp-pkg-badge small">{PACKAGE_LABEL[r.package ?? "ALL"]} · {keyTerm(r)}</span> {r.note || <span className="pp-muted">ไม่มีหมายเหตุ</span>}</div>
               <div className="pp-muted small">
                 สร้าง {fmt(r.created_at)}
-                {r.redeemed_at ? ` · ใช้โดย ${r.redeemed_email ?? "?"} ${fmt(r.redeemed_at)}` : " · ยังไม่ใช้"}
+                {r.redeemed_at ? ` · ใช้โดย ${r.redeemed_email ?? "?"} ${fmt(r.redeemed_at)} · สิทธิ์${fmtUntil(r.access_until ?? null)}` : " · ยังไม่ใช้"}
                 {r.revoked_at ? ` · ยกเลิกแล้ว ${fmt(r.revoked_at)}` : ""}
               </div>
             </div>

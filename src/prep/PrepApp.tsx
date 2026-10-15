@@ -24,6 +24,15 @@ type View =
   | { name: "account" }
   | { name: "admin" };
 
+// "ครบทุกภาค" / "ภาค ข + วิชาเอก" / "ภาค ก + ข" for the header badge.
+function planLabel(me: Me) {
+  const ks = new Set((me.packages ?? []).map(p => p.package));
+  if (ks.has("ALL") || (ks.has("A") && ks.has("B"))) return "ครบทุกภาค";
+  if (ks.has("A")) return "ภาค ก";
+  if (ks.has("B")) return "ภาค ข";
+  return "สมาชิก";
+}
+
 export default function PrepApp() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [me, setMe] = useState<Me | null>(null);
@@ -101,7 +110,7 @@ export default function PrepApp() {
             ))}
           </nav>
           <span className="pp-spacer" />
-          <span className={`pp-plan ${me.plan}`}>{me.plan === "paid" ? "★ สมาชิก" : `ฟรี ${Math.max(0, me.free_sets_limit - me.free_sets_used)}/${me.free_sets_limit} ชุด`}</span>
+          <span className={`pp-plan ${me.plan}`}>{me.plan === "paid" ? `★ ${planLabel(me)}` : `ฟรี ${Math.max(0, me.free_sets_limit - me.free_sets_used)}/${me.free_sets_limit} ชุด`}</span>
         </div>
       </header>
       <main className="pp-main">

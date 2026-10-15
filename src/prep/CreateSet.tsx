@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { GROUPS, SECTIONS, rpc, thaiError, type Me, type Topic } from "./api";
+import { GROUPS, PACKAGE_LABEL, SECTIONS, covers, rpc, thaiError, type Me, type Topic } from "./api";
 import { IconCrown } from "./icons";
 
 export type Preset = { section?: "A" | "B"; topics?: string[]; mode?: "new" | "weak" | "mixed" };
@@ -45,8 +45,14 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
   const allSection = sectionTopics(section).length > 0 && sectionTopics(section).every(t => picked.has(t.code));
 
   const available = topics?.filter(t => picked.has(t.code)).reduce((s, t) => s + t.available, 0) ?? 0;
-  const sizes = me.plan === "paid" ? [10, 20, 40, 60, 100, 150, 200] : [10, 20, 30, 40];
+  // Sets whose topics are all inside the user's packages are unlimited (up to 200); others use the free quota.
+  const pickedSections = [...new Set(topics?.filter(t => picked.has(t.code)).map(t => t.section) ?? [])];
+  const covered = covers(me, pickedSections);
+  const owned = (me.packages ?? []).map(p => p.package);
+  const sizes = covered ? [10, 20, 40, 60, 100, 150, 200] : [10, 20, 30, 40];
   const quotaLeft = me.free_sets_limit - me.free_sets_used;
+  const finalSize = covered ? size : Math.min(size, 40);
+  const blocked = picked.size > 0 && !covered && quotaLeft <= 0;
 
   const toggle = (codes: string[], on: boolean) => {
     const next = new Set(picked);
@@ -59,7 +65,7 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
     setBusy(true); setError("");
     try {
       const id = await rpc<string>("prep_create_set", {
-        p_topics: [...picked], p_size: size, p_mode: mode, p_title: title.trim() || null,
+        p_topics: [...picked], p_size: finalSize, p_mode: mode, p_title: title.trim() || null,
       });
       onCreated(id);
     } catch (e) {
@@ -81,7 +87,9 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
   return (
     <div className="pp-card pp-create">
       <h2>สร้างชุดฝึก</h2>
-      {me.plan !== "paid" && <p className="pp-note">บัญชีฟรีสร้างได้อีก {quotaLeft} ชุด (ชุดละไม่เกิน {me.max_set_size} ข้อ) ทำซ้ำชุดเดิมได้ไม่จำกัด</p>}
+      {owned.length > 0
+        ? <p className="pp-note">แพ็กของคุณ: <b>{owned.map(k => PACKAGE_LABEL[k]).join(", ")}</b> · ชุดที่มีเฉพาะหมวดในแพ็กสร้างได้ไม่จำกัด (ชุดละสูงสุด 200 ข้อ){owned.includes("ALL") ? "" : ` · หมวดนอกแพ็กใช้สิทธิ์ฟรีอีก ${Math.max(0, quotaLeft)} ชุด`}</p>
+        : <p className="pp-note">บัญชีฟรีสร้างได้อีก {quotaLeft} ชุด (ชุดละไม่เกิน 40 ข้อ) ทำซ้ำชุดเดิมได้ไม่จำกัด</p>}
 
       <h3><span className="pp-step">1</span>เลือกภาคและหมวด</h3>
       <div className="pp-sections" role="tablist">
@@ -89,7 +97,7 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
           <button key={sec} role="tab" aria-selected={section === sec} className={section === sec ? "on" : ""} onClick={() => setSection(sec)}>
             <b>{SECTIONS[sec].short}</b>
             <span>{SECTIONS[sec].name}</span>
-            {pickedIn(sec) > 0 && <em>เลือก {pickedIn(sec)}</em>}
+            {pickedIn(sec) > 0 ? <em>เลือก {pickedIn(sec)}</em> : covers(me, [sec]) ? <em>ในแพ็ก</em> : null}
           </button>
         ))}
       </div>
@@ -125,10 +133,13 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
       <h3><span className="pp-step">2</span>จำนวนข้อ</h3>
       <div className="pp-seg">
         {sizes.map(n => (
-          <button key={n} className={size === n ? "on" : ""} onClick={() => setSize(n)}>{n}</button>
+          <button key={n} className={finalSize === n ? "on" : ""} onClick={() => setSize(n)}>{n}</button>
         ))}
       </div>
-      {picked.size > 0 && available < size && <p className="pp-note">หมวดที่เลือกมี {available} ข้อ ชุดนี้จะได้ {available} ข้อ</p>}
+      {picked.size > 0 && available < finalSize && <p className="pp-note">หมวดที่เลือกมี {available} ข้อ ชุดนี้จะได้ {available} ข้อ</p>}
+      {blocked && (
+        <div className="pp-error">หมวดที่เลือกอยู่นอกแพ็กของคุณ และใช้สิทธิ์ฟรีครบแล้ว — เลือกเฉพาะหมวดในแพ็ก หรือ <button className="pp-link" onClick={onUpgrade}>ซื้อแพ็กเพิ่ม</button></div>
+      )}
 
       <h3><span className="pp-step">3</span>แบบการจัดข้อ</h3>
       <div className="pp-modes">
@@ -146,10 +157,10 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
       <div className="pp-sticky">
         <div className="pp-sticky-sum">
           {picked.size === 0 ? <span className="pp-muted">เลือกอย่างน้อย 1 หมวด</span>
-            : <><b>{Math.min(size, available)} ข้อ</b> <span className="pp-muted">· {picked.size} หมวด{pickedIn("A") && pickedIn("B") ? " (ภาค ก+ข)" : ""}</span></>}
+            : <><b>{Math.min(finalSize, available)} ข้อ</b> <span className="pp-muted">· {picked.size} หมวด{pickedIn("A") && pickedIn("B") ? " (ภาค ก+ข)" : ""}</span></>}
         </div>
         <button className="pp-btn pp-btn-ghost" onClick={onCancel}>ยกเลิก</button>
-        <button className="pp-btn pp-btn-primary" disabled={busy || picked.size === 0 || available < 5} onClick={create}>
+        <button className="pp-btn pp-btn-primary" disabled={busy || picked.size === 0 || available < 5 || blocked} onClick={create}>
           {busy ? "กำลังจัดชุด..." : "สร้างและเริ่มทำ"}
         </button>
       </div>

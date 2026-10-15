@@ -1,0 +1,19 @@
+{
+  "id": "/prep",
+  "name": "ซ้อมข้อสอบครูผู้ช่วย | FormAuto",
+  "short_name": "ซ้อมครูผู้ช่วย",
+  "description": "ซ้อมข้อสอบครูผู้ช่วย เฉลยทุกข้อ ทำซ้ำจนเคลียร์ พร้อมวิเคราะห์จุดอ่อน",
+  "lang": "th",
+  "start_url": "/prep",
+  "scope": "/prep",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#FBF7F1",
+  "theme_color": "#6E1423",
+  "categories": ["education"],
+  "icons": [
+    { "src": "/prep-icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/prep-icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/prep-icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

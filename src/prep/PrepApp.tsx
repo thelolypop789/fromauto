@@ -1,19 +1,23 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { rpc, supabase, thaiError, type Me, type Round, type SubmitResult } from "./api";
 import Login from "./Login";
 import Home from "./Home";
-import CreateSet from "./CreateSet";
+import CreateSet, { type Preset } from "./CreateSet";
 import Player from "./Player";
 import RoundResult from "./RoundResult";
 import Stats from "./Stats";
 import Account from "./Account";
 import Admin from "./Admin";
+import { IconChart, IconCrown, IconHome, IconShield, IconUser, Logo } from "./icons";
+import { setupPwa } from "./pwa";
 import "./prep.css";
+
+setupPwa();
 
 type View =
   | { name: "home" }
-  | { name: "create" }
+  | { name: "create"; preset?: Preset }
   | { name: "play"; round: Round }
   | { name: "result"; result: SubmitResult; title: string }
   | { name: "stats" }
@@ -70,35 +74,50 @@ export default function PrepApp() {
     );
   }
 
-  const tabs: { key: View["name"]; label: string }[] = [
-    { key: "home", label: "ชุดของฉัน" },
-    { key: "stats", label: "วิเคราะห์" },
-    { key: "account", label: me.plan === "paid" ? "บัญชี" : "อัปเกรด" },
-    ...(me.is_admin ? [{ key: "admin" as const, label: "แอดมิน" }] : []),
+  const tabs: { key: View["name"]; label: string; icon: ReactNode }[] = [
+    { key: "home", label: "ชุดของฉัน", icon: <IconHome /> },
+    { key: "stats", label: "วิเคราะห์", icon: <IconChart /> },
+    { key: "account", label: me.plan === "paid" ? "บัญชี" : "อัปเกรด", icon: me.plan === "paid" ? <IconUser /> : <IconCrown /> },
+    ...(me.is_admin ? [{ key: "admin" as const, label: "แอดมิน", icon: <IconShield /> }] : []),
   ];
+  const active = (k: View["name"]) => view.name === k || (k === "home" && (view.name === "create" || view.name === "result"));
+  const go = (k: View["name"]) => { setView({ name: k } as View); window.scrollTo(0, 0); };
+  const practice = (preset?: Preset) => { setView({ name: "create", preset }); window.scrollTo(0, 0); };
 
   return (
     <div className="pp-app">
       <header className="pp-top">
-        <div className="pp-brand" onClick={() => setView({ name: "home" })}>📝 ซ้อมครูผู้ช่วย</div>
-        <span className={`pp-plan ${me.plan}`}>{me.plan === "paid" ? "สมาชิก" : `ฟรี ${Math.max(0, me.free_sets_limit - me.free_sets_used)}/${me.free_sets_limit} ชุด`}</span>
+        <div className="pp-top-in">
+          <button className="pp-brand" onClick={() => go("home")}>
+            <Logo size={36} />
+            <span className="pp-brand-t">ซ้อมครูผู้ช่วย<small>FormAuto Prep</small></span>
+          </button>
+          <nav className="pp-tabs">
+            {tabs.map(t => (
+              <button key={t.key} className={active(t.key) ? "on" : ""} onClick={() => go(t.key)}>{t.icon}{t.label}</button>
+            ))}
+          </nav>
+          <span className="pp-spacer" />
+          <span className={`pp-plan ${me.plan}`}>{me.plan === "paid" ? "★ สมาชิก" : `ฟรี ${Math.max(0, me.free_sets_limit - me.free_sets_used)}/${me.free_sets_limit} ชุด`}</span>
+        </div>
       </header>
-      <nav className="pp-tabs">
-        {tabs.map(t => (
-          <button key={t.key} className={view.name === t.key || (t.key === "home" && (view.name === "create" || view.name === "result")) ? "on" : ""}
-            onClick={() => setView({ name: t.key } as View)}>{t.label}</button>
-        ))}
-      </nav>
       <main className="pp-main">
-        {view.name === "home" && <Home me={me} onCreate={() => setView({ name: "create" })} onStart={startRound} onUpgrade={() => setView({ name: "account" })} />}
-        {view.name === "create" && <CreateSet me={me} onCancel={() => setView({ name: "home" })}
-          onCreated={async id => { await refreshMe(); startRound(id, "full"); }} onUpgrade={() => setView({ name: "account" })} />}
+        {view.name === "home" && <Home me={me} onCreate={practice} onStart={startRound} onUpgrade={() => go("account")} />}
+        {view.name === "create" && <CreateSet me={me} preset={view.preset} onCancel={() => go("home")}
+          onCreated={async id => { await refreshMe(); startRound(id, "full"); }} onUpgrade={() => go("account")} />}
         {view.name === "result" && <RoundResult result={view.result} title={view.title} me={me} onStart={startRound}
-          onHome={() => setView({ name: "home" })} onUpgrade={() => setView({ name: "account" })} />}
-        {view.name === "stats" && <Stats me={me} onWeakSet={() => setView({ name: "create" })} />}
+          onHome={() => go("home")} onUpgrade={() => go("account")} />}
+        {view.name === "stats" && <Stats me={me} onPractice={practice} />}
         {view.name === "account" && <Account me={me} email={session.user.email ?? ""} onChanged={refreshMe} />}
         {view.name === "admin" && me.is_admin && <Admin />}
       </main>
+      <nav className="pp-nav" aria-label="เมนูหลัก">
+        {tabs.map(t => (
+          <button key={t.key} className={active(t.key) ? "on" : ""} onClick={() => go(t.key)} aria-current={active(t.key) ? "page" : undefined}>
+            {t.icon}<span>{t.label}</span>
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }

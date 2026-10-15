@@ -68,6 +68,10 @@ const ERRORS: Record<string, string> = {
   not_authenticated: "กรุณาเข้าสู่ระบบใหม่",
   free_quota_exceeded: "ใช้ชุดฟรีครบ 3 ชุดแล้ว — อัปเกรดเพื่อสร้างชุดใหม่ได้ไม่จำกัด",
   invalid_size: "จำนวนข้อไม่ถูกต้อง",
+  duplicate_question: "มีข้อสอบที่โจทย์และตัวเลือกเหมือนกันอยู่แล้ว",
+  invalid_choices: "ต้องมี 4 ตัวเลือก",
+  invalid_stem: "กรุณากรอกโจทย์",
+  invalid_topic: "หมวดไม่ถูกต้อง",
   no_topics: "กรุณาเลือกอย่างน้อย 1 หมวด",
   not_enough_questions: "หมวดที่เลือกยังมีข้อสอบไม่พอ ลองเลือกเพิ่มหมวด",
   nothing_wrong: "ชุดนี้ไม่มีข้อที่ผิดแล้ว",
@@ -116,4 +120,30 @@ export const GROUPS: Record<string, string> = {
   A3: "ความรู้และลักษณะการเป็นข้าราชการที่ดี",
   B1: "วิชาการศึกษา",
   B2: "กฎหมายและนโยบายการศึกษา",
+};
+
+export const SECTIONS: Record<"A" | "B", { short: string; name: string; groups: string[] }> = {
+  A: { short: "ภาค ก", name: "ความรู้ความสามารถทั่วไป", groups: ["A1", "A2", "A3"] },
+  B: { short: "ภาค ข", name: "ความรู้ความสามารถที่ใช้เฉพาะตำแหน่ง", groups: ["B1", "B2"] },
+};
+
+export const LEVELS: Record<string, string> = {
+  remember: "จำ", understand: "เข้าใจ", apply: "ประยุกต์ใช้", analyze: "วิเคราะห์",
+};
+
+export const PASS_PCT = 60;
+
+export type Insights = {
+  sections: { section: "A" | "B"; available: number; n: number; correct: number; seen: number; mastered: number; still_wrong: number }[];
+  groups: { grp: string; section: string; available: number; n: number; correct: number }[];
+  levels: { level: string; n: number; correct: number }[];
+  difficulty: { band: "easy" | "medium" | "hard" | "new"; n: number; correct: number }[];
+  mastery: { seen: number; mastered: number; recovered: number; still_wrong: number; stubborn: number };
+  weeks: { week: string; answered: number; n: number; correct: number }[];
+  days: { day: string; answered: number; correct: number }[];
+  weekdays: { dow: number; answered: number; correct: number }[];
+  hours: { hour: number; n: number; correct: number }[];
+  rounds: { at: string; mode: "full" | "wrong"; round_no: number; title: string; total: number; correct: number }[];
+  round_totals: { all: number; full: number; wrong: number };
+  stubborn_list: { id: number; topic: string; stem: string; wrong: number; seen: number; last_correct: boolean | null }[];
 };

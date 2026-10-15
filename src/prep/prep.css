@@ -520,3 +520,13 @@ select.pp-input { appearance: none; background-image: linear-gradient(45deg, tra
 .pp-add-major { flex-wrap: nowrap; margin: 6px 0 4px; }
 .pp-add-major .pp-input { margin: 0; flex: 1; }
 .pp-add-major .pp-btn { flex: none; }
+
+/* review queue: bulk actions */
+.pp-bulkbar { position: sticky; top: calc(64px + env(safe-area-inset-top)); z-index: 7; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 14px; border-color: #E6C25A; }
+.pp-bulkbar .pp-group-head { flex: 1 1 220px; }
+.pp-bulkbar .pp-group-head input, .pp-review .pp-group-head input { width: 20px; height: 20px; accent-color: var(--pp-primary); }
+.pp-bulkbar select.pp-input { width: auto; margin: 0; }
+.pp-bulkbar .pp-row { margin: 0; flex: 1 1 320px; }
+.pp-bulkbar .pp-bar, .pp-bulkbar .pp-success { flex-basis: 100%; margin: 0; }
+.pp-review.picked { border-color: var(--pp-gold-bright); box-shadow: 0 0 0 2px var(--pp-gold-soft), var(--pp-shadow); }
+@media (max-width: 899px) { .pp-bulkbar { top: env(safe-area-inset-top); } }

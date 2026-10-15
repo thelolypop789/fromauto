@@ -13,16 +13,20 @@ const LABELS = ["ก", "ข", "ค", "ง"];
 const fmt = (s: string | null) => (s ? new Date(s).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "");
 
 export default function Admin() {
-  const [tab, setTab] = useState<"stats" | "bank" | "review" | "ai" | "keys" | "import">("stats");
+  const [tab, setTab] = useState<"stats" | "bank" | "reports" | "review" | "ai" | "keys" | "import">("stats");
+  const [open, setOpen] = useState<number | null>(null);
+  const loadCount = useCallback(() => { rpc<Stats>("prep_admin_stats").then(s => setOpen(s.open_reports)).catch(() => { /* badge only */ }); }, []);
+  useEffect(loadCount, [loadCount]);
   return (
     <>
       <div className="pp-seg">
-        {([["stats", "ภาพรวม"], ["bank", "คลังข้อสอบ"], ["review", "ตรวจข้อสอบ"], ["ai", "นำเข้า AI"], ["keys", "คีย์"], ["import", "นำเข้า JSON"]] as const).map(([k, l]) => (
+        {([["stats", "ภาพรวม"], ["bank", "คลังข้อสอบ"], ["reports", open ? `รายงาน (${open})` : "รายงาน"], ["review", "ตรวจข้อสอบ"], ["ai", "นำเข้า AI"], ["keys", "คีย์"], ["import", "นำเข้า JSON"]] as const).map(([k, l]) => (
           <button key={k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
       {tab === "stats" && <StatsTab />}
-      {tab === "bank" && <AdminBank />}
+      {tab === "bank" && <AdminBank onChanged={loadCount} />}
+      {tab === "reports" && <AdminBank reportsOnly onChanged={loadCount} />}
       {tab === "review" && <ReviewTab />}
       {tab === "ai" && <ImportAI />}
       {tab === "keys" && <KeysTab />}
@@ -202,7 +206,7 @@ function ImportTab() {
       {items && <p>{fileName}: {items.length} ข้อ</p>}
       <div className="pp-row">
         <select className="pp-input" value={origin} onChange={e => setOrigin(e.target.value)} style={{ width: 160 }}>
-          <option value="sheet">จากชีท/ข้อสอบเก่า</option>
+          <option value="sheet">ข้อสอบเก่า / เอกสารสรุป</option>
           <option value="template">สร้างด้วยโค้ด</option>
           <option value="ai">AI สร้าง</option>
           <option value="manual">เขียนเอง</option>

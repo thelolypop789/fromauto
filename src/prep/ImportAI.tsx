@@ -4,11 +4,12 @@ import { rpc, supabase, thaiError } from "./api";
 type Draft = {
   topic: string; level: string; stem: string; choices: string[]; answer: number;
   explanation: string; law_ref: string | null; needs_review: boolean;
+  kind?: "extracted" | "generated";
   keep: boolean; src: string; file: string;
 };
 
 type Chunk = { label: string; body: Record<string, unknown> };
-type Mode = "generate" | "extract";
+type Mode = "auto" | "extract" | "generate";
 type Quality = "best" | "balanced" | "fast";
 type Media = { mimeType: string; data: string; label?: string };
 
@@ -17,6 +18,9 @@ const MAX_FILE = 40 * 1024 * 1024;
 const MAX_CHUNK_B64 = 6_000_000;    // the Edge Function rejects bodies over ~9 MB
 const TEXT_CHUNK = 25_000;
 const IMG_MAX_SIDE = 2400;
+const PAGE = 60;            // drafts rendered at a time
+const MAX_ROUNDS = 60;      // safety stop per slice (60 rounds × 30 = 1,800 questions from one slice)
+const BATCH: Record<string, number> = { best: 30, balanced: 40, fast: 40 };
 const ACCEPT = ".pdf,.docx,.doc,.txt,.md,.csv,.png,.jpg,.jpeg,.webp,.heic,.heif,.gif,.bmp";
 const QUALITY: [Quality, string, string][] = [
   ["best", "ละเอียดสุด", "Gemini Pro · อ่านสแกน/รูปแม่นที่สุด"],
@@ -187,20 +191,21 @@ async function callImport(body: Record<string, unknown>) {
     throw new Error(msg);
   }
   if (data?.error) throw new Error(data.error);
-  return data as { items: Omit<Draft, "keep" | "src" | "file">[]; dropped: string[]; model: string; truncated: boolean; usage: { promptTokenCount?: number; candidatesTokenCount?: number } | null };
+  return data as { items: Omit<Draft, "keep" | "src" | "file">[]; dropped: string[]; model: string; truncated: boolean; more?: boolean; usage: { promptTokenCount?: number; candidatesTokenCount?: number } | null };
 }
 
 export default function ImportAI() {
   const [files, setFiles] = useState<File[]>([]);
-  const [mode, setMode] = useState<Mode>("extract");
+  const [mode, setMode] = useState<Mode>("auto");
   const [quality, setQuality] = useState<Quality>("best");
-  const [count, setCount] = useState(30);
+  const [limit, setLimit] = useState("");   // empty = no limit: keep going until the content is covered
+  const [shown, setShown] = useState(PAGE);
   const [pagesPer, setPagesPer] = useState(4);
   const [imagesPer, setImagesPer] = useState(4);
   const [hint, setHint] = useState("");
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<string[]>([]);
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [progress, setProgress] = useState<{ done: number; total: number; round: number; found: number } | null>(null);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [tokens, setTokens] = useState({ inp: 0, out: 0 });
   const [saving, setSaving] = useState(false);
@@ -218,9 +223,11 @@ export default function ImportAI() {
   const run = async () => {
     if (!files.length || busy) return;
     cancel.current = false;
-    setBusy(true); setLog([]); setDrafts([]); setTokens({ inp: 0, out: 0 }); setProgress(null);
+    setBusy(true); setLog([]); setDrafts([]); setShown(PAGE); setTokens({ inp: 0, out: 0 }); setProgress(null);
     const seen = new Set<string>();
-    const common = { mode, count, hint, quality };
+    const common = { mode, hint, quality };
+    const cap = Number(limit) > 0 ? Number(limit) : Infinity;
+    let total = 0;
     const jobs: { file: string; chunk: Chunk }[] = [];
     try {
       // Photos are treated as one document (pages of the same exam), in the order they were picked.
@@ -251,26 +258,45 @@ export default function ImportAI() {
       }
       if (!jobs.length) { setBusy(false); return; }
       say(`ส่งให้ AI ทั้งหมด ${jobs.length} ช่วง`);
-      setProgress({ done: 0, total: jobs.length });
-      for (let i = 0; i < jobs.length; i++) {
-        if (cancel.current) { say("หยุดตามคำสั่ง"); break; }
+      setProgress({ done: 0, total: jobs.length, round: 0, found: 0 });
+      for (let i = 0; i < jobs.length && !cancel.current && total < cap; i++) {
         const { file, chunk: c } = jobs[i];
         const where = files.length > 1 && file !== c.label ? `${file} · ${c.label}` : c.label;
-        try {
-          const r = await callImport(c.body);
+        // Ask again for the same slice, listing what we already have, until the model reports it is done.
+        const done: string[] = [];
+        let batch = BATCH[quality], fails = 0, sliceTotal = 0;
+        for (let round = 1; round <= MAX_ROUNDS && !cancel.current && total < cap; round++) {
+          setProgress({ done: i, total: jobs.length, round, found: total });
+          let r: Awaited<ReturnType<typeof callImport>>;
+          try {
+            r = await callImport({ ...c.body, count: Math.min(batch, cap - total), avoid: done.slice(-400) });
+            fails = 0;
+          } catch (e) {
+            // Long answers can hit the function time limit: retry the same round with a smaller batch.
+            if (++fails <= 2 && batch > 8) { batch = Math.max(8, Math.floor(batch / 2)); round--; say(`${where}: ลองใหม่ด้วยรอบละ ${batch} ข้อ (${thaiError(e)})`); continue; }
+            say(`${where}: ผิดพลาด — ${thaiError(e)}`);
+            break;
+          }
           const fresh = r.items.filter(q => {
             const k = q.stem.replace(/\s/g, "");
             if (seen.has(k)) return false;
             seen.add(k); return true;
-          });
+          }).slice(0, cap - total);
+          r.items.forEach(q => done.push(q.stem.slice(0, 100)));
+          total += fresh.length; sliceTotal += fresh.length;
           setDrafts(d => [...d, ...fresh.map(q => ({ ...q, keep: true, src: where, file }))]);
           setTokens(t => ({ inp: t.inp + (r.usage?.promptTokenCount ?? 0), out: t.out + (r.usage?.candidatesTokenCount ?? 0) }));
-          say(`${where}: ได้ ${fresh.length} ข้อ · ${r.model}${r.dropped.length ? ` (ตัดทิ้ง ${r.dropped.length})` : ""}${r.truncated ? " ⚠ ผลลัพธ์ถูกตัดกลางทาง ลองลดจำนวนข้อ/หน้าต่อช่วง" : ""}`);
-        } catch (e) {
-          say(`${where}: ผิดพลาด — ${thaiError(e)}`);
+          if (!r.more || fresh.length === 0) {
+            say(`${where}: ได้ ${sliceTotal} ข้อ (${round} รอบ) · ${r.model}${r.dropped.length ? ` · ตัดทิ้ง ${r.dropped.length} ในรอบสุดท้าย` : ""}`);
+            break;
+          }
+          if (round === MAX_ROUNDS) say(`${where}: ได้ ${sliceTotal} ข้อ (หยุดที่ ${MAX_ROUNDS} รอบเพื่อความปลอดภัย)`);
         }
-        setProgress({ done: i + 1, total: jobs.length });
+        setProgress({ done: i + 1, total: jobs.length, round: 0, found: total });
       }
+      if (cancel.current) say("หยุดตามคำสั่ง");
+      if (total >= cap) say(`ครบ ${cap} ข้อตามที่กำหนด`);
+      say(`เสร็จ: ได้ร่างทั้งหมด ${total} ข้อ`);
     } catch (e) {
       say("เกิดข้อผิดพลาด: " + thaiError(e));
     }
@@ -284,17 +310,19 @@ export default function ImportAI() {
     setSaving(true);
     let ins = 0, skip = 0, bad = 0;
     try {
-      // Saved per source file so every question keeps the name of the file it came from.
+      // Saved per source file (and per origin) so every question keeps where it came from.
+      const origin = (d: Draft) => (d.kind === "extracted" || (!d.kind && mode === "extract") ? "sheet" : "ai");
       const byFile = new Map<string, Draft[]>();
-      kept.forEach(d => byFile.set(d.file, [...(byFile.get(d.file) ?? []), d]));
-      for (const [file, list] of byFile) {
+      kept.forEach(d => { const k = `${origin(d)}\u0000${d.file}`; byFile.set(k, [...(byFile.get(k) ?? []), d]); });
+      for (const [key, list] of byFile) {
+        const [org, file] = key.split("\u0000");
         for (let i = 0; i < list.length; i += 100) {
           const items = list.slice(i, i + 100).map(d => ({
             topic: d.topic, level: d.level, stem: d.stem, choices: d.choices, answer: d.answer,
             explanation: d.explanation, law_ref: d.law_ref, status: "review",
           }));
           const r = await rpc<{ inserted: number; skipped: number; invalid: number }>("prep_admin_import", {
-            p_items: items, p_source: file, p_origin: mode === "extract" ? "sheet" : "ai",
+            p_items: items, p_source: file, p_origin: org,
           });
           ins += r.inserted; skip += r.skipped; bad += r.invalid;
         }
@@ -333,9 +361,14 @@ export default function ImportAI() {
         )}
 
         <h3>สิ่งที่ให้ AI ทำ</h3>
-        <div className="pp-seg">
-          <button className={mode === "extract" ? "on" : ""} onClick={() => setMode("extract")} disabled={busy}>เป็นข้อสอบอยู่แล้ว → คัดข้อ</button>
-          <button className={mode === "generate" ? "on" : ""} onClick={() => setMode("generate")} disabled={busy}>ชีทสรุป → แต่งข้อสอบ</button>
+        <div className="pp-modes">
+          {([
+            ["auto", "อัตโนมัติ", "มีทั้งเนื้อหาและข้อสอบ: คัดข้อเดิมทุกข้อ + แต่งเพิ่มจากเนื้อหา"],
+            ["extract", "คัดข้อสอบอย่างเดียว", "ไฟล์เป็นข้อสอบล้วน"],
+            ["generate", "แต่งจากเนื้อหาอย่างเดียว", "ไฟล์เป็นเอกสารสรุปเนื้อหา"],
+          ] as const).map(([k, l, h]) => (
+            <button key={k} className={mode === k ? "on" : ""} disabled={busy} onClick={() => setMode(k)}><b>{l}</b><span>{h}</span></button>
+          ))}
         </div>
         <h3>ความละเอียดของ AI</h3>
         <div className="pp-modes">
@@ -344,8 +377,8 @@ export default function ImportAI() {
           ))}
         </div>
         <div className="pp-row">
-          <label className="small" style={{ flex: 1 }}>ข้อต่อช่วง (สูงสุด 60)
-            <input className="pp-input" type="number" min={1} max={60} value={count} disabled={busy} onChange={e => setCount(Math.min(60, Number(e.target.value) || 30))} />
+          <label className="small" style={{ flex: 1 }}>จำนวนข้อสูงสุด (เว้นว่าง = ไม่จำกัด ทำจนครบเนื้อหา)
+            <input className="pp-input" type="number" min={1} placeholder="ไม่จำกัด" value={limit} disabled={busy} onChange={e => setLimit(e.target.value.replace(/\D/g, ""))} />
           </label>
           {kinds.has("pdf") && (
             <label className="small" style={{ flex: 1 }}>หน้า PDF ต่อช่วง
@@ -358,7 +391,7 @@ export default function ImportAI() {
             </label>
           )}
         </div>
-        <input className="pp-input" placeholder="คำแนะนำเพิ่มเติม (ไม่บังคับ) เช่น เน้นมาตราและบทลงโทษ" value={hint} disabled={busy} onChange={e => setHint(e.target.value)} />
+        <input className="pp-input" placeholder="คำแนะนำเพิ่มเติม (ไม่บังคับ) เช่น เน้นการนำไปใช้ในสถานการณ์จริง" value={hint} disabled={busy} onChange={e => setHint(e.target.value)} />
 
         <div className="pp-row">
           {busy
@@ -370,7 +403,8 @@ export default function ImportAI() {
           <>
             <div className="pp-bar"><div style={{ width: `${(100 * progress.done) / progress.total}%` }} /></div>
             <p className="pp-muted small">
-              ช่วงที่ {progress.done}/{progress.total} · ใช้ token แล้ว {tokens.inp.toLocaleString()} เข้า / {tokens.out.toLocaleString()} ออก
+              {busy && progress.round > 0 ? `ช่วงที่ ${progress.done + 1}/${progress.total} · รอบที่ ${progress.round}` : `ช่วงที่ ${progress.done}/${progress.total}`}
+              {" "}· ได้แล้ว <b>{progress.found.toLocaleString()}</b> ข้อ · token {tokens.inp.toLocaleString()} เข้า / {tokens.out.toLocaleString()} ออก
             </p>
           </>
         )}
@@ -380,7 +414,8 @@ export default function ImportAI() {
       {drafts.length > 0 && (
         <>
           <div className="pp-card">
-            <b>ร่างที่ได้ {drafts.length} ข้อ · เลือกไว้ {kept.length}</b>
+            <b>ร่างที่ได้ {drafts.length.toLocaleString()} ข้อ · เลือกไว้ {kept.length.toLocaleString()}</b>
+            <p className="pp-muted small">คัดจากต้นฉบับ {drafts.filter(d => d.kind === "extracted").length} · แต่งใหม่ {drafts.filter(d => d.kind !== "extracted").length} · AI ติดธงควรตรวจ {drafts.filter(d => d.needs_review).length}</p>
             <p className="pp-muted small">ติ๊กออกข้อที่ไม่เอา แก้เฉลยได้ในแท็บ "ตรวจข้อสอบ" หลังบันทึก ข้อที่ซ้ำกับคลังจะถูกข้ามอัตโนมัติ</p>
             <div className="pp-row">
               <button className="pp-btn pp-btn-ghost" onClick={() => setDrafts(d => d.map(x => ({ ...x, keep: true })))}>เลือกทั้งหมด</button>
@@ -388,11 +423,11 @@ export default function ImportAI() {
               <button className="pp-btn pp-btn-primary" disabled={!kept.length || saving || busy} onClick={save}>{saving ? "กำลังบันทึก..." : `บันทึก ${kept.length} ข้อ`}</button>
             </div>
           </div>
-          {drafts.map((d, i) => (
+          {drafts.slice(0, shown).map((d, i) => (
             <div key={i} className={`pp-card pp-draft ${d.keep ? "" : "off"}`}>
               <label className="pp-group-head">
                 <input type="checkbox" checked={d.keep} onChange={e => edit(i, { keep: e.target.checked })} />
-                <span className="pp-muted small">{d.topic} · {d.level} · {d.src}{d.needs_review ? " · ⚑ ควรตรวจ" : ""}</span>
+                <span className="pp-muted small">#{i + 1} · {d.kind === "extracted" ? "คัดจากต้นฉบับ" : "แต่งใหม่"} · {d.topic} · {d.level} · {d.src}{d.needs_review ? " · ⚑ ควรตรวจ" : ""}</span>
               </label>
               <div className="pp-q-stem" style={{ fontSize: 16 }}>{d.stem}</div>
               {d.choices.map((c, k) => (
@@ -402,6 +437,9 @@ export default function ImportAI() {
               {d.law_ref && <p className="pp-muted small">อ้างอิง: {d.law_ref}</p>}
             </div>
           ))}
+          {drafts.length > shown && (
+            <button className="pp-btn pp-btn-ghost pp-wide" onClick={() => setShown(n => n + PAGE)}>แสดงเพิ่ม ({shown}/{drafts.length})</button>
+          )}
         </>
       )}
     </>

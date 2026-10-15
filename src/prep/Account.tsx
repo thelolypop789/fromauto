@@ -3,6 +3,7 @@ import { rpc, supabase, thaiError, type Me } from "./api";
 import { SHOP } from "./config";
 import { IconCheck, IconCrown, IconLogout } from "./icons";
 import InstallBanner from "./InstallBanner";
+import MyReports from "./MyReports";
 
 type Props = { me: Me; email: string; onChanged: () => void };
 
@@ -36,6 +37,7 @@ export default function Account({ me, email, onChanged }: Props) {
       </div>
 
       <InstallBanner always />
+      <MyReports />
 
       {me.plan !== "paid" && (
         <div className="pp-card pp-upgrade">

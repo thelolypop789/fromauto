@@ -80,6 +80,7 @@ const ERRORS: Record<string, string> = {
   not_found: "ไม่พบข้อมูล",
   forbidden: "ไม่มีสิทธิ์",
   too_many_reports: "แจ้งปัญหาวันนี้ครบจำนวนแล้ว",
+  empty_reason: "กรุณาระบุรายละเอียดของปัญหา",
 };
 
 export function thaiError(e: unknown): string {
@@ -147,3 +148,13 @@ export type Insights = {
   round_totals: { all: number; full: number; wrong: number };
   stubborn_list: { id: number; topic: string; stem: string; wrong: number; seen: number; last_correct: boolean | null }[];
 };
+
+export const REPORT_CATEGORIES: [string, string, string][] = [
+  ["wrong_answer", "เฉลยผิด", "คำตอบที่ถูกควรเป็นข้ออื่น"],
+  ["choices", "ตัวเลือกมีปัญหา", "ถูกมากกว่า 1 ข้อ / ไม่มีข้อถูก / ซ้ำกัน"],
+  ["unclear", "โจทย์ไม่ชัดเจน", "กำกวม ตีความได้หลายแบบ"],
+  ["typo", "พิมพ์ผิด", "สะกดผิด ข้อความตกหล่น"],
+  ["explanation", "คำอธิบายไม่ถูกต้อง", "คำอธิบายผิดหรือไม่ตรงกับเฉลย"],
+  ["outdated", "ข้อมูลล้าสมัย", "กฎหมาย/นโยบายเปลี่ยนแล้ว"],
+  ["other", "อื่นๆ", "ระบุรายละเอียด"],
+];

@@ -14,15 +14,16 @@ type Filters = { section: string; grp: string; topic: string; status: string; se
 
 const LABELS = ["ก", "ข", "ค", "ง"];
 const STATUS: Record<string, string> = { approved: "เผยแพร่", review: "รอตรวจ", hidden: "ซ่อน" };
-const ORIGIN: Record<string, string> = { sheet: "ชีท/ข้อสอบเก่า", template: "สร้างด้วยโค้ด", ai: "AI", manual: "พิมพ์เอง" };
+const ORIGIN: Record<string, string> = { sheet: "ข้อสอบเก่า / เอกสารสรุป", template: "สร้างด้วยโค้ด", ai: "AI", manual: "พิมพ์เอง" };
 const SORTS: [string, string][] = [["new", "ใหม่สุด"], ["old", "เก่าสุด"], ["hardest", "ยากสุด (ตอบถูกน้อย)"], ["easiest", "ง่ายสุด"], ["most_answered", "มีคนทำมากสุด"], ["reports", "ถูกรายงานมากสุด"]];
 const PAGE = 30;
 const EMPTY: Filters = { section: "", grp: "", topic: "", status: "", search: "", sort: "new" };
 const pct = (c: number, n: number) => (n ? Math.round((100 * c) / n) : 0);
 
-export default function AdminBank() {
+// reportsOnly: the "รายงาน" tab — questions with open reports, most reported first, no summary.
+export default function AdminBank({ reportsOnly = false, onChanged }: { reportsOnly?: boolean; onChanged?: () => void }) {
   const [summary, setSummary] = useState<TopicRow[] | null>(null);
-  const [f, setF] = useState<Filters>(EMPTY);
+  const [f, setF] = useState<Filters>(reportsOnly ? { ...EMPTY, status: "reported", sort: "reports" } : EMPTY);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState<Page | null>(null);
   const [busy, setBusy] = useState(false);
@@ -66,12 +67,14 @@ export default function AdminBank() {
   const groupsOf = (sec: string) => (sec ? SECTIONS[sec as "A" | "B"].groups : Object.keys(GROUPS));
   const topicsOf = useMemo(() => (summary ?? []).filter(t => (!f.section || t.section === f.section) && (!f.grp || t.grp === f.grp)), [summary, f.section, f.grp]);
 
+  const drop = (id: number) => setPage(prev => prev && { ...prev, total: prev.total - 1, items: prev.items.filter(x => x.id !== id) });
   const replace = (q: Q) => setPage(prev => prev && { ...prev, items: prev.items.map(x => (x.id === q.id ? q : x)) });
 
   return (
     <>
       {/* summary by section → group → topic */}
-      <div className="pp-card">
+      {reportsOnly && <p className="pp-muted small">ข้อที่ผู้ใช้รายงานและยังไม่ได้ปิด · แก้ไขข้อแล้วกดบันทึก (ปิดรายงานเป็น "แก้ไขแล้ว") หรือกด "ข้อนี้ถูกต้อง" เพื่อปฏิเสธรายงาน · ข้อความตอบกลับจะแสดงให้ผู้รายงานเห็น</p>}
+      {!reportsOnly && <div className="pp-card">
         <h3>คลังข้อสอบแยกตามภาค</h3>
         {!summary ? <div className="pp-spinner" /> : (["A", "B"] as const).map(sec => {
           const ts = summary.filter(t => t.section === sec);
@@ -107,7 +110,7 @@ export default function AdminBank() {
             </details>
           );
         })}
-      </div>
+      </div>}
 
       {/* filters */}
       <div className="pp-card pp-filters">
@@ -144,14 +147,16 @@ export default function AdminBank() {
       {!page && <div className="pp-spinner" />}
       {page?.items.map(q => (
         <QuestionCard key={q.id} q={q} topics={summary ?? []} open={open === q.id}
-          onToggle={() => setOpen(open === q.id ? null : q.id)} onSaved={nq => { replace(nq); loadSummary(); }} />
+          onToggle={() => setOpen(open === q.id ? null : q.id)}
+          onSaved={nq => { if (reportsOnly) drop(nq.id); else replace(nq); loadSummary(); onChanged?.(); }}
+          onResolved={nq => { if (reportsOnly) drop(nq.id); else replace(nq); loadSummary(); onChanged?.(); }} />
       ))}
       {page && page.items.length < page.total && (
         <button className="pp-btn pp-btn-ghost pp-wide" disabled={busy} onClick={loadMore}>
           {busy ? "กำลังโหลด..." : `โหลดเพิ่ม (${page.items.length}/${page.total})`}
         </button>
       )}
-      {page && page.total === 0 && <div className="pp-card pp-empty"><p className="pp-muted">ไม่พบข้อสอบตามเงื่อนไข</p></div>}
+      {page && page.total === 0 && <div className="pp-card pp-empty"><p className="pp-muted">{reportsOnly ? "ไม่มีรายงานค้าง" : "ไม่พบข้อสอบตามเงื่อนไข"}</p></div>}
     </>
   );
 }
@@ -167,12 +172,21 @@ function BankCounts({ a, r, h, rep }: { a: number; r: number; h: number; rep: nu
   );
 }
 
-function QuestionCard({ q, topics, open, onToggle, onSaved }: {
-  q: Q; topics: TopicRow[]; open: boolean; onToggle: () => void; onSaved: (q: Q) => void;
+function QuestionCard({ q, topics, open, onToggle, onSaved, onResolved }: {
+  q: Q; topics: TopicRow[]; open: boolean; onToggle: () => void; onSaved: (q: Q) => void; onResolved: (q: Q) => void;
 }) {
   const [edit, setEdit] = useState<Q | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [note, setNote] = useState("");
+  const resolve = async (status: "fixed" | "rejected") => {
+    setBusy(true); setErr("");
+    try {
+      await rpc("prep_admin_resolve_reports", { p_question: q.id, p_status: status, p_note: note.trim() || null });
+      onResolved({ ...q, reports: [] }); setNote("");
+    } catch (e) { setErr(thaiError(e)); }
+    setBusy(false);
+  };
   const total = q.choice_counts.reduce((s, x) => s + x, 0);
 
   const save = async (patch: Partial<Q>) => {
@@ -214,7 +228,17 @@ function QuestionCard({ q, topics, open, onToggle, onSaved }: {
             <span>ที่มา: {ORIGIN[q.origin] ?? q.origin}{q.source ? ` · ${q.source}` : ""}</span>
             <span>เพิ่มเมื่อ {new Date(q.created_at).toLocaleDateString("th-TH")}</span>
           </div>
-          {q.reports.length > 0 && <div className="pp-error">รายงาน: {q.reports.join(" | ")}</div>}
+          {q.reports.length > 0 && (
+            <div className="pp-reports">
+              <b>รายงานจากผู้ใช้ {q.reports.length} รายการ</b>
+              <ul>{q.reports.map((r, i) => <li key={i}>{r}</li>)}</ul>
+              <input className="pp-input" maxLength={300} placeholder="ข้อความตอบกลับผู้รายงาน (ไม่บังคับ) เช่น แก้เฉลยเป็นข้อ ค แล้ว" value={note} onChange={e => setNote(e.target.value)} />
+              <div className="pp-row">
+                <button className="pp-btn pp-btn-outline" disabled={busy} onClick={() => resolve("rejected")}>ข้อนี้ถูกต้อง (ปฏิเสธรายงาน)</button>
+                <button className="pp-btn pp-btn-ghost" disabled={busy} onClick={() => resolve("fixed")}>แก้ไขแล้ว (ปิดรายงาน)</button>
+              </div>
+            </div>
+          )}
           {err && <div className="pp-error">{err}</div>}
           <div className="pp-row">
             <button className="pp-btn pp-btn-outline" onClick={() => setEdit({ ...q })}>แก้ไข</button>

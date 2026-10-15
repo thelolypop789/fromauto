@@ -1,17 +1,21 @@
 import { useEffect, useState } from "react";
-import { GROUPS, PASS_PCT, SECTIONS, rpc, thaiError, type Dashboard, type Me, type SetSummary } from "./api";
+import { GROUPS, PASS_PCT, SECTIONS, rpc, thaiError, type Dashboard, type Me, type Profile, type SetSummary } from "./api";
+import MajorPicker from "./MajorPicker";
 import type { Preset } from "./CreateSet";
 import { IconCheck, IconCrown, IconPlus, IconTarget } from "./icons";
 import InstallBanner from "./InstallBanner";
 
 type Props = {
   me: Me;
+  profile: Profile;
+  onMajor: (code: string, name: string) => void;
   onCreate: (preset?: Preset) => void;
   onStart: (setId: string, mode: "full" | "wrong") => void;
   onUpgrade: () => void;
 };
 
-export default function Home({ me, onCreate, onStart, onUpgrade }: Props) {
+export default function Home({ me, profile, onMajor, onCreate, onStart, onUpgrade }: Props) {
+  const [picking, setPicking] = useState(false);
   const [sets, setSets] = useState<SetSummary[] | null>(null);
   const [error, setError] = useState("");
   const [dash, setDash] = useState<Dashboard | null>(null);
@@ -62,6 +66,25 @@ export default function Home({ me, onCreate, onStart, onUpgrade }: Props) {
                 {n > 0 && <span className={`pp-pct ${Math.round(100 * c / n) >= PASS_PCT ? "ok" : "low"}`}>{Math.round(100 * c / n)}%</span>}
               </div>
               {SECTIONS[sec].groups.map(g => {
+                if (g === "B3") {
+                  // วิชาเอก: one row for the user's own major instead of listing every major.
+                  const mt = ts.find(t => t.code === profile.major);
+                  const avail = mt?.available ?? 0;
+                  return (
+                    <div key={g} className="pp-major-row">
+                      <button className="pp-sec-grp" disabled={!!profile.major && (!canCreate || avail === 0)}
+                        onClick={() => (profile.major ? onCreate({ section: "B", topics: [profile.major] }) : setPicking(true))}>
+                        <span className="pp-sec-grp-t">
+                          {profile.major ? `วิชาเอก${profile.major_name}` : "วิชาเอก"}
+                          <small>{!profile.major ? "แตะเพื่อเลือกวิชาเอกของคุณ" : avail > 0 ? `${avail.toLocaleString()} ข้อ` : "กำลังเพิ่มข้อสอบวิชาเอกนี้"}</small>
+                        </span>
+                        {mt && mt.n > 0 ? <span className="pp-sec-grp-p">{Math.round(100 * mt.correct / mt.n)}%</span>
+                          : <span className="pp-sec-grp-p new">{profile.major ? (avail ? "ใหม่" : "เร็วๆ นี้") : "เลือก"}</span>}
+                      </button>
+                      {profile.major && <button className="pp-link small" onClick={() => setPicking(true)}>เปลี่ยน</button>}
+                    </div>
+                  );
+                }
                 const gt = ts.filter(t => t.grp === g && t.available > 0);
                 if (dash && !gt.length) return null;
                 const gn = gt.reduce((s, t) => s + t.n, 0), gc = gt.reduce((s, t) => s + t.correct, 0);
@@ -77,6 +100,7 @@ export default function Home({ me, onCreate, onStart, onUpgrade }: Props) {
           );
         })}
       </div>
+      {picking && <MajorPicker current={profile.major} onClose={() => setPicking(false)} onSaved={onMajor} />}
       {!canCreate && <p className="pp-note">ใช้ชุดฟรีครบแล้ว — ทำซ้ำชุดเดิมด้านล่างได้ไม่จำกัด หรืออัปเกรดเพื่อสร้างชุดใหม่</p>}
 
       {error && <div className="pp-error">{error}</div>}

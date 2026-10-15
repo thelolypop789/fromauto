@@ -505,3 +505,18 @@ select.pp-input { appearance: none; background-image: linear-gradient(45deg, tra
 .pp-reports b { color: var(--pp-bad); }
 .pp-reports ul { margin: 6px 0 10px; padding-left: 20px; line-height: 1.6; }
 .pp-reports .pp-input { background: #fff; margin-bottom: 0; }
+
+/* major picker */
+.pp-majors { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; max-height: 52vh; overflow-y: auto; padding: 2px; }
+.pp-majors button { position: relative; text-align: left; border: 1.5px solid var(--pp-line); background: #fff; border-radius: 12px; padding: 10px 12px; font: inherit; cursor: pointer; color: var(--pp-ink); display: flex; flex-direction: column; gap: 2px; }
+.pp-majors button span { font-size: 12px; color: var(--pp-muted); }
+.pp-majors button svg { position: absolute; top: 10px; right: 10px; color: var(--pp-primary); }
+.pp-majors button.on { border-color: var(--pp-primary); background: var(--pp-primary-soft); box-shadow: 0 0 0 1px var(--pp-primary); }
+.pp-major-row { display: flex; align-items: center; gap: 10px; }
+.pp-major-row .pp-sec-grp { flex: 1; }
+.pp-mine { font-size: 11px; font-weight: 700; color: #8C6A12; background: var(--pp-gold-soft); padding: 2px 8px; border-radius: 99px; margin-left: 6px; }
+.pp-major-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pp-major-card b { font-size: 17px; color: var(--pp-primary-dark); }
+.pp-add-major { flex-wrap: nowrap; margin: 6px 0 4px; }
+.pp-add-major .pp-input { margin: 0; flex: 1; }
+.pp-add-major .pp-btn { flex: none; }

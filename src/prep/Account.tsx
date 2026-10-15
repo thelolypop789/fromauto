@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { rpc, supabase, thaiError, type Me } from "./api";
+import { rpc, supabase, thaiError, type Me, type Profile } from "./api";
+import MajorPicker from "./MajorPicker";
 import { SHOP } from "./config";
 import { IconCheck, IconCrown, IconLogout } from "./icons";
 import InstallBanner from "./InstallBanner";
 import MyReports from "./MyReports";
 
-type Props = { me: Me; email: string; onChanged: () => void };
+type Props = { me: Me; email: string; profile: Profile; onMajor: (code: string, name: string) => void; onChanged: () => void };
 
-export default function Account({ me, email, onChanged }: Props) {
+export default function Account({ me, email, profile, onMajor, onChanged }: Props) {
+  const [picking, setPicking] = useState(false);
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -35,6 +37,15 @@ export default function Account({ me, email, onChanged }: Props) {
           <button className="pp-btn pp-btn-ghost" onClick={() => supabase.auth.signOut()} aria-label="ออกจากระบบ"><IconLogout />ออก</button>
         </div>
       </div>
+
+      <div className="pp-card pp-major-card">
+        <div>
+          <div className="pp-muted small">วิชาเอกของฉัน</div>
+          <b>{profile.major_name ?? "ยังไม่ได้เลือก"}</b>
+        </div>
+        <button className="pp-btn pp-btn-outline" onClick={() => setPicking(true)}>{profile.major ? "เปลี่ยน" : "เลือกวิชาเอก"}</button>
+      </div>
+      {picking && <MajorPicker current={profile.major} onClose={() => setPicking(false)} onSaved={onMajor} />}
 
       <InstallBanner always />
       <MyReports />

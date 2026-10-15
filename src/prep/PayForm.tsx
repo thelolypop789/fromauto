@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, supabase, thaiError, type Order, type PackageKey } from "./api";
-import { PACKAGES } from "./config";
+import { PACKAGES, SHOP } from "./config";
 import { IconCheck } from "./icons";
 
 const ORDER_STATUS: Record<Order["status"], [string, string]> = {
@@ -49,6 +49,9 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
 
   const info = PACKAGES.find(p => p.key === pkg)!;
   const price = term === "round" ? info.round : info.lifetime;
+  const amount = baht(price);
+  const qr = (amount && SHOP.qrByAmount[amount]) || SHOP.qrImage;
+  const fixed = !!(amount && SHOP.qrByAmount[amount]);
 
   const pick = (f: File | undefined) => {
     if (!f) return;
@@ -78,8 +81,8 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
 
   return (
     <div className="pp-payform">
-      <h3>แจ้งชำระเงิน (ส่งสลิปในแอป)</h3>
-      <label className="small pp-muted">แพ็กที่ซื้อ</label>
+      <h3>ซื้อแพ็ก</h3>
+      <label className="small pp-muted"><span className="pp-step">1</span>เลือกแพ็ก</label>
       <div className="pp-seg">
         {PACKAGES.map(p => <button key={p.key} className={pkg === p.key ? "on" : ""} onClick={() => setPkg(p.key)}>{PACKAGE_LABEL[p.key]}</button>)}
       </div>
@@ -90,6 +93,19 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
           </button>
         ))}
       </div>
+      <label className="small pp-muted"><span className="pp-step">2</span>สแกนจ่าย {price && <b className="pp-paysum">{price}</b>}</label>
+      {qr && (
+        <div className="pp-payqr">
+          <img key={qr} src={qr} alt={`QR ชำระเงิน ${price}`} width={337} height={438} />
+          <div className="pp-payqr-t">
+            <b>{PACKAGE_LABEL[pkg]} · {TERM_LABEL[term]}</b>
+            <span>{fixed ? `QR นี้ล็อกยอด ${price} ไว้แล้ว สแกนแล้วกดยืนยันได้เลย` : `ใส่ยอด ${price || "ตามแพ็ก"} เอง`}</span>
+            <span className="pp-muted small">เปิดบนมือถือ? กดบันทึกรูป QR แล้วเลือก "สแกนจากรูป" ในแอปธนาคาร</span>
+            <a className="pp-btn pp-btn-outline" href={qr} download={`QR-${PACKAGE_LABEL[pkg]}-${TERM_LABEL[term]}.png`}>บันทึกรูป QR</a>
+          </div>
+        </div>
+      )}
+      <label className="small pp-muted"><span className="pp-step">3</span>แนบสลิปแล้วกดส่ง</label>
       <label className={`pp-drop small-drop ${busy ? "off" : ""}`}>
         <input type="file" accept="image/*" disabled={busy} onChange={e => { pick(e.target.files?.[0]); e.target.value = ""; }} />
         {preview ? <img src={preview} alt="สลิปที่เลือก" className="pp-slip-prev" /> : <>

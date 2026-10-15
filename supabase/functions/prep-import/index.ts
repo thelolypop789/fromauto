@@ -19,7 +19,8 @@ const MODELS: Record<string, string[]> = {
 
 const MAX_BODY_BYTES = 9 * 1024 * 1024;
 const MAX_TEXT_CHARS = 200_000;
-const MAX_COUNT = 60;
+const MAX_COUNT = 60;      // per request; the browser keeps asking until the model reports nothing more
+const MAX_AVOID = 500;
 const MAX_FILES = 16;
 const MEDIA_TYPES = new Set(["application/pdf", "image/png", "image/jpeg", "image/webp", "image/heic", "image/heif"]);
 
@@ -47,7 +48,11 @@ serve(async (req) => {
     if (raw.length > MAX_BODY_BYTES) return json({ error: "ไฟล์ใหญ่เกินไป (ส่งทีละไม่เกินประมาณ 6 MB)" }, 413);
     const body = JSON.parse(raw);
 
-    const mode: Mode = body.mode === "extract" ? "extract" : "generate";
+    const mode: Mode = body.mode === "extract" ? "extract" : body.mode === "generate" ? "generate" : "auto";
+    // Stems already produced for this slice in earlier rounds, so the model continues instead of repeating.
+    const avoid = Array.isArray(body.avoid)
+      ? body.avoid.filter((x: unknown) => typeof x === "string").slice(-MAX_AVOID).map((x: string) => x.slice(0, 120))
+      : [];
     const count = Math.max(1, Math.min(MAX_COUNT, Math.floor(Number(body.count) || 20)));
     const hint = typeof body.hint === "string" ? body.hint.slice(0, 500) : "";
     const pages = typeof body.pages === "string" ? body.pages.slice(0, 80) : undefined;
@@ -82,7 +87,7 @@ serve(async (req) => {
     const topics = (topicRows as TopicInfo[]).map(t => ({ code: t.code, name: t.name }));
     const topicCodes = new Set(topics.map(t => t.code));
 
-    parts.push({ text: buildPrompt(mode, topics, { count, hint, pages }) });
+    parts.push({ text: buildPrompt(mode, topics, { count, hint, pages, avoid }) });
 
     const payload = JSON.stringify({
       contents: [{ role: "user", parts }],
@@ -116,8 +121,8 @@ serve(async (req) => {
         continue;
       }
 
-      let rawItems: unknown[];
-      try { rawItems = parseModelJson(text); }
+      let rawItems: unknown[], more: boolean;
+      try { ({ items: rawItems, more } = parseModelJson(text)); }
       catch (e) { lastError = `${model}: ${(e as Error).message}`; continue; }
 
       const items = [], dropped: string[] = [];
@@ -130,9 +135,10 @@ serve(async (req) => {
         seen.add(key);
         items.push(q);
       }
+      const truncated = cand?.finishReason === "MAX_TOKENS";
       return json({
-        items, dropped, model,
-        truncated: cand?.finishReason === "MAX_TOKENS",
+        items, dropped, model, truncated,
+        more: more || truncated,
         usage: data.usageMetadata ?? null,
       });
     }

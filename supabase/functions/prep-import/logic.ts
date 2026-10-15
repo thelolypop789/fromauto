@@ -1,7 +1,7 @@
 // Pure helpers for prep-import (no Deno APIs, so they can be unit-tested with node).
 
 export type TopicInfo = { code: string; name: string };
-export type Mode = "extract" | "generate";
+export type Mode = "auto" | "extract" | "generate";
 
 export type DraftQuestion = {
   topic: string;
@@ -12,21 +12,33 @@ export type DraftQuestion = {
   explanation: string;
   law_ref: string | null;
   needs_review: boolean;
+  kind: "extracted" | "generated";
 };
 
 export const LEVELS = ["remember", "understand", "apply", "analyze"] as const;
 
-export function buildPrompt(mode: Mode, topics: TopicInfo[], opts: { count: number; hint: string; pages?: string }): string {
+export function buildPrompt(mode: Mode, topics: TopicInfo[], opts: { count: number; hint: string; pages?: string; avoid?: string[] }): string {
   const topicList = topics.map(t => `- ${t.code}: ${t.name}`).join("\n");
+  const extractRules = `- ถ้าเอกสารมีเฉลย (ท้ายไฟล์ ไฮไลต์ ตัวหนา สีตัวอักษร) ให้ใช้เฉลยนั้น\n`
+    + `- ถ้าไม่มีเฉลย ให้ตอบเองเฉพาะข้อที่มั่นใจ และตั้ง needs_review=true; ข้อที่ไม่มั่นใจให้ข้ามไป\n`
+    + `- ตัวเลือกไม่ครบ 4 ข้อ ให้ข้ามข้อนั้น; ข้อที่คัดจากต้นฉบับให้ตั้ง kind="extracted"`;
+  const generateRules = `- แต่งข้อสอบปรนัย 4 ตัวเลือกให้ครอบคลุมทุกข้อเท็จจริง แนวคิด หลักการ และการนำไปใช้ที่ออกสอบได้ในเนื้อหา `
+    + `ไม่จำกัดจำนวนรวม ยิ่งเนื้อหาเยอะยิ่งต้องได้หลายข้อ (ข้อเท็จจริงหนึ่งอาจถามได้หลายมุม เช่น ความหมาย ผู้มีอำนาจ ระยะเวลา ลำดับขั้น การนำไปใช้ในสถานการณ์)\n`
+    + `- ข้อที่แต่งใหม่ให้ตั้ง kind="generated"`;
   const task = mode === "extract"
-    ? `เอกสารนี้เป็นข้อสอบอยู่แล้ว ให้คัดลอกข้อสอบแบบปรนัยทุกข้อที่พบ (ไม่เกิน ${opts.count} ข้อ) ออกมาตามต้นฉบับให้มากที่สุด\n`
-      + `- ถ้าเอกสารมีเฉลย (ท้ายไฟล์ ไฮไลต์ ตัวหนา สีตัวอักษร) ให้ใช้เฉลยนั้น\n`
-      + `- ถ้าไม่มีเฉลย ให้ตอบเองเฉพาะข้อที่มั่นใจ และตั้ง needs_review=true; ข้อที่ไม่มั่นใจให้ข้ามไป\n`
-      + `- ตัวเลือกไม่ครบ 4 ข้อ ให้ข้ามข้อนั้น`
-    : `เอกสารนี้เป็นชีทสรุปเนื้อหา ให้แต่งข้อสอบปรนัยแบบ 4 ตัวเลือกจากเนื้อหาในเอกสาร จำนวนไม่เกิน ${opts.count} ข้อ`
-      + ` โดยกระจายหัวข้อให้ทั่วเนื้อหา`;
+    ? `เอกสารนี้เป็นข้อสอบ ให้คัดลอกข้อสอบแบบปรนัยทุกข้อที่พบออกมาตามต้นฉบับให้มากที่สุด\n${extractRules}`
+    : mode === "generate"
+      ? `เอกสารนี้เป็นเอกสารสรุปเนื้อหา\n${generateRules}`
+      : `เอกสารนี้อาจมีทั้งเนื้อหาและข้อสอบปะปนกัน ให้ทำทั้งสองอย่าง:\n`
+        + `ก) ข้อสอบที่มีอยู่ในเอกสาร ให้คัดลอกออกมาทุกข้อ\n${extractRules}\n`
+        + `ข) ส่วนที่เป็นเนื้อหา ให้แต่งข้อสอบเพิ่ม\n${generateRules}\n`
+        + `ห้ามแต่งข้อใหม่ที่ซ้ำประเด็นกับข้อสอบที่คัดมา`;
+  const avoid = opts.avoid?.length
+    ? `\nข้อต่อไปนี้ทำไปแล้วในรอบก่อน ห้ามซ้ำ และห้ามถามประเด็นเดียวกันซ้ำในมุมเดิม (ให้ทำส่วนที่ยังไม่ได้ทำต่อ):\n${opts.avoid.map(a => "- " + a).join("\n")}\n`
+    : "";
+  const batch = `\nรอบนี้ส่งไม่เกิน ${opts.count} ข้อ แล้วตั้ง more=true ถ้ายังมีข้อสอบในเอกสารที่ยังไม่ได้คัด หรือยังมีเนื้อหาที่ออกข้อสอบได้อีกโดยไม่ซ้ำ; ตั้ง more=false เมื่อครอบคลุมครบแล้ว`;
   return `คุณเป็นผู้เขียนข้อสอบครูผู้ช่วย (ก.ค.ศ.) ภาษาไทย
-${task}
+${task}${batch}${avoid}
 ${opts.pages ? `ให้ใช้เฉพาะเนื้อหาในช่วงที่ส่งมานี้ (${opts.pages})\n` : ""}${opts.hint ? `คำแนะนำจากผู้ดูแล: ${opts.hint}\n` : ""}
 กฎเหล็ก
 1. ใช้เฉพาะข้อเท็จจริงที่ปรากฏในเอกสาร ห้ามแต่งเลขมาตรา ปี ตัวเลข ชื่อ ที่ไม่มีในเอกสาร ถ้าเอกสารกำกวมให้ข้ามข้อเท็จจริงนั้น
@@ -49,27 +61,35 @@ ${opts.pages ? `ให้ใช้เฉพาะเนื้อหาในช�
 เลือก topic จากรายการนี้เท่านั้น (ใช้ code ที่ใกล้เคียงที่สุด):
 ${topicList}
 
-ตอบเป็น JSON array เท่านั้น`;
+ตอบเป็น JSON object { "questions": [...], "more": true/false } เท่านั้น`;
 }
 
 // Gemini structured-output schema (OpenAPI subset)
 export function responseSchema(topicCodes: string[]) {
   return {
-    type: "ARRAY",
-    items: {
-      type: "OBJECT",
-      properties: {
-        topic: { type: "STRING", enum: topicCodes },
-        level: { type: "STRING", enum: [...LEVELS] },
-        stem: { type: "STRING" },
-        choices: { type: "ARRAY", items: { type: "STRING" } },
-        answer: { type: "INTEGER" },
-        explanation: { type: "STRING" },
-        law_ref: { type: "STRING", nullable: true },
-        needs_review: { type: "BOOLEAN" },
+    type: "OBJECT",
+    properties: {
+      questions: {
+        type: "ARRAY",
+        items: {
+          type: "OBJECT",
+          properties: {
+            topic: { type: "STRING", enum: topicCodes },
+            level: { type: "STRING", enum: [...LEVELS] },
+            stem: { type: "STRING" },
+            choices: { type: "ARRAY", items: { type: "STRING" } },
+            answer: { type: "INTEGER" },
+            explanation: { type: "STRING" },
+            law_ref: { type: "STRING", nullable: true },
+            needs_review: { type: "BOOLEAN" },
+            kind: { type: "STRING", enum: ["extracted", "generated"] },
+          },
+          required: ["topic", "level", "stem", "choices", "answer", "explanation", "needs_review", "kind"],
+        },
       },
-      required: ["topic", "level", "stem", "choices", "answer", "explanation", "needs_review"],
+      more: { type: "BOOLEAN" },
     },
+    required: ["questions", "more"],
   };
 }
 
@@ -110,34 +130,36 @@ export function normalize(raw: unknown, topicCodes: Set<string>): { q?: DraftQue
       explanation: typeof r.explanation === "string" ? r.explanation.trim().replace(SOURCE_REF, "") : "",
       law_ref: law,
       needs_review: r.needs_review === true || !r.explanation || /ชีท|เอกสาร(?:ระบุ|กำหนด)/.test(String(r.explanation)),
+      kind: r.kind === "extracted" ? "extracted" : "generated",
     },
   };
 }
 
-export function parseModelJson(text: string): unknown[] {
+// Accepts {"questions": [...], "more": bool} or a bare array. When the output was cut off by the
+// token limit, keeps every complete question object and reports more=true so the caller asks again.
+export function parseModelJson(text: string): { items: unknown[]; more: boolean } {
   const t = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  const start = t.indexOf("[");
-  const end = t.lastIndexOf("]");
-  if (start === -1) throw new Error("ไม่พบ JSON array");
   try {
-    if (end === -1) throw new Error("cut off");
-    return JSON.parse(t.slice(start, end + 1));
-  } catch {
-    // Output cut off by the token limit: keep every complete object before the break.
-    const body = t.slice(start + 1);
-    const items: unknown[] = [];
-    let depth = 0, from = -1, inStr = false, esc = false;
-    for (let i = 0; i < body.length; i++) {
-      const ch = body[i];
-      if (inStr) { if (esc) esc = false; else if (ch === "\\") esc = true; else if (ch === '"') inStr = false; continue; }
-      if (ch === '"') inStr = true;
-      else if (ch === "{") { if (depth++ === 0) from = i; }
-      else if (ch === "}" && --depth === 0 && from >= 0) {
-        try { items.push(JSON.parse(body.slice(from, i + 1))); } catch { /* skip broken object */ }
-        from = -1;
-      }
+    const v = JSON.parse(t);
+    if (Array.isArray(v)) return { items: v, more: false };
+    if (v && Array.isArray(v.questions)) return { items: v.questions, more: v.more === true };
+  } catch { /* fall through to salvage */ }
+  const start = t.indexOf("[");
+  if (start === -1) throw new Error("ไม่พบรายการข้อสอบในผลลัพธ์");
+  const body = t.slice(start + 1);
+  const items: unknown[] = [];
+  let depth = 0, from = -1, inStr = false, esc = false;
+  for (let i = 0; i < body.length; i++) {
+    const ch = body[i];
+    if (inStr) { if (esc) esc = false; else if (ch === "\\") esc = true; else if (ch === '"') inStr = false; continue; }
+    if (ch === '"') inStr = true;
+    else if (ch === "{") { if (depth++ === 0) from = i; }
+    else if (ch === "}" && --depth === 0 && from >= 0) {
+      try { items.push(JSON.parse(body.slice(from, i + 1))); } catch { /* skip broken object */ }
+      from = -1;
     }
-    if (!items.length) throw new Error("อ่านผลลัพธ์จาก AI ไม่ได้");
-    return items;
+    else if (ch === "]" && depth === 0) break;
   }
+  if (!items.length) throw new Error("อ่านผลลัพธ์จาก AI ไม่ได้");
+  return { items, more: true };
 }

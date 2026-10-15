@@ -97,6 +97,17 @@ export default function Account({ me, email, profile, onMajor, onChanged }: Prop
             ))}
           </div>
           <h3>วิธีซื้อ</h3>
+          {SHOP.qrImage && (
+            <div className="pp-payqr">
+              <img src={SHOP.qrImage} alt="QR ชำระเงิน ซ้อมข้อสอบครูผู้ช่วย" width={337} height={396} loading="lazy" />
+              <div className="pp-payqr-t">
+                <b>สแกนจ่ายได้ทุกแอปธนาคาร</b>
+                <span>ใส่ยอดตามแพ็กที่เลือกเอง เช่น ครบทุกภาค รายรอบ 3 เดือน = 99 บาท</span>
+                <span className="pp-muted small">เปิดบนมือถือ? กดบันทึกรูป QR แล้วเลือก "สแกนจากรูป" ในแอปธนาคาร</span>
+                <a className="pp-btn pp-btn-outline" href={SHOP.qrImage} download="QR-ซ้อมข้อสอบครูผู้ช่วย.png">บันทึกรูป QR</a>
+              </div>
+            </div>
+          )}
           <ol className="pp-list">
             <li>เลือกแพ็กและแบบ (รายรอบ / ซื้อขาด) แล้วโอนเงิน{SHOP.bankText ? `: ${SHOP.bankText}` : ""}</li>
             <li>ส่งสลิปพร้อมแจ้งแพ็กและอีเมลที่ใช้สมัคร ({email}){SHOP.contactText ? ` — ${SHOP.contactText}` : ""}</li>

@@ -1,6 +1,7 @@
 // Shop details shown on the upgrade page. Fill these in before launch.
 export const SHOP = {
-  bankText: "", // e.g. "พร้อมเพย์ 08x-xxx-xxxx (ชื่อบัญชี ...)"
+  bankText: "สแกน QR ด้านล่าง (Thai QR / พร้อมเพย์ จ่ายได้ทุกแอปธนาคาร) · ชื่อบัญชี นาย พงศกร ดรโคตร์กอก",
+  qrImage: "/prep-pay-qr.png", // static Thai QR (ถุงเงิน กรุงไทย): the buyer types the amount
   contactText: "", // e.g. "ส่งสลิปทาง LINE: @formauto"
   contactUrl: "", // e.g. "https://line.me/R/ti/p/@formauto"
   roundText: "ใช้ได้ 3 เดือน นับจากวันกรอกคีย์", // what a "รายรอบ" purchase covers (keys: แอดมิน → คีย์ → รายรอบ 3 เดือน)

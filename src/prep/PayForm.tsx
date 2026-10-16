@@ -39,7 +39,13 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
   const [quotes, setQuotes] = useState<Quote[] | null>(null);
 
   // Refresh the account when an order was approved since the page loaded data last.
-  const load = useCallback(() => { rpc<Quote[]>("prep_quotes").then(setQuotes).catch(() => { /* prices unavailable */ }); return rpc<Order[]>("prep_my_orders").then(o => {
+  const load = useCallback(() => { rpc<Quote[]>("prep_quotes").then(setQuotes).catch(() => {
+      // Server pricing not available (older database): fall back to the list prices in config.
+      setQuotes(PACKAGES.flatMap(k => (["round", "lifetime"] as const).map(t => {
+        const amount = Number((t === "round" ? k.round : k.lifetime).replace(/\D/g, "")) || undefined;
+        return { package: k.key, term: t, base: amount, credit: 0, amount, kind: "new" as const, expires_at: undefined };
+      })));
+    }); return rpc<Order[]>("prep_my_orders").then(o => {
     setOrders(o);
     if (o.some(x => x.status === "approved" && x.reviewed_at && Date.now() - new Date(x.reviewed_at).getTime() < 600_000)) onApproved();
   }).catch(() => { /* list is optional */ }); }, [onApproved]);

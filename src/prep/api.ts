@@ -91,6 +91,10 @@ const ERRORS: Record<string, string> = {
   nothing_to_upgrade: "ตัวเลือกนี้ไม่ต้องซื้อหรือไม่คุ้มสำหรับบัญชีของคุณ ลองเลือกแบบอื่น (เช่น ซื้อขาด)",
   invalid_price: "ราคาไม่ถูกต้อง",
   nothing_to_review: "ยังไม่มีข้อให้ทวน ทำชุดฝึกก่อน ข้อที่ตอบผิดจะมารอทวนที่นี่",
+  mock_locked: "วิชานี้ต้องมีแพ็กที่ครอบคลุม (ทดลองฟรีได้เฉพาะภาษาอังกฤษ 1 ครั้ง)",
+  no_major: "กรุณาเลือกวิชาเอกในหน้าบัญชีก่อน",
+  time_up: "หมดเวลาแล้ว ระบบส่งข้อสอบให้อัตโนมัติ",
+  invalid_subject: "ไม่พบวิชานี้",
   pack_expired: "แพ็กของชุดนี้หมดอายุแล้ว ต่ออายุเพื่อทำชุดนี้ต่อ (ผลและประวัติเดิมยังดูได้)",
 };
 
@@ -215,4 +219,22 @@ export type DailyItem = {
   correct?: boolean; answer?: number; explanation?: string; pct_correct?: number | null;
 };
 export type Daily = { day: string; items: DailyItem[]; done: boolean; score: number; total: number; streak: number; players: number };
+export type MockSubject = {
+  code: string; section: "A" | "B"; name: string; questions: number; minutes: number; available: number;
+  reason: "no_major" | "not_enough_questions" | null; access: "pack" | "free_trial" | "locked";
+  best: number | null; tries: number; open: { id: string; deadline: string } | null;
+};
+export type MockOverview = { subjects: MockSubject[]; server_now: string; major_name: string | null };
+export type MockItem = {
+  idx: number; question_id: number; topic: string; stem: string; choices: string[]; picked: number | null;
+  answer?: number; correct?: boolean; explanation?: string; law_ref?: string | null;
+};
+export type MockResultData = {
+  score: number; total: number; pct: number; used_seconds: number; answered: number; players: number;
+  percentile: number | null; per_topic: { topic: string; n: number; correct: number }[];
+};
+export type MockPayload = {
+  attempt_id: string; subject: string; name: string; minutes: number; started_at: string; deadline: string;
+  server_now: string; submitted: boolean; free_trial: boolean; items: MockItem[]; result: MockResultData | null;
+};
 export const TERM_LABEL = { round: "รายรอบ 3 เดือน", lifetime: "ซื้อขาด" } as const;

@@ -3,6 +3,7 @@ import { PACKAGE_LABEL, fmtUntil, rpc, thaiError, type PackageKey } from "./api"
 import ImportAI from "./ImportAI";
 import AdminBank from "./AdminBank";
 import AdminOrders from "./AdminOrders";
+import AdminGuide from "./AdminGuide";
 
 type Stats = { users: number; paid: number; answered_today: number; active_today: number;
   questions: Record<string, number> | null; open_reports: number; keys_unused: number };
@@ -27,6 +28,7 @@ export default function Admin() {
   useEffect(loadCount, [loadCount]);
   return (
     <>
+      <AdminGuide />
       <div className="pp-seg">
         {([["stats", "ภาพรวม"], ["orders", pending ? `คำสั่งซื้อ (${pending})` : "คำสั่งซื้อ"], ["bank", "คลังข้อสอบ"], ["reports", open ? `รายงาน (${open})` : "รายงาน"], ["review", "ตรวจข้อสอบ"], ["ai", "นำเข้า AI"], ["keys", "คีย์"], ["import", "นำเข้า JSON"]] as const).map(([k, l]) => (
           <button key={k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>

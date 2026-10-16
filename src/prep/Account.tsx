@@ -57,6 +57,8 @@ export default function Account({ me, email, profile, onMajor, onChanged }: Prop
         </div>
       </div>
 
+      <div className="pp-card"><a className="pp-btn pp-btn-ghost pp-wide" href="/prep/guide">คู่มือการใช้งาน</a></div>
+
       <div className="pp-card pp-major-card">
         <div>
           <div className="pp-muted small">วิชาเอกของฉัน</div>

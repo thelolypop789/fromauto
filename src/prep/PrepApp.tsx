@@ -9,6 +9,7 @@ import RoundResult from "./RoundResult";
 import Stats from "./Stats";
 import Account from "./Account";
 import Admin from "./Admin";
+import Guide from "./Guide";
 import { IconChart, IconCrown, IconHome, IconShield, IconUser, Logo } from "./icons";
 import { setupPwa } from "./pwa";
 import "./prep.css";
@@ -33,7 +34,7 @@ function planLabel(me: Me) {
   return "สมาชิก";
 }
 
-export default function PrepApp() {
+function PrepShell() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [me, setMe] = useState<Me | null>(null);
   const [profile, setProfile] = useState<Profile>({ major: null, major_name: null });
@@ -135,4 +136,9 @@ export default function PrepApp() {
       </nav>
     </div>
   );
+}
+
+// The guide is public: it must open without signing in, so it is chosen before any auth work starts.
+export default function PrepApp() {
+  return /^\/prep\/guide\/?$/.test(window.location.pathname) ? <Guide /> : <PrepShell />;
 }

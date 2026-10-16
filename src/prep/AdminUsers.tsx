@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, thaiError, type PackageKey } from "./api";
+import { ColumnChart, CompareList } from "./ChartParts";
+import { nf } from "./chartFormat";
 
 type Hit = { id: string; email: string; created_at: string; packages: PackageKey[]; last_active: string | null; orders: number };
 type Detail = {
@@ -9,6 +11,13 @@ type Detail = {
   activity: { answered_total: number; last_active: string | null; sets: number; mock_done: number };
   actions: { action: string; detail: { package?: string; days?: number | null; note?: string | null }; created_at: string }[];
 };
+type UserStats = {
+  days: { day: string; answered: number; correct: number }[];
+  overall: { user_n: number; user_correct: number; all_n: number; all_correct: number };
+  topics: { topic: string; n: number; pct: number; avg_pct: number | null }[];
+  mock: { name: string; pct: number; avg_pct: number | null; at: string }[];
+};
+const pc = (a: number, b: number) => (b > 0 ? Math.round((100 * a) / b) : null);
 const fmt = (s: string | null) => (s ? new Date(s).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "-");
 const ORDER_STATUS = { pending: "รอตรวจ", approved: "อนุมัติ", rejected: "ไม่ผ่าน" } as const;
 
@@ -17,6 +26,7 @@ export default function AdminUsers() {
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[] | null>(null);
   const [d, setD] = useState<Detail | null>(null);
+  const [st, setSt] = useState<UserStats | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pkg, setPkg] = useState<PackageKey>("ALL");
@@ -33,6 +43,8 @@ export default function AdminUsers() {
   };
   const open = async (id: string) => {
     setMsg(null);
+    setSt(null);
+    rpc<UserStats>("prep_admin_user_stats", { p_user: id }).then(setSt).catch(() => { /* stats are secondary */ });
     try { setD(await rpc<Detail>("prep_admin_user_detail", { p_user: id })); }
     catch (e) { setMsg({ ok: false, text: thaiError(e) }); }
   };
@@ -90,6 +102,8 @@ export default function AdminUsers() {
           <p className="pp-muted small">ตอบแล้ว {Number(d.activity.answered_total).toLocaleString("th-TH")} ข้อ · {d.activity.sets} ชุด · จำลองสอบจบ {d.activity.mock_done} ครั้ง · ใช้ล่าสุด {d.activity.last_active ?? "ยังไม่เคย"}</p>
           {msg && <div className={msg.ok ? "pp-success" : "pp-error"}>{msg.text}</div>}
 
+          {st && <UserStatsView st={st} />}
+
           <label className="small pp-muted">เหตุผล/หมายเหตุ (ใช้บันทึกในประวัติของการให้หรือถอนสิทธิ์ครั้งต่อไป)</label>
           <input className="pp-input" maxLength={200} placeholder="เช่น ชดเชยระบบล่ม / โอนทางแชต / คืนเงิน" value={note} onChange={e => setNote(e.target.value)} />
           <h4>สิทธิ์</h4>
@@ -130,6 +144,40 @@ export default function AdminUsers() {
             </>
           )}
         </div>
+      )}
+    </>
+  );
+}
+
+// How this person practises, next to everyone's average: last 30 days, accuracy by topic, mock exams.
+function UserStatsView({ st }: { st: UserStats }) {
+  const me = pc(st.overall.user_correct, st.overall.user_n);
+  const all = pc(st.overall.all_correct, st.overall.all_n);
+  const active = st.days.filter(x => x.answered > 0).length;
+  const total = st.days.reduce((a, x) => a + x.answered, 0);
+  return (
+    <>
+      <h4>การทำข้อสอบ</h4>
+      {st.overall.user_n === 0 ? <p className="pp-muted small">ยังไม่เคยตอบข้อสอบ</p> : (
+        <>
+          <CompareList avgLabel="ค่าเฉลี่ยของทุกคน" rows={[{ label: `ตอบถูกรวม (${nf(st.overall.user_n)} ข้อ)`, value: me ?? 0, avg: all, note: `${me}%${all != null ? ` · เฉลี่ย ${all}%` : ""}` }]} />
+          <ColumnChart title="ข้อที่ทำต่อวัน (30 วัน)" unit="ข้อ" days={st.days.map(x => x.day)} values={st.days.map(x => x.answered)} />
+          <p className="pp-muted small">เข้ามาทำ {active} จาก 30 วัน · รวม {nf(total)} ข้อ</p>
+          {st.topics.length > 0 && (
+            <>
+              <h4>ถูกกี่เปอร์เซ็นต์ แยกตามหมวด</h4>
+              <CompareList avgLabel="ค่าเฉลี่ยของทุกคนในหมวดนั้น" rows={st.topics.map(t => ({ label: t.topic, value: t.pct, avg: t.avg_pct, note: `${t.pct}% · ${nf(t.n)} ข้อ${t.avg_pct != null ? ` · เฉลี่ย ${t.avg_pct}%` : ""}` }))} />
+            </>
+          )}
+        </>
+      )}
+      {st.mock.length > 0 && (
+        <>
+          <h4>จำลองสอบล่าสุด</h4>
+          <CompareList avgLabel="ค่าเฉลี่ยของทุกคนในวิชานั้น" rows={st.mock.map(m => ({
+            label: `${m.name} · ${new Date(m.at).toLocaleDateString("th-TH", { day: "numeric", month: "short" })}`, value: m.pct, avg: m.avg_pct,
+            note: `${m.pct}%${m.avg_pct != null ? ` · เฉลี่ย ${m.avg_pct}%` : ""}` }))} />
+        </>
       )}
     </>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { GROUPS, PACKAGE_LABEL, SECTIONS, covers, rpc, thaiError, type Me, type Topic } from "./api";
+import { GROUPS, PACKAGE_LABEL, SECTIONS, covers, rpc, thaiError, type Me, type Quote, type Topic } from "./api";
 import { IconCrown } from "./icons";
 
 export type Preset = { section?: "A" | "B"; topics?: string[]; mode?: "new" | "weak" | "mixed" };
@@ -20,6 +20,7 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [offer, setOffer] = useState("");
 
   useEffect(() => {
     rpc<Topic[]>("prep_topics").then(t => {
@@ -55,6 +56,13 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
   const quotaLeft = me.free_sets_limit - me.free_sets_used;
   const finalSize = covered ? size : Math.min(size, 40);
   const blocked = picked.size > 0 && !covered && quotaLeft <= 0;
+  useEffect(() => {
+    if (!blocked) return;
+    rpc<Quote[]>("prep_quotes").then(qs => {
+      const u = qs.find(x => x.package === "ALL" && x.term === "lifetime" && x.kind === "upgrade" && !x.error && x.amount);
+      setOffer(u ? `อัปเกรดเป็นครบทุกภาค จ่ายแค่ ${u.amount} บาท (หักแพ็กที่มีอยู่แล้ว)` : "");
+    }).catch(() => { /* hint only */ });
+  }, [blocked]);
 
   const toggle = (codes: string[], on: boolean) => {
     const next = new Set(picked);
@@ -141,7 +149,7 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
       </div>
       {picked.size > 0 && available < finalSize && <p className="pp-note">หมวดที่เลือกมี {available} ข้อ ชุดนี้จะได้ {available} ข้อ</p>}
       {blocked && (
-        <div className="pp-error">หมวดที่เลือกอยู่นอกแพ็กของคุณ และใช้สิทธิ์ฟรีครบแล้ว — เลือกเฉพาะหมวดในแพ็ก หรือ <button className="pp-link" onClick={onUpgrade}>ซื้อแพ็กเพิ่ม</button></div>
+        <div className="pp-error">หมวดที่เลือกอยู่นอกแพ็กของคุณ และใช้สิทธิ์ฟรีครบแล้ว — เลือกเฉพาะหมวดในแพ็ก หรือ {offer && <b>{offer} · </b>}<button className="pp-link" onClick={onUpgrade}>ซื้อแพ็กเพิ่ม</button></div>
       )}
 
       <h3><span className="pp-step">3</span>แบบการจัดข้อ</h3>

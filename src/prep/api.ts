@@ -87,6 +87,9 @@ const ERRORS: Record<string, string> = {
   invalid_slip: "อัปโหลดสลิปไม่สำเร็จ ลองใหม่อีกครั้ง",
   too_many_orders: "มีรายการรอตรวจอยู่แล้ว 3 รายการ กรุณารอทีมงานตรวจก่อน",
   already_reviewed: "รายการนี้ตรวจไปแล้ว",
+  already_owned: "คุณมีสิทธิ์ตามแพ็กนี้แบบซื้อขาดอยู่แล้ว",
+  nothing_to_upgrade: "ตัวเลือกนี้ไม่ต้องซื้อหรือไม่คุ้มสำหรับบัญชีของคุณ ลองเลือกแบบอื่น (เช่น ซื้อขาด)",
+  invalid_price: "ราคาไม่ถูกต้อง",
   pack_expired: "แพ็กของชุดนี้หมดอายุแล้ว ต่ออายุเพื่อทำชุดนี้ต่อ (ผลและประวัติเดิมยังดูได้)",
 };
 
@@ -198,5 +201,11 @@ export type Order = {
   id: number; package: PackageKey; term: "round" | "lifetime"; amount: number | null;
   status: "pending" | "approved" | "rejected"; admin_note: string | null;
   created_at: string; reviewed_at: string | null; access_until?: string | null;
+};
+export type Price = { package: PackageKey; term: "round" | "lifetime"; amount: number };
+// Server price for this account: credit is deducted when the buyer already holds part of the package.
+export type Quote = {
+  package: PackageKey; term: "round" | "lifetime"; base?: number; credit?: number; amount?: number;
+  kind?: "new" | "renew" | "upgrade"; expires_at?: string | null; error?: string;
 };
 export const TERM_LABEL = { round: "รายรอบ 3 เดือน", lifetime: "ซื้อขาด" } as const;

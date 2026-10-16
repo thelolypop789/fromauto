@@ -68,19 +68,22 @@ h1{font-size:clamp(2.1rem,6.4vw,3.6rem);line-height:1.15;margin:14px 0;letter-sp
 .ticks{list-style:none;padding:0;margin:0 0 26px;display:grid;gap:8px}.ticks li:before{content:"✓";display:inline-grid;place-items:center;width:24px;height:24px;margin-right:10px;border-radius:50%;background:var(--g2);color:var(--r3);font-weight:800;font-size:.85rem}
 .sub{font-size:.9rem;color:#e6c9ce;margin-top:12px}
 .ph{width:min(280px,70vw);justify-self:center;background:#111;border-radius:40px;padding:8px;box-shadow:0 40px 70px -24px rgba(0,0,0,.7),0 0 0 2px #2b2b2b;transform:rotate(3deg)}
-.ph img{display:block;width:100%;border-radius:32px}
+.ph img{display:block;width:100%;height:auto;border-radius:32px}
+@media(max-width:819px){.hero{padding:30px 0 0}.hero .ph{width:230px;max-height:300px;overflow:hidden;border-radius:34px 34px 0 0;padding:6px 6px 0;transform:none;margin-top:6px}.hero .ph img{border-radius:28px 28px 0 0}}
 @media(min-width:820px){.hero .w{grid-template-columns:1.15fr .85fr}.ph{width:300px}}
-section.s{padding:56px 0}section.s.alt{background:#fff}
+section.s{padding:40px 0}@media(min-width:820px){section.s{padding:60px 0}}section.s.alt{background:#fff}
 h2{font-size:clamp(1.6rem,4.4vw,2.3rem);line-height:1.25;margin:0 0 10px;font-weight:800}h2 em{font-style:normal;color:var(--r1)}
 .lead{color:var(--mut);margin:0 0 28px;max-width:40em}
 .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.grid.f{grid-template-columns:1fr 1fr;gap:12px}@media(min-width:820px){.grid.f{grid-template-columns:repeat(4,1fr);gap:16px}}
+.grid.f .card{padding:16px}.grid.f .card .i{font-size:1.7rem}.grid.f .card h3{font-size:1rem}.grid.f .card p{font-size:.85rem;line-height:1.5}
 .card{background:#fff;border-radius:22px;padding:22px;box-shadow:0 10px 30px -20px rgba(74,11,22,.55);border:1px solid #f0e4d8}
 .alt .card{background:var(--bg)}.card .i{font-size:2rem}.card h3{margin:6px 0 4px;font-size:1.12rem}.card p{margin:0;color:var(--mut);font-size:.95rem}
 .pain{background:var(--r3);color:#fff;padding:48px 0;text-align:center}.pain h2{color:#fff}.pain p{color:#e9cfd3;max-width:36em;margin:0 auto 6px;font-size:1.1rem}
-.steps{display:grid;gap:16px;counter-reset:s}.steps .card{position:relative;padding-left:78px}
-.steps .card:before{counter-increment:s;content:counter(s);position:absolute;left:20px;top:20px;width:42px;height:42px;border-radius:50%;background:var(--r1);color:var(--g2);font-weight:800;display:grid;place-items:center;font-size:1.25rem}
-.shots{display:grid;gap:30px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));align-items:start}
-.shot{text-align:center}.shot .ph{transform:none;width:min(240px,64vw);margin:0 auto 14px;padding:6px;border-radius:34px}.shot .ph img{border-radius:28px}
+.steps{display:grid;gap:16px;counter-reset:s}.steps .card{position:relative;padding:16px 16px 16px 74px}
+.steps .card:before{counter-increment:s;content:counter(s);position:absolute;left:18px;top:50%;margin-top:-21px;width:42px;height:42px;border-radius:50%;background:var(--r1);color:var(--g2);font-weight:800;display:grid;place-items:center;font-size:1.25rem}
+.shots{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;padding:6px 20px 18px;margin:0 -20px;-webkit-overflow-scrolling:touch}.shot{flex:0 0 72%;max-width:260px;scroll-snap-align:center}@media(min-width:820px){.shots{justify-content:center;margin:0;padding:6px 0 18px;overflow:visible}.shot{flex:0 0 260px}}
+.shot{text-align:center}.shot .ph{transform:none;width:100%;margin:0 auto 14px;padding:6px;border-radius:34px}.shot .ph img{border-radius:28px}
 .shot b{display:block;font-size:1.1rem}.shot span{color:var(--mut);font-size:.93rem}
 .note{font-size:.82rem;color:var(--mut);text-align:center;margin-top:18px}
 .chips{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 20px}.chips a,.chips span{background:#fff;border:1.5px solid var(--r1);color:var(--r1);border-radius:99px;padding:7px 16px;text-decoration:none;font-weight:600;font-size:.95rem}
@@ -151,7 +154,7 @@ def build():
 <p><b>SOBPREP จัดการให้ ตั้งแต่เฉลยจนถึงทวนข้อที่ผิด</b></p></div></div>
 
 <section class="s"><div class="w"><h2>ทุกอย่างที่ต้องใช้<em>ซ้อมสอบให้เป็นระบบ</em></h2>
-<p class="lead">ออกแบบมาจากปัญหาของคนเตรียมสอบจริง ไม่ใช่แค่คลังข้อสอบให้ไล่ทำ</p><div class="grid">{feats}</div></div></section>
+<p class="lead">ออกแบบมาจากปัญหาของคนเตรียมสอบจริง ไม่ใช่แค่คลังข้อสอบให้ไล่ทำ</p><div class="grid f">{feats}</div></div></section>
 
 <section class="s alt"><div class="w"><h2>เริ่มใน <em>3 ขั้น</em> ไม่ต้องจ่ายก่อน</h2>
 <p class="lead">ใช้เวลาไม่ถึงนาที</p><div class="steps">
@@ -165,7 +168,7 @@ def build():
 <div class="shot"><div class="ph"><img src="/prep/welcome/img/mock.webp" alt="หน้าจำลองสอบจับเวลา" width="540" height="1168"></div><b>จำลองสอบจับเวลา</b><span>ไม่เฉลยจนกว่าจะส่ง</span></div>
 <div class="shot"><div class="ph"><img src="/prep/welcome/img/result.webp" alt="หน้าผลคะแนนรายหมวด" width="540" height="1168"></div><b>คะแนนรายหมวด</b><span>รู้ว่าหมวดไหนต้องเร่ง</span></div>
 <div class="shot"><div class="ph"><img src="/prep/welcome/img/daily.webp" alt="หน้าข้อสอบประจำวัน" width="540" height="1168"></div><b>ข้อสอบประจำวัน</b><span>10 ข้อ ฟรีทุกวัน</span></div></div>
-<p class="note">ภาพจากหน้าจอแอป ข้อมูลในภาพเป็นข้อมูลตัวอย่าง</p></div></section>
+<p class="note">ปัดดูภาพต่อ → · ภาพจากหน้าจอแอป ข้อมูลในภาพเป็นข้อมูลตัวอย่าง</p></div></section>
 
 <section class="s alt"><div class="w"><h2>ครอบคลุม<em>ทั้งภาค ก ภาค ข และวิชาเอก</em></h2>
 <p class="lead">คลังข้อสอบกว่า 8,000 ข้อ ณ ตุลาคม 2569 และเพิ่มขึ้นทุกสัปดาห์</p>

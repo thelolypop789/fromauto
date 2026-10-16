@@ -5,7 +5,6 @@ import type { Preset } from "./CreateSet";
 import { IconCheck, IconCrown, IconPlus, IconTarget } from "./icons";
 import InstallBanner from "./InstallBanner";
 import ExpiryBanner from "./ExpiryBanner";
-import MyInbox from "./MyInbox";
 
 type Props = {
   me: Me;
@@ -16,11 +15,10 @@ type Props = {
   onReview: (kind: "due" | "wrong") => void;
   onDaily: () => void;
   onMock: () => void;
-  onChanged: () => void;
   onUpgrade: () => void;
 };
 
-export default function Home({ me, profile, onMajor, onCreate, onStart, onReview, onDaily, onMock, onChanged, onUpgrade }: Props) {
+export default function Home({ me, profile, onMajor, onCreate, onStart, onReview, onDaily, onMock, onUpgrade }: Props) {
   const [picking, setPicking] = useState(false);
   const [sets, setSets] = useState<SetSummary[] | null>(null);
   const [error, setError] = useState("");
@@ -40,7 +38,6 @@ export default function Home({ me, profile, onMajor, onCreate, onStart, onReview
 
   return (
     <>
-      <MyInbox onChanged={onChanged} />
       <ExpiryBanner me={me} onRenew={onUpgrade} />
       <InstallBanner />
 

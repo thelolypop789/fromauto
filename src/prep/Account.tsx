@@ -5,7 +5,6 @@ import { PACKAGES, SHOP } from "./config";
 import { IconCheck, IconCrown, IconLogout } from "./icons";
 import InstallBanner from "./InstallBanner";
 import MyReports from "./MyReports";
-import MyInbox from "./MyInbox";
 import PayForm from "./PayForm";
 
 type Props = { me: Me; email: string; profile: Profile; onMajor: (code: string, name: string) => void; onChanged: () => void };
@@ -47,7 +46,6 @@ export default function Account({ me, email, profile, onMajor, onChanged }: Prop
 
   return (
     <>
-      <MyInbox onChanged={onChanged} />
       <div className="pp-card">
         <div className="pp-profile">
           <div className="pp-avatar">{(email[0] ?? "?").toUpperCase()}</div>

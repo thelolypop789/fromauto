@@ -95,10 +95,6 @@ const ERRORS: Record<string, string> = {
   no_major: "กรุณาเลือกวิชาเอกในหน้าบัญชีก่อน",
   time_up: "หมดเวลาแล้ว ระบบส่งข้อสอบให้อัตโนมัติ",
   invalid_subject: "ไม่พบวิชานี้",
-  invalid_email: "อีเมลไม่ถูกต้อง",
-  too_many_pending: "อีเมลนี้มีแพ็กที่ส่งไปแล้วและยังไม่เปิดใช้ครบ 5 รายการ",
-  already_claimed: "รายการนี้เปิดใช้งานไปแล้ว",
-  invalid_key: "แพ็กนี้ใช้ไม่ได้แล้ว (ถูกยกเลิกหรือหมดเขต)",
   pack_expired: "แพ็กของชุดนี้หมดอายุแล้ว ต่ออายุเพื่อทำชุดนี้ต่อ (ผลและประวัติเดิมยังดูได้)",
 };
 
@@ -241,11 +237,4 @@ export type MockPayload = {
   attempt_id: string; subject: string; name: string; minutes: number; started_at: string; deadline: string;
   server_now: string; submitted: boolean; free_trial: boolean; items: MockItem[]; result: MockResultData | null;
 };
-export type InboxItem = { id: number; package: PackageKey; duration_days: number | null; expires_on: string | null; message: string | null; created_at: string };
-export type AdminInboxRow = InboxItem & {
-  key_id: number; email: string; claimed_at: string | null; registered: boolean; status: "pending" | "claimed" | "revoked" | "expired";
-};
-export const inboxTerm = (i: Pick<InboxItem, "duration_days" | "expires_on">) =>
-  i.expires_on ? `ใช้ได้ถึง ${new Date(i.expires_on).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}`
-  : i.duration_days ? (i.duration_days === 90 ? "รายรอบ 3 เดือน" : `${i.duration_days} วัน`) : "ซื้อขาด ใช้ได้ตลอด";
 export const TERM_LABEL = { round: "รายรอบ 3 เดือน", lifetime: "ซื้อขาด" } as const;

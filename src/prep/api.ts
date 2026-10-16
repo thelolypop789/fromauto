@@ -90,6 +90,7 @@ const ERRORS: Record<string, string> = {
   already_owned: "คุณมีสิทธิ์ตามแพ็กนี้แบบซื้อขาดอยู่แล้ว",
   nothing_to_upgrade: "ตัวเลือกนี้ไม่ต้องซื้อหรือไม่คุ้มสำหรับบัญชีของคุณ ลองเลือกแบบอื่น (เช่น ซื้อขาด)",
   invalid_price: "ราคาไม่ถูกต้อง",
+  nothing_to_review: "ยังไม่มีข้อให้ทวน ทำชุดฝึกก่อน ข้อที่ตอบผิดจะมารอทวนที่นี่",
   pack_expired: "แพ็กของชุดนี้หมดอายุแล้ว ต่ออายุเพื่อทำชุดนี้ต่อ (ผลและประวัติเดิมยังดูได้)",
 };
 
@@ -208,4 +209,10 @@ export type Quote = {
   package: PackageKey; term: "round" | "lifetime"; base?: number; credit?: number; amount?: number;
   kind?: "new" | "renew" | "upgrade"; expires_at?: string | null; error?: string;
 };
+export type ReviewCounts = { due: number; wrong: number };
+export type DailyItem = {
+  idx: number; stem: string; choices: string[]; picked: number | null;
+  correct?: boolean; answer?: number; explanation?: string; pct_correct?: number | null;
+};
+export type Daily = { day: string; items: DailyItem[]; done: boolean; score: number; total: number; streak: number; players: number };
 export const TERM_LABEL = { round: "รายรอบ 3 เดือน", lifetime: "ซื้อขาด" } as const;

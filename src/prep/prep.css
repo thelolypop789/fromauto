@@ -596,3 +596,8 @@ select.pp-input { appearance: none; background-image: linear-gradient(45deg, tra
 .pp-faq dd { margin: 4px 0 0; color: var(--pp-muted); }
 .pp-admin-guide summary { cursor: pointer; }
 .pp-admin-guide h4 { margin: 14px 0 4px; }
+.pp-modes-home { display: grid; gap: 8px; margin-bottom: 8px; }
+.pp-modes-home button:disabled { opacity: .55; cursor: default; }
+.pp-daily-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pp-daily-streak { font-weight: 700; color: var(--pp-primary); white-space: nowrap; }
+.pp-daily-done h3 { margin: 0 0 4px; }

@@ -17,7 +17,7 @@ import DailyQuiz from "./DailyQuiz";
 import MockHome from "./MockHome";
 import MockPlayer from "./MockPlayer";
 import MockResult from "./MockResult";
-import { IconChart, IconCrown, IconHome, IconShield, IconUser, Logo } from "./icons";
+import { IconCalendar, IconChart, IconCrown, IconHome, IconShield, IconUser, Logo } from "./icons";
 import { setupPwa } from "./pwa";
 import "./prep.css";
 
@@ -124,11 +124,12 @@ function PrepShell() {
 
   const tabs: { key: View["name"]; label: string; icon: ReactNode }[] = [
     { key: "home", label: "ทำข้อสอบ", icon: <IconHome /> },
+    { key: "calendar", label: "ปฏิทิน", icon: <IconCalendar /> },
     { key: "stats", label: "วิเคราะห์", icon: <IconChart /> },
     { key: "account", label: me.plan === "paid" ? "บัญชี" : "อัปเกรด", icon: me.plan === "paid" ? <IconUser /> : <IconCrown /> },
     ...(me.is_admin ? [{ key: "admin" as const, label: "แอดมิน", icon: <IconShield /> }] : []),
   ];
-  const active = (k: View["name"]) => view.name === k || (k === "home" && (view.name === "create" || view.name === "result" || view.name === "daily" || view.name === "mock" || view.name === "mockresult" || view.name === "calendar"));
+  const active = (k: View["name"]) => view.name === k || (k === "home" && (view.name === "create" || view.name === "result" || view.name === "daily" || view.name === "mock" || view.name === "mockresult"));
   const go = (k: View["name"]) => { setView({ name: k } as View); window.scrollTo(0, 0); };
   const practice = (preset?: Preset) => { setView({ name: "create", preset }); window.scrollTo(0, 0); };
 

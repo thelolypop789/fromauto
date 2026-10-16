@@ -25,3 +25,4 @@ export const IconTrophy = ({ size = 22 }: P) => svg(size, <><path d="M8 4h8v5a4 
 export const IconLogout = ({ size = 18 }: P) => svg(size, <><path d="M15 4h4v16h-4" /><path d="M10 8l-4 4 4 4" /><path d="M6 12h10" /></>);
 
 export const Logo = ({ size = 36 }: P) => <img src="/prep-icons/icon-192.png" width={size} height={size} alt="" className="pp-logo-img" />;
+export const IconCalendar = ({ size = 22 }: P) => svg(size, <><rect x="3" y="5" width="18" height="16" rx="2.5" /><path d="M8 3v4" /><path d="M16 3v4" /><path d="M3 10h18" /><path d="M8 14h2" /><path d="M14 14h2" /><path d="M8 17.5h2" /></>);

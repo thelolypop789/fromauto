@@ -45,8 +45,8 @@ export default function Login() {
       <div className="pp-login-wrap">
         <section className="pp-login-hero">
           <Logo size={76} />
-          <h1>ซ้อมข้อสอบครูผู้ช่วย</h1>
-          <p>ซ้อมไม่ซ้ำ เฉลยทุกข้อ ทำซ้ำจนเคลียร์ พร้อมวิเคราะห์จุดอ่อน</p>
+          <h1>ซ้อมสอบ SOBPREP</h1>
+          <p>ซ้อมข้อสอบครูผู้ช่วย ซ้อมไม่ซ้ำ เฉลยทุกข้อ ทำซ้ำจนเคลียร์ พร้อมวิเคราะห์จุดอ่อน</p>
           <ul className="pp-feats">
             <li><IconTarget /><div><b>ฟรี 3 ชุด</b><span>เลือกหมวดเอง ระบบจัดข้อสอบให้</span></div></li>
             <li><IconBook /><div><b>เฉลยละเอียดทุกข้อ</b><span>เห็นคำอธิบายและอ้างอิงกฎหมายทันทีหลังตอบ</span></div></li>

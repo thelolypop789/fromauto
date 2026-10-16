@@ -54,7 +54,7 @@ function PrepShell() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    document.title = "ซ้อมข้อสอบครูผู้ช่วย | FormAuto";
+    document.title = "ซ้อมสอบ SOBPREP | ซ้อมข้อสอบครูผู้ช่วย";
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => sub.subscription.unsubscribe();
@@ -139,7 +139,7 @@ function PrepShell() {
         <div className="pp-top-in">
           <button className="pp-brand" onClick={() => go("home")}>
             <Logo size={36} />
-            <span className="pp-brand-t">ซ้อมครูผู้ช่วย<small>FormAuto Prep</small></span>
+            <span className="pp-brand-t">ซ้อมสอบ<small>SOBPREP</small></span>
           </button>
           <nav className="pp-tabs">
             {tabs.map(t => (

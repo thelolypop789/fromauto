@@ -3,14 +3,14 @@ import { Logo } from "./icons";
 
 // Public page at /prep/privacy. Only states what the system really does today; update it when that changes.
 export default function Privacy() {
-  useEffect(() => { document.title = "ความเป็นส่วนตัวและข้อกำหนด | ซ้อมข้อสอบครูผู้ช่วย"; }, []);
+  useEffect(() => { document.title = "ความเป็นส่วนตัวและข้อกำหนด | ซ้อมสอบ SOBPREP"; }, []);
   return (
     <div className="pp-app pp-guide pp-legal">
       <header className="pp-top">
         <div className="pp-top-in">
           <a className="pp-brand" href="/prep">
             <Logo size={36} />
-            <span className="pp-brand-t">ซ้อมครูผู้ช่วย<small>ความเป็นส่วนตัวและข้อกำหนด</small></span>
+            <span className="pp-brand-t">ซ้อมสอบ<small>ความเป็นส่วนตัวและข้อกำหนด</small></span>
           </a>
           <span className="pp-spacer" />
           <a className="pp-btn pp-btn-gold" href="/prep">เปิดแอป</a>

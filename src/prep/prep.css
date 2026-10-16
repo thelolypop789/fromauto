@@ -639,3 +639,4 @@ div.pp-todo-item { cursor: default; }
 .pp-expiring { display: grid; gap: 4px; margin-top: 14px; }
 .pp-user-hit { display: grid; gap: 2px; width: 100%; text-align: left; padding: 12px; margin-top: 8px; border: 1px solid var(--pp-line); border-radius: 12px; background: #fff; font: inherit; color: inherit; cursor: pointer; }
 .pp-keyrow .pp-link { white-space: nowrap; flex: none; }
+.pp-chip.bad { background: var(--pp-bad-soft); color: var(--pp-bad); }

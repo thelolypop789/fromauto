@@ -23,7 +23,7 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
 
   useEffect(() => {
     rpc<Topic[]>("prep_topics").then(t => {
-      setTopics(t.filter(x => x.available > 0));
+      setTopics(t);
       // Preset topics decide the opening tab when no section was given.
       if (!preset?.section && preset?.topics?.length) {
         const first = t.find(x => x.code === preset.topics![0]);
@@ -38,11 +38,13 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
     // The user's own major goes first in วิชาเอก.
     const b3 = g.get("B3");
     if (b3 && major) g.set("B3", [...b3.filter(t => t.code === major), ...b3.filter(t => t.code !== major)]);
-    return [...g.entries()];
+    // Topics with questions come first; empty ones are shown greyed as coming soon.
+    return [...g.entries()].map(([k, l]) => [k, [...l].sort((a, b) => Number(b.available > 0) - Number(a.available > 0))] as [string, Topic[]]);
   }, [topics, section, major]);
   const sectionTopics = (sec: "A" | "B") => topics?.filter(t => t.section === sec) ?? [];
   const pickedIn = (sec: "A" | "B") => sectionTopics(sec).filter(t => picked.has(t.code)).length;
-  const allSection = sectionTopics(section).length > 0 && sectionTopics(section).every(t => picked.has(t.code));
+  const playable = (sec: "A" | "B") => sectionTopics(sec).filter(t => t.available > 0);
+  const allSection = playable(section).length > 0 && playable(section).every(t => picked.has(t.code));
 
   const available = topics?.filter(t => picked.has(t.code)).reduce((s, t) => s + t.available, 0) ?? 0;
   // Sets whose topics are all inside the user's packages are unlimited (up to 200); others use the free quota.
@@ -104,25 +106,26 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
       {!topics && !error && <div className="pp-spinner" />}
       {topics && (
         <label className="pp-group-head pp-all">
-          <input type="checkbox" checked={allSection} onChange={e => toggle(sectionTopics(section).map(t => t.code), e.target.checked)} />
+          <input type="checkbox" checked={allSection} onChange={e => toggle(playable(section).map(t => t.code), e.target.checked)} />
           <b>เลือกทั้ง{SECTIONS[section].short}</b>
           <span className="pp-group-n">{sectionTopics(section).reduce((s, t) => s + t.available, 0)} ข้อ</span>
         </label>
       )}
       {groups.map(([grp, list]) => {
-        const all = list.every(t => picked.has(t.code));
+        const open = list.filter(t => t.available > 0);
+        const all = open.length > 0 && open.every(t => picked.has(t.code));
         return (
           <div key={grp} className="pp-group">
             <label className="pp-group-head">
-              <input type="checkbox" checked={all} onChange={e => toggle(list.map(t => t.code), e.target.checked)} />
+              <input type="checkbox" checked={all} disabled={open.length === 0} onChange={e => toggle(open.map(t => t.code), e.target.checked)} />
               <b>{GROUPS[grp] ?? grp}</b>
               <span className="pp-group-n">{list.reduce((s, t) => s + t.available, 0)} ข้อ</span>
             </label>
             <div className="pp-topic-list">
               {list.map(t => (
-                <label key={t.code} className={`pp-topic ${picked.has(t.code) ? "on" : ""}`}>
-                  <input type="checkbox" checked={picked.has(t.code)} onChange={e => toggle([t.code], e.target.checked)} />
-                  {t.name} <span className="pp-muted">({t.available})</span>{t.code === major && <span className="pp-mine">วิชาเอกของฉัน</span>}
+                <label key={t.code} className={`pp-topic ${picked.has(t.code) ? "on" : ""} ${t.available === 0 ? "soon" : ""}`}>
+                  <input type="checkbox" checked={picked.has(t.code)} disabled={t.available === 0} onChange={e => toggle([t.code], e.target.checked)} />
+                  {t.name} {t.available > 0 ? <span className="pp-muted">({t.available})</span> : <span className="pp-soon">กำลังเพิ่มข้อสอบ</span>}{t.code === major && <span className="pp-mine">วิชาเอกของฉัน</span>}
                 </label>
               ))}
             </div>

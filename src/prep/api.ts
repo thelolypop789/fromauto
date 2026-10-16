@@ -87,6 +87,7 @@ const ERRORS: Record<string, string> = {
   invalid_slip: "อัปโหลดสลิปไม่สำเร็จ ลองใหม่อีกครั้ง",
   too_many_orders: "มีรายการรอตรวจอยู่แล้ว 3 รายการ กรุณารอทีมงานตรวจก่อน",
   already_reviewed: "รายการนี้ตรวจไปแล้ว",
+  pack_expired: "แพ็กของชุดนี้หมดอายุแล้ว ต่ออายุเพื่อทำชุดนี้ต่อ (ผลและประวัติเดิมยังดูได้)",
 };
 
 export function thaiError(e: unknown): string {
@@ -176,6 +177,18 @@ export function covers(me: Me, sections: string[]): boolean {
   const owned = new Set((me.packages ?? []).map(p => p.package));
   if (owned.has("ALL")) return true;
   return sections.length > 0 && sections.every(s => owned.has(s as PackageKey));
+}
+
+// Round packages that end within `days` days and are not covered by another longer-lived package.
+export function expiringSoon(me: Me, now: number, days = 7): { package: PackageKey; expires_at: string; left: number }[] {
+  const pk = me.packages ?? [];
+  const soonMs = now + days * 86_400_000;
+  const lasts = (k: PackageKey) => { const p = pk.find(x => x.package === k); return !!p && (p.expires_at === null || new Date(p.expires_at).getTime() > soonMs); };
+  return pk.flatMap(p => {
+    if (!p.expires_at || new Date(p.expires_at).getTime() > soonMs) return [];
+    const covered = p.package === "ALL" ? lasts("A") && lasts("B") : lasts("ALL");
+    return covered ? [] : [{ package: p.package, expires_at: p.expires_at, left: Math.max(1, Math.ceil((new Date(p.expires_at).getTime() - now) / 86_400_000)) }];
+  });
 }
 
 export const fmtUntil = (iso: string | null) =>

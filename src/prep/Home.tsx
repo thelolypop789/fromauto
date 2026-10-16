@@ -4,6 +4,7 @@ import MajorPicker from "./MajorPicker";
 import type { Preset } from "./CreateSet";
 import { IconCheck, IconCrown, IconPlus, IconTarget } from "./icons";
 import InstallBanner from "./InstallBanner";
+import ExpiryBanner from "./ExpiryBanner";
 
 type Props = {
   me: Me;
@@ -32,6 +33,7 @@ export default function Home({ me, profile, onMajor, onCreate, onStart, onUpgrad
 
   return (
     <>
+      <ExpiryBanner me={me} onRenew={onUpgrade} />
       <InstallBanner />
 
       <section className="pp-hero">

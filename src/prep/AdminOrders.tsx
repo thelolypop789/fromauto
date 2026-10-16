@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
 import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, supabase, thaiError, type PackageKey } from "./api";
+import { PACKAGES } from "./config";
 import { IconCheck, IconX } from "./icons";
 
 type Row = {
   id: number; email: string | null; package: PackageKey; term: "round" | "lifetime"; amount: number | null;
   slip_path: string; note: string | null; status: "pending" | "approved" | "rejected"; admin_note: string | null;
   created_at: string; reviewed_at: string | null; active_packages: PackageKey[];
+};
+const listPrice = (pkg: PackageKey, term: "round" | "lifetime") => {
+  const p = PACKAGES.find(k => k.key === pkg);
+  return p ? Number((term === "round" ? p.round : p.lifetime).replace(/[^\d]/g, "")) || null : null;
 };
 const fmt = (s: string) => new Date(s).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" });
 
@@ -76,6 +81,12 @@ function OrderCard({ r, onDone }: { r: Row; onDone: (id: number) => void }) {
             <b>{TERM_LABEL[r.term]}{r.amount ? ` · ${r.amount} บาท` : ""}</b>
           </div>
           <div>{r.email ?? "-"}</div>
+          {(() => {
+            const price = listPrice(r.package, r.term);
+            if (!price) return null;
+            const off = r.amount !== null && r.amount !== price;
+            return <div className={off ? "pp-error" : "pp-muted small"}>ราคาแพ็ก {price} บาท{off ? ` — ผู้ซื้อกรอกยอด ${r.amount} บาท ไม่ตรง ตรวจยอดในสลิปให้ละเอียด` : ""}</div>;
+          })()}
           <div className="pp-muted small">#{r.id} · ส่งเมื่อ {fmt(r.created_at)}{r.reviewed_at ? ` · ตรวจเมื่อ ${fmt(r.reviewed_at)}` : ""}</div>
           {r.note && <div className="small">หมายเหตุผู้ซื้อ: {r.note}</div>}
           <div className="pp-muted small">แพ็กที่มีอยู่ตอนนี้: {r.active_packages.length ? r.active_packages.map(k => PACKAGE_LABEL[k]).join(", ") : "ไม่มี"}</div>

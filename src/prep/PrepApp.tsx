@@ -61,7 +61,10 @@ export default function PrepApp() {
       const round = await rpc<Round>("prep_start_round", { p_set: setId, p_mode: mode });
       setView({ name: "play", round });
       window.scrollTo(0, 0);
-    } catch (e) { alert(thaiError(e)); }
+    } catch (e) {
+      alert(thaiError(e));
+      if (e instanceof Error && e.message === "pack_expired") go("account");
+    }
   };
 
   if (session === undefined) return <div className="pp-center"><div className="pp-spinner" /></div>;

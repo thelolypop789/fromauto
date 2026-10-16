@@ -83,7 +83,7 @@ export default function Login() {
             </>
           ))}
           {error && <div className="pp-error">{error}</div>}
-          <p className="pp-muted small"><a className="pp-link" href="/prep/guide">คู่มือการใช้งาน</a></p>
+          <p className="pp-muted small"><a className="pp-link" href="/prep/guide">คู่มือการใช้งาน</a> · <a className="pp-link" href="/prep/privacy">ความเป็นส่วนตัวและข้อกำหนด</a></p>
         </section>
       </div>
     </div>

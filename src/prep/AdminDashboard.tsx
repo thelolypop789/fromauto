@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PACKAGE_LABEL, TERM_LABEL, rpc, thaiError, type PackageKey } from "./api";
 
 type Dash = {
@@ -19,6 +19,36 @@ const age = (iso: string | null, now: number) => {
   return h >= 24 ? `${Math.floor(h / 24)} วัน ${h % 24} ชม.` : `${Math.max(h, 0)} ชม.`;
 };
 const date = (iso: string) => new Date(iso).toLocaleDateString("th-TH", { day: "numeric", month: "short" });
+
+type DelReq = { id: number; email: string | null; note: string | null; created_at: string };
+
+// Pending "delete my data" requests. Deleting is done by hand (Supabase dashboard); this only records that it was handled.
+function DeletionRequests() {
+  const [rows, setRows] = useState<DelReq[]>([]);
+  const load = useCallback(() => { rpc<DelReq[]>("prep_admin_deletion_requests", { p_status: "pending" }).then(setRows).catch(() => { /* secondary */ }); }, []);
+  useEffect(load, [load]);
+  if (!rows.length) return null;
+  const resolve = async (r: DelReq, status: "done" | "rejected") => {
+    const word = status === "done" ? "ลบข้อมูลของผู้ใช้นี้เรียบร้อยแล้ว" : "ปฏิเสธคำขอนี้";
+    if (!confirm(`${r.email ?? "ผู้ใช้"}: ยืนยันว่า${word}?`)) return;
+    try { await rpc("prep_admin_resolve_deletion", { p_id: r.id, p_status: status }); load(); } catch (e) { alert(thaiError(e)); }
+  };
+  return (
+    <div className="pp-card">
+      <h3>คำขอลบข้อมูล ({rows.length})</h3>
+      <p className="pp-muted small">ลบผู้ใช้ออกจาก Supabase (Authentication → Users) ก่อน แล้วค่อยกด “ลบแล้ว” ที่นี่เพื่อบันทึกว่าจัดการเสร็จ</p>
+      {rows.map(r => (
+        <div key={r.id} className="pp-keyrow">
+          <div>{r.email ?? "?"}<div className="pp-muted small">ขอเมื่อ {date(r.created_at)}{r.note ? ` · ${r.note}` : ""}</div></div>
+          <div className="pp-row">
+            <button className="pp-link small" onClick={() => resolve(r, "rejected")}>ปฏิเสธ</button>
+            <button className="pp-btn pp-btn-ghost" onClick={() => resolve(r, "done")}>ลบแล้ว</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // First tab of the admin area: what needs doing today, money, who is about to lose access, and the old counters.
 export default function AdminDashboard({ onGo }: { onGo: (tab: "orders" | "reports" | "review" | "users") => void }) {
@@ -66,6 +96,8 @@ export default function AdminDashboard({ onGo }: { onGo: (tab: "orders" | "repor
           </div>
         )}
       </div>
+
+      <DeletionRequests />
 
       <div className="pp-card">
         <h3>รายได้</h3>

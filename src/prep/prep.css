@@ -640,3 +640,24 @@ div.pp-todo-item { cursor: default; }
 .pp-user-hit { display: grid; gap: 2px; width: 100%; text-align: left; padding: 12px; margin-top: 8px; border: 1px solid var(--pp-line); border-radius: 12px; background: #fff; font: inherit; color: inherit; cursor: pointer; }
 .pp-keyrow .pp-link { white-space: nowrap; flex: none; }
 .pp-chip.bad { background: var(--pp-bad-soft); color: var(--pp-bad); }
+
+/* Admin charts: one hue (primary), thin rounded bars, hairline grid, text stays in ink tokens. */
+.pp-chart { margin: 0 0 18px; }
+.pp-chart-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.pp-chart-box { position: relative; }
+.pp-chart-box svg { width: 100%; height: auto; display: block; touch-action: manipulation; }
+.pp-grid { stroke: var(--pp-line); stroke-width: 1; }
+.pp-bar-mark { fill: var(--pp-primary); opacity: .88; }
+.pp-bar-mark.hot { opacity: 1; }
+.pp-axis { font-size: 9px; fill: var(--pp-muted); }
+.pp-axis-strong { font-size: 10px; font-weight: 700; fill: var(--pp-ink); }
+.pp-tip { position: absolute; top: -4px; background: var(--pp-ink); color: #fff; font-size: 12px; padding: 4px 8px; border-radius: 8px; pointer-events: none; white-space: nowrap; }
+.pp-chart-table summary { cursor: pointer; padding: 4px 0; }
+.pp-hbars { display: grid; gap: 10px; }
+.pp-hbar-t { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; margin-bottom: 3px; }
+.pp-hbar-t b { font-weight: 600; white-space: nowrap; }
+.pp-hbar-track { height: 10px; background: var(--pp-primary-soft); border-radius: 5px; overflow: hidden; }
+.pp-hbar-track > div { height: 100%; background: var(--pp-primary); border-radius: 0 5px 5px 0; }
+.pp-tricky { padding: 10px 0; border-top: 1px solid var(--pp-line); display: grid; gap: 3px; }
+.pp-legal h2 { margin-top: 0; }
+.pp-legal h3 { margin: 16px 0 6px; font-size: 16px; }

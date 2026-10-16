@@ -7,6 +7,7 @@ import AdminGuide from "./AdminGuide";
 import AdminDashboard from "./AdminDashboard";
 import AdminUsers from "./AdminUsers";
 import AdminHealth from "./AdminHealth";
+import AdminCharts from "./AdminCharts";
 
 type Stats = { users: number; paid: number; answered_today: number; active_today: number;
   questions: Record<string, number> | null; open_reports: number; keys_unused: number };
@@ -22,7 +23,7 @@ const LABELS = ["ก", "ข", "ค", "ง"];
 const fmt = (s: string | null) => (s ? new Date(s).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "");
 
 export default function Admin() {
-  const [tab, setTab] = useState<"stats" | "orders" | "users" | "health" | "bank" | "reports" | "review" | "ai" | "keys" | "import">("stats");
+  const [tab, setTab] = useState<"stats" | "orders" | "users" | "charts" | "health" | "bank" | "reports" | "review" | "ai" | "keys" | "import">("stats");
   const [pending, setPending] = useState<number | null>(null);
   const loadPending = useCallback(() => { rpc<unknown[]>("prep_admin_orders", { p_status: "pending", p_limit: 200 }).then(r => setPending(r.length)).catch(() => { /* badge only */ }); }, []);
   useEffect(loadPending, [loadPending]);
@@ -33,12 +34,13 @@ export default function Admin() {
     <>
       <AdminGuide />
       <div className="pp-seg">
-        {([["stats", "ภาพรวม"], ["orders", pending ? `คำสั่งซื้อ (${pending})` : "คำสั่งซื้อ"], ["users", "ผู้ใช้"], ["health", "คุณภาพคลัง"], ["bank", "คลังข้อสอบ"], ["reports", open ? `รายงาน (${open})` : "รายงาน"], ["review", "ตรวจข้อสอบ"], ["ai", "นำเข้า AI"], ["keys", "คีย์"], ["import", "นำเข้า JSON"]] as const).map(([k, l]) => (
+        {([["stats", "ภาพรวม"], ["orders", pending ? `คำสั่งซื้อ (${pending})` : "คำสั่งซื้อ"], ["users", "ผู้ใช้"], ["charts", "กราฟ"], ["health", "คุณภาพคลัง"], ["bank", "คลังข้อสอบ"], ["reports", open ? `รายงาน (${open})` : "รายงาน"], ["review", "ตรวจข้อสอบ"], ["ai", "นำเข้า AI"], ["keys", "คีย์"], ["import", "นำเข้า JSON"]] as const).map(([k, l]) => (
           <button key={k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
       {tab === "stats" && <AdminDashboard onGo={setTab} />}
       {tab === "users" && <AdminUsers />}
+      {tab === "charts" && <AdminCharts />}
       {tab === "health" && <AdminHealth />}
       {tab === "orders" && <AdminOrders onChanged={loadPending} />}
       {tab === "bank" && <AdminBank onChanged={loadCount} />}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { GROUPS, PACKAGE_LABEL, SECTIONS, covers, rpc, thaiError, type Me, type Quote, type Topic } from "./api";
+import { GROUPS, PACKAGE_LABEL, SECTIONS, covers, rpc, thaiError, track, type Me, type Quote, type Topic } from "./api";
 import { IconCrown } from "./icons";
 
 export type Preset = { section?: "A" | "B"; topics?: string[]; mode?: "new" | "weak" | "mixed" };
@@ -63,6 +63,9 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
       setOffer(u ? `อัปเกรดเป็นครบทุกภาค จ่ายแค่ ${u.amount} บาท (หักแพ็กที่มีอยู่แล้ว)` : "");
     }).catch(() => { /* hint only */ });
   }, [blocked]);
+
+  const hitLimit = me.plan !== "paid" && quotaLeft <= 0;
+  useEffect(() => { if (hitLimit) track("free_limit"); }, [hitLimit]);
 
   const toggle = (codes: string[], on: boolean) => {
     const next = new Set(picked);

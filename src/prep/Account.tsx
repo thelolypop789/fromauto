@@ -125,6 +125,37 @@ export default function Account({ me, email, profile, onMajor, onChanged }: Prop
         <button className="pp-btn pp-btn-primary" disabled={busy || !key.trim()} onClick={redeem}>{busy ? "กำลังตรวจสอบ..." : "เปิดใช้งาน"}</button>
         {msg && <div className={msg.ok ? "pp-success" : "pp-error"}>{msg.text}</div>}
       </div>
+
+      <DeletionCard />
     </>
+  );
+}
+
+type Deletion = { id: number; status: "pending" | "done" | "rejected"; created_at: string; handled_at?: string | null } | null;
+
+// Asks the team to delete the account's data. Handled by hand, so the card says so and shows the request's state.
+function DeletionCard() {
+  const [d, setD] = useState<Deletion | undefined>(undefined);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  useEffect(() => { rpc<Deletion>("prep_my_deletion").then(setD).catch(() => setD(null)); }, []);
+  const ask = async () => {
+    if (busy || !confirm("ขอให้ทีมงานลบบัญชีและข้อมูลทั้งหมดของคุณ (รวมถึงสิทธิ์แพ็กที่ซื้อไว้) ยืนยันไหม?")) return;
+    setBusy(true); setErr("");
+    try { setD(await rpc<Deletion>("prep_request_deletion")); } catch (e) { setErr(thaiError(e)); }
+    setBusy(false);
+  };
+  return (
+    <div className="pp-card">
+      <h3>ข้อมูลของฉัน</h3>
+      {d?.status === "pending"
+        ? <p className="pp-muted">ส่งคำขอลบข้อมูลแล้วเมื่อ {new Date(d.created_at).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })} ทีมงานจะดำเนินการให้</p>
+        : <>
+            <p className="pp-muted small">ต้องการเลิกใช้และให้ลบข้อมูล? ทีมงานจะลบให้ด้วยตนเอง ลบแล้วกู้คืนไม่ได้ และสิทธิ์แพ็กที่ซื้อไว้จะหายไปด้วย{d?.status === "done" ? " (คำขอครั้งก่อนดำเนินการแล้ว)" : ""}</p>
+            <button className="pp-btn pp-btn-ghost" disabled={busy || d === undefined} onClick={ask}>{busy ? "กำลังส่ง..." : "ขอลบข้อมูลของฉัน"}</button>
+          </>}
+      {err && <div className="pp-error">{err}</div>}
+      <p className="pp-muted small"><a className="pp-link" href="/prep/privacy">ความเป็นส่วนตัวและข้อกำหนด</a></p>
+    </div>
   );
 }

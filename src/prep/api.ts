@@ -238,3 +238,23 @@ export type MockPayload = {
   server_now: string; submitted: boolean; free_trial: boolean; items: MockItem[]; result: MockResultData | null;
 };
 export const TERM_LABEL = { round: "รายรอบ 3 เดือน", lifetime: "ซื้อขาด" } as const;
+
+// ---- Usage events: only three, one per user per day, no content. The link's ?src= (e.g. /prep?src=fb-post1) is kept so the
+// first visit after Google sign-in can still say where the user came from.
+const SRC_KEY = "pp-src";
+try {
+  const q = new URLSearchParams(window.location.search).get("src");
+  if (q) localStorage.setItem(SRC_KEY, q.slice(0, 40));
+} catch { /* storage blocked: no source, nothing else lost */ }
+
+export type TrackName = "visit" | "buy_view" | "free_limit";
+export function track(name: TrackName) {
+  try {
+    const flag = `pp-ev-${name}`;
+    if (sessionStorage.getItem(flag)) return;
+    sessionStorage.setItem(flag, "1");
+  } catch { /* storage blocked: the database still keeps one per day */ }
+  let src = "";
+  try { src = localStorage.getItem(SRC_KEY) ?? ""; } catch { /* ignore */ }
+  rpc("prep_track", { p_name: name, p_props: name === "visit" && src ? { src } : {} }).catch(() => { /* analytics never blocks the app */ });
+}

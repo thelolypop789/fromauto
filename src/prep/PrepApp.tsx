@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { rpc, supabase, thaiError, type Me, type MockPayload, type Profile, type Round, type SubmitResult } from "./api";
+import { rpc, supabase, thaiError, track, type Me, type MockPayload, type Profile, type Round, type SubmitResult } from "./api";
 import Login from "./Login";
 import Home from "./Home";
 import CreateSet, { type Preset } from "./CreateSet";
@@ -10,6 +10,7 @@ import Stats from "./Stats";
 import Account from "./Account";
 import Admin from "./Admin";
 import Guide from "./Guide";
+import Privacy from "./Privacy";
 import DailyQuiz from "./DailyQuiz";
 import MockHome from "./MockHome";
 import MockPlayer from "./MockPlayer";
@@ -63,7 +64,7 @@ function PrepShell() {
   }, []);
   const setMajor = (code: string, name: string) => setProfile({ major: code, major_name: name });
 
-  useEffect(() => { if (session) refreshMe(); else setMe(null); }, [session, refreshMe]);
+  useEffect(() => { if (session) { refreshMe(); track("visit"); } else setMe(null); }, [session, refreshMe]);
 
   const startRound = async (setId: string, mode: "full" | "wrong") => {
     try {
@@ -168,7 +169,10 @@ function PrepShell() {
   );
 }
 
-// The guide is public: it must open without signing in, so it is chosen before any auth work starts.
+// The guide and the privacy page are public: they must open without signing in, so they are chosen before any auth work starts.
 export default function PrepApp() {
-  return /^\/prep\/guide\/?$/.test(window.location.pathname) ? <Guide /> : <PrepShell />;
+  const path = window.location.pathname;
+  if (/^\/prep\/guide\/?$/.test(path)) return <Guide />;
+  if (/^\/prep\/privacy\/?$/.test(path)) return <Privacy />;
+  return <PrepShell />;
 }

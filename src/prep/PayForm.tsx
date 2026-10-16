@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, supabase, thaiError, type Order, type PackageKey, type Quote } from "./api";
+import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, supabase, thaiError, track, type Order, type PackageKey, type Quote } from "./api";
 import { PACKAGES, SHOP } from "./config";
 import { IconCheck } from "./icons";
 
@@ -50,6 +50,7 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
     if (o.some(x => x.status === "approved" && x.reviewed_at && Date.now() - new Date(x.reviewed_at).getTime() < 600_000)) onApproved();
   }).catch(() => { /* list is optional */ }); }, [onApproved]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { track("buy_view"); }, []);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
   // The server prices every choice for this account (full price, or the difference when upgrading).

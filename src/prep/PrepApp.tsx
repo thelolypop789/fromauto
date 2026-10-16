@@ -19,6 +19,7 @@ import MockPlayer from "./MockPlayer";
 import MockResult from "./MockResult";
 import { IconCalendar, IconChart, IconCrown, IconHome, IconShield, IconUser, Logo } from "./icons";
 import { setupPwa } from "./pwa";
+import Waiting from "./Waiting";
 import "./prep.css";
 
 setupPwa();
@@ -55,7 +56,7 @@ function PrepShell() {
 
   useEffect(() => {
     document.title = "ซ้อมสอบ SOBPREP | ซ้อมข้อสอบครูผู้ช่วย";
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    supabase.auth.getSession().then(({ data }) => setSession(data.session)).catch(() => setSession(null));
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => sub.subscription.unsubscribe();
   }, []);
@@ -89,14 +90,14 @@ function PrepShell() {
     } catch (e) { alert(thaiError(e)); }
   };
 
-  if (session === undefined) return <div className="pp-center"><div className="pp-spinner" /></div>;
+  if (session === undefined) return <Waiting />;
   if (!session) return <Login />;
   if (!me) {
     return (
       <div className="pp-center">
         {error ? <div className="pp-card"><div className="pp-error">{error}</div>
           <button className="pp-btn pp-btn-primary" onClick={refreshMe}>ลองใหม่</button></div>
-          : <div className="pp-spinner" />}
+          : <Waiting />}
       </div>
     );
   }

@@ -4,6 +4,7 @@ import ImportAI from "./ImportAI";
 import AdminBank from "./AdminBank";
 import AdminOrders from "./AdminOrders";
 import AdminGuide from "./AdminGuide";
+import AdminSendKey from "./AdminSendKey";
 
 type Stats = { users: number; paid: number; answered_today: number; active_today: number;
   questions: Record<string, number> | null; open_reports: number; keys_unused: number };
@@ -40,7 +41,7 @@ export default function Admin() {
       {tab === "reports" && <AdminBank reportsOnly onChanged={loadCount} />}
       {tab === "review" && <ReviewTab />}
       {tab === "ai" && <ImportAI />}
-      {tab === "keys" && <KeysTab />}
+      {tab === "keys" && <><AdminSendKey /><KeysTab /></>}
       {tab === "import" && <ImportTab />}
     </>
   );

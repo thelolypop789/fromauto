@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { rpc, thaiError } from "./api";
+import AdminConflicts from "./AdminConflicts";
 
 type DupItem = { id: number; origin: string; source: string | null; n: number };
 type Health = {
@@ -46,6 +47,8 @@ export default function AdminHealth() {
   return (
     <>
       {msg && <div className={msg.ok ? "pp-success" : "pp-error"}>{msg.text}</div>}
+
+      <AdminConflicts />
 
       <div className="pp-card">
         <h3>ข้อสอบซ้ำ</h3>

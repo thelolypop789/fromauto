@@ -627,3 +627,15 @@ select.pp-input { appearance: none; background-image: linear-gradient(45deg, tra
 .pp-mock .pp-foot-in .pp-btn { white-space: nowrap; padding-left: 12px; padding-right: 12px; }
 .pp-mock-item .pp-btn { white-space: nowrap; flex: none; }
 .pp-dupe { display: grid; gap: 6px; }
+.pp-todo { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.pp-todo-item { display: grid; gap: 2px; text-align: left; padding: 14px; border: 1.5px solid var(--pp-line); border-radius: 14px; background: #fff; font: inherit; color: inherit; cursor: pointer; }
+div.pp-todo-item { cursor: default; }
+.pp-todo-item b { font-size: 30px; line-height: 1; }
+.pp-todo-item span { font-size: 14px; }
+.pp-todo-item small { color: var(--pp-muted); }
+.pp-todo-item.warn { border-color: #E0A100; background: #FFF9E8; }
+.pp-todo-item.bad { border-color: var(--pp-bad); background: var(--pp-bad-soft); }
+.pp-todo-item.bad b, .pp-todo-item.bad small { color: var(--pp-bad); }
+.pp-expiring { display: grid; gap: 4px; margin-top: 14px; }
+.pp-user-hit { display: grid; gap: 2px; width: 100%; text-align: left; padding: 12px; margin-top: 8px; border: 1px solid var(--pp-line); border-radius: 12px; background: #fff; font: inherit; color: inherit; cursor: pointer; }
+.pp-keyrow .pp-link { white-space: nowrap; flex: none; }

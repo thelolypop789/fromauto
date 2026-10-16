@@ -10,7 +10,7 @@ type Dash = {
   };
   expiring: { email: string | null; package: PackageKey; expires_at: string }[];
 };
-type Stats = { users: number; paid: number; answered_today: number; active_today: number; questions: Record<string, number> | null; open_reports: number; keys_unused: number };
+type Stats = { users: number; paid: number; free_members?: number; answered_today: number; active_today: number; questions: Record<string, number> | null; open_reports: number; keys_unused: number };
 
 const baht = (n: number) => `${n.toLocaleString("th-TH")} บาท`;
 const age = (iso: string | null, now: number) => {
@@ -128,6 +128,7 @@ export default function AdminDashboard({ onGo }: { onGo: (tab: "orders" | "repor
           <div className="pp-kpis">
             <div className="pp-kpi"><b>{s.users}</b><span>ผู้ใช้ทั้งหมด</span></div>
             <div className="pp-kpi"><b>{s.paid}</b><span>สมาชิกเสียเงิน</span></div>
+            <div className="pp-kpi"><b>{s.free_members ?? 0}</b><span>สมาชิกที่ได้ฟรี</span></div>
             <div className="pp-kpi"><b>{s.active_today}</b><span>ใช้งานวันนี้</span></div>
             <div className="pp-kpi"><b>{s.answered_today}</b><span>ข้อที่ทำวันนี้</span></div>
             <div className="pp-kpi"><b>{(s.questions?.approved ?? 0).toLocaleString("th-TH")}</b><span>ข้อสอบเผยแพร่</span></div>

@@ -10,6 +10,7 @@ import Stats from "./Stats";
 import Account from "./Account";
 import Admin from "./Admin";
 import Guide from "./Guide";
+import Calendar from "./Calendar";
 import Privacy from "./Privacy";
 import MovedBanner from "./MovedBanner";
 import DailyQuiz from "./DailyQuiz";
@@ -32,6 +33,7 @@ type View =
   | { name: "mock" }
   | { name: "mockplay"; payload: MockPayload }
   | { name: "mockresult"; payload: MockPayload }
+  | { name: "calendar" }
   | { name: "account" }
   | { name: "admin" };
 
@@ -121,12 +123,12 @@ function PrepShell() {
   }
 
   const tabs: { key: View["name"]; label: string; icon: ReactNode }[] = [
-    { key: "home", label: "ชุดของฉัน", icon: <IconHome /> },
+    { key: "home", label: "ทำข้อสอบ", icon: <IconHome /> },
     { key: "stats", label: "วิเคราะห์", icon: <IconChart /> },
     { key: "account", label: me.plan === "paid" ? "บัญชี" : "อัปเกรด", icon: me.plan === "paid" ? <IconUser /> : <IconCrown /> },
     ...(me.is_admin ? [{ key: "admin" as const, label: "แอดมิน", icon: <IconShield /> }] : []),
   ];
-  const active = (k: View["name"]) => view.name === k || (k === "home" && (view.name === "create" || view.name === "result" || view.name === "daily" || view.name === "mock" || view.name === "mockresult"));
+  const active = (k: View["name"]) => view.name === k || (k === "home" && (view.name === "create" || view.name === "result" || view.name === "daily" || view.name === "mock" || view.name === "mockresult" || view.name === "calendar"));
   const go = (k: View["name"]) => { setView({ name: k } as View); window.scrollTo(0, 0); };
   const practice = (preset?: Preset) => { setView({ name: "create", preset }); window.scrollTo(0, 0); };
 
@@ -148,7 +150,7 @@ function PrepShell() {
         </div>
       </header>
       <main className="pp-main">
-        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onUpgrade={() => go("account")} />}
+        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onCalendar={() => go("calendar")} onUpgrade={() => go("account")} />}
         {view.name === "create" && <CreateSet me={me} major={profile.major} preset={view.preset} onCancel={() => go("home")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} onUpgrade={() => go("account")} />}
         {view.name === "result" && <RoundResult result={view.result} title={view.title} me={me} onStart={startRound}
@@ -157,6 +159,7 @@ function PrepShell() {
         {view.name === "mock" && <MockHome onBack={() => go("home")} onUpgrade={() => go("account")} onAccount={() => go("account")}
           onOpen={payload => { setView(payload.submitted ? { name: "mockresult", payload } : { name: "mockplay", payload }); window.scrollTo(0, 0); }} />}
         {view.name === "mockresult" && <MockResult payload={view.payload} onBack={() => go("mock")} onReview={() => startReview("wrong")} />}
+        {view.name === "calendar" && <Calendar onBack={() => go("home")} />}
         {view.name === "stats" && <Stats me={me} onPractice={practice} />}
         {view.name === "account" && <Account me={me} email={session.user.email ?? ""} profile={profile} onMajor={setMajor} onChanged={refreshMe} />}
         {view.name === "admin" && me.is_admin && <Admin />}

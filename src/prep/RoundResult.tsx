@@ -33,7 +33,7 @@ export default function RoundResult({ result: r, title, me, onStart, onHome, onU
       <div className="pp-col">
         {!r.cleared && <button className="pp-btn pp-btn-primary" onClick={() => onStart(r.set_id, "wrong")}>ทำเฉพาะข้อผิด ({r.wrong_count})</button>}
         <button className={`pp-btn ${r.cleared ? "pp-btn-primary" : "pp-btn-ghost"}`} onClick={() => onStart(r.set_id, "full")}>ทำทั้งชุดใหม่ (สลับลำดับ)</button>
-        <button className="pp-btn pp-btn-ghost" onClick={onHome}>กลับหน้าชุดของฉัน</button>
+        <button className="pp-btn pp-btn-ghost" onClick={onHome}>กลับหน้าทำข้อสอบ</button>
       </div>
       {r.cleared && outOfFree && (
         <div className="pp-upsell">

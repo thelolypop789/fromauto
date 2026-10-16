@@ -1,0 +1,28 @@
+/* Exam calendar (user view + admin editor) */
+.pp-cal-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.pp-cal-head b { font-size: 18px; }
+.pp-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+.pp-cal-dow { font-size: 12px; color: var(--pp-muted); padding: 2px 0; }
+.pp-cal-day { position: relative; aspect-ratio: 1 / 1; border-radius: 10px; display: grid; place-items: center; font-size: 14px; border: 1px solid transparent; background: transparent; padding: 0; color: var(--pp-ink); }
+.pp-cal-day.out { visibility: hidden; }
+.pp-cal-day.today { border-color: var(--pp-primary); font-weight: 700; }
+.pp-cal-day.has { background: var(--pp-primary-soft); }
+.pp-cal-day i { position: absolute; bottom: 4px; left: 50%; display: flex; gap: 2px; transform: translateX(-50%); }
+.pp-cal-day i s { width: 5px; height: 5px; border-radius: 50%; background: var(--pp-primary); display: block; }
+.pp-cal-day i s.apply { background: var(--pp-gold); border-radius: 1px; }
+.pp-cal-day i s.result { background: var(--pp-ok); border-radius: 0; transform: rotate(45deg); }
+.pp-cal-day i s.other { background: var(--pp-muted); }
+.pp-cal-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--pp-muted); margin-top: 8px; }
+.pp-cal-legend s { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--pp-primary); margin-right: 4px; vertical-align: middle; }
+.pp-cal-legend s.apply { background: var(--pp-gold); border-radius: 1px; }
+.pp-cal-legend s.result { background: var(--pp-ok); border-radius: 0; transform: rotate(45deg); }
+.pp-cal-legend s.other { background: var(--pp-muted); }
+.pp-event { border-top: 1px solid var(--pp-line); padding: 12px 0; display: grid; gap: 4px; }
+.pp-event-top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.pp-kind { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 99px; background: var(--pp-primary-soft); color: var(--pp-primary); }
+.pp-kind.apply { background: var(--pp-gold-soft); color: #7A5A00; }
+.pp-kind.result { background: var(--pp-ok-soft); color: var(--pp-ok); }
+.pp-kind.other { background: #EFE9E6; color: var(--pp-muted); }
+.pp-event.past { opacity: .55; }
+.pp-event-when { font-size: 14px; color: var(--pp-muted); }
+.pp-upnext { display: grid; gap: 4px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--pp-line); font-size: 14px; }

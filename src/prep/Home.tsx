@@ -16,10 +16,11 @@ type Props = {
   onReview: (kind: "due" | "wrong") => void;
   onDaily: () => void;
   onMock: () => void;
+  onCalendar: () => void;
   onUpgrade: () => void;
 };
 
-export default function Home({ me, profile, onMajor, onCreate, onStart, onReview, onDaily, onMock, onUpgrade }: Props) {
+export default function Home({ me, profile, onMajor, onCreate, onStart, onReview, onDaily, onMock, onCalendar, onUpgrade }: Props) {
   const [picking, setPicking] = useState(false);
   const [sets, setSets] = useState<SetSummary[] | null>(null);
   const [error, setError] = useState("");
@@ -53,13 +54,13 @@ export default function Home({ me, profile, onMajor, onCreate, onStart, onReview
             : <button className="pp-btn pp-btn-gold" onClick={onUpgrade}><IconCrown size={20} />อัปเกรดเพื่อสร้างชุดใหม่</button>}
         </div>
         <div className="pp-hero-stats">
-          <div><b>{sets?.length ?? "–"}</b><span>ชุดของฉัน</span></div>
+          <div><b>{sets?.length ?? "–"}</b><span>ชุดที่ทำ</span></div>
           <div><b>{sets ? cleared : "–"}</b><span>เคลียร์แล้ว</span></div>
           <div><b>{me.plan === "paid" ? "∞" : freeLeft}</b><span>{me.plan === "paid" ? "สร้างได้" : "ชุดฟรีคงเหลือ"}</span></div>
         </div>
       </section>
 
-      <StudyPlan answeredToday={me.answered_today} />
+      <StudyPlan answeredToday={me.answered_today} onCalendar={onCalendar} />
       <LineCard />
 
       <div className="pp-h"><h2>ฝึกแบบอื่น</h2></div>

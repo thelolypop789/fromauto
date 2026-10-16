@@ -30,7 +30,7 @@ function Sec({ id, title, children }: { id: string; title: string; children: Rea
 export default function Guide() {
   const [prices, setPrices] = useState<Price[]>([]);
   useEffect(() => {
-    document.title = "คู่มือการใช้งาน | ซ้อมข้อสอบครูผู้ช่วย";
+    document.title = "คู่มือการใช้งาน | ซ้อมสอบ SOBPREP";
     rpc<Price[]>("prep_prices").then(setPrices).catch(() => { /* not signed in: use config */ });
   }, []);
   const n = (k: PackageKey, t: Term) => {
@@ -47,7 +47,7 @@ export default function Guide() {
         <div className="pp-top-in">
           <a className="pp-brand" href="/prep">
             <Logo size={36} />
-            <span className="pp-brand-t">ซ้อมครูผู้ช่วย<small>คู่มือการใช้งาน</small></span>
+            <span className="pp-brand-t">ซ้อมสอบ<small>คู่มือการใช้งาน</small></span>
           </a>
           <span className="pp-spacer" />
           <a className="pp-btn pp-btn-gold" href="/prep">เปิดแอป</a>

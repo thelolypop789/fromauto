@@ -25,7 +25,7 @@ export function setupPwa() {
   setMeta("mobile-web-app-capable", "yes");
   setMeta("apple-mobile-web-app-capable", "yes");
   setMeta("apple-mobile-web-app-status-bar-style", "black-translucent");
-  setMeta("apple-mobile-web-app-title", "ซ้อมครูผู้ช่วย");
+  setMeta("apple-mobile-web-app-title", "ซ้อมสอบ");
   setMeta("viewport", "width=device-width, initial-scale=1.0, viewport-fit=cover");
 
   if ("serviceWorker" in navigator && import.meta.env.PROD) {

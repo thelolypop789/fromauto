@@ -1,4 +1,4 @@
-"""Generate template-based quantitative / logic questions for FormAuto Prep.
+"""Generate template-based quantitative / logic questions for SOBPREP.
 
 Answers are computed, so they are always correct. Output is the JSON array accepted by the
 admin import page (topic, level, stem, choices[4], answer, explanation).

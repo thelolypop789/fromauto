@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { rpc, type Price, type PackageKey } from "./api";
-import { PACKAGES } from "./config";
+import { PACKAGES, SHOP } from "./config";
 import { Logo } from "./icons";
 
 type Term = "round" | "lifetime";
@@ -187,7 +187,7 @@ export default function Guide() {
             <dt>หมวดวิชาเอกของฉันยังไม่มีข้อสอบ?</dt>
             <dd>ทีมงานกำลังทยอยเพิ่ม หมวดที่ยังไม่มีข้อขึ้นป้าย “กำลังเพิ่มข้อสอบ” ระหว่างนี้ฝึกหมวดอื่นได้ตามปกติ</dd>
             <dt>โอนแล้วแต่ยังไม่ได้สิทธิ์?</dt>
-            <dd>ดูสถานะที่รายการแจ้งชำระ ถ้าขึ้น “รอตรวจสอบ” ทีมงานยังไม่ได้ตรวจ ปกติภายในวันเดียวกัน ถ้าขึ้น “ไม่ผ่าน” อ่านข้อความจากทีมงานแล้วส่งสลิปใหม่</dd>
+            <dd>ดูสถานะที่รายการแจ้งชำระ ถ้าขึ้น “รอตรวจสอบ” ทีมงานยังไม่ได้ตรวจ ปกติภายในวันเดียวกัน ถ้าขึ้น “ไม่ผ่าน” อ่านข้อความจากทีมงานแล้วส่งสลิปใหม่ ถ้ามีปัญหาทักทีมงานได้ที่ <a className="pp-link" href={SHOP.contactUrl} target="_blank" rel="noopener noreferrer">{SHOP.contactText}</a></dd>
             <dt>ใช้ได้กี่เครื่อง?</dt>
             <dd>ล็อกอินด้วยบัญชีเดียวกันได้ทุกเครื่อง สิทธิ์ผูกกับบัญชี</dd>
             <dt>ทำไมที่อยู่เว็บเปลี่ยนเป็น sobprep.com?</dt>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { rpc, supabase, thaiError, track, type Me, type MockPayload, type Profile, type Round, type SubmitResult } from "./api";
+import { rpc, supabase, thaiError, startPing, track, type Me, type MockPayload, type Profile, type Round, type SubmitResult } from "./api";
 import Login from "./Login";
 import Home from "./Home";
 import CreateSet, { type Preset } from "./CreateSet";
@@ -66,6 +66,8 @@ function PrepShell() {
   const setMajor = (code: string, name: string) => setProfile({ major: code, major_name: name });
 
   useEffect(() => { if (session) { refreshMe(); track("visit"); } else setMe(null); }, [session, refreshMe]);
+  const signedIn = !!session;
+  useEffect(() => (signedIn ? startPing() : undefined), [signedIn]);
 
   const startRound = async (setId: string, mode: "full" | "wrong") => {
     try {

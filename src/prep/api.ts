@@ -258,3 +258,12 @@ export function track(name: TrackName) {
   try { src = localStorage.getItem(SRC_KEY) ?? ""; } catch { /* ignore */ }
   rpc("prep_track", { p_name: name, p_props: name === "visit" && src ? { src } : {} }).catch(() => { /* analytics never blocks the app */ });
 }
+
+// Presence: while a signed-in tab is visible, tell the server we are here once a minute. Feeds the admin "ตอนนี้" tab.
+export function startPing(): () => void {
+  const send = () => { if (document.visibilityState === "visible") rpc("prep_ping").catch(() => { /* never blocks the app */ }); };
+  send();
+  const id = setInterval(send, 60_000);
+  document.addEventListener("visibilitychange", send);
+  return () => { clearInterval(id); document.removeEventListener("visibilitychange", send); };
+}

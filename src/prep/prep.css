@@ -666,3 +666,13 @@ div.pp-todo-item { cursor: default; }
 .pp-tricky { padding: 10px 0; border-top: 1px solid var(--pp-line); display: grid; gap: 3px; }
 .pp-legal h2 { margin-top: 0; }
 .pp-legal h3 { margin: 16px 0 6px; font-size: 16px; }
+
+/* Live tab, comparison bars */
+.pp-live-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--pp-ok); margin-right: 6px; animation: pp-pulse 1.8s ease-out infinite; }
+@keyframes pp-pulse { 0% { box-shadow: 0 0 0 0 rgba(15, 138, 95, .55); } 100% { box-shadow: 0 0 0 10px rgba(15, 138, 95, 0); } }
+@media (prefers-reduced-motion: reduce) { .pp-live-dot { animation: none; } }
+.pp-cmp { position: relative; overflow: visible; }
+.pp-cmp > div { border-radius: 5px; }
+.pp-cmp-tick { position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1px; border-radius: 2px; background: var(--pp-ink); }
+.pp-delta { font-weight: 600; color: var(--pp-ink); }
+.pp-kpi small { display: block; margin-top: 2px; font-size: 12px; }

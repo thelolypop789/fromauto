@@ -61,6 +61,8 @@ ${opts.pages ? `ให้ใช้เฉพาะเนื้อหาในช�
     ห้ามสร้างข้อที่คำตอบหรือตัวเลือกเป็นเลขมาตรา และห้ามขึ้นต้นโจทย์ด้วย "ตามมาตรา..." หรือ "ตามคำพิพากษาฎีกาที่..." ให้ถามถึงสาระของกฎหมายแทน (เช่น สิทธิ หน้าที่ ระยะเวลา ผู้มีอำนาจ)
     ในโหมดคัดข้อ ข้อเดิมที่ถามเลขมาตราหรือเลขฎีกาให้ข้ามไป
 12. ห้ามเขียนในโจทย์ว่า "ตามชีท" "ตามเอกสารประกอบการบรรยาย" ให้อ้างชื่อกฎหมายหรือหลักสูตรโดยตรงแทน
+13. ห้ามสร้างข้อที่ถามเกี่ยวกับตัวไฟล์ เช่น หน้าที่เท่าไร มีกี่ข้อ หัวข้อใดมาก่อน และห้ามถามถึง "ข้อความ/บทความ/เรื่องที่อ่าน" ที่ไม่ได้อยู่ในโจทย์ ผู้เรียนไม่เห็นไฟล์ต้นฉบับ
+    ข้ออ่านจับใจความต้องใส่ข้อความที่ต้องอ่านไว้ในโจทย์ให้ครบ (ขึ้นต้นด้วยข้อความ แล้วตามด้วยคำถาม) ถ้าข้อความยาวเกินไปหรือถอดไม่ครบให้ข้ามข้อนั้น
 10. level เลือก remember/understand/apply/analyze
 
 เลือก topic จากรายการนี้เท่านั้น (ใช้ code ที่ใกล้เคียงที่สุด):
@@ -105,6 +107,18 @@ const SECTION_CHOICE = /^\s*(?:มาตรา\s*[0-9๐-๙]+|\([0-9๐-๙]+\)
 const SOURCE_REF = /^(?:ตาม|จาก|ใน)?\s*(?:ชีท|เอกสาร(?:ประกอบการบรรยาย)?|เนื้อหา)(?:สรุป)?\s*(?:ระบุ|กำหนด|กล่าว|อธิบาย|ยกตัวอย่าง|สรุป)?(?:ไว้)?(?:ว่า)?\s*/;
 const SELF_REFERENCE = /ถูกทุกข้อ|ผิดทุกข้อ|ไม่มีข้อใดถูก|ไม่มีข้อถูก|ข้อ\s*ก\s*และ\s*ข|ทั้ง\s*[1-4]\s*และ\s*[1-4]|ทุกข้อข้างต้น|ข้อใดข้อหนึ่ง/;
 
+// Questions that only make sense next to the source file: they ask about the document itself (pages, order, counts)
+// or about "the passage / the article" without the text being part of the stem. Students never see the file, so
+// such a question cannot be answered. Keep this list in sync with prep_admin_import (migration 20261016230000).
+const DOC_META = /ตามเอกสาร(?!สิทธิ|ราชการ)|ในเอกสาร(?:ที่|นี้|ฉบับ|ชุด|ดังกล่าว|ข้างต้น)|ในเอกสาร$|จากเอกสาร(?!ราชการ|ใด)|เอกสารทบทวน|ชุดเอกสาร|เอกสารฉบับนี้|เอกสารชุดนี้|ในหน้า\s*\d+|จากหน้า\s*\d+|หน้า\s*\d+\s*(?:ของ|ถึง)|ตามชีท|ในชีท|ในเนื้อความ/;
+const PASSAGE_REF = /(?:ข้อความ|บทความ)(?:เรื่อง|เกี่ยวกับ|ที่กำหนด|ที่ระบุ|ข้างต้น|ดังกล่าว|แนะนำ|ของผู้เขียน)|(?:ตาม|จาก)(?:ข้อความ|บทความ)(?:\s|ใน|$)/;
+const QUOTE_CHARS = /["'“”‘’]/;
+function refersToMissingSource(stem: string): boolean {
+  if (DOC_META.test(stem)) return true;
+  // a passage quoted or pasted into the stem makes the question self-contained; a short stem with no quote is not
+  return stem.length < 200 && !QUOTE_CHARS.test(stem) && PASSAGE_REF.test(stem);
+}
+
 function stripPrefix(s: string): string {
   return s.replace(STRIP_PREFIX, "").trim();
 }
@@ -123,6 +137,7 @@ function normalize(raw: unknown, topicCodes: Set<string>): { q?: DraftQuestion; 
   if (SECTION_RECALL.test(stem) && !/การวัด|มาตราวัด|มาตราส่วน/.test(stem)) return { drop: "ถามเลขมาตรา/ฎีกา" };
   if (choices.filter(c => SECTION_CHOICE.test(c)).length >= 3) return { drop: "ตัวเลือกเป็นเลขมาตรา" };
   if (/ชีท|เอกสารประกอบการบรรยาย/.test(stem)) return { drop: "โจทย์อ้างถึงชีท/เอกสาร" };
+  if (refersToMissingSource(stem)) return { drop: "โจทย์อ้างถึงเอกสาร/บทความที่ไม่ได้อยู่ในโจทย์" };
   const answer = Number(r.answer);
   if (!Number.isInteger(answer) || answer < 0 || answer > 3) return { drop: "เฉลยไม่ถูกต้อง" };
   const topic = String(r.topic ?? "");

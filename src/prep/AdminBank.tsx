@@ -192,6 +192,7 @@ function QuestionCard({ q, topics, open, onToggle, onSaved, onResolved }: {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [note, setNote] = useState("");
+  const [dupes, setDupes] = useState<Q[] | null>(null);
   const resolve = async (status: "fixed" | "rejected") => {
     setBusy(true); setErr("");
     try {
@@ -202,14 +203,26 @@ function QuestionCard({ q, topics, open, onToggle, onSaved, onResolved }: {
   };
   const total = q.choice_counts.reduce((s, x) => s + x, 0);
 
+  // The fixed wording already exists as another question: show it so the admin can hide this copy instead.
+  const findTwins = async (stem: string, choices: string[]) => {
+    const norm = (s: string) => s.replace(/\s+/g, "");
+    try {
+      const r = await rpc<Page>("prep_admin_questions", { p_search: stem.trim().slice(0, 40), p_sort: "new", p_offset: 0, p_limit: 30 });
+      setDupes(r.items.filter(i => i.id !== q.id && norm(i.stem) === norm(stem) && choices.map(norm).join("|") === i.choices.map(norm).join("|")));
+    } catch { setDupes([]); }
+  };
+
   const save = async (patch: Partial<Q>) => {
-    setBusy(true); setErr("");
+    setBusy(true); setErr(""); setDupes(null);
     try {
       await rpc("prep_admin_save_question", { p_id: q.id, p_patch: patch });
       const t = topics.find(x => x.code === (patch.topic ?? q.topic));
       onSaved({ ...q, ...patch, topic_name: t?.name ?? q.topic_name, grp: t?.grp ?? q.grp, section: t?.section ?? q.section, reports: [] });
       setEdit(null);
-    } catch (e) { setErr(thaiError(e)); }
+    } catch (e) {
+      if (e instanceof Error && e.message === "duplicate_question" && patch.stem && patch.choices) await findTwins(patch.stem, patch.choices);
+      else setErr(thaiError(e));
+    }
     setBusy(false);
   };
 
@@ -292,8 +305,19 @@ function QuestionCard({ q, topics, open, onToggle, onSaved, onResolved }: {
             </label>
           </div>
           {err && <div className="pp-error">{err}</div>}
+          {dupes && (
+            <div className="pp-error pp-dupe">
+              <b>โจทย์ที่แก้แล้วซ้ำกับข้อที่มีอยู่ในคลัง</b>
+              <span>แปลว่ามีข้อที่ถูกต้องอยู่แล้ว ไม่ต้องแก้ข้อนี้ ให้ซ่อนข้อนี้แทน ระบบจะปิดรายงานว่าแก้แล้ว</span>
+              {dupes.length > 0
+                ? dupes.map(d => <span key={d.id} className="small">ข้อที่ซ้ำ: #{d.id} · {STATUS[d.status]}{d.source ? ` · ${d.source}` : ""}</span>)
+                : <span className="small">ค้นไม่พบข้อที่ซ้ำโดยตรง ลองค้นโจทย์ในช่องค้นหาด้านบน</span>}
+              {dupes.length > 0 && dupes.every(d => d.status !== "approved") && <b>ข้อที่ซ้ำยังไม่ได้เผยแพร่ ไปเผยแพร่ข้อนั้นก่อน แล้วค่อยซ่อนข้อนี้</b>}
+              <button className="pp-btn pp-btn-primary" disabled={busy} onClick={() => save({ status: "hidden" })}>ซ่อนข้อนี้ (ซ้ำกับข้อที่ถูกต้อง) และปิดรายงาน</button>
+            </div>
+          )}
           <div className="pp-row">
-            <button className="pp-btn pp-btn-ghost" onClick={() => { setEdit(null); setErr(""); }}>ยกเลิก</button>
+            <button className="pp-btn pp-btn-ghost" onClick={() => { setEdit(null); setErr(""); setDupes(null); }}>ยกเลิก</button>
             <button className="pp-btn pp-btn-primary" disabled={busy} onClick={() => save({
               stem: edit.stem, choices: edit.choices, answer: edit.answer, explanation: edit.explanation,
               law_ref: edit.law_ref, topic: edit.topic, level: edit.level,

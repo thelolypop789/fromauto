@@ -5,6 +5,7 @@ import type { Preset } from "./CreateSet";
 import { IconCheck, IconCrown, IconPlus, IconTarget } from "./icons";
 import InstallBanner from "./InstallBanner";
 import ExpiryBanner from "./ExpiryBanner";
+import StudyPlan, { LineCard } from "./StudyPlan";
 
 type Props = {
   me: Me;
@@ -57,6 +58,9 @@ export default function Home({ me, profile, onMajor, onCreate, onStart, onReview
           <div><b>{me.plan === "paid" ? "∞" : freeLeft}</b><span>{me.plan === "paid" ? "สร้างได้" : "ชุดฟรีคงเหลือ"}</span></div>
         </div>
       </section>
+
+      <StudyPlan answeredToday={me.answered_today} />
+      <LineCard />
 
       <div className="pp-h"><h2>ฝึกแบบอื่น</h2></div>
       <div className="pp-modes pp-modes-home">

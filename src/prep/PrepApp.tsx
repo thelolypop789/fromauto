@@ -11,6 +11,7 @@ import Account from "./Account";
 import Admin from "./Admin";
 import Guide from "./Guide";
 import Privacy from "./Privacy";
+import MovedBanner from "./MovedBanner";
 import DailyQuiz from "./DailyQuiz";
 import MockHome from "./MockHome";
 import MockPlayer from "./MockPlayer";
@@ -172,7 +173,6 @@ function PrepShell() {
 // The guide and the privacy page are public: they must open without signing in, so they are chosen before any auth work starts.
 export default function PrepApp() {
   const path = window.location.pathname;
-  if (/^\/prep\/guide\/?$/.test(path)) return <Guide />;
-  if (/^\/prep\/privacy\/?$/.test(path)) return <Privacy />;
-  return <PrepShell />;
+  const page = /^\/prep\/guide\/?$/.test(path) ? <Guide /> : /^\/prep\/privacy\/?$/.test(path) ? <Privacy /> : <PrepShell />;
+  return <><MovedBanner />{page}</>;
 }

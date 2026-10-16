@@ -4,6 +4,9 @@ import ImportAI from "./ImportAI";
 import AdminBank from "./AdminBank";
 import AdminOrders from "./AdminOrders";
 import AdminGuide from "./AdminGuide";
+import AdminDashboard from "./AdminDashboard";
+import AdminUsers from "./AdminUsers";
+import AdminHealth from "./AdminHealth";
 
 type Stats = { users: number; paid: number; answered_today: number; active_today: number;
   questions: Record<string, number> | null; open_reports: number; keys_unused: number };
@@ -19,7 +22,7 @@ const LABELS = ["ก", "ข", "ค", "ง"];
 const fmt = (s: string | null) => (s ? new Date(s).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "");
 
 export default function Admin() {
-  const [tab, setTab] = useState<"stats" | "orders" | "bank" | "reports" | "review" | "ai" | "keys" | "import">("stats");
+  const [tab, setTab] = useState<"stats" | "orders" | "users" | "health" | "bank" | "reports" | "review" | "ai" | "keys" | "import">("stats");
   const [pending, setPending] = useState<number | null>(null);
   const loadPending = useCallback(() => { rpc<unknown[]>("prep_admin_orders", { p_status: "pending", p_limit: 200 }).then(r => setPending(r.length)).catch(() => { /* badge only */ }); }, []);
   useEffect(loadPending, [loadPending]);
@@ -30,11 +33,13 @@ export default function Admin() {
     <>
       <AdminGuide />
       <div className="pp-seg">
-        {([["stats", "ภาพรวม"], ["orders", pending ? `คำสั่งซื้อ (${pending})` : "คำสั่งซื้อ"], ["bank", "คลังข้อสอบ"], ["reports", open ? `รายงาน (${open})` : "รายงาน"], ["review", "ตรวจข้อสอบ"], ["ai", "นำเข้า AI"], ["keys", "คีย์"], ["import", "นำเข้า JSON"]] as const).map(([k, l]) => (
+        {([["stats", "ภาพรวม"], ["orders", pending ? `คำสั่งซื้อ (${pending})` : "คำสั่งซื้อ"], ["users", "ผู้ใช้"], ["health", "คุณภาพคลัง"], ["bank", "คลังข้อสอบ"], ["reports", open ? `รายงาน (${open})` : "รายงาน"], ["review", "ตรวจข้อสอบ"], ["ai", "นำเข้า AI"], ["keys", "คีย์"], ["import", "นำเข้า JSON"]] as const).map(([k, l]) => (
           <button key={k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
-      {tab === "stats" && <StatsTab />}
+      {tab === "stats" && <AdminDashboard onGo={setTab} />}
+      {tab === "users" && <AdminUsers />}
+      {tab === "health" && <AdminHealth />}
       {tab === "orders" && <AdminOrders onChanged={loadPending} />}
       {tab === "bank" && <AdminBank onChanged={loadCount} />}
       {tab === "reports" && <AdminBank reportsOnly onChanged={loadCount} />}
@@ -43,26 +48,6 @@ export default function Admin() {
       {tab === "keys" && <KeysTab />}
       {tab === "import" && <ImportTab />}
     </>
-  );
-}
-
-function StatsTab() {
-  const [s, setS] = useState<Stats | null>(null);
-  const [error, setError] = useState("");
-  useEffect(() => { rpc<Stats>("prep_admin_stats").then(setS).catch(e => setError(thaiError(e))); }, []);
-  if (error) return <div className="pp-error">{error}</div>;
-  if (!s) return <div className="pp-spinner" />;
-  return (
-    <div className="pp-kpis">
-      <div className="pp-kpi"><b>{s.users}</b><span>ผู้ใช้ทั้งหมด</span></div>
-      <div className="pp-kpi"><b>{s.paid}</b><span>สมาชิกเสียเงิน</span></div>
-      <div className="pp-kpi"><b>{s.active_today}</b><span>ใช้งานวันนี้</span></div>
-      <div className="pp-kpi"><b>{s.answered_today}</b><span>ข้อที่ทำวันนี้</span></div>
-      <div className="pp-kpi"><b>{s.questions?.approved ?? 0}</b><span>ข้อสอบเผยแพร่</span></div>
-      <div className="pp-kpi"><b>{s.questions?.review ?? 0}</b><span>รอตรวจ</span></div>
-      <div className="pp-kpi"><b>{s.open_reports}</b><span>รายงานปัญหา</span></div>
-      <div className="pp-kpi"><b>{s.keys_unused}</b><span>คีย์ที่ยังไม่ใช้</span></div>
-    </div>
   );
 }
 

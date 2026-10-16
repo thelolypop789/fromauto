@@ -129,7 +129,7 @@ def build():
 <meta name="theme-color" content="#6E1423">
 <meta property="og:type" content="website"><meta property="og:url" content="{URL}">
 <meta property="og:title" content="{e(TITLE)}"><meta property="og:description" content="{e(DESC)}">
-<meta property="og:image" content="{BASE}/prep-og.jpg"><meta property="og:site_name" content="ซ้อมสอบ SOBPREP"><meta property="og:locale" content="th_TH">
+<meta property="og:image" content="{BASE}/prep-og-v2.jpg"><meta property="og:image:type" content="image/jpeg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:site_name" content="ซ้อมสอบ SOBPREP"><meta property="og:locale" content="th_TH">
 <meta name="twitter:card" content="summary_large_image">
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>{CSS}</style>

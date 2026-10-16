@@ -26,3 +26,18 @@
 .pp-event.past { opacity: .55; }
 .pp-event-when { font-size: 14px; color: var(--pp-muted); }
 .pp-upnext { display: grid; gap: 4px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--pp-line); font-size: 14px; }
+
+/* Home: exam countdown card (stands out from the white cards) */
+.pp-examcard { background: var(--pp-gold-soft); border: 2px solid var(--pp-gold-bright); border-radius: var(--pp-radius); padding: 16px; margin-bottom: 14px; display: grid; gap: 12px; box-shadow: var(--pp-shadow); }
+.pp-examcard-top { display: flex; align-items: center; gap: 14px; }
+.pp-examcard-count { display: flex; align-items: baseline; gap: 6px; flex: none; }
+.pp-examcard-count b { font-size: 52px; line-height: 1; color: var(--pp-primary); font-weight: 800; letter-spacing: -1px; }
+.pp-examcard-count span { font-size: 18px; font-weight: 700; color: var(--pp-primary-dark); }
+.pp-examcard-count .pp-examcard-none { font-size: 16px; color: var(--pp-muted); font-weight: 600; }
+.pp-examcard-title { display: grid; gap: 2px; font-weight: 700; line-height: 1.25; min-width: 0; }
+.pp-examcard-title small { font-weight: 500; color: var(--pp-muted); font-size: 13px; }
+.pp-examcard-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.pp-examcard-list li { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; background: #fff; border-radius: 12px; padding: 8px 10px; font-size: 14px; }
+.pp-examcard-ev { display: grid; line-height: 1.3; min-width: 0; font-weight: 600; }
+.pp-examcard-ev small { font-weight: 400; color: var(--pp-muted); font-size: 12.5px; }
+.pp-examcard-when { font-size: 12.5px; font-weight: 700; color: var(--pp-primary); white-space: nowrap; }

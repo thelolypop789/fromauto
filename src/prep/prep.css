@@ -676,3 +676,12 @@ div.pp-todo-item { cursor: default; }
 .pp-cmp-tick { position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1px; border-radius: 2px; background: var(--pp-ink); }
 .pp-delta { font-weight: 600; color: var(--pp-ink); }
 .pp-kpi small { display: block; margin-top: 2px; font-size: 12px; }
+
+/* Answer-key conflicts (admin) */
+.pp-conflict { border-top: 1px solid var(--pp-line); padding: 12px 0; display: grid; gap: 8px; }
+.pp-conflict-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 560px) { .pp-conflict-pair { grid-template-columns: 1fr; } }
+.pp-conflict-side { border: 1px solid var(--pp-line); border-radius: 12px; padding: 10px; display: grid; gap: 6px; font-size: 14px; }
+.pp-conflict-choices { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 2px; }
+.pp-conflict-choices li.right { color: var(--pp-ok); font-weight: 700; }
+.pp-conflict-choices li.right::after { content: " ✓ เฉลย"; font-size: 12px; }

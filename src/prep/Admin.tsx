@@ -12,7 +12,7 @@ import AdminCharts from "./AdminCharts";
 type Stats = { users: number; paid: number; answered_today: number; active_today: number;
   questions: Record<string, number> | null; open_reports: number; keys_unused: number };
 type KeyRow = { id: number; note: string | null; created_at: string; redeemed_at: string | null; redeemed_email: string | null; revoked_at: string | null;
-  package?: PackageKey; duration_days?: number | null; expires_on?: string | null; access_until?: string | null };
+  package?: PackageKey; free?: boolean; duration_days?: number | null; expires_on?: string | null; access_until?: string | null };
 const keyTerm = (r: { duration_days?: number | null; expires_on?: string | null }) =>
   r.expires_on ? `ถึง ${new Date(r.expires_on + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}`
     : r.duration_days ? (r.duration_days === 90 ? "รายรอบ 3 เดือน" : `${r.duration_days} วัน`) : "ซื้อขาด";
@@ -168,6 +168,7 @@ function KeysTab() {
   const [term, setTerm] = useState<"lifetime" | "days" | "until">("days");
   const [days, setDays] = useState(90);
   const [until, setUntil] = useState("");
+  const [free, setFree] = useState(false);
   const [fresh, setFresh] = useState<string[]>([]);
   const [error, setError] = useState("");
   const load = useCallback(() => { rpc<KeyRow[]>("prep_admin_list_keys").then(setRows).catch(e => setError(thaiError(e))); }, []);
@@ -179,7 +180,7 @@ function KeysTab() {
     try {
       setFresh(await rpc<string[]>("prep_admin_create_package_keys", {
         p_count: count, p_note: note.trim() || null, p_package: pkg,
-        p_duration_days: term === "days" ? days : null, p_expires_on: term === "until" ? until : null,
+        p_duration_days: term === "days" ? days : null, p_expires_on: term === "until" ? until : null, p_free: free,
       }));
       setNote(""); load();
     } catch (e) { alert(thaiError(e)); }
@@ -212,10 +213,14 @@ function KeysTab() {
         )}
         {term === "until" && <input className="pp-input" type="date" value={until} min={new Date().toISOString().slice(0, 10)} onChange={e => setUntil(e.target.value)} />}
         <p className="pp-muted small">ผู้ที่มีแพ็กเดิมแบบมีวันหมดอายุอยู่แล้ว คีย์ "ตามจำนวนวัน" จะต่อจากวันหมดอายุเดิม · คีย์ "ถึงวันที่" ใช้ได้ถึงสิ้นวันนั้น และกรอกไม่ได้หลังวันนั้น</p>
-        <input className="pp-input" placeholder="หมายเหตุ: ชื่อผู้ซื้อ / อีเมล / ยอด / เวลาโอน" value={note} onChange={e => setNote(e.target.value)} />
+        <label className="pp-group-head">
+          <input type="checkbox" checked={free} onChange={e => setFree(e.target.checked)} />
+          <span>แจกฟรี (ไม่นับเป็นสมาชิกที่จ่ายเงินในตัวเลขภาพรวม)</span>
+        </label>
+        <input className="pp-input" placeholder={free ? "หมายเหตุ: แจกให้ใคร / เพราะอะไร" : "หมายเหตุ: ชื่อผู้ซื้อ / อีเมล / ยอด / เวลาโอน"} value={note} onChange={e => setNote(e.target.value)} />
         <div className="pp-row">
           <input className="pp-input" type="number" min={1} max={50} value={count} onChange={e => setCount(Number(e.target.value) || 1)} style={{ width: 90 }} />
-          <button className="pp-btn pp-btn-primary" onClick={create}>สร้าง {count} คีย์ · {PACKAGE_LABEL[pkg]} · {term === "lifetime" ? "ซื้อขาด" : term === "days" ? (days === 90 ? "รายรอบ 3 เดือน" : `${days} วัน`) : until || "เลือกวันที่"}</button>
+          <button className="pp-btn pp-btn-primary" onClick={create}>สร้าง {count} คีย์{free ? "ฟรี" : ""} · {PACKAGE_LABEL[pkg]} · {term === "lifetime" ? "ซื้อขาด" : term === "days" ? (days === 90 ? "รายรอบ 3 เดือน" : `${days} วัน`) : until || "เลือกวันที่"}</button>
         </div>
         {fresh.length > 0 && (
           <div className="pp-success">
@@ -231,7 +236,7 @@ function KeysTab() {
         {rows?.map(r => (
           <div key={r.id} className="pp-keyrow">
             <div>
-              <div><span className="pp-pkg-badge small">{PACKAGE_LABEL[r.package ?? "ALL"]} · {keyTerm(r)}</span> {r.note || <span className="pp-muted">ไม่มีหมายเหตุ</span>}</div>
+              <div><span className="pp-pkg-badge small">{PACKAGE_LABEL[r.package ?? "ALL"]} · {keyTerm(r)}{r.free ? " · ฟรี" : ""}</span> {r.note || <span className="pp-muted">ไม่มีหมายเหตุ</span>}</div>
               <div className="pp-muted small">
                 สร้าง {fmt(r.created_at)}
                 {r.redeemed_at ? ` · ใช้โดย ${r.redeemed_email ?? "?"} ${fmt(r.redeemed_at)} · สิทธิ์${fmtUntil(r.access_until ?? null)}` : " · ยังไม่ใช้"}

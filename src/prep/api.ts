@@ -91,6 +91,7 @@ const ERRORS: Record<string, string> = {
   nothing_to_upgrade: "ตัวเลือกนี้ไม่ต้องซื้อหรือไม่คุ้มสำหรับบัญชีของคุณ ลองเลือกแบบอื่น (เช่น ซื้อขาด)",
   invalid_price: "ราคาไม่ถูกต้อง",
   nothing_to_review: "ยังไม่มีข้อให้ทวน ทำชุดฝึกก่อน ข้อที่ตอบผิดจะมารอทวนที่นี่",
+  network_timeout: "เครือข่ายช้าหรือหลุด ลองใหม่อีกครั้ง",
   mock_locked: "วิชานี้ต้องมีแพ็กที่ครอบคลุม (ทดลองฟรีได้เฉพาะภาษาอังกฤษ 1 ครั้ง)",
   no_major: "กรุณาเลือกวิชาเอกในหน้าบัญชีก่อน",
   time_up: "หมดเวลาแล้ว ระบบส่งข้อสอบให้อัตโนมัติ",
@@ -103,9 +104,11 @@ export function thaiError(e: unknown): string {
   return ERRORS[msg] ?? msg;
 }
 
+// A request that never answers (bad network, stuck connection) must end in an error the screen can show,
+// not an endless spinner. 30s is far above any normal call.
 export async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.rpc(fn, args);
-  if (error) throw new Error(error.message);
+  const { data, error } = await supabase.rpc(fn, args).abortSignal(AbortSignal.timeout(30_000));
+  if (error) throw new Error(error.name === "AbortError" || /abort/i.test(error.message) ? "network_timeout" : error.message);
   return data as T;
 }
 

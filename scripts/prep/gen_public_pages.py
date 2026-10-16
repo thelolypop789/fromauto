@@ -69,7 +69,7 @@ def head(title, desc, path, extra=""):
 <link rel="icon" href="/prep-icons/favicon-32.png">
 <meta property="og:type" content="website"><meta property="og:url" content="{url}">
 <meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(desc)}">
-<meta property="og:image" content="{BASE}/prep-og.jpg"><meta property="og:site_name" content="ซ้อมสอบ SOBPREP"><meta property="og:locale" content="th_TH">
+<meta property="og:image" content="{BASE}/prep-og-v2.jpg"><meta property="og:image:type" content="image/jpeg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:site_name" content="ซ้อมสอบ SOBPREP"><meta property="og:locale" content="th_TH">
 <meta name="twitter:card" content="summary_large_image">
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>{CSS}</style>{extra}</head><body>
@@ -136,7 +136,7 @@ def main(src):
     idx = (head("ตัวอย่างข้อสอบครูผู้ช่วย พร้อมเฉลย ภาค ก ภาค ข วิชาเอก | ซ้อมสอบ SOBPREP", idx_desc, "/prep/sample/")
            + f'<h1>ตัวอย่างข้อสอบครูผู้ช่วย พร้อมเฉลย</h1><p class="lead">{idx_desc} เลือกวิชาที่ต้องการ</p>{cards}{FOOT}')
     (OUT / "index.html").write_text(idx, encoding="utf-8")
-    urls = [f"{BASE}/prep", f"{BASE}/prep/guide", f"{BASE}/prep/sample/"] + [BASE + p for p in pages]
+    urls = [f"{BASE}/prep", f"{BASE}/prep/welcome/", f"{BASE}/prep/guide", f"{BASE}/prep/sample/"] + [BASE + p for p in pages]
     today = date.today().isoformat()
     sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "".join(
         f"  <url><loc>{u}</loc><lastmod>{today}</lastmod></url>\n" for u in urls) + "</urlset>\n"

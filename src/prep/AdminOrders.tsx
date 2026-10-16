@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, supabase, thaiError, type PackageKey } from "./api";
+import AdminPrices from "./AdminPrices";
 import { IconCheck, IconX } from "./icons";
 
 type Row = {
-  id: number; email: string | null; package: PackageKey; term: "round" | "lifetime"; amount: number | null;
+  id: number; email: string | null; package: PackageKey; term: "round" | "lifetime"; amount: number | null; credit: number; list_price: number | null;
   slip_path: string; note: string | null; status: "pending" | "approved" | "rejected"; admin_note: string | null;
   created_at: string; reviewed_at: string | null; active_packages: PackageKey[];
 };
@@ -35,6 +36,7 @@ export default function AdminOrders({ onChanged }: { onChanged?: () => void }) {
       {!rows && !error && <div className="pp-spinner" />}
       {rows?.length === 0 && <div className="pp-card pp-empty"><p className="pp-muted">ไม่มีรายการ</p></div>}
       {rows?.map(r => <OrderCard key={r.id} r={r} onDone={done} />)}
+      <AdminPrices />
     </>
   );
 }
@@ -76,6 +78,9 @@ function OrderCard({ r, onDone }: { r: Row; onDone: (id: number) => void }) {
             <b>{TERM_LABEL[r.term]}{r.amount ? ` · ${r.amount} บาท` : ""}</b>
           </div>
           <div>{r.email ?? "-"}</div>
+          <div className={r.credit ? "pp-note" : "pp-muted small"}>
+            {r.credit ? `อัปเกรด: ราคาเต็ม ${r.list_price ?? "-"} − หักแพ็กเดิม ${r.credit} = ${r.amount} บาท` : `ราคาแพ็ก ${r.list_price ?? "-"} บาท`} · ยอดในสลิปต้องเป็น {r.amount} บาท
+          </div>
           <div className="pp-muted small">#{r.id} · ส่งเมื่อ {fmt(r.created_at)}{r.reviewed_at ? ` · ตรวจเมื่อ ${fmt(r.reviewed_at)}` : ""}</div>
           {r.note && <div className="small">หมายเหตุผู้ซื้อ: {r.note}</div>}
           <div className="pp-muted small">แพ็กที่มีอยู่ตอนนี้: {r.active_packages.length ? r.active_packages.map(k => PACKAGE_LABEL[k]).join(", ") : "ไม่มี"}</div>

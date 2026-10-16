@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { PACKAGE_LABEL, fmtUntil, rpc, supabase, thaiError, type Me, type PackageKey, type Profile } from "./api";
+import { useEffect, useState } from "react";
+import { PACKAGE_LABEL, fmtUntil, rpc, supabase, thaiError, type Me, type PackageKey, type Price, type Profile } from "./api";
 import MajorPicker from "./MajorPicker";
 import { PACKAGES, SHOP } from "./config";
 import { IconCheck, IconCrown, IconLogout } from "./icons";
@@ -14,6 +14,12 @@ export default function Account({ me, email, profile, onMajor, onChanged }: Prop
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [prices, setPrices] = useState<Price[]>([]);
+  useEffect(() => { rpc<Price[]>("prep_prices").then(setPrices).catch(() => { /* falls back to config */ }); }, []);
+  const priceOf = (k: PackageKey, t: "round" | "lifetime", fallback: string) => {
+    const x = prices.find(y => y.package === k && y.term === t);
+    return x ? `${x.amount} บาท` : fallback;
+  };
   const pkgs = me.packages ?? [];
   const owned = new Set(pkgs.map(p => p.package));
   const lifetimeAll = pkgs.some(p => p.package === "ALL" && !p.expires_at);
@@ -50,6 +56,8 @@ export default function Account({ me, email, profile, onMajor, onChanged }: Prop
           <button className="pp-btn pp-btn-ghost" onClick={() => supabase.auth.signOut()} aria-label="ออกจากระบบ"><IconLogout />ออก</button>
         </div>
       </div>
+
+      <div className="pp-card"><a className="pp-btn pp-btn-ghost pp-wide" href="/prep/guide">คู่มือการใช้งาน</a></div>
 
       <div className="pp-card pp-major-card">
         <div>
@@ -91,8 +99,8 @@ export default function Account({ me, email, profile, onMajor, onChanged }: Prop
                 <b>{p.name}</b>
                 <span className="pp-muted small">{p.desc}</span>
                 <div className="pp-pkg-prices">
-                  <div><span>รายรอบ 3 เดือน</span><b>{p.round || "สอบถาม"}</b></div>
-                  <div><span>ซื้อขาด</span><b>{p.lifetime || "สอบถาม"}</b></div>
+                  <div><span>รายรอบ 3 เดือน</span><b>{priceOf(p.key, "round", p.round) || "สอบถาม"}</b></div>
+                  <div><span>ซื้อขาด</span><b>{priceOf(p.key, "lifetime", p.lifetime) || "สอบถาม"}</b></div>
                 </div>
                 {owned.has(p.key) && <span className="pp-mine">มีแล้ว · ซื้อซ้ำเพื่อต่ออายุ</span>}
               </div>
@@ -100,7 +108,7 @@ export default function Account({ me, email, profile, onMajor, onChanged }: Prop
           </div>
           <h3>วิธีซื้อ</h3>
           <ol className="pp-list">
-            <li>เลือกแพ็กและแบบ (รายรอบ / ซื้อขาด) ด้านล่าง</li>
+            <li>เลือกแพ็กและแบบ (รายรอบ / ซื้อขาด) ด้านล่าง · มีแพ็กอยู่แล้วและอยากได้เพิ่ม ระบบคิดให้จ่ายแค่ส่วนต่าง</li>
             <li>สแกน QR ที่ขึ้นมา (ยอดเงินตรงตามแพ็กแล้ว ไม่ต้องพิมพ์เอง){SHOP.bankText ? ` · ${SHOP.bankText}` : ""}</li>
             <li>แนบรูปสลิปแล้วกดส่ง</li>
             <li>ทีมงานตรวจยอดแล้วเปิดสิทธิ์ให้บัญชีนี้ ({email}) ไม่ต้องกรอกคีย์{SHOP.contactText ? ` · สอบถาม: ${SHOP.contactText}` : ""}</li>

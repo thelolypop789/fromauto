@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { GROUPS, PASS_PCT, SECTIONS, rpc, thaiError, type Dashboard, type Me, type Profile, type SetSummary } from "./api";
+import { GROUPS, PASS_PCT, SECTIONS, rpc, thaiError, type Dashboard, type Me, type Profile, type ReviewCounts, type SetSummary } from "./api";
 import MajorPicker from "./MajorPicker";
 import type { Preset } from "./CreateSet";
 import { IconCheck, IconCrown, IconPlus, IconTarget } from "./icons";
 import InstallBanner from "./InstallBanner";
+import ExpiryBanner from "./ExpiryBanner";
 
 type Props = {
   me: Me;
@@ -11,17 +12,22 @@ type Props = {
   onMajor: (code: string, name: string) => void;
   onCreate: (preset?: Preset) => void;
   onStart: (setId: string, mode: "full" | "wrong") => void;
+  onReview: (kind: "due" | "wrong") => void;
+  onDaily: () => void;
+  onMock: () => void;
   onUpgrade: () => void;
 };
 
-export default function Home({ me, profile, onMajor, onCreate, onStart, onUpgrade }: Props) {
+export default function Home({ me, profile, onMajor, onCreate, onStart, onReview, onDaily, onMock, onUpgrade }: Props) {
   const [picking, setPicking] = useState(false);
   const [sets, setSets] = useState<SetSummary[] | null>(null);
   const [error, setError] = useState("");
   const [dash, setDash] = useState<Dashboard | null>(null);
+  const [counts, setCounts] = useState<ReviewCounts | null>(null);
 
   useEffect(() => {
     rpc<SetSummary[]>("prep_list_sets").then(setSets).catch(e => setError(thaiError(e)));
+    rpc<ReviewCounts>("prep_review_counts").then(setCounts).catch(() => { /* tiles show without counts */ });
     rpc<Dashboard>("prep_dashboard").then(setDash).catch(() => { /* explorer just shows without progress */ });
   }, []);
 
@@ -32,6 +38,7 @@ export default function Home({ me, profile, onMajor, onCreate, onStart, onUpgrad
 
   return (
     <>
+      <ExpiryBanner me={me} onRenew={onUpgrade} />
       <InstallBanner />
 
       <section className="pp-hero">
@@ -50,6 +57,24 @@ export default function Home({ me, profile, onMajor, onCreate, onStart, onUpgrad
           <div><b>{me.plan === "paid" ? "∞" : freeLeft}</b><span>{me.plan === "paid" ? "สร้างได้" : "ชุดฟรีคงเหลือ"}</span></div>
         </div>
       </section>
+
+      <div className="pp-h"><h2>ฝึกแบบอื่น</h2></div>
+      <div className="pp-modes pp-modes-home">
+        <button onClick={onMock}>
+          <b>จำลองสอบจริง</b><span>จำนวนข้อและเวลาเท่าสนามจริง ไม่เฉลยจนส่ง</span>
+        </button>
+        <button onClick={onDaily}>
+          <b>ข้อสอบประจำวัน</b><span>10 ข้อ ทุกคนได้ชุดเดียวกัน · ฟรี</span>
+        </button>
+        <button disabled={!counts || counts.due === 0} onClick={() => onReview("due")}>
+          <b>ทบทวนวันนี้{counts ? ` (${counts.due})` : ""}</b>
+          <span>{counts && counts.due === 0 ? "ยังไม่มีข้อถึงรอบทวน" : "ข้อที่ผิดมา ถึงรอบทวนตามเวลา"}</span>
+        </button>
+        <button disabled={!counts || counts.wrong === 0} onClick={() => onReview("wrong")}>
+          <b>ทวนข้อผิดทั้งหมด{counts ? ` (${counts.wrong})` : ""}</b>
+          <span>{counts && counts.wrong === 0 ? "ไม่มีข้อที่ยังผิดอยู่" : "รวมข้อที่ยังตอบผิด จากทุกชุด"}</span>
+        </button>
+      </div>
 
       <div className="pp-h"><h2>เลือกฝึกตามภาค</h2><span className="pp-muted small">แตะหมวดเพื่อเริ่ม</span></div>
       <div className="pp-explore">

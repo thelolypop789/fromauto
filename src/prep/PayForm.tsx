@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, supabase, thaiError, type Order, type PackageKey } from "./api";
+import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, supabase, thaiError, type Order, type PackageKey, type Quote } from "./api";
 import { PACKAGES, SHOP } from "./config";
 import { IconCheck } from "./icons";
 
@@ -7,7 +7,6 @@ const ORDER_STATUS: Record<Order["status"], [string, string]> = {
   pending: ["รอตรวจสอบ", "warn"], approved: ["อนุมัติแล้ว", "ok"], rejected: ["ไม่ผ่าน", "bad"],
 };
 const fmt = (s: string) => new Date(s).toLocaleString("th-TH", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-const baht = (s: string) => Number(s.replace(/[^\d]/g, "")) || null;
 
 // Phone photos are large: re-encode to a JPEG of at most 1600px. Formats the browser cannot
 // decode (HEIC outside Safari) are uploaded as they are.
@@ -30,28 +29,41 @@ async function shrink(file: File): Promise<{ blob: Blob; type: string; ext: stri
 }
 
 export default function PayForm({ email, onApproved }: { email: string; onApproved: () => void }) {
-  const [pkg, setPkg] = useState<PackageKey>("ALL");
-  const [term, setTerm] = useState<"round" | "lifetime">("round");
+  const [choice, setChoice] = useState<{ pkg: PackageKey; term: "round" | "lifetime" } | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [quotes, setQuotes] = useState<Quote[] | null>(null);
 
   // Refresh the account when an order was approved since the page loaded data last.
-  const load = useCallback(() => rpc<Order[]>("prep_my_orders").then(o => {
+  const load = useCallback(() => { rpc<Quote[]>("prep_quotes").then(setQuotes).catch(() => {
+      // Server pricing not available (older database): fall back to the list prices in config.
+      setQuotes(PACKAGES.flatMap(k => (["round", "lifetime"] as const).map(t => {
+        const amount = Number((t === "round" ? k.round : k.lifetime).replace(/\D/g, "")) || undefined;
+        return { package: k.key, term: t, base: amount, credit: 0, amount, kind: "new" as const, expires_at: undefined };
+      })));
+    }); return rpc<Order[]>("prep_my_orders").then(o => {
     setOrders(o);
     if (o.some(x => x.status === "approved" && x.reviewed_at && Date.now() - new Date(x.reviewed_at).getTime() < 600_000)) onApproved();
-  }).catch(() => { /* list is optional */ }), [onApproved]);
+  }).catch(() => { /* list is optional */ }); }, [onApproved]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
-  const info = PACKAGES.find(p => p.key === pkg)!;
-  const price = term === "round" ? info.round : info.lifetime;
-  const amount = baht(price);
-  const qr = (amount && SHOP.qrByAmount[amount]) || SHOP.qrImage;
+  // The server prices every choice for this account (full price, or the difference when upgrading).
+  const quoteOf = (k: PackageKey, t: "round" | "lifetime") => quotes?.find(x => x.package === k && x.term === t);
+  // Until the buyer picks, show the first choice that can actually be bought (e.g. the upgrade offer).
+  const firstOpen = (["ALL", "B", "A"] as const).flatMap(k => (["round", "lifetime"] as const).map(t => ({ pkg: k as PackageKey, term: t })))
+    .find(c => { const x = quoteOf(c.pkg, c.term); return !!x && !x.error; });
+  const { pkg, term } = choice ?? firstOpen ?? { pkg: "ALL" as PackageKey, term: "round" as const };
+  const q = quoteOf(pkg, term);
+  const amount = q && !q.error ? q.amount ?? null : null;
+  const price = amount ? `${amount} บาท` : "";
+  const qr = amount ? SHOP.qrByAmount[amount] || SHOP.qrImage : "";
   const fixed = !!(amount && SHOP.qrByAmount[amount]);
+  const offers = (quotes ?? []).filter(x => x.kind === "upgrade" && !x.error && x.package === "ALL");
 
   const pick = (f: File | undefined) => {
     if (!f) return;
@@ -68,10 +80,10 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
       const uid = data.session?.user.id;
       if (!uid) throw new Error("not_authenticated");
       const img = await shrink(file);
-      const path = `${uid}/${Date.now()}.${img.ext}`;
+      const path = `${uid}/${crypto.randomUUID()}.${img.ext}`;
       const up = await supabase.storage.from("prep-slips").upload(path, img.blob, { contentType: img.type, upsert: false });
       if (up.error) throw up.error;
-      await rpc("prep_submit_order", { p_package: pkg, p_term: term, p_amount: baht(price), p_slip_path: path, p_note: note.trim() || null });
+      await rpc("prep_submit_order", { p_package: pkg, p_term: term, p_amount: amount, p_slip_path: path, p_note: note.trim() || null });
       setMsg({ ok: true, text: "ส่งสลิปแล้ว ทีมงานจะตรวจและเปิดสิทธิ์ให้โดยเร็ว ดูสถานะได้ด้านล่าง" });
       setFile(null); setPreview(""); setNote("");
       load();
@@ -82,18 +94,41 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
   return (
     <div className="pp-payform">
       <h3>ซื้อแพ็ก</h3>
+      {offers.length > 0 && (
+        <div className="pp-note pp-offer">
+          <b>มีแพ็กอยู่แล้ว? อัปเกรดเป็นครบทุกภาค จ่ายแค่ส่วนต่าง</b>
+          <div className="pp-row">
+            {offers.map(o => (
+              <button key={o.term} className="pp-btn pp-btn-gold" onClick={() => setChoice({ pkg: "ALL", term: o.term })}>
+                {TERM_LABEL[o.term]} · จ่ายเพิ่ม {o.amount} บาท
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <label className="small pp-muted"><span className="pp-step">1</span>เลือกแพ็ก</label>
       <div className="pp-seg">
-        {PACKAGES.map(p => <button key={p.key} className={pkg === p.key ? "on" : ""} onClick={() => setPkg(p.key)}>{PACKAGE_LABEL[p.key]}</button>)}
+        {PACKAGES.map(p => <button key={p.key} className={pkg === p.key ? "on" : ""} onClick={() => setChoice({ pkg: p.key, term })}>{PACKAGE_LABEL[p.key]}</button>)}
       </div>
       <div className="pp-seg">
         {(["round", "lifetime"] as const).map(t => (
-          <button key={t} className={term === t ? "on" : ""} onClick={() => setTerm(t)}>
-            {TERM_LABEL[t]} · {(t === "round" ? info.round : info.lifetime) || "สอบถาม"}
+          <button key={t} className={term === t ? "on" : ""} onClick={() => setChoice({ pkg, term: t })}>
+            {TERM_LABEL[t]} · {(() => {
+              const x = quoteOf(pkg, t);
+              if (!x) return "…";
+              if (x.error) return "ไม่ต้องซื้อ";
+              return x.credit ? <><s>{x.base}</s> {x.amount} บาท</> : `${x.amount} บาท`;
+            })()}
           </button>
         ))}
       </div>
       <label className="small pp-muted"><span className="pp-step">2</span>สแกนจ่าย {price && <b className="pp-paysum">{price}</b>}</label>
+      {q?.error && <div className="pp-note">{thaiError(q.error)}</div>}
+      {q && !q.error && q.credit ? (
+        <p className="pp-note">อัปเกรด: ราคาเต็ม {q.base} − หักแพ็กเดิมที่จ่ายแล้ว {q.credit} = <b>{q.amount} บาท</b> · สิทธิ์ที่ได้ {PACKAGE_LABEL[pkg]} {fmtUntil(q.expires_at ?? null)}</p>
+      ) : q && !q.error && q.expires_at ? (
+        <p className="pp-muted small">สิทธิ์ที่ได้ {PACKAGE_LABEL[pkg]} {fmtUntil(q.expires_at)}</p>
+      ) : null}
       {qr && (
         <div className="pp-payqr">
           <img key={qr} src={qr} alt={`QR ชำระเงิน ${price}`} width={337} height={438} />
@@ -114,7 +149,7 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
         </>}
       </label>
       <input className="pp-input" maxLength={300} placeholder="หมายเหตุ (ไม่บังคับ) เช่น เวลาโอน" value={note} onChange={e => setNote(e.target.value)} />
-      <button className="pp-btn pp-btn-gold pp-wide" disabled={!file || busy} onClick={send}>
+      <button className="pp-btn pp-btn-gold pp-wide" disabled={!file || busy || !amount} onClick={send}>
         {busy ? "กำลังส่ง..." : `ส่งสลิป · ${PACKAGE_LABEL[pkg]} ${TERM_LABEL[term]}${price ? ` · ${price}` : ""}`}
       </button>
       <p className="pp-muted small">บัญชีที่จะได้รับสิทธิ์: {email} · ปกติตรวจภายในวันเดียวกัน</p>

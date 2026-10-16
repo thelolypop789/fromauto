@@ -87,6 +87,15 @@ const ERRORS: Record<string, string> = {
   invalid_slip: "อัปโหลดสลิปไม่สำเร็จ ลองใหม่อีกครั้ง",
   too_many_orders: "มีรายการรอตรวจอยู่แล้ว 3 รายการ กรุณารอทีมงานตรวจก่อน",
   already_reviewed: "รายการนี้ตรวจไปแล้ว",
+  already_owned: "คุณมีสิทธิ์ตามแพ็กนี้แบบซื้อขาดอยู่แล้ว",
+  nothing_to_upgrade: "ตัวเลือกนี้ไม่ต้องซื้อหรือไม่คุ้มสำหรับบัญชีของคุณ ลองเลือกแบบอื่น (เช่น ซื้อขาด)",
+  invalid_price: "ราคาไม่ถูกต้อง",
+  nothing_to_review: "ยังไม่มีข้อให้ทวน ทำชุดฝึกก่อน ข้อที่ตอบผิดจะมารอทวนที่นี่",
+  mock_locked: "วิชานี้ต้องมีแพ็กที่ครอบคลุม (ทดลองฟรีได้เฉพาะภาษาอังกฤษ 1 ครั้ง)",
+  no_major: "กรุณาเลือกวิชาเอกในหน้าบัญชีก่อน",
+  time_up: "หมดเวลาแล้ว ระบบส่งข้อสอบให้อัตโนมัติ",
+  invalid_subject: "ไม่พบวิชานี้",
+  pack_expired: "แพ็กของชุดนี้หมดอายุแล้ว ต่ออายุเพื่อทำชุดนี้ต่อ (ผลและประวัติเดิมยังดูได้)",
 };
 
 export function thaiError(e: unknown): string {
@@ -178,6 +187,18 @@ export function covers(me: Me, sections: string[]): boolean {
   return sections.length > 0 && sections.every(s => owned.has(s as PackageKey));
 }
 
+// Round packages that end within `days` days and are not covered by another longer-lived package.
+export function expiringSoon(me: Me, now: number, days = 7): { package: PackageKey; expires_at: string; left: number }[] {
+  const pk = me.packages ?? [];
+  const soonMs = now + days * 86_400_000;
+  const lasts = (k: PackageKey) => { const p = pk.find(x => x.package === k); return !!p && (p.expires_at === null || new Date(p.expires_at).getTime() > soonMs); };
+  return pk.flatMap(p => {
+    if (!p.expires_at || new Date(p.expires_at).getTime() > soonMs) return [];
+    const covered = p.package === "ALL" ? lasts("A") && lasts("B") : lasts("ALL");
+    return covered ? [] : [{ package: p.package, expires_at: p.expires_at, left: Math.max(1, Math.ceil((new Date(p.expires_at).getTime() - now) / 86_400_000)) }];
+  });
+}
+
 export const fmtUntil = (iso: string | null) =>
   iso ? `ถึง ${new Date(new Date(iso).getTime() - 1).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}` : "ตลอดชีพ";
 
@@ -185,5 +206,35 @@ export type Order = {
   id: number; package: PackageKey; term: "round" | "lifetime"; amount: number | null;
   status: "pending" | "approved" | "rejected"; admin_note: string | null;
   created_at: string; reviewed_at: string | null; access_until?: string | null;
+};
+export type Price = { package: PackageKey; term: "round" | "lifetime"; amount: number };
+// Server price for this account: credit is deducted when the buyer already holds part of the package.
+export type Quote = {
+  package: PackageKey; term: "round" | "lifetime"; base?: number; credit?: number; amount?: number;
+  kind?: "new" | "renew" | "upgrade"; expires_at?: string | null; error?: string;
+};
+export type ReviewCounts = { due: number; wrong: number };
+export type DailyItem = {
+  idx: number; stem: string; choices: string[]; picked: number | null;
+  correct?: boolean; answer?: number; explanation?: string; pct_correct?: number | null;
+};
+export type Daily = { day: string; items: DailyItem[]; done: boolean; score: number; total: number; streak: number; players: number };
+export type MockSubject = {
+  code: string; section: "A" | "B"; name: string; questions: number; minutes: number; available: number;
+  reason: "no_major" | "not_enough_questions" | null; access: "pack" | "free_trial" | "locked";
+  best: number | null; tries: number; open: { id: string; deadline: string } | null;
+};
+export type MockOverview = { subjects: MockSubject[]; server_now: string; major_name: string | null };
+export type MockItem = {
+  idx: number; question_id: number; topic: string; stem: string; choices: string[]; picked: number | null;
+  answer?: number; correct?: boolean; explanation?: string; law_ref?: string | null;
+};
+export type MockResultData = {
+  score: number; total: number; pct: number; used_seconds: number; answered: number; players: number;
+  percentile: number | null; per_topic: { topic: string; n: number; correct: number }[];
+};
+export type MockPayload = {
+  attempt_id: string; subject: string; name: string; minutes: number; started_at: string; deadline: string;
+  server_now: string; submitted: boolean; free_trial: boolean; items: MockItem[]; result: MockResultData | null;
 };
 export const TERM_LABEL = { round: "รายรอบ 3 เดือน", lifetime: "ซื้อขาด" } as const;

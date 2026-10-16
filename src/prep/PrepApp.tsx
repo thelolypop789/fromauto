@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { rpc, supabase, thaiError, type Me, type Profile, type Round, type SubmitResult } from "./api";
+import { rpc, supabase, thaiError, type Me, type MockPayload, type Profile, type Round, type SubmitResult } from "./api";
 import Login from "./Login";
 import Home from "./Home";
 import CreateSet, { type Preset } from "./CreateSet";
@@ -9,6 +9,11 @@ import RoundResult from "./RoundResult";
 import Stats from "./Stats";
 import Account from "./Account";
 import Admin from "./Admin";
+import Guide from "./Guide";
+import DailyQuiz from "./DailyQuiz";
+import MockHome from "./MockHome";
+import MockPlayer from "./MockPlayer";
+import MockResult from "./MockResult";
 import { IconChart, IconCrown, IconHome, IconShield, IconUser, Logo } from "./icons";
 import { setupPwa } from "./pwa";
 import "./prep.css";
@@ -21,6 +26,10 @@ type View =
   | { name: "play"; round: Round }
   | { name: "result"; result: SubmitResult; title: string }
   | { name: "stats" }
+  | { name: "daily" }
+  | { name: "mock" }
+  | { name: "mockplay"; payload: MockPayload }
+  | { name: "mockresult"; payload: MockPayload }
   | { name: "account" }
   | { name: "admin" };
 
@@ -33,7 +42,7 @@ function planLabel(me: Me) {
   return "สมาชิก";
 }
 
-export default function PrepApp() {
+function PrepShell() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [me, setMe] = useState<Me | null>(null);
   const [profile, setProfile] = useState<Profile>({ major: null, major_name: null });
@@ -61,6 +70,16 @@ export default function PrepApp() {
       const round = await rpc<Round>("prep_start_round", { p_set: setId, p_mode: mode });
       setView({ name: "play", round });
       window.scrollTo(0, 0);
+    } catch (e) {
+      alert(thaiError(e));
+      if (e instanceof Error && e.message === "pack_expired") go("account");
+    }
+  };
+
+  const startReview = async (kind: "due" | "wrong") => {
+    try {
+      const id = await rpc<string>("prep_create_review_set", { p_kind: kind });
+      await startRound(id, "full");
     } catch (e) { alert(thaiError(e)); }
   };
 
@@ -73,6 +92,17 @@ export default function PrepApp() {
           <button className="pp-btn pp-btn-primary" onClick={refreshMe}>ลองใหม่</button></div>
           : <div className="pp-spinner" />}
       </div>
+    );
+  }
+
+  if (view.name === "mockplay") {
+    return (
+      <MockPlayer
+        key={view.payload.attempt_id}
+        payload={view.payload}
+        onExit={() => setView({ name: "mock" })}
+        onDone={payload => { setView({ name: "mockresult", payload }); window.scrollTo(0, 0); refreshMe(); }}
+      />
     );
   }
 
@@ -92,7 +122,7 @@ export default function PrepApp() {
     { key: "account", label: me.plan === "paid" ? "บัญชี" : "อัปเกรด", icon: me.plan === "paid" ? <IconUser /> : <IconCrown /> },
     ...(me.is_admin ? [{ key: "admin" as const, label: "แอดมิน", icon: <IconShield /> }] : []),
   ];
-  const active = (k: View["name"]) => view.name === k || (k === "home" && (view.name === "create" || view.name === "result"));
+  const active = (k: View["name"]) => view.name === k || (k === "home" && (view.name === "create" || view.name === "result" || view.name === "daily" || view.name === "mock" || view.name === "mockresult"));
   const go = (k: View["name"]) => { setView({ name: k } as View); window.scrollTo(0, 0); };
   const practice = (preset?: Preset) => { setView({ name: "create", preset }); window.scrollTo(0, 0); };
 
@@ -114,11 +144,15 @@ export default function PrepApp() {
         </div>
       </header>
       <main className="pp-main">
-        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onCreate={practice} onStart={startRound} onUpgrade={() => go("account")} />}
+        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onUpgrade={() => go("account")} />}
         {view.name === "create" && <CreateSet me={me} major={profile.major} preset={view.preset} onCancel={() => go("home")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} onUpgrade={() => go("account")} />}
         {view.name === "result" && <RoundResult result={view.result} title={view.title} me={me} onStart={startRound}
           onHome={() => go("home")} onUpgrade={() => go("account")} />}
+        {view.name === "daily" && <DailyQuiz onBack={() => go("home")} />}
+        {view.name === "mock" && <MockHome onBack={() => go("home")} onUpgrade={() => go("account")} onAccount={() => go("account")}
+          onOpen={payload => { setView(payload.submitted ? { name: "mockresult", payload } : { name: "mockplay", payload }); window.scrollTo(0, 0); }} />}
+        {view.name === "mockresult" && <MockResult payload={view.payload} onBack={() => go("mock")} onReview={() => startReview("wrong")} />}
         {view.name === "stats" && <Stats me={me} onPractice={practice} />}
         {view.name === "account" && <Account me={me} email={session.user.email ?? ""} profile={profile} onMajor={setMajor} onChanged={refreshMe} />}
         {view.name === "admin" && me.is_admin && <Admin />}
@@ -132,4 +166,9 @@ export default function PrepApp() {
       </nav>
     </div>
   );
+}
+
+// The guide is public: it must open without signing in, so it is chosen before any auth work starts.
+export default function PrepApp() {
+  return /^\/prep\/guide\/?$/.test(window.location.pathname) ? <Guide /> : <PrepShell />;
 }

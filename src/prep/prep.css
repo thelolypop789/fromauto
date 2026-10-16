@@ -676,3 +676,13 @@ div.pp-todo-item { cursor: default; }
 .pp-cmp-tick { position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1px; border-radius: 2px; background: var(--pp-ink); }
 .pp-delta { font-weight: 600; color: var(--pp-ink); }
 .pp-kpi small { display: block; margin-top: 2px; font-size: 12px; }
+
+/* Study plan + LINE card on home */
+.pp-plan-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.pp-plan-count { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.pp-plan-count b { font-size: 34px; line-height: 1; color: var(--pp-primary); }
+.pp-plan-count span { color: var(--pp-muted); font-size: 14px; }
+.pp-plan-goal { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 12px 0 6px; font-size: 15px; }
+.pp-linecard { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pp-linecard > div:first-child { display: grid; gap: 2px; }
+.pp-btn-line { background: #06C755; color: #fff; border: 0; }

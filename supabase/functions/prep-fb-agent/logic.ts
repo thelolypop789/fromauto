@@ -1,6 +1,6 @@
 // Pure helpers for the Facebook page agent (no Deno / network here, so they can be unit-tested with node).
 
-export const GRAPH = "https://graph.facebook.com/v21.0";
+export const GRAPH = "https://graph.facebook.com/v26.0";
 
 export type GraphError = { message: string; code?: number; error_subcode?: number; type?: string };
 export type Explained = { message: string; tokenProblem: boolean; retryLater: boolean };

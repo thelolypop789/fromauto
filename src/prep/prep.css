@@ -752,3 +752,27 @@ div.pp-todo-item { cursor: default; }
 .pp-mj-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 8px; margin-top: 8px; font-size: 13px; color: var(--pp-muted); }
 .pp-mj-grid b { color: var(--pp-ink, #2A1418); }
 .pp-mj-topics { margin: 6px 0 0; padding-left: 20px; font-size: 14px; }
+
+.pp-tm-sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+.pp-tm-sum > div { background: #F6F1EC; border-radius: 12px; padding: 10px 8px; text-align: center; display: grid; gap: 3px; }
+.pp-tm-sum b { font-size: 19px; color: var(--pp-primary); line-height: 1.25; }
+.pp-tm-band { margin: 10px 0; }
+.pp-tm-bandh { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px; }
+.pp-tm-band.top .pp-tm-bandh { font-weight: 700; color: var(--pp-primary); }
+.pp-tm-band .pp-bar { margin-top: 0; }
+.pp-tm-cols { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; height: 130px; align-items: end; margin-top: 8px; }
+.pp-tm-col { appearance: none; border: 0; background: transparent; padding: 0; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; cursor: pointer; position: relative; }
+.pp-tm-col i { display: block; background: var(--pp-primary); border-radius: 4px 4px 0 0; opacity: .75; }
+.pp-tm-col.peak i { background: var(--pp-gold-bright); opacity: 1; }
+.pp-tm-col span { font-size: 10px; color: var(--pp-muted); text-align: center; height: 14px; line-height: 14px; margin-top: 2px; }
+.pp-tm-tip { margin-top: 10px; font-size: 14px; font-weight: 600; min-height: 22px; color: var(--pp-primary); }
+.pp-tm-heat { display: grid; gap: 3px; }
+.pp-tm-row { display: grid; grid-template-columns: 26px repeat(24, 1fr); gap: 2px; align-items: center; }
+.pp-tm-hl { font-size: 10px; color: var(--pp-muted); overflow: visible; white-space: nowrap; }
+.pp-tm-dl { font-size: 12px; color: var(--pp-muted); }
+.pp-tm-cell { appearance: none; border: 0; padding: 0; height: 16px; min-width: 0; border-radius: 3px; background: #F1E9E3; cursor: pointer; }
+.pp-tm-row > * { min-width: 0; }
+.pp-tm-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+.pp-tm-seg > div { background: #F6F1EC; border-radius: 12px; padding: 10px; display: grid; gap: 3px; text-align: center; }
+.pp-tm-seg b { color: var(--pp-primary); }
+.pp-tm-mj { text-align: right; display: grid; gap: 2px; }

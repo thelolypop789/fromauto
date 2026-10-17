@@ -1,0 +1,24 @@
+// Unit tests for the helpers of prep-fb-agent (node scripts/prep/test_fb_agent_logic.mjs, run from the repo root).
+import ts from 'typescript';
+import fs from 'fs';
+const src = fs.readFileSync('supabase/functions/prep-fb-agent/logic.ts', 'utf8');
+const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 } }).outputText;
+fs.writeFileSync('/tmp/prep_fb_agent_logic.mjs', js);
+const L = await import('/tmp/prep_fb_agent_logic.mjs');
+let n = 0, bad = 0; const t = (name, c) => { n++; if (!c) { bad++; console.log('FAIL', name); } };
+t('190 = token problem', L.explainGraphError(400, { message: 'x', code: 190 }).tokenProblem === true);
+t('401 = token problem', L.explainGraphError(401, undefined).tokenProblem === true);
+t('200 permission = token problem', L.explainGraphError(403, { message: 'x', code: 200 }).tokenProblem === true);
+t('rate limit retry later', L.explainGraphError(400, { message: 'x', code: 4 }).retryLater === true);
+t('spam block retry later', L.explainGraphError(400, { message: 'x', code: 368 }).retryLater === true);
+t('500 retry later', L.explainGraphError(500, undefined).retryLater === true);
+const other = L.explainGraphError(400, { message: 'bad image', code: 100 });
+t('other: neither flag, message has code', !other.tokenProblem && !other.retryLater && other.message.includes('100'));
+t('safePath ok', L.safePath('posts/day1-a.png') === 'posts/day1-a.png');
+t('safePath rejects ..', L.safePath('../x.png') === null && L.safePath('a/../b.png') === null);
+t('safePath rejects leading /', L.safePath('/etc/passwd') === null);
+t('safePath rejects spaces/unicode/non-string', L.safePath('a b.png') === null && L.safePath('ก.png') === null && L.safePath(5) === null);
+t('mime', L.mimeFor('a.JPG') === 'image/jpeg' && L.mimeFor('a.png') === 'image/png' && L.mimeFor('a.webp') === 'image/webp');
+t('cleanText collapses blank lines', L.cleanText('a\r\n\r\n\r\n\r\nb  \n') === 'a\n\nb');
+t('cleanText null', L.cleanText(null) === '');
+console.log(n - bad + '/' + n, 'passed'); process.exit(bad ? 1 : 0);

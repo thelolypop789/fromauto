@@ -139,7 +139,7 @@ serve(async (req) => {
     if (cron) {
       const { data } = await sbService().rpc("prep_fb_secret_ok", { p_secret: cron });
       if (data !== true) return json({ error: "forbidden" }, 403);
-      if (action !== "tick") return json({ error: "bad action" }, 400);
+      if (action !== "tick" && action !== "test") return json({ error: "bad action" }, 400);
     } else {
       const auth = req.headers.get("Authorization") ?? "";
       if (!auth.startsWith("Bearer ")) return json({ error: "กรุณาเข้าสู่ระบบ" }, 401);

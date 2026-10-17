@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, thaiError, type PackageKey } from "./api";
 import { ColumnChart, CompareList } from "./ChartParts";
 import { nf } from "./chartFormat";
 
 type Hit = { id: string; email: string; created_at: string; packages: PackageKey[]; last_active: string | null; orders: number };
+type Row = Hit & { major_name: string | null; src: string | null; answered: number; sets: number };
+type ListPage = { total: number; items: Row[] };
+const FILTERS: [string, string][] = [["all", "ทั้งหมด"], ["paid", "จ่ายแล้ว"], ["free", "ยังฟรี"], ["nomajor", "ยังไม่เลือกเอก"]];
+const PAGE = 50;
 type Detail = {
   user: { id: string; email: string; created_at: string; plan: string; major_name: string | null; free_sets_used: number; free_mock_used: boolean };
   entitlements: { id: number; package: PackageKey; starts_at: string; expires_at: string | null; revoked_at: string | null; source: string; active: boolean }[];
@@ -33,6 +37,27 @@ export default function AdminUsers() {
   const [term, setTerm] = useState<"days" | "lifetime">("days");
   const [days, setDays] = useState(90);
   const [note, setNote] = useState("");
+
+  const [filter, setFilter] = useState("all");
+  const [list, setList] = useState<ListPage | null>(null);
+  const [listError, setListError] = useState("");
+  const [more, setMore] = useState(false);
+  const loadList = useCallback(() => rpc<ListPage>("prep_admin_list_users", { p_filter: filter, p_offset: 0, p_limit: PAGE }), [filter]);
+  useEffect(() => {
+    let alive = true;
+    loadList().then(r => { if (alive) { setList(r); setListError(""); } }).catch(e => { if (alive) setListError(thaiError(e)); });
+    return () => { alive = false; };
+  }, [loadList]);
+  const loadMore = async () => {
+    if (!list || more) return;
+    setMore(true);
+    try {
+      const r = await rpc<ListPage>("prep_admin_list_users", { p_filter: filter, p_offset: list.items.length, p_limit: PAGE });
+      setList({ total: r.total, items: [...list.items, ...r.items] });
+    } catch (e) { setListError(thaiError(e)); }
+    setMore(false);
+  };
+  const pickFilter = (k: string) => { setFilter(k); setList(null); };
 
   const search = async () => {
     if (busy) return;
@@ -93,8 +118,34 @@ export default function AdminUsers() {
         ))}
       </div>
 
+      {!d && (
+        <div className="pp-card">
+          <h3>ผู้ใช้ทั้งหมด{list ? ` (${nf(list.total)})` : ""}</h3>
+          <p className="pp-muted small">เรียงตามคนที่ใช้งานล่าสุดก่อน แตะชื่อเพื่อดูรายละเอียดและให้/ถอนสิทธิ์</p>
+          <div className="pp-seg" role="group" aria-label="กรอง">
+            {FILTERS.map(([k, l]) => <button key={k} className={filter === k ? "on" : ""} onClick={() => pickFilter(k)}>{l}</button>)}
+          </div>
+          {listError && <div className="pp-error">{listError}</div>}
+          {!list && !listError && <div className="pp-spinner" />}
+          {list && list.items.length === 0 && <p className="pp-muted">ไม่มีผู้ใช้ในหมวดนี้</p>}
+          {list?.items.map(h => (
+            <button key={h.id} className="pp-user-hit" onClick={() => open(h.id)}>
+              <b>{h.email}</b>
+              <span className="pp-muted small">
+                {h.major_name ?? "ยังไม่เลือกเอก"} · {h.packages.length ? h.packages.map(p => PACKAGE_LABEL[p]).join(", ") : "ไม่มีแพ็ก"} · ตอบ {nf(h.answered)} ข้อ · {h.sets} ชุด · ซื้อ {h.orders} ครั้ง
+              </span>
+              <span className="pp-muted small">
+                สมัคร {new Date(h.created_at).toLocaleDateString("th-TH", { day: "numeric", month: "short" })} · ใช้ล่าสุด {h.last_active ? new Date(h.last_active).toLocaleDateString("th-TH", { day: "numeric", month: "short" }) : "ยังไม่เคย"}{h.src ? ` · มาจาก ${h.src}` : ""}
+              </span>
+            </button>
+          ))}
+          {list && list.items.length < list.total && <button className="pp-btn pp-btn-ghost" disabled={more} onClick={loadMore}>{more ? "กำลังโหลด…" : `โหลดเพิ่ม (เหลือ ${nf(list.total - list.items.length)})`}</button>}
+        </div>
+      )}
+
       {d && (
         <div className="pp-card">
+          <button className="pp-link small" onClick={() => setD(null)}>← กลับไปรายชื่อ</button>
           <h3>{d.user.email}</h3>
           <p className="pp-muted small">
             สมัคร {fmt(d.user.created_at)} · วิชาเอก {d.user.major_name ?? "ยังไม่เลือก"} · ชุดฟรีใช้ไป {d.user.free_sets_used}/3 · ทดลองจำลองสอบฟรี {d.user.free_mock_used ? "ใช้แล้ว" : "ยังไม่ใช้"}

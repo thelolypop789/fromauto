@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { rpc, thaiError, type Topic } from "./api";
 import { IconCheck, IconX } from "./icons";
 
-type Props = { current: string | null; onClose: () => void; onSaved: (code: string, name: string) => void };
+// forced = first visit / no major yet: it cannot be dismissed by a stray tap, only by choosing a major or the explicit skip.
+type Props = { current: string | null; onClose: () => void; onSaved: (code: string, name: string) => void; forced?: boolean; onSkip?: () => void };
 
-export default function MajorPicker({ current, onClose, onSaved }: Props) {
+export default function MajorPicker({ current, onClose, onSaved, forced, onSkip }: Props) {
   const [majors, setMajors] = useState<Topic[] | null>(null);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
@@ -12,10 +13,10 @@ export default function MajorPicker({ current, onClose, onSaved }: Props) {
 
   useEffect(() => {
     rpc<Topic[]>("prep_topics").then(t => setMajors(t.filter(x => x.grp === "B3"))).catch(e => setError(thaiError(e)));
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !forced) onClose(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, forced]);
 
   const list = useMemo(() => (majors ?? []).filter(m => m.name.includes(q.trim())), [majors, q]);
 
@@ -27,13 +28,13 @@ export default function MajorPicker({ current, onClose, onSaved }: Props) {
   };
 
   return (
-    <div className="pp-modal" role="dialog" aria-modal="true" aria-labelledby="pp-major-h" onClick={onClose}>
+    <div className="pp-modal" role="dialog" aria-modal="true" aria-labelledby="pp-major-h" onClick={forced ? undefined : onClose}>
       <div className="pp-modal-box" onClick={e => e.stopPropagation()}>
         <div className="pp-modal-h">
-          <h3 id="pp-major-h">เลือกวิชาเอกของคุณ</h3>
-          <button className="pp-x" onClick={onClose} aria-label="ปิด"><IconX /></button>
+          <h3 id="pp-major-h">{forced ? "สอบวิชาเอกอะไร?" : "เลือกวิชาเอกของคุณ"}</h3>
+          {!forced && <button className="pp-x" onClick={onClose} aria-label="ปิด"><IconX /></button>}
         </div>
-        <p className="pp-muted small">ใช้จัดข้อสอบภาค ข ส่วนวิชาเอกให้ตรงกับตำแหน่งที่สมัคร เปลี่ยนได้ทุกเมื่อที่หน้าบัญชี</p>
+        <p className="pp-muted small">{forced ? "เลือกวิชาเอกที่คุณจะสอบ เราจะจัดข้อสอบภาค ข ให้ตรงสาย " : "ใช้จัดข้อสอบภาค ข ส่วนวิชาเอกให้ตรงกับตำแหน่งที่สมัคร "}เปลี่ยนได้ทุกเมื่อที่หน้าบัญชี</p>
         <input className="pp-input" type="search" placeholder="ค้นหาวิชาเอก" value={q} onChange={e => setQ(e.target.value)} />
         {!majors && !error && <div className="pp-spinner" />}
         <div className="pp-majors">
@@ -46,6 +47,7 @@ export default function MajorPicker({ current, onClose, onSaved }: Props) {
           ))}
         </div>
         {error && <div className="pp-error">{error}</div>}
+        {forced && onSkip && <button className="pp-link small pp-major-skip" onClick={onSkip}>ข้ามไปก่อน (เราจะถามอีกครั้งตอนเข้าครั้งหน้า)</button>}
       </div>
     </div>
   );

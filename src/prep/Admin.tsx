@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { PACKAGE_LABEL, fmtUntil, rpc, thaiError, type PackageKey } from "./api";
 import ImportAI from "./ImportAI";
 import AdminBank from "./AdminBank";
+import AdminReportAI from "./AdminReportAI";
 import AdminOrders from "./AdminOrders";
 import AdminGuide from "./AdminGuide";
 import AdminDashboard from "./AdminDashboard";
@@ -48,7 +49,7 @@ export default function Admin() {
       {tab === "health" && <AdminHealth />}
       {tab === "orders" && <AdminOrders onChanged={loadPending} />}
       {tab === "bank" && <AdminBank onChanged={loadCount} />}
-      {tab === "reports" && <AdminBank reportsOnly onChanged={loadCount} />}
+      {tab === "reports" && <><AdminReportAI onChanged={loadCount} /><AdminBank reportsOnly onChanged={loadCount} /></>}
       {tab === "review" && <ReviewTab />}
       {tab === "ai" && <ImportAI />}
       {tab === "keys" && <KeysTab />}

@@ -731,3 +731,9 @@ div.pp-todo-item { cursor: default; }
 .pp-ai-presets { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .pp-chipbtn { border: 1px solid var(--pp-line); background: #fff; color: var(--pp-primary-dark); border-radius: 99px; padding: 5px 12px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .pp-chipbtn:hover { background: var(--pp-primary-soft); }
+
+.pp-fb-body { display: flex; gap: 12px; align-items: flex-start; }
+.pp-fb-body > div:last-child { flex: 1; min-width: 0; }
+.pp-fb-thumb { width: 96px; height: 120px; object-fit: cover; border-radius: 8px; background: #F3EEEA; flex: none; display: block; margin-bottom: 6px; }
+.pp-fb-edit input[type="file"] { max-width: 100%; margin-right: 8px; }
+@media (max-width: 520px) { .pp-fb-body { flex-direction: column; } }

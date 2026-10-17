@@ -28,38 +28,76 @@ type QItem = { id: number; topic: string; stem: string; choices: string[]; answe
 const LABELS = ["ก", "ข", "ค", "ง"];
 const fmt = (s: string | null) => (s ? new Date(s).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "");
 
+type Tab = "stats" | "live" | "charts" | "users" | "majors" | "times" | "orders" | "keys" | "bank" | "reports" | "review" | "health" | "import" | "facebook" | "calendar";
+// 15 screens in 5 groups: pick a group, then one of its few tabs.
+const GROUPS: { id: string; icon: string; label: string; tabs: [Tab, string][] }[] = [
+  { id: "overview", icon: "📊", label: "ภาพรวม", tabs: [["stats", "สรุปวันนี้"], ["live", "ตอนนี้"], ["charts", "กราฟ"]] },
+  { id: "people", icon: "👥", label: "ผู้ใช้", tabs: [["users", "รายชื่อ"], ["majors", "วิเคราะห์เอก"], ["times", "ช่วงเวลา"]] },
+  { id: "sales", icon: "💰", label: "ขาย", tabs: [["orders", "คำสั่งซื้อ"], ["keys", "คีย์"]] },
+  { id: "content", icon: "📚", label: "ข้อสอบ", tabs: [["bank", "คลังข้อสอบ"], ["reports", "รายงาน"], ["review", "ตรวจข้อสอบ"], ["health", "คุณภาพคลัง"], ["import", "นำเข้า"]] },
+  { id: "page", icon: "📣", label: "เพจ·ปฏิทิน", tabs: [["facebook", "Facebook"], ["calendar", "ปฏิทินสอบ"]] },
+];
+const groupOf = (t: Tab) => GROUPS.find(g => g.tabs.some(([k]) => k === t)) ?? GROUPS[0];
+
 export default function Admin() {
-  const [tab, setTab] = useState<"stats" | "orders" | "users" | "calendar" | "live" | "charts" | "health" | "bank" | "reports" | "review" | "ai" | "facebook" | "majors" | "times" | "keys" | "import">("stats");
+  const [tab, setTab] = useState<Tab>("stats");
+  const [last, setLast] = useState<Record<string, Tab>>({});
+  const go = useCallback((t: Tab) => { setTab(t); setLast(l => ({ ...l, [groupOf(t).id]: t })); window.scrollTo(0, 0); }, []);
   const [pending, setPending] = useState<number | null>(null);
   const loadPending = useCallback(() => { rpc<unknown[]>("prep_admin_orders", { p_status: "pending", p_limit: 200 }).then(r => setPending(r.length)).catch(() => { /* badge only */ }); }, []);
   useEffect(loadPending, [loadPending]);
   const [open, setOpen] = useState<number | null>(null);
   const loadCount = useCallback(() => { rpc<Stats>("prep_admin_stats").then(s => setOpen(s.open_reports)).catch(() => { /* badge only */ }); }, []);
   useEffect(loadCount, [loadCount]);
+  const badge: Partial<Record<Tab, number>> = { orders: pending ?? 0, reports: open ?? 0 };
+  const groupBadge = (id: string) => GROUPS.find(g => g.id === id)!.tabs.reduce((n, [k]) => n + (badge[k] ?? 0), 0);
+  const g = groupOf(tab);
   return (
     <>
       <AdminGuide />
-      <div className="pp-seg">
-        {([["stats", "ภาพรวม"], ["orders", pending ? `คำสั่งซื้อ (${pending})` : "คำสั่งซื้อ"], ["live", "ตอนนี้"], ["calendar", "ปฏิทิน"], ["users", "ผู้ใช้"], ["majors", "วิเคราะห์เอก"], ["times", "ช่วงเวลา"], ["charts", "กราฟ"], ["health", "คุณภาพคลัง"], ["bank", "คลังข้อสอบ"], ["reports", open ? `รายงาน (${open})` : "รายงาน"], ["review", "ตรวจข้อสอบ"], ["ai", "นำเข้า AI"], ["facebook", "Facebook"], ["keys", "คีย์"], ["import", "นำเข้า JSON"]] as const).map(([k, l]) => (
-          <button key={k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>
+      <div className="pp-agroups" role="tablist" aria-label="หมวดของแอดมิน">
+        {GROUPS.map(x => (
+          <button key={x.id} role="tab" aria-selected={x.id === g.id} className={x.id === g.id ? "on" : ""} onClick={() => go(last[x.id] ?? x.tabs[0][0])}>
+            <span className="pp-agroup-ic" aria-hidden="true">{x.icon}</span>
+            <span>{x.label}</span>
+            {groupBadge(x.id) > 0 && <i className="pp-agroup-badge">{groupBadge(x.id)}</i>}
+          </button>
         ))}
       </div>
-      {tab === "stats" && <AdminDashboard onGo={setTab} />}
+      <div className="pp-seg pp-seg-sub">
+        {g.tabs.map(([k, l]) => (
+          <button key={k} className={tab === k ? "on" : ""} onClick={() => go(k)}>{badge[k] ? `${l} (${badge[k]})` : l}</button>
+        ))}
+      </div>
+      {tab === "stats" && <AdminDashboard onGo={go} />}
+      {tab === "live" && <AdminLive />}
+      {tab === "charts" && <AdminCharts />}
       {tab === "users" && <AdminUsers />}
       {tab === "majors" && <AdminMajors />}
       {tab === "times" && <AdminTimes />}
-      {tab === "live" && <AdminLive />}
-      {tab === "calendar" && <AdminCalendar />}
-      {tab === "charts" && <AdminCharts />}
-      {tab === "health" && <AdminHealth />}
       {tab === "orders" && <AdminOrders onChanged={loadPending} />}
+      {tab === "keys" && <KeysTab />}
       {tab === "bank" && <AdminBank onChanged={loadCount} />}
       {tab === "reports" && <><AdminReportAI onChanged={loadCount} /><AdminBank reportsOnly onChanged={loadCount} /></>}
       {tab === "review" && <ReviewTab />}
-      {tab === "ai" && <ImportAI />}
+      {tab === "health" && <AdminHealth />}
+      {tab === "import" && <ImportHub />}
       {tab === "facebook" && <AdminFacebook />}
-      {tab === "keys" && <KeysTab />}
-      {tab === "import" && <ImportTab />}
+      {tab === "calendar" && <AdminCalendar />}
+    </>
+  );
+}
+
+// Two ways to bring questions in, one tab: let AI read an exam file, or paste ready-made JSON.
+function ImportHub() {
+  const [mode, setMode] = useState<"ai" | "json">("ai");
+  return (
+    <>
+      <div className="pp-seg pp-seg-sub" role="group" aria-label="วิธีนำเข้า">
+        <button className={mode === "ai" ? "on" : ""} onClick={() => setMode("ai")}>ให้ AI อ่านไฟล์ข้อสอบ</button>
+        <button className={mode === "json" ? "on" : ""} onClick={() => setMode("json")}>วาง JSON</button>
+      </div>
+      {mode === "ai" ? <ImportAI /> : <ImportTab />}
     </>
   );
 }

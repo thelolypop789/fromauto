@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the public marketing landing page: public/prep/welcome/index.html (static, no JS).
+"""Generate the public marketing landing page: public/prep/welcome/index.html (static; the only script remembers ?src= for the sign-up source report).
 
 Prices and counts here are copied by hand from src/prep/config.ts / the live prep.prices table — update this file
 (and rerun) when the admin changes prices. Run: python3 scripts/prep/gen_landing.py
@@ -136,6 +136,7 @@ def build():
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>{CSS}</style>
 <script type="application/ld+json">{json.dumps(faq_ld, ensure_ascii=False).replace("</", "<\\/")}</script>
+<script>try{{var s=new URLSearchParams(location.search).get("src");if(s&&/^[A-Za-z0-9_-]{{1,40}}$/.test(s))localStorage.setItem("pp-src",s.toLowerCase())}}catch(e){{}}</script>
 </head><body>
 <div class="top"><div class="w"><a class="brand" href="/prep/welcome/"><img src="/prep/welcome/img/logo.png" alt="" width="34" height="34">ซ้อมสอบ SOBPREP</a><a class="btn sm" href="/prep">ลองฟรี</a></div></div>
 

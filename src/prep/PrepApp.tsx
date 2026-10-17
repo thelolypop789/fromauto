@@ -20,6 +20,7 @@ import MockResult from "./MockResult";
 import { IconCalendar, IconChart, IconCrown, IconHome, IconShield, IconUser, Logo } from "./icons";
 import { setupPwa } from "./pwa";
 import Waiting from "./Waiting";
+import MajorPicker from "./MajorPicker";
 import "./prep.css";
 
 setupPwa();
@@ -51,6 +52,8 @@ function PrepShell() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [me, setMe] = useState<Me | null>(null);
   const [profile, setProfile] = useState<Profile>({ major: null, major_name: null });
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [skipMajor, setSkipMajor] = useState(() => { try { return sessionStorage.getItem("pp-major-skip") === "1"; } catch { return false; } });
   const [view, setView] = useState<View>({ name: "home" });
   const [error, setError] = useState("");
 
@@ -64,7 +67,7 @@ function PrepShell() {
   const refreshMe = useCallback(async () => {
     try { setMe(await rpc<Me>("prep_me")); setError(""); }
     catch (e) { setError(thaiError(e)); }
-    rpc<Profile>("prep_profile").then(setProfile).catch(() => { /* major is optional */ });
+    rpc<Profile>("prep_profile").then(p => { setProfile(p); setProfileLoaded(true); }).catch(() => { /* major is optional: without a profile we never block the app */ });
   }, []);
   const setMajor = (code: string, name: string) => setProfile({ major: code, major_name: name });
 
@@ -105,6 +108,17 @@ function PrepShell() {
         {error ? <div className="pp-card"><div className="pp-error">{error}</div>
           <button className="pp-btn pp-btn-primary" onClick={refreshMe}>ลองใหม่</button></div>
           : <Waiting />}
+      </div>
+    );
+  }
+
+  // Everyone without a major is asked to choose one at the start of each visit (first visit, and old accounts that never did).
+  // "Skip" only lasts for this browser session, so the next visit asks again.
+  if (profileLoaded && !profile.major && !skipMajor) {
+    return (
+      <div className="pp-center">
+        <MajorPicker forced current={null} onClose={() => { /* forced: not dismissible */ }} onSaved={setMajor}
+          onSkip={() => { try { sessionStorage.setItem("pp-major-skip", "1"); } catch { /* ignore */ } setSkipMajor(true); }} />
       </div>
     );
   }

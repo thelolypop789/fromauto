@@ -720,3 +720,14 @@ div.pp-todo-item { cursor: default; }
 .pp-ai-msg { display: grid; gap: 4px; margin: 10px 0; }
 .pp-ai-msg textarea { width: 100%; resize: vertical; }
 .pp-ai-act { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+
+.pp-ai-human { background: var(--pp-gold-soft); border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
+.pp-ai-human p { margin: 0 0 8px; }
+.pp-ai-edit { display: grid; gap: 6px; margin-top: 10px; }
+.pp-ai-edit label { display: grid; gap: 4px; }
+.pp-ai-edit textarea { width: 100%; resize: vertical; }
+.pp-ai-edit-ch { display: flex; align-items: center; gap: 8px; }
+.pp-ai-edit-ch .pp-input { flex: 1; min-width: 0; }
+.pp-ai-presets { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.pp-chipbtn { border: 1px solid var(--pp-line); background: #fff; color: var(--pp-primary-dark); border-radius: 99px; padding: 5px 12px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.pp-chipbtn:hover { background: var(--pp-primary-soft); }

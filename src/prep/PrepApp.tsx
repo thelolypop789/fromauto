@@ -69,8 +69,15 @@ function PrepShell() {
   const setMajor = (code: string, name: string) => setProfile({ major: code, major_name: name });
 
   useEffect(() => { if (session) { refreshMe(); track("visit"); } else setMe(null); }, [session, refreshMe]);
+  const [unread, setUnread] = useState(0);
   const signedIn = !!session;
   useEffect(() => (signedIn ? startPing() : undefined), [signedIn]);
+  const clearUnread = useCallback(() => setUnread(0), []);
+
+  useEffect(() => {
+    if (!signedIn || view.name === "account") return;
+    rpc<{ unread: number }>("prep_my_notifications").then(r => setUnread(r.unread)).catch(() => { /* the dot is optional */ });
+  }, [signedIn, view.name]);
 
   const startRound = async (setId: string, mode: "full" | "wrong") => {
     try {
@@ -144,7 +151,7 @@ function PrepShell() {
           </button>
           <nav className="pp-tabs">
             {tabs.map(t => (
-              <button key={t.key} className={active(t.key) ? "on" : ""} onClick={() => go(t.key)}>{t.icon}{t.label}</button>
+              <button key={t.key} className={active(t.key) ? "on" : ""} onClick={() => go(t.key)}>{t.icon}{t.label}{t.key === "account" && unread > 0 && <i className="pp-dot" aria-label="มีข่าวใหม่" />}</button>
             ))}
           </nav>
           <span className="pp-spacer" />
@@ -163,13 +170,13 @@ function PrepShell() {
         {view.name === "mockresult" && <MockResult payload={view.payload} onBack={() => go("mock")} onReview={() => startReview("wrong")} />}
         {view.name === "calendar" && <Calendar onBack={() => go("home")} />}
         {view.name === "stats" && <Stats me={me} onPractice={practice} />}
-        {view.name === "account" && <Account me={me} email={session.user.email ?? ""} profile={profile} onMajor={setMajor} onChanged={refreshMe} />}
+        {view.name === "account" && <Account me={me} email={session.user.email ?? ""} profile={profile} onMajor={setMajor} onChanged={refreshMe} onNotifRead={clearUnread} />}
         {view.name === "admin" && me.is_admin && <Admin />}
       </main>
       <nav className="pp-nav" aria-label="เมนูหลัก">
         {tabs.map(t => (
           <button key={t.key} className={active(t.key) ? "on" : ""} onClick={() => go(t.key)} aria-current={active(t.key) ? "page" : undefined}>
-            {t.icon}<span>{t.label}</span>
+            {t.icon}<span>{t.label}</span>{t.key === "account" && unread > 0 && <i className="pp-dot" aria-label="มีข่าวใหม่" />}
           </button>
         ))}
       </nav>

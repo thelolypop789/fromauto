@@ -5,11 +5,13 @@ import { PACKAGES, SHOP } from "./config";
 import { IconCheck, IconCrown, IconLogout } from "./icons";
 import InstallBanner from "./InstallBanner";
 import MyReports from "./MyReports";
+import Notifications from "./Notifications";
 import PayForm from "./PayForm";
 
-type Props = { me: Me; email: string; profile: Profile; onMajor: (code: string, name: string) => void; onChanged: () => void };
+const noop = () => { /* nothing to refresh */ };
+type Props = { me: Me; email: string; profile: Profile; onMajor: (code: string, name: string) => void; onChanged: () => void; onNotifRead?: () => void };
 
-export default function Account({ me, email, profile, onMajor, onChanged }: Props) {
+export default function Account({ me, email, profile, onMajor, onChanged, onNotifRead }: Props) {
   const [picking, setPicking] = useState(false);
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
@@ -69,6 +71,7 @@ export default function Account({ me, email, profile, onMajor, onChanged }: Prop
       {picking && <MajorPicker current={profile.major} onClose={() => setPicking(false)} onSaved={onMajor} />}
 
       <InstallBanner always />
+      <Notifications onRead={onNotifRead ?? noop} />
       <MyReports />
 
       {pkgs.length > 0 && (

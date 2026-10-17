@@ -694,3 +694,29 @@ div.pp-todo-item { cursor: default; }
 .pp-linecard { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .pp-linecard > div:first-child { display: grid; gap: 2px; }
 .pp-btn-line { background: #06C755; color: #fff; border: 0; }
+
+/* ---- notifications (account page) and the unread dot on the tab ---- */
+.pp-dot { position: absolute; top: 6px; right: calc(50% - 20px); width: 10px; height: 10px; border-radius: 50%; background: #D93B3B; box-shadow: 0 0 0 2px #fff; }
+.pp-tabs button { position: relative; }
+.pp-tabs .pp-dot { top: 4px; right: 4px; }
+.pp-notif { padding: 12px 0; border-bottom: 1px solid var(--pp-line); }
+.pp-notif:last-child { border-bottom: 0; }
+.pp-notif.new { background: var(--pp-gold-soft); margin: 0 -10px; padding: 12px 10px; border-radius: 10px; border-bottom-color: transparent; }
+.pp-notif-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.pp-notif-q { margin-bottom: 4px; }
+.pp-notif-b { line-height: 1.6; }
+
+/* ---- admin: AI check of reported questions ---- */
+.pp-ai-card { border: 1px solid var(--pp-line); border-radius: 14px; padding: 14px; margin: 12px 0; background: #fff; }
+.pp-ai-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.pp-ai-q { font-weight: 600; line-height: 1.55; margin-bottom: 6px; white-space: pre-line; }
+.pp-ai-ch { list-style: none; padding: 0; margin: 0 0 8px; display: grid; gap: 4px; }
+.pp-ai-ch li { padding: 5px 10px; border-radius: 8px; background: #F6F1EC; font-size: 14px; }
+.pp-ai-ch li.key { background: var(--pp-ok-soft); color: var(--pp-ok); font-weight: 600; }
+.pp-ai-rep { background: var(--pp-bad-soft); border-radius: 8px; padding: 8px 10px; font-size: 14px; margin-bottom: 6px; }
+.pp-ai-an { background: var(--pp-primary-soft); border-radius: 8px; padding: 8px 10px; font-size: 14px; margin-bottom: 8px; }
+.pp-ai-fix { border-left: 3px solid var(--pp-gold-bright); padding: 6px 0 6px 10px; margin: 8px 0; font-size: 14px; }
+.pp-ai-new { margin-top: 6px; display: grid; gap: 2px; }
+.pp-ai-msg { display: grid; gap: 4px; margin: 10px 0; }
+.pp-ai-msg textarea { width: 100%; resize: vertical; }
+.pp-ai-act { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }

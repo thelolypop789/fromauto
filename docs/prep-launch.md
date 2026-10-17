@@ -121,6 +121,14 @@ select id from auth.users where email = 'อีเมลของคุณ@gmail
 ทดสอบ: ล็อกอินเป็นแอดมินที่ `/prep` → แอดมิน → นำเข้า AI → อัปโหลดไฟล์ .txt สั้นๆ ที่มีเนื้อหา → ต้องได้ร่างข้อสอบ
 (ถ้าขึ้น "ไม่มีสิทธิ์แอดมิน" แปลว่าข้อ 4 ยังไม่สำเร็จ ถ้าขึ้น Gemini error ให้ดู Edge Functions → prep-import → Logs)
 
+### ตรวจรายงานข้อสอบด้วย AI (`prep-report-ai`)
+
+ฟังก์ชันที่สองใช้ `GEMINI_KEY` ตัวเดียวกับ `prep-import` (ไม่ต้องตั้ง secret เพิ่ม) โค้ดอยู่ใน `supabase/functions/prep-report-ai/` (`index.ts` + `logic.ts`)
+Deploy ด้วย CLI: `supabase functions deploy prep-report-ai` (เปิด Verify JWT ไว้) แล้วรัน migration `20261017100000_prep_report_ai.sql`
+ใช้งาน: แอดมิน → รายงาน → "ตรวจด้วย AI" → ตรวจผลแต่ละข้อ → ยืนยัน ผู้รายงานจะได้ข่าวในหน้าบัญชี (มีจุดแดงที่แท็บ)
+AI ทำข้อสอบแบบไม่เห็นเฉลยก่อน แล้วค่อยตัดสินรายงาน ถ้าผลสองรอบไม่ตรงกันหรือความมั่นใจต่ำกว่า 70% จะขึ้น "ต้องให้คนตรวจ" และไม่ส่งอะไรให้ผู้รายงาน
+ตรวจ guard ด้วย `node scripts/prep/test_report_ai_logic.mjs` · ตัวเลือก: secret `PREP_REPORT_MODEL` เปลี่ยนโมเดลแรกของทั้งสองรอบ
+
 ## 7. นำเข้าคลังข้อสอบที่เตรียมไว้ (1,040 ข้อ)
 
 ดาวน์โหลดไฟล์จาก GitHub (เปิดไฟล์ → Raw → บันทึกลง Files) แล้วอัปโหลดที่ **แอดมิน → นำเข้า JSON**:

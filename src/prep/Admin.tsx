@@ -34,7 +34,7 @@ const GROUPS: { id: string; icon: string; label: string; tabs: [Tab, string][] }
   { id: "overview", icon: "📊", label: "ภาพรวม", tabs: [["stats", "สรุปวันนี้"], ["live", "ตอนนี้"], ["charts", "กราฟ"]] },
   { id: "people", icon: "👥", label: "ผู้ใช้", tabs: [["users", "รายชื่อ"], ["majors", "วิเคราะห์เอก"], ["times", "ช่วงเวลา"]] },
   { id: "sales", icon: "💰", label: "ขาย", tabs: [["orders", "คำสั่งซื้อ"], ["keys", "คีย์"]] },
-  { id: "content", icon: "📚", label: "ข้อสอบ", tabs: [["bank", "คลังข้อสอบ"], ["reports", "รายงาน"], ["review", "ตรวจข้อสอบ"], ["health", "คุณภาพคลัง"], ["import", "นำเข้า"]] },
+  { id: "content", icon: "📚", label: "ข้อสอบ", tabs: [["bank", "คลังข้อสอบ"], ["reports", "รายงาน+AI"], ["review", "ข้อสอบรอตรวจ"], ["health", "คุณภาพคลัง"], ["import", "นำเข้า"]] },
   { id: "page", icon: "📣", label: "เพจ·ปฏิทิน", tabs: [["facebook", "Facebook"], ["calendar", "ปฏิทินสอบ"]] },
 ];
 const groupOf = (t: Tab) => GROUPS.find(g => g.tabs.some(([k]) => k === t)) ?? GROUPS[0];

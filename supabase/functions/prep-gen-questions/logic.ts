@@ -3,7 +3,20 @@
 export type Work = {
   subtopic: string; topic: string; major: string; name: string; kind: "content" | "pedagogy"; keywords: string;
   need: number; stems: string[]; sibling_names: string[];
+  grp?: string; track?: "obec" | "vec";   // missing = a สพฐ. major
 };
+
+// Wording that differs between the สพฐ. and สอศ. (อาชีวศึกษา) exams, and between majors and other ภาค ข topics.
+export function examContext(w: Work) {
+  const vec = w.track === "vec";
+  const subject = !w.grp || w.grp === "B3" ? `วิชาเอก${w.major}` : `หมวด${w.major}`;
+  return {
+    who: vec ? `ข้อสอบครูผู้ช่วย สังกัด สอศ. (อาชีวศึกษา) ก.ค.ศ. ภาค ข ${subject}` : `ข้อสอบครูผู้ช่วย (ก.ค.ศ. ภาค ข ${subject})`,
+    subject,
+    curriculum: vec ? "หลักสูตร ปวช. และ ปวส. ของ สอศ." : "หลักสูตรแกนกลาง",
+    room: vec ? "ห้องเรียนและโรงฝึกงานของสถานศึกษาอาชีวศึกษา" : "ห้องเรียน",
+  };
+}
 export type Draft = { level: string; stem: string; choices: string[]; answer: number; explanation: string };
 export type Verdict = { id: number; answer: number; sound: boolean; issue?: string };
 
@@ -11,15 +24,16 @@ export const LEVELS = ["remember", "understand", "apply", "analyze"];
 
 export function generatePrompt(w: Work, count: number): string {
   const pedagogy = w.kind === "pedagogy";
-  return `คุณเป็นผู้เขียนข้อสอบครูผู้ช่วย (ก.ค.ศ. ภาค ข วิชาเอก${w.major}) ภาษาไทย ที่มีประสบการณ์
+  const c = examContext(w);
+  return `คุณเป็นผู้เขียน${c.who} ภาษาไทย ที่มีประสบการณ์
 หมวดย่อย: ${w.name} (${pedagogy ? "ศาสตร์การสอนและการประยุกต์" : "เนื้อหาวิชาการ"})
 ขอบเขต/คำสำคัญ: ${w.keywords}
 หมวดย่อยอื่นของวิชานี้ (ห้ามออกข้อที่เป็นของหมวดอื่น): ${w.sibling_names.join(", ")}
 
 แต่งข้อสอบปรนัย 4 ตัวเลือก ${count} ข้อ ให้ครอบคลุมหลายประเด็นในหมวดย่อยนี้ ไม่ถามประเด็นเดียวกันซ้ำ
 ${pedagogy
-    ? "- เน้นสถานการณ์ในห้องเรียน: ครูควรทำอะไร/เลือกวิธีใด/ประเมินอย่างไร พร้อมเหตุผลทางหลักการสอนที่เป็นมาตรฐานสากลหรือตามหลักสูตรแกนกลาง"
-    : "- เน้นความรู้ที่ตำราและหลักสูตรแกนกลางตรงกัน ผสมระดับ: จำ เข้าใจ ประยุกต์/คำนวณ วิเคราะห์ อย่างละประมาณเท่ากัน"}
+    ? `- เน้นสถานการณ์ใน${c.room}: ครูควรทำอะไร/เลือกวิธีใด/ประเมินอย่างไร พร้อมเหตุผลทางหลักการสอนที่เป็นมาตรฐานสากลหรือตาม${c.curriculum}`
+    : `- เน้นความรู้ที่ตำราและ${c.curriculum}ตรงกัน ผสมระดับ: จำ เข้าใจ ประยุกต์/คำนวณ วิเคราะห์ อย่างละประมาณเท่ากัน`}
 
 กฎเหล็ก
 1. ใช้เฉพาะข้อเท็จจริงที่แน่ใจและเป็นมาตรฐานที่ตำราทั่วไปเห็นตรงกัน ห้ามแต่งตัวเลข ปี ชื่อบุคคล ชื่อเพลง ชื่อกฎหมาย หรือสูตรที่ไม่แน่ใจ ถ้าไม่แน่ใจให้เปลี่ยนประเด็น
@@ -37,10 +51,11 @@ ${w.stems.length ? `\nข้อที่มีอยู่แล้วในห�
 
 export function verifyPrompt(w: Work, drafts: Draft[]): string {
   const qs = drafts.map((d, i) => `[${i}] ${d.stem}\n${d.choices.map((c, k) => `${"กขคง"[k]}) ${c}`).join("\n")}`).join("\n\n");
-  return `คุณเป็นผู้ตรวจข้อสอบครูผู้ช่วย วิชาเอก${w.major} หมวด "${w.name}" ที่เข้มงวด
+  const c = examContext(w);
+  return `คุณเป็นผู้ตรวจ${c.who} หมวดย่อย "${w.name}" ที่เข้มงวด
 ให้ทำข้อต่อไปนี้ด้วยตัวเองก่อน (ยังไม่มีเฉลยให้ดู) แล้วประเมินแต่ละข้อ:
 - answer = index (เริ่ม 0: ก=0 ข=1 ค=2 ง=3) ของข้อที่คุณคิดว่าถูกที่สุด
-- sound = true เมื่อ (1) ข้อเท็จจริงถูกต้องตามตำราและหลักสูตรแกนกลาง (2) มีตัวเลือกที่ถูกเพียงข้อเดียวอย่างชัดเจน (3) โจทย์ไม่กำกวมและอ่านเข้าใจได้ในตัวเอง (4) เป็นเรื่องของหมวดนี้ ถ้าสงสัยข้อใดข้อหนึ่งให้ sound = false
+- sound = true เมื่อ (1) ข้อเท็จจริงถูกต้องตามตำราและ${c.curriculum} (2) มีตัวเลือกที่ถูกเพียงข้อเดียวอย่างชัดเจน (3) โจทย์ไม่กำกวมและอ่านเข้าใจได้ในตัวเอง (4) เป็นเรื่องของหมวดนี้ ถ้าสงสัยข้อใดข้อหนึ่งให้ sound = false
 - issue = เหตุผลสั้นๆ เมื่อ sound = false
 
 ${qs}

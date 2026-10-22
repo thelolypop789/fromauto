@@ -29,7 +29,8 @@ a{color:inherit}.w{max-width:1120px;margin:0 auto;padding:0 20px}
 .tag{display:inline-flex;gap:8px;align-items:center;background:rgba(243,217,138,.14);border:1px solid rgba(243,217,138,.5);color:var(--g2);font-weight:600;border-radius:99px;padding:6px 16px;font-size:.88rem}
 h1{font-size:clamp(2.2rem,6.6vw,3.7rem);line-height:1.14;margin:16px 0 14px;letter-spacing:-.5px;font-weight:800}h1 em{font-style:normal;background:linear-gradient(90deg,var(--g2),#E8C25A);-webkit-background-clip:text;background-clip:text;color:transparent}
 .hero p.l{font-size:1.1rem;color:#f0d6da;margin:0 0 22px;max-width:33em}
-.cta{display:flex;gap:12px;flex-wrap:wrap}.sub{font-size:.9rem;color:#e6c9ce;margin-top:14px}
+.cta{display:flex;gap:12px;flex-wrap:wrap}
+.trk{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px;font-size:.9rem}.trk span{color:#e6c9ce}.trk a{color:var(--g2);border:1.5px solid rgba(243,217,138,.6);border-radius:99px;padding:5px 14px;text-decoration:none;font-weight:600}.trk a:hover{background:rgba(243,217,138,.14)}.sub{font-size:.9rem;color:#e6c9ce;margin-top:14px}
 .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:0;margin-top:34px;border-top:1px solid rgba(243,217,138,.25)}
 .stats div{padding:16px 0 18px;border-bottom:1px solid rgba(243,217,138,.18)}.stats b{display:block;font-size:2rem;line-height:1.1;font-weight:800;color:var(--g2)}.stats span{font-size:.85rem;color:#e6c9ce}
 @media(min-width:820px){.stats{grid-template-columns:repeat(4,1fr)}.stats div{border-bottom:0;border-right:1px solid rgba(243,217,138,.18);padding-left:18px}.stats div:first-child{padding-left:0}.stats div:last-child{border-right:0}}
@@ -107,18 +108,19 @@ footer{padding:28px 0;font-size:.85rem;color:var(--mut);text-align:center}footer
 .bar span{color:#fff;font-weight:600;font-size:.92rem}@media(max-width:520px){.bar span{display:none}.bar .btn{flex:1}}
 </style>
 <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "WebSite", "name": "ซ้อมสอบ SOBPREP", "url": "https://sobprep.com/prep", "inLanguage": "th"}, {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "ลองฟรีได้อะไรบ้าง?", "acceptedAnswer": {"@type": "Answer", "text": "สร้างชุดข้อสอบได้ 3 ชุด (ชุดละไม่เกิน 40 ข้อ) และทำข้อสอบประจำวัน 10 ข้อได้ฟรีทุกวัน เข้าสู่ระบบด้วยบัญชี Google ได้เลย ไม่ต้องสมัครสมาชิกและไม่ต้องใส่บัตร"}}, {"@type": "Question", "name": "เป็นข้อสอบจริงหรือเปล่า?", "acceptedAnswer": {"@type": "Answer", "text": "ไม่ใช่ข้อสอบจริง เป็นข้อสอบฝึกตามหัวข้อที่ออกสอบ เพื่อให้ซ้อมเป็นระบบและรู้จุดอ่อนก่อนวันสอบ เราไม่รับประกันว่าข้อสอบในเว็บจะออกสอบ และไม่รับประกันผลการสอบ"}}, {"@type": "Question", "name": "ซื้อแล้วใช้ได้นานแค่ไหน?", "acceptedAnswer": {"@type": "Answer", "text": "มี 2 แบบ รายรอบใช้ได้ 3 เดือนนับจากวันกรอกคีย์ และซื้อขาดใช้ได้ต่อเนื่อง ซื้อภาคเดียวก่อนได้ ค่อยอัปเกรดทีหลัง จ่ายแค่ส่วนต่าง"}}, {"@type": "Question", "name": "จ่ายเงินอย่างไร?", "acceptedAnswer": {"@type": "Answer", "text": "สแกน Thai QR / พร้อมเพย์ จ่ายได้ทุกแอปธนาคาร แล้วส่งสลิปทาง LINE เพื่อรับคีย์ไปกรอกในแอป"}}, {"@type": "Question", "name": "มีวิชาเอกของฉันไหม?", "acceptedAnswer": {"@type": "Answer", "text": "วิชาเอกที่มีข้อสอบ 200 ข้อขึ้นไปตอนนี้มี 17 วิชา ได้แก่ ภาษาไทย อุตสาหกรรมศิลป์ คณิตศาสตร์ ภาษาอังกฤษ เคมี ชีววิทยา ฟิสิกส์ วิทยาศาสตร์ทั่วไป สังคมศึกษา ปฐมวัย ประถมศึกษา การศึกษาพิเศษ คอมพิวเตอร์ ดนตรี ศิลปศึกษา พลศึกษา และนาฏศิลป์ วิชาเอกอื่นกำลังทยอยเพิ่ม ทักมาบอกได้ว่าอยากได้วิชาไหนก่อน"}}, {"@type": "Question", "name": "ใช้บนมือถือได้ไหม?", "acceptedAnswer": {"@type": "Answer", "text": "ได้ เปิดผ่านเบราว์เซอร์บนมือถือหรือคอมพิวเตอร์ได้เลย และติดตั้งเป็นไอคอนบนหน้าจอได้"}}]}]}</script>
-<script>try{var s=new URLSearchParams(location.search).get("src");if(s&&/^[A-Za-z0-9_-]{1,40}$/.test(s))localStorage.setItem("pp-src",s.toLowerCase());var p=new URLSearchParams(location.search).get("promo");if(p&&/^[A-Za-z0-9_-]{3,30}$/.test(p))localStorage.setItem("pp-promo",p.toUpperCase())}catch(e){}</script>
+<script>try{var s=new URLSearchParams(location.search).get("src");if(s&&/^[A-Za-z0-9_-]{1,40}$/.test(s))localStorage.setItem("pp-src",s.toLowerCase());var p=new URLSearchParams(location.search).get("promo");if(p&&/^[A-Za-z0-9_-]{3,30}$/.test(p))localStorage.setItem("pp-promo",p.toUpperCase());var t=new URLSearchParams(location.search).get("track");if(t==="obec"||t==="vec")localStorage.setItem("pp-track",t)}catch(e){}</script>
 </head><body>
 <div class="top"><div class="w"><a class="brand" href="/prep/welcome/"><img src="/prep/welcome/img/logo.png?v=2" alt="" width="34" height="34">ซ้อมสอบ SOBPREP</a>
 <nav class="nav"><a href="#why">จุดเด่น</a><a href="#features">ฟีเจอร์</a><a href="#screens">หน้าตาแอป</a><a href="#compare">ฟรี vs แพ็ก</a><a href="#price">ราคา</a><a href="#faq">คำถาม</a></nav>
 <a class="btn sm" href="/prep">ลองฟรี</a></div></div>
 
 <header class="hero"><div class="w"><div>
-<span class="tag">🎓 เตรียมสอบครูผู้ช่วย สังกัด สพฐ.</span>
+<span class="tag">🎓 เตรียมสอบครูผู้ช่วย สพฐ. และ อาชีวศึกษา (สอศ.)</span>
 <h1>ทำข้อสอบแล้ว<br><em>รู้ว่าผิดเพราะอะไร</em></h1>
 <p class="l">ซ้อมข้อสอบครูผู้ช่วยครบภาค ก ภาค ข และวิชาเอก เฉลยพร้อมเหตุผลทุกข้อ ข้อที่ผิดวนกลับมาทวนให้เอง แล้วจำลองสอบจับเวลาก่อนวันจริง บนมือถือเครื่องเดียว</p>
 <div class="cta"><a class="btn big" href="/prep">ลองฟรี 3 ชุด →</a><a class="btn big ghost" href="#screens">ดูหน้าตาแอป</a></div>
 <div class="sub">ไม่ต้องสมัคร ไม่ต้องใส่บัตร · เข้าด้วยบัญชี Google · เริ่มแพ็กที่ 49 บาท</div>
+<div class="trk"><span>สอบสังกัดไหน?</span><a href="/prep?track=obec">ครูผู้ช่วย สพฐ.</a><a href="/prep?track=vec">ครูผู้ช่วย อาชีวศึกษา (สอศ.)</a></div>
 </div>
 <div class="mock"><div class="fl a"><span class="ic">🔥</span><div><b>6 วันต่อเนื่อง</b>ฝึกทุกวันได้ XP</div></div>
 <div class="uic"><span class="smp">ตัวอย่าง</span><h4>ความพร้อมสอบ</h4>

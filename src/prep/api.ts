@@ -38,6 +38,7 @@ export type Item = {
   idx: number;
   question_id: number;
   topic: string;
+  tag?: string | null;          // e.g. "แนวข้อสอบ สอศ. 2567": the point appeared in that year's exam
   stem: string;
   choices: string[];
   picked: number | null;
@@ -209,7 +210,7 @@ export const REPORT_CATEGORIES: [string, string, string][] = [
 
 export type Track = "obec" | "vec";
 export const TRACK_LABEL: Record<Track, string> = { obec: "สพฐ.", vec: "อาชีวศึกษา (สอศ.)" };
-export type Profile = { major: string | null; major_name: string | null; track?: Track };
+export type Profile = { major: string | null; major_name: string | null; track?: Track; track_chosen?: boolean; returning?: boolean };
 
 export type PackageKey = "A" | "B" | "ALL";
 export const PACKAGE_LABEL: Record<PackageKey, string> = { A: "ภาค ก", B: "ภาค ข + วิชาเอก", ALL: "ครบทุกภาค" };
@@ -291,7 +292,7 @@ export type MockSubject = {
 };
 export type MockOverview = { subjects: MockSubject[]; server_now: string; major_name: string | null };
 export type MockItem = {
-  idx: number; question_id: number; topic: string; stem: string; choices: string[]; picked: number | null;
+  idx: number; question_id: number; topic: string; tag?: string | null; stem: string; choices: string[]; picked: number | null;
   answer?: number; correct?: boolean; explanation?: string; law_ref?: string | null;
 };
 export type MockResultData = {
@@ -313,6 +314,9 @@ try {
   // A campaign link can carry its discount code (?promo=KRU20): kept until the buy screen applies it.
   const promo = new URLSearchParams(window.location.search).get("promo");
   if (promo && /^[A-Za-z0-9_-]{3,30}$/.test(promo)) localStorage.setItem("pp-promo", promo.toUpperCase());
+  // ?track=obec|vec (landing page buttons) preselects the exam on the first-visit screen.
+  const trk = new URLSearchParams(window.location.search).get("track");
+  if (trk === "obec" || trk === "vec") localStorage.setItem("pp-track", trk);
 } catch { /* storage blocked: no source, nothing else lost */ }
 
 export type TrackName = "visit" | "buy_view" | "free_limit" | "level_view" | "readiness_view" | "subtopic_pick" | "promo_apply" | "scoredist_view" | "board_view";

@@ -235,6 +235,10 @@ export type DailyItem = {
   correct?: boolean; answer?: number; explanation?: string; pct_correct?: number | null;
 };
 export type Daily = { day: string; items: DailyItem[]; done: boolean; score: number; total: number; streak: number; players: number };
+export type ScoreDistData = {
+  kind: "daily" | "mock"; total: number; mine: number; players: number; rank: number | null; avg: number | null;
+  best: number | null; buckets: number[] | null; history: { label: string; value: number; current: boolean }[];
+};
 export type MockSubject = {
   code: string; section: "A" | "B"; name: string; questions: number; minutes: number; available: number;
   reason: "no_major" | "not_enough_questions" | null; access: "pack" | "free_trial" | "locked";

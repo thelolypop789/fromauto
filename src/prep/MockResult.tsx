@@ -4,6 +4,7 @@ import { IconBack, IconCheck, IconX } from "./icons";
 import Mascot from "./Mascot";
 import Confetti from "./Confetti";
 import { scoreMood } from "./mascotUtil";
+import ScoreDist from "./ScoreDist";
 
 const LABELS = ["ก", "ข", "ค", "ง"];
 const fmtTime = (s: number) => `${Math.floor(s / 60)} นาที ${s % 60} วินาที`;
@@ -28,14 +29,13 @@ export default function MockResult({ payload, onBack, onReview }: Props) {
         <div className={`pp-score ${passed ? "ok" : "low"}`}>{r.score}<small>/{r.total}</small></div>
         <div><b>{Math.round(r.pct)}%</b> <span className="pp-muted">· เกณฑ์อ้างอิง {PASS_PCT}% {passed ? "ผ่าน" : "ยังไม่ถึง"}</span></div>
         <div className="pp-muted small">ใช้เวลา {fmtTime(r.used_seconds)} จาก {payload.minutes} นาที · ตอบ {r.answered} ข้อ{blank ? ` · ไม่ได้ตอบ ${blank} ข้อ (นับผิด)` : ""}</div>
-        {r.percentile != null
-          ? <p>คะแนนสูงกว่าผู้สอบวิชานี้ <b>{r.percentile}%</b> (จากผู้สอบ {r.players.toLocaleString()} คน)</p>
-          : <p className="pp-muted small">ยังมีผู้สอบวิชานี้ไม่พอสำหรับเทียบอันดับ</p>}
         <div className="pp-row">
           <button className="pp-btn pp-btn-primary" onClick={onReview}>ไปทวนข้อที่ผิด</button>
           <button className="pp-btn pp-btn-ghost" onClick={onBack}><IconBack />กลับ</button>
         </div>
       </div>
+
+      <ScoreDist kind="mock" attemptId={payload.attempt_id} />
 
       <div className="pp-card">
         <h3>คะแนนรายหมวด</h3>

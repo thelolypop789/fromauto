@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { rpc, thaiError, type Daily } from "./api";
 import { IconBack, IconCheck, IconNext, IconX } from "./icons";
+import ScoreDist from "./ScoreDist";
 
 const LABELS = ["ก", "ข", "ค", "ง"];
 
@@ -50,6 +51,7 @@ export default function DailyQuiz({ onBack }: { onBack: () => void }) {
           <button className="pp-btn pp-btn-gold" onClick={onBack}><IconBack />กลับหน้าแรก</button>
         </div>
       )}
+      {data.done && <ScoreDist kind="daily" />}
 
       <div className="pp-card pp-q">
         <div className="pp-q-stem"><span className="pp-q-no">{pos + 1}.</span> {item.stem}</div>

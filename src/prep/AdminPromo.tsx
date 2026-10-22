@@ -4,12 +4,14 @@ import { PACKAGE_LABEL, rpc, thaiError, type PackageKey } from "./api";
 type Promo = {
   code: string; kind: "percent" | "amount"; value: number; packages: PackageKey[] | null; max_uses: number | null;
   expires_at: string | null; active: boolean; note: string | null; created_at: string;
-  pending: number; approved: number; revenue: number; discount: number;
+  pending: number; approved: number; revenue: number; discount: number; srcs?: { src: string; n: number }[];
 };
 const ALL_PKGS: PackageKey[] = ["A", "B", "ALL"];
 const day = (s: string) => new Date(s).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" });
 const off = (p: Pick<Promo, "kind" | "value">) => (p.kind === "percent" ? `ลด ${p.value}%` : `ลด ${p.value} บาท`);
-const post = (p: Promo) => `ใช้โค้ด ${p.code} ${off(p)} ตอนซื้อแพ็กที่ sobprep.com/prep → อัปเกรด → ช่อง "โค้ดส่วนลด"${p.expires_at ? ` · ใช้ได้ถึง ${day(new Date(new Date(p.expires_at).getTime() - 1).toISOString())}` : ""}${p.max_uses ? ` · ${p.max_uses} สิทธิ์แรกเท่านั้น` : ""}`;
+// The link carries both the channel (?src=, first-touch analytics) and the code (?promo=, applied on the buy screen).
+const link = (p: Promo) => `https://sobprep.com/prep?src=${p.code.toLowerCase()}&promo=${p.code}`;
+const post = (p: Promo) => `ลดทันที ${off(p).replace("ลด ", "")} สำหรับแพ็กซ้อมสอบ SOBPREP · กดลิงก์นี้ ระบบใส่โค้ด ${p.code} ให้เอง: ${link(p)}${p.expires_at ? ` · ใช้ได้ถึง ${day(new Date(new Date(p.expires_at).getTime() - 1).toISOString())}` : ""}${p.max_uses ? ` · ${p.max_uses} สิทธิ์แรกเท่านั้น` : ""}`;
 
 // Codes customers type themselves at checkout (for posts, campaigns, groups). Hand-given discounts stay in the list below.
 export default function AdminPromo() {
@@ -49,7 +51,7 @@ export default function AdminPromo() {
   return (
     <div className="pp-card">
       <h3>โค้ดส่วนลด (ลูกค้ากรอกเอง)</h3>
-      <p className="pp-muted small">ใช้กับโพสต์/แคมเปญ ลูกค้าพิมพ์โค้ดตอนซื้อ ระบบคิดราคาใหม่ให้เอง 1 บัญชีใช้ได้ 1 ครั้ง · ถ้าจะให้ฟรี ใช้ฟอร์ม "ให้ส่วนลด" ด้านบนแทน</p>
+      <p className="pp-muted small">ลูกค้าพิมพ์โค้ดในช่อง "โค้ดส่วนลด" ตอนซื้อ หรือกดลิงก์แคมเปญ (ปุ่ม "คัดลอกข้อความโพสต์" ใส่ลิงก์ให้แล้ว) ระบบใส่โค้ดและจำช่องทางให้เอง · 1 บัญชีใช้ได้ 1 ครั้ง · ถ้าจะให้ฟรี ใช้ฟอร์ม "ให้ส่วนลด" ด้านบนแทน</p>
       <div className="pp-promo-form">
         <input className="pp-input" placeholder="โค้ด เช่น KRU20" maxLength={30} value={f.code}
           onChange={e => setF({ ...f, code: e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, "") })} />
@@ -87,6 +89,7 @@ export default function AdminPromo() {
               {p.expires_at ? ` · หมดอายุ ${day(new Date(new Date(p.expires_at).getTime() - 1).toISOString())}` : ""}
               {p.note ? ` · ${p.note}` : ""}
             </div>
+            {!!p.srcs?.length && <div className="pp-muted small">มาจากช่องทาง: {p.srcs.map(x => `${x.src} ${x.n}`).join(" · ")}</div>}
             {p.approved > 0 && <div className="small">ขายได้ {p.approved} รายการ · รับ {p.revenue.toLocaleString("th-TH")} บาท · ส่วนลดรวม {p.discount.toLocaleString("th-TH")} บาท</div>}
           </div>
           <div className="pp-row" style={{ flexDirection: "column", alignItems: "flex-end", gap: 4 }}>

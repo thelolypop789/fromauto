@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { PASS_PCT, SECTIONS, rpc, type Readiness as Data } from "./api";
+import { PASS_PCT, SECTIONS, rpc, track, type Readiness as Data } from "./api";
 import type { Preset } from "./CreateSet";
 
 const MIN_ANSWERS = 100;   // under this the estimate is shown as rough
@@ -33,7 +33,7 @@ export default function Readiness({ compact = false, onPractice, onMore }: {
   compact?: boolean; onPractice?: (p: Preset) => void; onMore?: () => void;
 }) {
   const [d, setD] = useState<Data | null>(null);
-  useEffect(() => { rpc<Data>("prep_readiness").then(setD).catch(() => setD(null)); }, []);
+  useEffect(() => { rpc<Data>("prep_readiness").then(r => { setD(r); if (r.overall != null) track("readiness_view"); }).catch(() => setD(null)); }, []);
   if (!d || d.overall == null) return null;
 
   const rough = d.answered < MIN_ANSWERS;

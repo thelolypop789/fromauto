@@ -33,7 +33,7 @@ const fmt = (s: string | null) => (s ? new Date(s).toLocaleString("th-TH", { dat
 type Tab = "stats" | "live" | "charts" | "users" | "majors" | "times" | "orders" | "keys" | "discounts" | "bank" | "reports" | "review" | "health" | "subtopics" | "import" | "facebook" | "calendar";
 // 15 screens in 5 groups: pick a group, then one of its few tabs.
 const GROUPS: { id: string; icon: string; label: string; tabs: [Tab, string][] }[] = [
-  { id: "overview", icon: "📊", label: "ภาพรวม", tabs: [["stats", "สรุปวันนี้"], ["live", "ตอนนี้"], ["charts", "กราฟ"]] },
+  { id: "overview", icon: "📊", label: "ภาพรวม", tabs: [["stats", "สรุปวันนี้"], ["live", "ตอนนี้"], ["charts", "เปรียบเทียบ"]] },
   { id: "people", icon: "👥", label: "ผู้ใช้", tabs: [["users", "รายชื่อ"], ["majors", "วิเคราะห์เอก"], ["times", "ช่วงเวลา"]] },
   { id: "sales", icon: "💰", label: "ขาย", tabs: [["orders", "คำสั่งซื้อ"], ["discounts", "ส่วนลด"], ["keys", "คีย์"]] },
   { id: "content", icon: "📚", label: "ข้อสอบ", tabs: [["bank", "คลังข้อสอบ"], ["reports", "รายงาน+AI"], ["review", "ข้อสอบรอตรวจ"], ["health", "คุณภาพคลัง"], ["subtopics", "หมวดย่อยเอก"], ["import", "นำเข้า"]] },

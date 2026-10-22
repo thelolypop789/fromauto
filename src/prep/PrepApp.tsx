@@ -113,12 +113,13 @@ function PrepShell() {
   }
 
   // Everyone without a major is asked to choose one at the start of each visit (first visit, and old accounts that never did).
-  // "Skip" only lasts for this browser session, so the next visit asks again.
+  // "Skip" lasts for this browser session and can be used only MAX_MAJOR_SKIPS times on a device: after that a choice is required.
   if (profileLoaded && !profile.major && !skipMajor) {
     return (
       <div className="pp-center">
         <MajorPicker forced current={null} onClose={() => { /* forced: not dismissible */ }} onSaved={setMajor}
-          onSkip={() => { try { sessionStorage.setItem("pp-major-skip", "1"); } catch { /* ignore */ } setSkipMajor(true); }} />
+          skipsLeft={Math.max(0, MAX_MAJOR_SKIPS - readSkips())}
+          onSkip={() => { writeSkips(readSkips() + 1); try { sessionStorage.setItem("pp-major-skip", "1"); } catch { /* ignore */ } setSkipMajor(true); }} />
       </div>
     );
   }
@@ -199,6 +200,10 @@ function PrepShell() {
 }
 
 // The guide and the privacy page are public: they must open without signing in, so they are chosen before any auth work starts.
+const MAX_MAJOR_SKIPS = 2;
+const readSkips = () => { try { return Number(localStorage.getItem("pp-major-skips")) || 0; } catch { return 0; } };
+const writeSkips = (n: number) => { try { localStorage.setItem("pp-major-skips", String(n)); } catch { /* storage blocked: the session flag still applies */ } };
+
 export default function PrepApp() {
   const path = window.location.pathname;
   const page = /^\/prep\/guide\/?$/.test(path) ? <Guide /> : /^\/prep\/privacy\/?$/.test(path) ? <Privacy /> : <PrepShell />;

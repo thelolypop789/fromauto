@@ -94,6 +94,7 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
         p_topics: [...picked], p_size: finalSize, p_mode: mode, p_title: title.trim() || null,
         p_subtopics: pickedMajors.flatMap(c => chosenIn(c).map(s => s.code)).length ? pickedMajors.flatMap(c => chosenIn(c).map(s => s.code)) : null,
       });
+      if (pickedMajors.some(c => chosenIn(c).length)) track("subtopic_pick");
       onCreated(id);
     } catch (e) {
       setError(thaiError(e));

@@ -295,9 +295,12 @@ const SRC_KEY = "pp-src";
 try {
   const q = new URLSearchParams(window.location.search).get("src");
   if (q) localStorage.setItem(SRC_KEY, q.slice(0, 40));
+  // A campaign link can carry its discount code (?promo=KRU20): kept until the buy screen applies it.
+  const promo = new URLSearchParams(window.location.search).get("promo");
+  if (promo && /^[A-Za-z0-9_-]{3,30}$/.test(promo)) localStorage.setItem("pp-promo", promo.toUpperCase());
 } catch { /* storage blocked: no source, nothing else lost */ }
 
-export type TrackName = "visit" | "buy_view" | "free_limit";
+export type TrackName = "visit" | "buy_view" | "free_limit" | "level_view" | "readiness_view" | "subtopic_pick" | "promo_apply" | "scoredist_view";
 export function track(name: TrackName) {
   try {
     const flag = `pp-ev-${name}`;

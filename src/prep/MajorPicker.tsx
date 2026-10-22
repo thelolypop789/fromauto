@@ -3,9 +3,9 @@ import { rpc, thaiError, type Topic } from "./api";
 import { IconCheck, IconX } from "./icons";
 
 // forced = first visit / no major yet: it cannot be dismissed by a stray tap, only by choosing a major or the explicit skip.
-type Props = { current: string | null; onClose: () => void; onSaved: (code: string, name: string) => void; forced?: boolean; onSkip?: () => void };
+type Props = { current: string | null; onClose: () => void; onSaved: (code: string, name: string) => void; forced?: boolean; onSkip?: () => void; skipsLeft?: number };
 
-export default function MajorPicker({ current, onClose, onSaved, forced, onSkip }: Props) {
+export default function MajorPicker({ current, onClose, onSaved, forced, onSkip, skipsLeft = 1 }: Props) {
   const [majors, setMajors] = useState<Topic[] | null>(null);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
@@ -47,7 +47,8 @@ export default function MajorPicker({ current, onClose, onSaved, forced, onSkip 
           ))}
         </div>
         {error && <div className="pp-error">{error}</div>}
-        {forced && onSkip && <button className="pp-link small pp-major-skip" onClick={onSkip}>ข้ามไปก่อน (เราจะถามอีกครั้งตอนเข้าครั้งหน้า)</button>}
+        {forced && onSkip && skipsLeft > 0 && <button className="pp-link small pp-major-skip" onClick={onSkip}>ข้ามไปก่อน (เราจะถามอีกครั้งตอนเข้าครั้งหน้า · ข้ามได้อีก {skipsLeft} ครั้ง)</button>}
+        {forced && skipsLeft <= 0 && <p className="pp-muted small pp-major-skip">เลือกวิชาเอกเพื่อเริ่มใช้งาน ใช้จัดข้อสอบภาค ข และวัดความพร้อมให้ตรงสายของคุณ</p>}
       </div>
     </div>
   );

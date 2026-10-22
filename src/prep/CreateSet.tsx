@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { GROUPS, PACKAGE_LABEL, SECTIONS, covers, rpc, thaiError, track, type Me, type Quote, type Topic } from "./api";
+import { GROUPS, PACKAGE_LABEL, SECTIONS, covers, rpc, thaiError, track, type Me, type Quote, type Subtopic, type Topic } from "./api";
 import { IconCrown } from "./icons";
 
-export type Preset = { section?: "A" | "B"; topics?: string[]; mode?: "new" | "weak" | "mixed" };
+export type Preset = { section?: "A" | "B"; topics?: string[]; subtopics?: string[]; mode?: "new" | "weak" | "mixed" };
 type Props = { me: Me; major?: string | null; preset?: Preset; onCancel: () => void; onCreated: (setId: string) => void; onUpgrade: () => void };
 
 const MODES = [
@@ -21,6 +21,9 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [offer, setOffer] = useState("");
+  // Majors can be narrowed to some of their sub-topics (none chosen = the whole major).
+  const [subs, setSubs] = useState<Record<string, Subtopic[]>>({});
+  const [pickedSubs, setPickedSubs] = useState<Set<string>>(() => new Set(preset?.subtopics ?? []));
 
   useEffect(() => {
     rpc<Topic[]>("prep_topics").then(t => {
@@ -32,6 +35,16 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
       }
     }).catch(e => setError(thaiError(e)));
   }, [preset]);
+
+  const pickedMajors = useMemo(() => topics?.filter(t => t.grp === "B3" && picked.has(t.code)).map(t => t.code) ?? [], [topics, picked]);
+  useEffect(() => {
+    pickedMajors.filter(c => !(c in subs)).forEach(c => {
+      rpc<Subtopic[]>("prep_subtopics", { p_topic: c }).then(l => setSubs(m => ({ ...m, [c]: l }))).catch(() => setSubs(m => ({ ...m, [c]: [] })));
+    });
+  }, [pickedMajors, subs]);
+  const subsOf = (code: string) => (subs[code] ?? []).filter(s => s.available > 0);
+  const chosenIn = (code: string) => subsOf(code).filter(s => pickedSubs.has(s.code));
+  const availableOf = (t: Topic) => { const c = chosenIn(t.code); return c.length ? c.reduce((n, s) => n + s.available, 0) : t.available; };
 
   const groups = useMemo(() => {
     const g = new Map<string, Topic[]>();
@@ -47,7 +60,7 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
   const playable = (sec: "A" | "B") => sectionTopics(sec).filter(t => t.available > 0);
   const allSection = playable(section).length > 0 && playable(section).every(t => picked.has(t.code));
 
-  const available = topics?.filter(t => picked.has(t.code)).reduce((s, t) => s + t.available, 0) ?? 0;
+  const available = topics?.filter(t => picked.has(t.code)).reduce((s, t) => s + availableOf(t), 0) ?? 0;
   // Sets whose topics are all inside the user's packages are unlimited (up to 200); others use the free quota.
   const pickedSections = [...new Set(topics?.filter(t => picked.has(t.code)).map(t => t.section) ?? [])];
   const covered = covers(me, pickedSections);
@@ -79,6 +92,7 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
     try {
       const id = await rpc<string>("prep_create_set", {
         p_topics: [...picked], p_size: finalSize, p_mode: mode, p_title: title.trim() || null,
+        p_subtopics: pickedMajors.flatMap(c => chosenIn(c).map(s => s.code)).length ? pickedMajors.flatMap(c => chosenIn(c).map(s => s.code)) : null,
       });
       onCreated(id);
     } catch (e) {
@@ -138,6 +152,19 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
                   <input type="checkbox" checked={picked.has(t.code)} disabled={t.available === 0} onChange={e => toggle([t.code], e.target.checked)} />
                   {t.name} {t.available > 0 ? <span className="pp-muted">({t.available})</span> : <span className="pp-soon">กำลังเพิ่มข้อสอบ</span>}{t.code === major && <span className="pp-mine">วิชาเอกของฉัน</span>}
                 </label>
+              ))}
+              {list.filter(t => picked.has(t.code) && subsOf(t.code).length > 0).map(t => (
+                <div key={`${t.code}-subs`} className="pp-subpick">
+                  <span className="small"><b>หมวดย่อย{t.name}</b> <span className="pp-muted">(ไม่เลือก = ทั้งวิชา)</span></span>
+                  <div className="pp-subpick-list">
+                    {subsOf(t.code).map(s => (
+                      <button key={s.code} className={`pp-chip-btn ${pickedSubs.has(s.code) ? "on" : ""}`}
+                        onClick={() => { const n = new Set(pickedSubs); if (n.has(s.code)) n.delete(s.code); else n.add(s.code); setPickedSubs(n); }}>
+                        {s.name} <span className="pp-muted">{s.available}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </div>

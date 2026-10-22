@@ -257,13 +257,16 @@ export type Progress = {
 export type Readiness = {
   has_major: boolean; answered: number; overall: number | null;
   sections: { section: "A" | "B"; pct: number; n: number; subjects: { code: string; name: string; questions: number; pct: number; n: number }[] }[];
-  focus: { code: string; name: string; subject: string; w: number; pct: number; n: number }[];
+  focus: { code: string; sub: string | null; name: string; subject: string; w: number; pct: number; n: number }[];
 };
 export type Scorecard = {
   sections: {
     section: "A" | "B"; questions: number; best_sum: number; done: number; subjects_n: number;
     subjects: { code: string; name: string; questions: number; best: number | null; last: number | null; last_at: string | null; tries: number; history: number[] }[];
   }[];
+};
+export type Subtopic = {
+  code: string; name: string; kind: "content" | "pedagogy"; keywords: string; share: number; available: number; seen: number; right: number;
 };
 export type PromoQuote = Quote & { code?: string; before?: number; discount?: number };
 export type MockSubject = {

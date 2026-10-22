@@ -1,10 +1,11 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { GROUPS, LEVELS, PASS_PCT, SECTIONS, rpc, thaiError, type Dashboard, type Insights, type Me, type TopicStat } from "./api";
+import { GROUPS, LEVELS, PASS_PCT, SECTIONS, rpc, thaiError, type Dashboard, type Insights, type Me, type Profile, type TopicStat } from "./api";
 import type { Preset } from "./CreateSet";
 import { IconCheck, IconTarget, IconX } from "./icons";
 import Readiness from "./Readiness";
+import MajorSubtopics from "./MajorSubtopics";
 
-type Props = { me: Me; onPractice: (preset?: Preset) => void };
+type Props = { me: Me; profile?: Profile; onPractice: (preset?: Preset) => void };
 
 const MIN_N = 10; // first-try answers needed before a topic's accuracy is trusted
 
@@ -106,7 +107,7 @@ function Verdict({ p, n }: { p: number; n: number }) {
 
 type Tab = "overview" | "sections" | "trend" | "review";
 
-export default function Stats({ me, onPractice }: Props) {
+export default function Stats({ me, profile, onPractice }: Props) {
   const [d, setD] = useState<Dashboard | null>(null);
   const [ins, setIns] = useState<Insights | null>(null);
   const [error, setError] = useState("");
@@ -157,6 +158,7 @@ export default function Stats({ me, onPractice }: Props) {
       {tab === "overview" && (
         <>
           <Readiness onPractice={canMakeSet ? onPractice : undefined} />
+          <MajorSubtopics major={profile?.major ?? null} majorName={profile?.major_name ?? null} onPractice={canMakeSet ? onPractice : undefined} />
           <div className="pp-kpis">
             <div className="pp-kpi"><b>{d.answered_total.toLocaleString()}</b><span>ข้อที่ทำทั้งหมด (รวมทำซ้ำ)</span></div>
             <div className="pp-kpi"><b>{firstTry ? `${pct(firstRight, firstTry)}%` : "–"}</b><span>ถูกตั้งแต่ครั้งแรก</span></div>

@@ -79,9 +79,9 @@ export default function Readiness({ compact = false, onPractice, onMore }: {
         <div className="pp-rd-focus">
           <b className="small">{compact ? "ฝึกหมวดนี้ได้คะแนนเพิ่มมากที่สุด" : "หมวดที่ฝึกแล้วได้คะแนนเพิ่มมากที่สุด"}</b>
           {focus.map(f => (
-            <div key={f.code} className="pp-rd-f">
-              <div><span>{f.name}</span><small className="pp-muted">{f.subject.replace(/^ภาค ([กข]): /, "ภาค $1 · ")} · ออก {f.w} ข้อ · {f.n ? `ถูก ${f.pct}%` : "ยังไม่เคยทำ"}</small></div>
-              {onPractice && <button className="pp-btn pp-btn-ghost sm" onClick={() => onPractice({ topics: [f.code] })}>ฝึก</button>}
+            <div key={f.sub ?? f.code} className="pp-rd-f">
+              <div><span>{f.name}</span><small className="pp-muted">{f.subject.replace(/^ภาค ([กข]): /, "ภาค $1 · ")} · ออกราว {f.w} ข้อ · {f.n ? `ถูก ${f.pct}%` : "ยังไม่เคยทำ"}</small></div>
+              {onPractice && <button className="pp-btn pp-btn-ghost sm" onClick={() => onPractice(f.sub ? { topics: [f.code], subtopics: [f.sub] } : { topics: [f.code] })}>ฝึก</button>}
             </div>
           ))}
         </div>

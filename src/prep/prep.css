@@ -917,3 +917,25 @@ div.pp-todo-item { cursor: default; }
 .pp-chip-btn { border: 1.5px solid var(--pp-line); background: #fff; border-radius: 99px; padding: 5px 12px; font: inherit; font-size: 13px; cursor: pointer; color: var(--pp-ink); }
 .pp-chip-btn.on { border-color: var(--pp-primary); background: var(--pp-primary-soft); color: var(--pp-primary-dark); font-weight: 600; }
 .pp-keyrow.off { opacity: .6; }
+
+/* ---------- major sub-topics ---------- */
+.pp-msub h3 { margin: 0 0 2px; }
+.pp-msub-list { display: grid; gap: 2px; margin-top: 10px; }
+.pp-msub-row { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(50px, 1fr) 40px auto; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--pp-line); }
+.pp-msub-t { display: grid; min-width: 0; }
+.pp-msub-t > span { font-size: 14px; }
+.pp-msub-row > b { text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
+.pp-msub .ok { color: var(--pp-ok); } .pp-msub .low { color: var(--pp-bad); }
+.pp-msub .pp-rd-track > div.ok { background: var(--pp-ok); } .pp-msub .pp-rd-track > div.mid { background: var(--pp-gold-bright); } .pp-msub .pp-rd-track > div.low { background: var(--pp-bad); }
+.pp-msub-ped { font-style: normal; font-size: 10.5px; margin-left: 6px; padding: 1px 6px; border-radius: 99px; background: var(--pp-gold-soft); color: #8C6A12; }
+.pp-subpick { grid-column: 1 / -1; margin: 6px 0 4px; padding: 10px; border-radius: 12px; background: #FBF7F1; border: 1px dashed var(--pp-line); }
+.pp-subpick-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.pp-asub-list { display: grid; gap: 6px; margin-top: 10px; }
+.pp-asub { border: 1px solid var(--pp-line); border-radius: 12px; overflow: hidden; }
+.pp-asub-h { width: 100%; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 12px; background: #fff; border: 0; font: inherit; text-align: left; cursor: pointer; color: var(--pp-ink); }
+.pp-asub-h b { margin-right: auto; }
+.pp-asub-t { padding: 4px 12px 10px; display: grid; gap: 2px; }
+.pp-asub-t > div { display: grid; grid-template-columns: 1fr auto 64px; gap: 10px; font-size: 13.5px; padding: 4px 0; border-bottom: 1px dashed var(--pp-line); }
+.pp-asub-t > div b { text-align: right; font-variant-numeric: tabular-nums; }
+.pp-asub-t > div.low b { color: var(--pp-bad); }
+.pp-chip.bad { background: var(--pp-bad-soft); color: var(--pp-bad); }

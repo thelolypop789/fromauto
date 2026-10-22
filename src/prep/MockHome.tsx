@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { rpc, thaiError, type MockOverview, type MockPayload, type MockSubject } from "./api";
 import { IconBack } from "./icons";
+import MockScorecard from "./MockScorecard";
 
 type Props = { onBack: () => void; onUpgrade: () => void; onOpen: (p: MockPayload) => void; onAccount: () => void };
 
@@ -40,6 +41,7 @@ export default function MockHome({ onBack, onUpgrade, onOpen, onAccount }: Props
         {ov.major_name && <p className="pp-muted small">วิชาเอกของคุณ: <b>{ov.major_name}</b></p>}
         {error && <div className="pp-error">{error}</div>}
       </div>
+      <MockScorecard />
       {(["A", "B"] as const).map(sec => (
         <div key={sec} className="pp-card">
           <h3>{SECTION_TITLE[sec]}</h3>

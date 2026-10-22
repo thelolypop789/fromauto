@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Mascot from "./Mascot";
 
 // Loading spinner that never traps the user: after a few seconds it explains and offers a way out.
 export default function Waiting() {
@@ -13,7 +14,7 @@ export default function Waiting() {
   };
   return (
     <div className="pp-center">
-      <div className="pp-spinner" />
+      <div className="pp-loading" role="status"><Mascot mood="think" size={112} /><span className="pp-muted">กำลังโหลด<span className="pp-loading-dots" /></span></div>
       {slow && (
         <div className="pp-card" style={{ marginTop: 16, textAlign: "center" }}>
           <p className="pp-muted" style={{ margin: "0 0 12px" }}>โหลดนานกว่าปกติ อาจเป็นเพราะสัญญาณช้า ลองโหลดใหม่ก่อน</p>

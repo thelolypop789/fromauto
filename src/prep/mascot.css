@@ -1,0 +1,43 @@
+/* Mascot + small feedback animations. Everything here is switched off for people who ask for less motion. */
+.pp-mascot { display: block; flex: none; user-select: none; -webkit-user-drag: none; filter: drop-shadow(0 6px 10px rgba(74, 11, 22, .16)); }
+.pp-mascot-idle { animation: ppm-float 3.2s ease-in-out infinite; }
+.pp-mascot-pop { animation: ppm-pop .45s cubic-bezier(.2, 1.4, .4, 1) both; }
+.pp-mascot-cheer { animation: ppm-pop .45s cubic-bezier(.2, 1.4, .4, 1) both, ppm-jump .7s .45s ease-out 2; }
+.pp-mascot-shake { animation: ppm-pop .3s ease-out both, ppm-shake .5s .3s ease-in-out both; }
+@keyframes ppm-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes ppm-pop { 0% { transform: scale(.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes ppm-jump { 0%, 100% { transform: translateY(0) scale(1); } 30% { transform: translateY(-12px) scale(1.04, .96); } 60% { transform: translateY(0) scale(1.05, .94); } }
+@keyframes ppm-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-6px) rotate(-4deg); } 40% { transform: translateX(5px) rotate(3deg); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
+@keyframes ppm-pulse { 0% { transform: scale(1); } 40% { transform: scale(1.03); } 100% { transform: scale(1); } }
+@keyframes ppm-rise { 0% { transform: translateY(8px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+
+/* answering */
+.pp-choice.right { animation: ppm-pulse .45s ease-out; }
+.pp-choice.wrong { animation: ppm-shake .45s ease-in-out; }
+.pp-explain { animation: ppm-rise .3s ease-out; }
+.pp-explain-top { display: flex; gap: 12px; align-items: center; margin-bottom: 6px; }
+.pp-explain-top .pp-explain-h { margin: 0; }
+.pp-explain-cheer { font-size: 14px; color: var(--pp-muted); margin-top: 2px; }
+
+/* home greeting */
+.pp-greet { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; }
+.pp-greet-bubble { position: relative; flex: 1; background: #fff; border-radius: 16px; padding: 10px 14px; box-shadow: var(--pp-shadow, 0 6px 20px -14px rgba(74, 11, 22, .45)); font-size: 15px; line-height: 1.45; }
+.pp-greet-bubble::before { content: ""; position: absolute; left: -7px; top: 50%; width: 14px; height: 14px; background: #fff; transform: translateY(-50%) rotate(45deg); border-radius: 3px; }
+.pp-greet-bubble b { color: var(--pp-primary); }
+
+/* results */
+.pp-result-mascot { display: flex; justify-content: center; margin: 4px 0 2px; }
+.pp-result-say { font-weight: 700; color: var(--pp-primary); margin: 2px 0 10px; text-align: center; }
+
+/* loading */
+.pp-loading { display: grid; justify-items: center; gap: 8px; }
+.pp-loading-dots::after { content: "…"; animation: ppm-dots 1.2s steps(4) infinite; display: inline-block; width: 1.2em; text-align: left; overflow: hidden; vertical-align: bottom; }
+@keyframes ppm-dots { 0% { width: 0; } 100% { width: 1.2em; } }
+
+.pp-confetti { position: fixed; inset: 0; pointer-events: none; z-index: 60; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-mascot, .pp-choice.right, .pp-choice.wrong, .pp-explain, .pp-loading-dots::after { animation: none !important; }
+}
+.pp-login-mascot { margin: -6px auto 0; filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .35)); }
+.pp-empty-mascot { margin: 0 auto 4px; }

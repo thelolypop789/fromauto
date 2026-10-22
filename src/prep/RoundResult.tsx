@@ -1,6 +1,9 @@
 import type { CSSProperties } from "react";
+import Mascot from "./Mascot";
+import { scoreMood, useCountUp } from "./mascotUtil";
+import Confetti from "./Confetti";
 import type { Me, SubmitResult } from "./api";
-import { IconCrown, IconTrophy } from "./icons";
+import { IconCrown } from "./icons";
 
 type Props = {
   result: SubmitResult;
@@ -13,19 +16,23 @@ type Props = {
 
 export default function RoundResult({ result: r, title, me, onStart, onHome, onUpgrade }: Props) {
   const outOfFree = me.plan !== "paid" && me.free_sets_used >= me.free_sets_limit;
+  const pct = useCountUp(Math.round(r.pct));
+  const m = scoreMood(r.pct, r.cleared);
   return (
     <div className="pp-card pp-result">
+      {m.party && <Confetti />}
       <div className="pp-muted">{title} · {r.mode === "wrong" ? "รอบข้อผิด" : `รอบที่ ${r.round_no}`}</div>
+      <div className="pp-result-mascot"><Mascot costume={r.cleared ? "teacher" : "none"} mood={m.mood} motion={m.party ? "cheer" : "pop"} size={120} /></div>
+      <div className="pp-result-say">{m.say}</div>
       {r.cleared ? (
         <>
-          <div className="pp-trophy"><IconTrophy size={46} /></div>
           <h2>เคลียร์ชุดนี้แล้ว!</h2>
           <p className="pp-muted">ตอบถูกครบทุกข้อ ข้อเหล่านี้จะช่วยให้ผลวิเคราะห์แม่นขึ้น</p>
         </>
       ) : (
         <>
-          <div className="pp-ring" style={{ "--p": Math.round(r.pct) } as CSSProperties}>
-            <div><div className="pp-score">{Math.round(r.pct)}%</div><div className="pp-muted">ถูก {r.correct}/{r.total}</div></div>
+          <div className="pp-ring" style={{ "--p": pct } as CSSProperties}>
+            <div><div className="pp-score">{pct}%</div><div className="pp-muted">ถูก {r.correct}/{r.total}</div></div>
           </div>
           <p className="pp-muted">ยังผิดอยู่ {r.wrong_count} ข้อ — ทำซ้ำจนกว่าจะถูกครบ</p>
         </>

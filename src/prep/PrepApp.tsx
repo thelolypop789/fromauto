@@ -173,7 +173,7 @@ function PrepShell() {
         </div>
       </header>
       <main className="pp-main">
-        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onCalendar={() => go("calendar")} onUpgrade={() => go("account")} />}
+        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onCalendar={() => go("calendar")} onUpgrade={() => go("account")} onStats={() => go("stats")} />}
         {view.name === "create" && <CreateSet me={me} major={profile.major} preset={view.preset} onCancel={() => go("home")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} onUpgrade={() => go("account")} />}
         {view.name === "result" && <RoundResult result={view.result} title={view.title} me={me} onStart={startRound}
@@ -183,7 +183,7 @@ function PrepShell() {
           onOpen={payload => { setView(payload.submitted ? { name: "mockresult", payload } : { name: "mockplay", payload }); window.scrollTo(0, 0); }} />}
         {view.name === "mockresult" && <MockResult payload={view.payload} onBack={() => go("mock")} onReview={() => startReview("wrong")} />}
         {view.name === "calendar" && <Calendar onBack={() => go("home")} />}
-        {view.name === "stats" && <Stats me={me} onPractice={practice} />}
+        {view.name === "stats" && <Stats me={me} profile={profile} onPractice={practice} />}
         {view.name === "account" && <Account me={me} email={session.user.email ?? ""} profile={profile} onMajor={setMajor} onChanged={refreshMe} onNotifRead={clearUnread} />}
         {view.name === "admin" && me.is_admin && <Admin />}
       </main>

@@ -29,7 +29,7 @@ const METRICS = [
 type MK = typeof METRICS[number]["k"];
 const FUNNEL = ["สมัคร", "สร้างชุดฝึก", "เปิดหน้าซื้อ", "ส่งสลิป", "ซื้อสำเร็จ"];
 const FEATURES: [string, string][] = [
-  ["level_view", "เลเวลและวันติด"], ["readiness_view", "เกจความพร้อมสอบ"], ["subtopic_pick", "เลือกหมวดย่อยวิชาเอก"],
+  ["level_view", "เลเวลและวันต่อเนื่อง"], ["readiness_view", "เกจความพร้อมสอบ"], ["subtopic_pick", "เลือกหมวดย่อยวิชาเอก"],
   ["scoredist_view", "กราฟเทียบคะแนนคนอื่น"], ["promo_apply", "ใช้โค้ดส่วนลด"], ["board_view", "ดูตารางอันดับ"], ["buy_view", "เปิดหน้าซื้อ"],
 ];
 const pct = (a: number, b: number) => (b > 0 ? Math.round((100 * a) / b) : null);

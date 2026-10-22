@@ -3,7 +3,7 @@ export const SHOP = {
   bankText: "Thai QR / พร้อมเพย์ จ่ายได้ทุกแอปธนาคาร · ชื่อบัญชี นาย พงศกร ดรโคตร์กอก",
   qrImage: "/prep-pay-qr.png", // fallback Thai QR without an amount (ถุงเงิน กรุงไทย)
   // Fixed-amount QRs (amount locked in the code) by price in baht; shown for the chosen package.
-  qrByAmount: Object.fromEntries([30, 49, 50, 69, 80, 99, 129, 130, 179].map(a => [a, `/prep-pay-qr-${a}.png`])) as Record<number, string>, // make more with scripts/prep/make_qr.py
+  qrByAmount: Object.fromEntries([30, 49, 50, 69, 78, 80, 99, 110, 129, 130, 158, 170, 179, 206, 240, 286, 345, 450, 625].map(a => [a, `/prep-pay-qr-${a}.png`])) as Record<number, string>, // make more with scripts/prep/make_qr.py
   contactText: "LINE @701pvghq",
   contactUrl: "https://lin.ee/ROuWTfN",
   roundText: "ใช้ได้ 3 เดือน นับจากวันกรอกคีย์", // what a "รายรอบ" purchase covers (keys: แอดมิน → คีย์ → รายรอบ 3 เดือน)

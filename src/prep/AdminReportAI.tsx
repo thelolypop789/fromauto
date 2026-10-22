@@ -170,7 +170,7 @@ function Card({ r, onDone }: { r: Review; onDone: () => void }) {
           <div className="pp-ai-presets"><span className="pp-muted small">ข้อความสำเร็จรูป:</span>
             {PRESETS[outcome].map(p => <button key={p.label} type="button" className="pp-chipbtn" onClick={() => setMsg(p.text)}>{p.label}</button>)}
           </div>
-          <div className="pp-ai-step">ขั้น 2 · ตรวจข้อความที่ผู้รายงานจะได้อ่าน (แก้ได้)</div>
+          <div className="pp-ai-step">{human ? "ขั้น 2 · " : ""}ตรวจข้อความที่ผู้รายงานจะได้อ่าน (แก้ได้)</div>
           <label className="pp-ai-msg">
             <textarea className="pp-input" rows={3} maxLength={600} value={msg} onChange={e => setMsg(e.target.value)} />
           </label>

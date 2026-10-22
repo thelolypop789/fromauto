@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { PACKAGE_LABEL, fmtUntil, rpc, supabase, thaiError, type Me, type PackageKey, type Price, type Profile } from "./api";
+import { PACKAGE_LABEL, TRACK_LABEL, fmtUntil, rpc, supabase, thaiError, type Me, type PackageKey, type Price, type Profile } from "./api";
 import MajorPicker from "./MajorPicker";
 import { PACKAGES, SHOP } from "./config";
 import { IconCheck, IconCrown, IconLogout } from "./icons";
@@ -10,9 +10,9 @@ import PayForm from "./PayForm";
 import GroupKeys from "./GroupKeys";
 
 const noop = () => { /* nothing to refresh */ };
-type Props = { me: Me; email: string; profile: Profile; onMajor: (code: string, name: string) => void; onChanged: () => void; onNotifRead?: () => void };
+type Props = { me: Me; email: string; profile: Profile; onMajor: (code: string, name: string) => void; onProfile?: (p: Profile) => void; onChanged: () => void; onNotifRead?: () => void };
 
-export default function Account({ me, email, profile, onMajor, onChanged, onNotifRead }: Props) {
+export default function Account({ me, email, profile, onMajor, onProfile, onChanged, onNotifRead }: Props) {
   const [picking, setPicking] = useState(false);
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
@@ -64,12 +64,12 @@ export default function Account({ me, email, profile, onMajor, onChanged, onNoti
 
       <div className="pp-card pp-major-card">
         <div>
-          <div className="pp-muted small">วิชาเอกของฉัน</div>
+          <div className="pp-muted small">สอบครูผู้ช่วย {TRACK_LABEL[profile.track ?? "obec"]} · วิชาเอกของฉัน</div>
           <b>{profile.major_name ?? "ยังไม่ได้เลือก"}</b>
         </div>
         <button className="pp-btn pp-btn-outline" onClick={() => setPicking(true)}>{profile.major ? "เปลี่ยน" : "เลือกวิชาเอก"}</button>
       </div>
-      {picking && <MajorPicker current={profile.major} onClose={() => setPicking(false)} onSaved={onMajor} />}
+      {picking && <MajorPicker current={profile.major} track={profile.track} onTrack={onProfile} onClose={() => setPicking(false)} onSaved={onMajor} />}
 
       <InstallBanner always />
       <Notifications onRead={onNotifRead ?? noop} />

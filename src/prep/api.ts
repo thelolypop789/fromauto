@@ -207,7 +207,9 @@ export const REPORT_CATEGORIES: [string, string, string][] = [
   ["other", "อื่นๆ", "ระบุรายละเอียด"],
 ];
 
-export type Profile = { major: string | null; major_name: string | null };
+export type Track = "obec" | "vec";
+export const TRACK_LABEL: Record<Track, string> = { obec: "สพฐ.", vec: "อาชีวศึกษา (สอศ.)" };
+export type Profile = { major: string | null; major_name: string | null; track?: Track };
 
 export type PackageKey = "A" | "B" | "ALL";
 export const PACKAGE_LABEL: Record<PackageKey, string> = { A: "ภาค ก", B: "ภาค ข + วิชาเอก", ALL: "ครบทุกภาค" };

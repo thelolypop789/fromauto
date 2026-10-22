@@ -14,6 +14,7 @@ type Props = {
   me: Me;
   profile: Profile;
   onMajor: (code: string, name: string) => void;
+  onProfile?: (p: Profile) => void;
   onCreate: (preset?: Preset) => void;
   onStart: (setId: string, mode: "full" | "wrong") => void;
   onReview: (kind: "due" | "wrong") => void;
@@ -25,7 +26,7 @@ type Props = {
   onBoard: () => void;
 };
 
-export default function Home({ me, profile, onMajor, onCreate, onStart, onReview, onDaily, onMock, onCalendar, onUpgrade, onStats, onBoard }: Props) {
+export default function Home({ me, profile, onMajor, onProfile, onCreate, onStart, onReview, onDaily, onMock, onCalendar, onUpgrade, onStats, onBoard }: Props) {
   const [picking, setPicking] = useState(false);
   const [sets, setSets] = useState<SetSummary[] | null>(null);
   const [error, setError] = useState("");
@@ -149,7 +150,7 @@ export default function Home({ me, profile, onMajor, onCreate, onStart, onReview
           );
         })}
       </div>
-      {picking && <MajorPicker current={profile.major} onClose={() => setPicking(false)} onSaved={onMajor} />}
+      {picking && <MajorPicker current={profile.major} track={profile.track} onTrack={onProfile} onClose={() => setPicking(false)} onSaved={onMajor} />}
       {!canCreate && <p className="pp-note">ใช้ชุดฟรีครบแล้ว — ทำซ้ำชุดเดิมด้านล่างได้ไม่จำกัด หรืออัปเกรดเพื่อสร้างชุดใหม่</p>}
 
       {error && <div className="pp-error">{error}</div>}

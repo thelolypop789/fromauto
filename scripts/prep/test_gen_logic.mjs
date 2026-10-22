@@ -35,5 +35,10 @@ t('prompt has the facts guard and old stems', /ห้ามแต่งตัว
 t('pedagogy prompt asks for classroom situations', /สถานการณ์ในห้องเรียน/.test(L.generatePrompt({ ...w, kind: 'pedagogy' }, 5)));
 t('verify prompt hides the key', !/เฉลย:/.test(L.verifyPrompt(w, [ok])) && /\[0\]/.test(L.verifyPrompt(w, [ok])));
 t('prompt asks for equal-length choices', /ยาวและละเอียดใกล้เคียงกัน/.test(L.generatePrompt(w, 5)));
+t('obec major prompt keeps the old wording', L.generatePrompt(w, 5).startsWith('คุณเป็นผู้เขียนข้อสอบครูผู้ช่วย (ก.ค.ศ. ภาค ข วิชาเอกสุขศึกษา)') && /หลักสูตรแกนกลาง/.test(L.generatePrompt(w, 5)));
+const wv = { ...w, major: 'ช่างไฟฟ้ากำลัง', grp: 'B3', track: 'vec', kind: 'pedagogy' };
+t('vec prompt names สอศ. and ปวช./ปวส.', /สอศ\./.test(L.generatePrompt(wv, 5)) && /ปวช\. และ ปวส\./.test(L.generatePrompt(wv, 5)) && !/หลักสูตรแกนกลาง/.test(L.generatePrompt(wv, 5)) && /โรงฝึกงาน/.test(L.generatePrompt(wv, 5)));
+t('vec verify prompt checks against the vocational curriculum', /ปวช\. และ ปวส\./.test(L.verifyPrompt(wv, [ok])));
+t('non-major topic is a หมวด, not a วิชาเอก', /หมวดหลักสูตรอาชีวศึกษา/.test(L.generatePrompt({ ...wv, grp: 'B1', major: 'หลักสูตรอาชีวศึกษา' }, 5)) && !/วิชาเอกหลักสูตร/.test(L.generatePrompt({ ...wv, grp: 'B1', major: 'หลักสูตรอาชีวศึกษา' }, 5)));
 console.log(`${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

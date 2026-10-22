@@ -53,7 +53,7 @@ function planLabel(me: Me) {
 function PrepShell() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [me, setMe] = useState<Me | null>(null);
-  const [profile, setProfile] = useState<Profile>({ major: null, major_name: null });
+  const [profile, setProfile] = useState<Profile>({ major: null, major_name: null, track: "obec" });
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [skipMajor, setSkipMajor] = useState(() => { try { return sessionStorage.getItem("pp-major-skip") === "1"; } catch { return false; } });
   const [view, setView] = useState<View>({ name: "home" });
@@ -71,7 +71,10 @@ function PrepShell() {
     catch (e) { setError(thaiError(e)); }
     rpc<Profile>("prep_profile").then(p => { setProfile(p); setProfileLoaded(true); }).catch(() => { /* major is optional: without a profile we never block the app */ });
   }, []);
-  const setMajor = (code: string, name: string) => setProfile({ major: code, major_name: name });
+  const setMajor = (code: string, name: string) => setProfile(p => ({ ...p, major: code, major_name: name }));
+  // A track switch changes which topics, majors and mock mix apply: remount the page so every card reloads.
+  const [reloadKey, setReloadKey] = useState(0);
+  const changeProfile = (p: Profile) => { setProfile(p); setReloadKey(k => k + 1); };
 
   useEffect(() => { if (session) { refreshMe(); track("visit"); } else setMe(null); }, [session, refreshMe]);
   const [unread, setUnread] = useState(0);
@@ -119,7 +122,7 @@ function PrepShell() {
   if (profileLoaded && !profile.major && !skipMajor) {
     return (
       <div className="pp-center">
-        <MajorPicker forced current={null} onClose={() => { /* forced: not dismissible */ }} onSaved={setMajor}
+        <MajorPicker forced current={null} track={profile.track} onTrack={changeProfile} onClose={() => { /* forced: not dismissible */ }} onSaved={setMajor}
           skipsLeft={Math.max(0, MAX_MAJOR_SKIPS - readSkips())}
           onSkip={() => { writeSkips(readSkips() + 1); try { sessionStorage.setItem("pp-major-skip", "1"); } catch { /* ignore */ } setSkipMajor(true); }} />
       </div>
@@ -175,8 +178,8 @@ function PrepShell() {
           <span className={`pp-plan ${me.plan}`}>{me.plan === "paid" ? `★ ${planLabel(me)}` : `ฟรี ${Math.max(0, me.free_sets_limit - me.free_sets_used)}/${me.free_sets_limit} ชุด`}</span>
         </div>
       </header>
-      <main className="pp-main">
-        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onCalendar={() => go("calendar")} onUpgrade={() => go("account")} onStats={() => go("stats")} onBoard={() => go("board")} />}
+      <main className="pp-main" key={reloadKey}>
+        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onProfile={changeProfile} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onCalendar={() => go("calendar")} onUpgrade={() => go("account")} onStats={() => go("stats")} onBoard={() => go("board")} />}
         {view.name === "create" && <CreateSet me={me} major={profile.major} preset={view.preset} onCancel={() => go("home")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} onUpgrade={() => go("account")} />}
         {view.name === "result" && <RoundResult result={view.result} title={view.title} me={me} onStart={startRound}
@@ -188,7 +191,7 @@ function PrepShell() {
         {view.name === "mockresult" && <MockResult payload={view.payload} onBack={() => go("mock")} onReview={() => startReview("wrong")} />}
         {view.name === "calendar" && <Calendar onBack={() => go("home")} />}
         {view.name === "stats" && <Stats me={me} profile={profile} onPractice={practice} />}
-        {view.name === "account" && <Account me={me} email={session.user.email ?? ""} profile={profile} onMajor={setMajor} onChanged={refreshMe} onNotifRead={clearUnread} />}
+        {view.name === "account" && <Account me={me} email={session.user.email ?? ""} profile={profile} onMajor={setMajor} onProfile={changeProfile} onChanged={refreshMe} onNotifRead={clearUnread} />}
         {view.name === "admin" && me.is_admin && <Admin />}
       </main>
       <nav className="pp-nav" aria-label="เมนูหลัก">

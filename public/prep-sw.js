@@ -2,7 +2,7 @@
 // - Page loads: network first, cached app shell when offline.
 // - Hashed build assets and fonts: cache first (file names change on every build).
 // - Supabase / API calls: never touched, always live.
-const VERSION = "prep-v1";
+const VERSION = "prep-v2";
 const SHELL = "/prep";
 
 self.addEventListener("install", event => {

@@ -24,5 +24,5 @@ export const IconBook = ({ size = 22 }: P) => svg(size, <><path d="M4 5a2 2 0 0 
 export const IconTrophy = ({ size = 22 }: P) => svg(size, <><path d="M8 4h8v5a4 4 0 0 1-8 0z" /><path d="M8 6H5a3 3 0 0 0 3 4" /><path d="M16 6h3a3 3 0 0 1-3 4" /><path d="M12 13v4" /><path d="M8 21h8" /><path d="M10 17h4v4h-4z" /></>);
 export const IconLogout = ({ size = 18 }: P) => svg(size, <><path d="M15 4h4v16h-4" /><path d="M10 8l-4 4 4 4" /><path d="M6 12h10" /></>);
 
-export const Logo = ({ size = 36 }: P) => <img src="/prep-icons/icon-192.png" width={size} height={size} alt="" className="pp-logo-img" />;
+export const Logo = ({ size = 36 }: P) => <img src="/prep-icons/icon-192.png?v=2" width={size} height={size} alt="" className="pp-logo-img" />;
 export const IconCalendar = ({ size = 22 }: P) => svg(size, <><rect x="3" y="5" width="18" height="16" rx="2.5" /><path d="M8 3v4" /><path d="M16 3v4" /><path d="M3 10h18" /><path d="M8 14h2" /><path d="M14 14h2" /><path d="M8 17.5h2" /></>);

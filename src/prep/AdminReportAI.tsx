@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { rpc, supabase, thaiError } from "./api";
-import { APPLY_LABEL, OUTCOME_LABEL, PRESETS, type Outcome } from "./reportPresets";
+import { APPLY_LABEL, PRESETS, type Outcome } from "./reportPresets";
 
 type Fix = { stem?: string; choices?: string[]; answer?: number; explanation?: string };
 type Verdict = "ok" | "fix" | "hide" | "human";
@@ -80,7 +80,16 @@ function Card({ r, onDone }: { r: Review; onDone: () => void }) {
   const [error, setError] = useState("");
   const v = VERDICT[r.verdict];
 
-  const pick = (o: Outcome) => { setOutcome(o); setMsg(PRESETS[o][0].text); setError(""); };
+  const pick = (o: Outcome) => {
+    setOutcome(o); setMsg(PRESETS[o][0].text); setError("");
+    if (o === "fix") setDraft({ stem: q.stem, choices: [...q.choices], answer: q.answer, explanation: q.explanation ?? "" });
+  };
+  // The independent AI answer disagrees with the key in the system: offer it as a one-tap fix.
+  const aiDiffers = human && r.blind_answer != null && r.blind_answer !== q.answer;
+  const useAiKey = () => {
+    setOutcome("fix"); setMsg(PRESETS.fix[0].text); setError("");
+    setDraft({ stem: q.stem, choices: [...q.choices], answer: r.blind_answer as number, explanation: q.explanation ?? "" });
+  };
 
   const apply = async () => {
     if (!outcome) return;
@@ -128,11 +137,29 @@ function Card({ r, onDone }: { r: Review; onDone: () => void }) {
 
       {human && (
         <div className="pp-ai-human">
-          <p><b>AI ไม่แน่ใจข้อนี้ ให้คุณตัดสินเอง</b> <span className="pp-muted small">(ยังไม่ส่งอะไรให้ผู้รายงาน จนกว่าคุณจะกดยืนยัน)</span></p>
-          <div className="pp-seg" role="group" aria-label="ผลการตรวจ">
-            {(["ok", "fix", "hide"] as Outcome[]).map(o => (
-              <button key={o} type="button" className={outcome === o ? "on" : ""} onClick={() => pick(o)}>{OUTCOME_LABEL[o]}</button>
-            ))}
+          <p><b>🙋 AI ไม่แน่ใจข้อนี้ ช่วยตัดสินหน่อย</b></p>
+          <p className="pp-muted small">ยังไม่มีอะไรเปลี่ยนในข้อสอบ และยังไม่ส่งอะไรถึงผู้รายงาน จนกว่าคุณจะกดส่งในขั้นสุดท้าย</p>
+          {aiDiffers && (
+            <div className="pp-ai-vs">
+              <span>เฉลยในระบบ <b>{L[q.answer]}</b></span><span>·</span><span>AI ลองทำเองได้ <b>{L[r.blind_answer as number]}</b></span>
+            </div>
+          )}
+          <div className="pp-ai-step">ขั้น 1 · เลือกว่าจะทำอะไรกับข้อนี้</div>
+          <div className="pp-ai-opts" role="group" aria-label="ผลการตรวจ">
+            {aiDiffers && (
+              <button type="button" className={`pp-ai-opt ${outcome === "fix" && draft.answer === r.blind_answer ? "on" : ""}`} onClick={useAiKey}>
+                <b>ใช้เฉลยของ AI (ข้อ {L[r.blind_answer as number]})</b><span>เปลี่ยนเฉลยเป็นข้อ {L[r.blind_answer as number]} แล้วแจ้งผู้รายงานว่าแก้แล้ว</span>
+              </button>
+            )}
+            <button type="button" className={`pp-ai-opt ${outcome === "ok" ? "on" : ""}`} onClick={() => pick("ok")}>
+              <b>เฉลยเดิมถูกแล้ว</b><span>ข้อสอบไม่เปลี่ยน ตอบผู้รายงานว่าข้อนี้ถูกต้อง</span>
+            </button>
+            <button type="button" className={`pp-ai-opt ${outcome === "fix" && !(aiDiffers && draft.answer === r.blind_answer) ? "on" : ""}`} onClick={() => pick("fix")}>
+              <b>แก้ข้อสอบเอง</b><span>เปิดฟอร์มแก้โจทย์ ตัวเลือก เฉลย หรือคำอธิบาย แล้วแจ้งผู้รายงานว่าแก้แล้ว</span>
+            </button>
+            <button type="button" className={`pp-ai-opt ${outcome === "hide" ? "on" : ""}`} onClick={() => pick("hide")}>
+              <b>ซ่อนข้อนี้</b><span>เอาข้อนี้ออกจากชุดข้อสอบ (โจทย์ไม่ชัดหรือล้าสมัย) แล้วแจ้งผู้รายงาน</span>
+            </button>
           </div>
           {outcome === "fix" && <FixForm q={q} d={draft} onChange={setDraft} />}
         </div>
@@ -143,7 +170,8 @@ function Card({ r, onDone }: { r: Review; onDone: () => void }) {
           <div className="pp-ai-presets"><span className="pp-muted small">ข้อความสำเร็จรูป:</span>
             {PRESETS[outcome].map(p => <button key={p.label} type="button" className="pp-chipbtn" onClick={() => setMsg(p.text)}>{p.label}</button>)}
           </div>
-          <label className="pp-ai-msg"><span className="pp-muted small">ข้อความที่ผู้รายงานจะได้อ่าน (แก้ได้)</span>
+          <div className="pp-ai-step">{human ? "ขั้น 2 · " : ""}ตรวจข้อความที่ผู้รายงานจะได้อ่าน (แก้ได้)</div>
+          <label className="pp-ai-msg">
             <textarea className="pp-input" rows={3} maxLength={600} value={msg} onChange={e => setMsg(e.target.value)} />
           </label>
         </>
@@ -201,11 +229,31 @@ export default function AdminReportAI({ onChanged }: { onChanged: () => void }) 
 
   const done = () => { load(); onChanged(); };
 
+  const needHuman = (reviews ?? []).filter(r => r.verdict === "human");
+  const decided = (reviews ?? []).filter(r => r.verdict !== "human");
+  const sure = decided.filter(r => r.confidence >= 90);
+  const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
+  const confirmAllSure = async () => {
+    if (!sure.length || bulk) return;
+    const n = (v: Verdict) => sure.filter(r => r.verdict === v).length;
+    if (!window.confirm(`ยืนยันผลที่ AI มั่นใจ ≥ 90% ทั้ง ${sure.length} ข้อ?\n\nแก้ข้อสอบ ${n("fix")} · ซ่อน ${n("hide")} · ถูกอยู่แล้ว ${n("ok")}\nผู้รายงานทุกคนจะได้ข้อความที่ AI ร่างไว้ (ดูแต่ละข้อก่อนได้ถ้าไม่แน่ใจ)`)) return;
+    setError("");
+    for (let i = 0; i < sure.length; i++) {
+      setBulk({ done: i, total: sure.length });
+      try { await rpc("prep_admin_apply_report_review", { p_review: sure[i].id, p_message: sure[i].user_message, p_fix: null, p_verdict: null }); }
+      catch (e) { setError(`ข้อ #${sure[i].question_id}: ${thaiError(e)} (หยุดที่ข้อนี้)`); break; }
+    }
+    setBulk(null); done();
+  };
+
   return (
     <div className="pp-card">
       <h3>ตรวจรายงานด้วย AI</h3>
-      <p className="pp-muted small">AI จะทำข้อสอบเองโดยไม่เห็นเฉลย แล้วเทียบกับรายงานของผู้ใช้ เสนอว่าควรแก้ ซ่อน หรือข้อนี้ถูกต้องแล้ว พร้อมข้อความภาษาง่ายๆ ถึงผู้รายงาน
-        ไม่มีอะไรเปลี่ยนในข้อสอบจนกว่าคุณจะกดยืนยัน เมื่อยืนยัน ผู้รายงานทุกคนจะได้ข่าวในหน้าบัญชี</p>
+      <ol className="pp-ai-steps small">
+        <li><b>กด "ตรวจด้วย AI"</b> AI ทำข้อสอบเองโดยไม่เห็นเฉลย แล้วเทียบกับที่ผู้ใช้แจ้ง</li>
+        <li><b>AI ตัดสินให้แต่ละข้อ</b> (แก้ / ซ่อน / ถูกอยู่แล้ว) ถ้าไม่แน่ใจจะส่งมาให้คุณตัดสินเอง</li>
+        <li><b>คุณกดยืนยัน</b> ข้อสอบถึงจะเปลี่ยน และผู้รายงานทุกคนจะได้ข้อความภาษาง่ายๆ ในหน้าบัญชี</li>
+      </ol>
       <div className="pp-ai-act">
         <button className="pp-btn pp-btn-primary" disabled={busy || todo.length === 0} onClick={runAll}>
           {busy && progress ? `กำลังตรวจ ${progress.done + 1}/${progress.total}…` : todo.length ? `ตรวจด้วย AI (${todo.length} ข้อที่รอ)` : "ไม่มีข้อที่รอตรวจ"}
@@ -213,8 +261,27 @@ export default function AdminReportAI({ onChanged }: { onChanged: () => void }) 
         {busy && <button className="pp-btn pp-btn-ghost" onClick={() => { stop.current = true; }}>หยุด</button>}
       </div>
       {error && <div className="pp-error">{error}</div>}
-      {reviews && reviews.length > 0 && <h3>ผลที่รอคุณยืนยัน ({reviews.length})</h3>}
-      {reviews?.map(r => <Card key={r.id} r={r} onDone={done} />)}
+      {needHuman.length > 0 && (
+        <>
+          <h3>🙋 รอคุณตัดสิน ({needHuman.length})</h3>
+          <p className="pp-muted small">AI ไม่แน่ใจข้อเหล่านี้ ทำให้ครบก่อน แล้วค่อยยืนยันข้อที่ AI ตัดสินให้ด้านล่าง</p>
+          {needHuman.map(r => <Card key={r.id} r={r} onDone={done} />)}
+        </>
+      )}
+      {decided.length > 0 && (
+        <>
+          <h3>✅ AI ตัดสินแล้ว รอคุณยืนยัน ({decided.length})</h3>
+          {sure.length > 0 && (
+            <div className="pp-ai-act">
+              <button className="pp-btn pp-btn-primary" disabled={!!bulk || busy} onClick={confirmAllSure}>
+                {bulk ? `กำลังยืนยัน ${bulk.done + 1}/${bulk.total}…` : `ยืนยันทั้งหมดที่ AI มั่นใจ ≥ 90% (${sure.length} ข้อ)`}
+              </button>
+            </div>
+          )}
+          {decided.map(r => <Card key={r.id} r={r} onDone={done} />)}
+        </>
+      )}
+      {reviews && reviews.length === 0 && todo.length === 0 && <p className="pp-muted">ไม่มีรายงานค้าง ทำครบแล้ว 🎉</p>}
     </div>
   );
 }

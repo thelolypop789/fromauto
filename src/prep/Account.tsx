@@ -7,6 +7,7 @@ import InstallBanner from "./InstallBanner";
 import MyReports from "./MyReports";
 import Notifications from "./Notifications";
 import PayForm from "./PayForm";
+import GroupKeys from "./GroupKeys";
 
 const noop = () => { /* nothing to refresh */ };
 type Props = { me: Me; email: string; profile: Profile; onMajor: (code: string, name: string) => void; onChanged: () => void; onNotifRead?: () => void };
@@ -120,6 +121,8 @@ export default function Account({ me, email, profile, onMajor, onChanged, onNoti
           {SHOP.contactUrl && <a className="pp-btn pp-btn-gold" href={SHOP.contactUrl} target="_blank" rel="noopener noreferrer">ติดต่อซื้อ</a>}
         </div>
       )}
+
+      <GroupKeys onChanged={onChanged} />
 
       <div className="pp-card">
         <h3>มีคีย์แล้ว? เปิดใช้งาน</h3>

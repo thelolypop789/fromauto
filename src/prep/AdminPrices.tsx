@@ -2,13 +2,26 @@ import { useEffect, useState } from "react";
 import { PACKAGE_LABEL, TERM_LABEL, rpc, thaiError, type Price } from "./api";
 import { SHOP } from "./config";
 
+type Deal = { seats: number; name: string; emoji: string; pct_off: number; active: boolean };
+
 // Price list (prep.prices). Buyers who already hold part of a package get the difference automatically.
 export default function AdminPrices() {
   const [rows, setRows] = useState<Price[] | null>(null);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState("");
-  useEffect(() => { rpc<Price[]>("prep_prices").then(setRows).catch(e => setMsg({ ok: false, text: thaiError(e) })); }, []);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  useEffect(() => {
+    rpc<Price[]>("prep_prices").then(setRows).catch(e => setMsg({ ok: false, text: thaiError(e) }));
+    rpc<Deal[]>("prep_admin_group_deals").then(setDeals).catch(() => setDeals([]));
+  }, []);
+  const saveDeal = async (d: Deal) => {
+    setBusy(`deal${d.seats}`); setMsg(null);
+    try { await rpc("prep_admin_group_deal_set", { p_seats: d.seats, p_name: d.name, p_pct: d.pct_off, p_active: d.active }); setMsg({ ok: true, text: "บันทึกแพ็กกลุ่มแล้ว · ราคาใหม่ที่ยังไม่มีรูป QR ล็อกยอดจะขึ้น QR ไม่ล็อกยอด (สร้างรูปด้วย scripts/prep/make_qr.py)" }); }
+    catch (e) { setMsg({ ok: false, text: thaiError(e) }); }
+    setBusy("");
+  };
+  const upDeal = (seats: number, patch: Partial<Deal>) => setDeals(ds => ds.map(x => (x.seats === seats ? { ...x, ...patch } : x)));
 
   const key = (p: Price) => `${p.package}/${p.term}`;
   const save = async (p: Price) => {
@@ -33,6 +46,18 @@ export default function AdminPrices() {
           <input className="pp-input" style={{ width: 90 }} inputMode="numeric" aria-label={`ราคา ${PACKAGE_LABEL[p.package]} ${TERM_LABEL[p.term]}`}
             value={draft[key(p)] ?? String(p.amount)} onChange={e => setDraft({ ...draft, [key(p)]: e.target.value.replace(/\D/g, "") })} />
           <button className="pp-btn pp-btn-ghost" disabled={busy === key(p) || draft[key(p)] === undefined} onClick={() => save(p)}>บันทึก</button>
+        </div>
+      ))}
+      <h4 style={{ margin: "14px 0 4px" }}>แพ็กกลุ่ม (ซื้อหลายคนถูกกว่า)</h4>
+      <p className="pp-muted small">ราคาต่อคน = ราคาปกติ × (100 − ส่วนลด%) ปัดเป็นบาท · ผู้ซื้อได้คีย์ตามจำนวนคน</p>
+      {deals.map(d => (
+        <div key={d.seats} className="pp-row" style={{ flexWrap: "wrap", gap: 8 }}>
+          <b style={{ minWidth: 56 }}>{d.seats} คน</b>
+          <input className="pp-input" style={{ flex: "1 1 130px" }} maxLength={30} aria-label={`ชื่อแพ็ก ${d.seats} คน`} value={d.name} onChange={e => upDeal(d.seats, { name: e.target.value })} />
+          <input className="pp-input" style={{ width: 70 }} inputMode="numeric" aria-label="ส่วนลด %" value={String(d.pct_off)} onChange={e => upDeal(d.seats, { pct_off: Number(e.target.value.replace(/\D/g, "")) || 0 })} />
+          <span className="small">%</span>
+          <label className="small"><input type="checkbox" checked={d.active} onChange={e => upDeal(d.seats, { active: e.target.checked })} /> เปิดขาย</label>
+          <button className="pp-btn pp-btn-ghost" disabled={busy === `deal${d.seats}`} onClick={() => saveDeal(d)}>บันทึก</button>
         </div>
       ))}
       {msg && <div className={msg.ok ? "pp-success" : "pp-error"}>{msg.text}</div>}

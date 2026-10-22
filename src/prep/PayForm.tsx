@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, supabase, thaiError, track, type Order, type PackageKey, type PromoQuote, type Quote } from "./api";
+import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, supabase, thaiError, track, type Order, type GroupQuote, type PackageKey, type PromoQuote, type Quote } from "./api";
 import { PACKAGES, SHOP } from "./config";
 import { IconCheck } from "./icons";
 
@@ -43,6 +43,10 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
   const [promoText, setPromoText] = useState(linkPromo);
   const [applied, setApplied] = useState(linkPromo);
   const [pq, setPq] = useState<{ key: string; res: PromoQuote | null; err: string } | null>(null);
+  // Group packs: pay once for N seats, get N keys to use or share.
+  const [deals, setDeals] = useState<GroupQuote[]>([]);
+  const [seats, setSeats] = useState(1);
+  useEffect(() => { rpc<GroupQuote[]>("prep_group_quotes").then(setDeals).catch(() => setDeals([])); }, []);
 
   // Refresh the account when an order was approved since the page loaded data last.
   const load = useCallback(() => { rpc<Quote[]>("prep_quotes").then(setQuotes).catch(() => {
@@ -70,7 +74,9 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
   const promo = pq && pq.key === promoKey ? pq : null;      // only a result for the current choice counts
   const promoOk = promo?.res && !promo.res.error ? promo.res : null;
   useEffect(() => { if (promoOk) track("promo_apply"); }, [promoOk]);
-  const amount = promoOk ? promoOk.amount ?? null : q && !q.error ? q.amount ?? null : null;
+  const deal = seats > 1 ? deals.find(x => x.seats === seats && x.package === pkg && x.term === term) : undefined;
+  const group = !!deal;
+  const amount = deal ? deal.total : promoOk ? promoOk.amount ?? null : q && !q.error ? q.amount ?? null : null;
   const price = amount ? `${amount} บาท` : "";
   const qr = amount ? SHOP.qrByAmount[amount] || SHOP.qrImage : "";
   const fixed = !!(amount && SHOP.qrByAmount[amount]);
@@ -103,9 +109,9 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
       const path = `${uid}/${crypto.randomUUID()}.${img.ext}`;
       const up = await supabase.storage.from("prep-slips").upload(path, img.blob, { contentType: img.type, upsert: false });
       if (up.error) throw up.error;
-      await rpc("prep_submit_order", { p_package: pkg, p_term: term, p_amount: amount, p_slip_path: path, p_note: note.trim() || null, p_promo: promoOk ? applied : null });
+      await rpc("prep_submit_order", { p_package: pkg, p_term: term, p_amount: amount, p_slip_path: path, p_note: note.trim() || null, p_promo: !group && promoOk ? applied : null, p_seats: group ? seats : 1 });
       setMsg({ ok: true, text: "ส่งสลิปแล้ว ทีมงานจะตรวจและเปิดสิทธิ์ให้โดยเร็ว ดูสถานะได้ด้านล่าง" });
-      setFile(null); setPreview(""); setNote(""); setApplied(""); setPromoText("");
+      setFile(null); setPreview(""); setNote(""); setSeats(1); setApplied(""); setPromoText("");
       try { localStorage.removeItem("pp-promo"); } catch { /* ignore */ }
       load();
     } catch (e) { setMsg({ ok: false, text: thaiError(e) }); }
@@ -143,6 +149,30 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
           </button>
         ))}
       </div>
+      {deals.length > 0 && (
+        <div className="pp-seats">
+          <label className="small pp-muted">ซื้อกี่คน? ซื้อหลายคนถูกกว่า</label>
+          <div className="pp-seats-row">
+            <button className={seats === 1 ? "on" : ""} onClick={() => setSeats(1)}><b>คนเดียว</b><span>ราคาปกติ</span></button>
+            {[...new Set(deals.map(x => x.seats))].map(n => {
+              const d = deals.find(x => x.seats === n && x.package === pkg && x.term === term);
+              if (!d) return null;
+              return (
+                <button key={n} className={seats === n ? "on" : ""} onClick={() => setSeats(n)}>
+                  <b>{d.emoji} {d.name}</b>
+                  <span>{n} คน · คนละ {d.per_seat} บาท</span>
+                  <em>ลด {d.pct_off}% · ประหยัด {d.save} บาท</em>
+                </button>
+              );
+            })}
+          </div>
+          {group && deal && (
+            <p className="pp-note">จ่ายครั้งเดียว <b>{deal.total} บาท</b> ได้คีย์ <b>{deal.seats} ชุด</b> ({PACKAGE_LABEL[pkg]} · {TERM_LABEL[term]}) ใช้เองหรือส่งให้เพื่อน แต่ละคนเริ่มนับอายุเมื่อกรอกคีย์ของตัวเอง
+              {term === "round" ? " (รายรอบ 3 เดือน)" : ""} · คีย์จะขึ้นในหน้านี้หลังทีมงานตรวจสลิปแล้ว · ใช้ร่วมกับโค้ดส่วนลดไม่ได้</p>
+          )}
+        </div>
+      )}
+      {!group && (
       <div className="pp-promo">
         <label className="small pp-muted" htmlFor="pp-promo-in">โค้ดส่วนลด (ถ้ามี)</label>
         <div className="pp-row">
@@ -157,9 +187,10 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
         {promo?.err && <div className="pp-error">{promo.err}</div>}
         {promoOk && <div className="pp-success">ใช้โค้ด <b>{promoOk.code}</b> แล้ว: {promoOk.before} − ส่วนลด {promoOk.discount} = <b>{promoOk.amount} บาท</b></div>}
       </div>
+      )}
       <label className="small pp-muted"><span className="pp-step">2</span>สแกนจ่าย {price && <b className="pp-paysum">{price}</b>}</label>
-      {q?.error && <div className="pp-note">{thaiError(q.error)}</div>}
-      {q && !q.error && q.credit ? (
+      {!group && q?.error && <div className="pp-note">{thaiError(q.error)}</div>}
+      {group ? null : q && !q.error && q.credit ? (
         <p className="pp-note">อัปเกรด: ราคาเต็ม {q.base} − หักแพ็กเดิมที่จ่ายแล้ว {q.credit} = <b>{q.amount} บาท</b> · สิทธิ์ที่ได้ {PACKAGE_LABEL[pkg]} {fmtUntil(q.expires_at ?? null)}</p>
       ) : q && !q.error && q.expires_at ? (
         <p className="pp-muted small">สิทธิ์ที่ได้ {PACKAGE_LABEL[pkg]} {fmtUntil(q.expires_at)}</p>
@@ -185,7 +216,7 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
       </label>
       <input className="pp-input" maxLength={300} placeholder="หมายเหตุ (ไม่บังคับ) เช่น เวลาโอน" value={note} onChange={e => setNote(e.target.value)} />
       <button className="pp-btn pp-btn-gold pp-wide" disabled={!file || busy || !amount} onClick={send}>
-        {busy ? "กำลังส่ง..." : `ส่งสลิป · ${PACKAGE_LABEL[pkg]} ${TERM_LABEL[term]}${price ? ` · ${price}` : ""}`}
+        {busy ? "กำลังส่ง..." : `ส่งสลิป · ${group && deal ? `${deal.name} ${deal.seats} คน · ` : ""}${PACKAGE_LABEL[pkg]} ${TERM_LABEL[term]}${price ? ` · ${price}` : ""}`}
       </button>
       <p className="pp-muted small">บัญชีที่จะได้รับสิทธิ์: {email} · ปกติตรวจภายในวันเดียวกัน</p>
       {msg && <div className={msg.ok ? "pp-success" : "pp-error"}>{msg.text}</div>}
@@ -197,7 +228,7 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
             <div key={o.id} className="pp-myrep">
               <div className="pp-myrep-h">
                 <span className={`pp-badge ${ORDER_STATUS[o.status][1]}`}>{o.status === "approved" && <IconCheck size={13} />}{ORDER_STATUS[o.status][0]}</span>
-                <span>{PACKAGE_LABEL[o.package]} · {TERM_LABEL[o.term]}{o.amount ? ` · ${o.amount} บาท` : ""}</span>
+                <span>{(o.seats ?? 1) > 1 ? `${o.group_name ?? "แพ็กกลุ่ม"} ${o.seats} คน · ` : ""}{PACKAGE_LABEL[o.package]} · {TERM_LABEL[o.term]}{o.amount ? ` · ${o.amount} บาท` : ""}</span>
               </div>
               <div className="pp-muted small">ส่งเมื่อ {fmt(o.created_at)}{o.status === "approved" ? ` · สิทธิ์${fmtUntil(o.access_until ?? null)}` : ""}</div>
               {o.admin_note && <div className="pp-myrep-note"><b>ทีมงาน:</b> {o.admin_note}</div>}

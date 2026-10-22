@@ -104,6 +104,9 @@ const ERRORS: Record<string, string> = {
   promo_already_used: "บัญชีนี้ใช้โค้ดนี้ไปแล้ว",
   promo_not_for_package: "โค้ดนี้ใช้กับแพ็กที่เลือกไม่ได้",
   promo_exists: "มีโค้ดนี้อยู่แล้ว",
+  promo_not_with_group: "แพ็กกลุ่มใช้ร่วมกับโค้ดส่วนลดไม่ได้ (ราคากลุ่มลดให้แล้ว)",
+  invalid_group: "แพ็กกลุ่มนี้ปิดอยู่หรือไม่มี เลือกใหม่อีกครั้ง",
+  bad_deal: "ชื่อ 2–30 ตัวอักษร และส่วนลด 1–60%",
   bad_nickname: "ชื่อต้องยาว 2–16 ตัวอักษร ใช้ไทย อังกฤษ ตัวเลข ช่องว่าง . _ - ได้ และห้ามใส่ลิงก์",
   bad_board: "ไม่พบตารางอันดับนี้",
   promo_bad_code: "โค้ดใช้ได้เฉพาะ A–Z, 0–9, - และ _ ยาว 3–30 ตัว",
@@ -233,7 +236,7 @@ export const fmtUntil = (iso: string | null) =>
 
 export type Order = {
   id: number; package: PackageKey; term: "round" | "lifetime"; amount: number | null;
-  status: "pending" | "approved" | "rejected"; admin_note: string | null;
+  status: "pending" | "approved" | "rejected"; admin_note: string | null; seats?: number; group_name?: string | null;
   created_at: string; reviewed_at: string | null; access_until?: string | null;
 };
 export type Price = { package: PackageKey; term: "round" | "lifetime"; amount: number };
@@ -269,6 +272,14 @@ export type Scorecard = {
 };
 export type Subtopic = {
   code: string; name: string; kind: "content" | "pedagogy"; keywords: string; share: number; available: number; seen: number; right: number;
+};
+export type GroupQuote = {
+  seats: number; name: string; emoji: string; pct_off: number; package: PackageKey; term: "round" | "lifetime";
+  base: number; per_seat: number; total: number; save: number;
+};
+export type GroupKeys = {
+  order_id: number; name: string | null; seats: number; package: PackageKey; term: "round" | "lifetime"; created_at: string | null;
+  keys: { key: string; used: boolean; mine: boolean | null; revoked: boolean }[];
 };
 export type PromoQuote = Quote & { code?: string; before?: number; discount?: number };
 export type MockSubject = {

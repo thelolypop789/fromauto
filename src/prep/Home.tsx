@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { GROUPS, PASS_PCT, SECTIONS, rpc, thaiError, type Dashboard, type Me, type Profile, type ReviewCounts, type SetSummary } from "./api";
 import MajorPicker from "./MajorPicker";
 import type { Preset } from "./CreateSet";
-import { IconCheck, IconCrown, IconPlus, IconTarget } from "./icons";
+import { IconCheck, IconCrown, IconPlus } from "./icons";
 import InstallBanner from "./InstallBanner";
 import ExpiryBanner from "./ExpiryBanner";
 import StudyPlan, { LineCard } from "./StudyPlan";
+import Mascot from "./Mascot";
 
 type Props = {
   me: Me;
@@ -42,6 +43,17 @@ export default function Home({ me, profile, onMajor, onCreate, onStart, onReview
     <>
       <ExpiryBanner me={me} onRenew={onUpgrade} />
       <InstallBanner />
+
+      <div className="pp-greet">
+        <Mascot costume="teacher" mood="happy" size={72} />
+        <div className="pp-greet-bubble">
+          {me.answered_today === 0
+            ? <>สวัสดี! วันนี้ยังไม่ได้ซ้อมเลย <b>ลองข้อสอบประจำวันสัก 10 ข้อ</b> กันไหม</>
+            : me.answered_today < 30
+              ? <>วันนี้ทำไปแล้ว <b>{me.answered_today.toLocaleString()} ข้อ</b> ไฟเริ่มติดแล้ว ไปต่ออีกนิด!</>
+              : <>วันนี้ทำไปแล้ว <b>{me.answered_today.toLocaleString()} ข้อ</b> ไฟลุกโชนเลย 🔥 เก่งมาก</>}
+        </div>
+      </div>
 
       <section className="pp-hero">
         <div className="pp-hero-top">
@@ -138,7 +150,7 @@ export default function Home({ me, profile, onMajor, onCreate, onStart, onReview
 
       {sets && sets.length === 0 && (
         <div className="pp-card pp-empty">
-          <div className="pp-empty-ico"><IconTarget size={30} /></div>
+          <Mascot mood="wave" size={104} className="pp-empty-mascot" />
           <h3>เริ่มชุดแรกกันเลย</h3>
           <p className="pp-muted">เลือกหมวดที่อยากซ้อม ระบบจะจัดข้อสอบให้ ทำซ้ำได้ไม่จำกัดจนกว่าจะถูกครบ</p>
           <button className="pp-btn pp-btn-primary" onClick={() => onCreate()}><IconPlus />สร้างชุดแรก</button>

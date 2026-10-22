@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase, thaiError } from "./api";
-import { IconBook, IconChart, IconTarget, Logo } from "./icons";
+import { IconBook, IconChart, IconTarget } from "./icons";
+import Mascot from "./Mascot";
 
 // Set VITE_PREP_EMAIL_LOGIN=off (Vercel env) to hide email-code login until SMTP is configured.
 const EMAIL_LOGIN = import.meta.env.VITE_PREP_EMAIL_LOGIN !== "off";
@@ -44,7 +45,7 @@ export default function Login() {
     <div className="pp-center">
       <div className="pp-login-wrap">
         <section className="pp-login-hero">
-          <Logo size={76} />
+          <Mascot mood="wave" size={132} className="pp-login-mascot" />
           <h1>ซ้อมสอบ SOBPREP</h1>
           <p>ซ้อมข้อสอบครูผู้ช่วย ซ้อมไม่ซ้ำ เฉลยทุกข้อ ทำซ้ำจนเคลียร์ พร้อมวิเคราะห์จุดอ่อน</p>
           <ul className="pp-feats">

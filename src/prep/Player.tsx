@@ -1,7 +1,14 @@
+import Mascot from "./Mascot";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { choiceOrder, rpc, thaiError, type AnswerResult, type Item, type Round, type SubmitResult } from "./api";
 import { IconBack, IconCheck, IconFlag, IconGrid, IconNext, IconX } from "./icons";
 import ReportDialog from "./ReportDialog";
+
+// A short line from the mascot under the verdict. Picked by question id so it does not change on re-render.
+const CHEER_OK = ["เก่งมาก! ไฟลุกแล้ว 🔥", "แม่นมาก ไปต่อเลย", "ถูกต้อง จำแบบนี้ไว้นะ", "เยี่ยม! อีกข้อก็ได้แน่"];
+const CHEER_BAD = ["ไม่เป็นไร ข้อนี้คนพลาดบ่อย", "อ่านเฉลยแล้วจำไว้ รอบหน้าได้แน่", "ผิดตอนซ้อมดีกว่าผิดในห้องสอบ", "สู้ต่อ ข้อนี้จะวนกลับมาให้ทวน"];
+const cheerLine = (ok: boolean | null | undefined, id: number) => (ok ? CHEER_OK : CHEER_BAD)[Math.abs(id) % 4];
+
 
 type Props = { round: Round; onExit: () => void; onSubmitted: (r: SubmitResult) => void };
 
@@ -131,8 +138,14 @@ export default function Player({ round, onExit, onSubmitted }: Props) {
 
           {item.picked != null && (
             <div ref={explainRef} className={`pp-explain ${item.correct ? "ok" : "bad"}`}>
-              <div className="pp-explain-h">
-                {item.correct ? <><IconCheck />ถูกต้อง</> : <><IconX />ยังไม่ถูก — คำตอบคือ {LABELS[order.indexOf(item.answer ?? 0)]}</>}
+              <div className="pp-explain-top">
+                <Mascot key={item.question_id} mood={item.correct ? "cheer" : "sad"} motion={item.correct ? "cheer" : "shake"} size={64} />
+                <div>
+                  <div className="pp-explain-h">
+                    {item.correct ? <><IconCheck />ถูกต้อง</> : <><IconX />ยังไม่ถูก — คำตอบคือ {LABELS[order.indexOf(item.answer ?? 0)]}</>}
+                  </div>
+                  <div className="pp-explain-cheer">{cheerLine(item.correct, item.question_id)}</div>
+                </div>
               </div>
               {item.explanation && <p>{item.explanation}</p>}
               {item.law_ref && <p className="pp-muted">อ้างอิง: {item.law_ref}</p>}

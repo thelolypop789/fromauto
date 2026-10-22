@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { PASS_PCT, type MockPayload } from "./api";
 import { IconBack, IconCheck, IconX } from "./icons";
+import Mascot from "./Mascot";
+import Confetti from "./Confetti";
+import { scoreMood } from "./mascotUtil";
 
 const LABELS = ["ก", "ข", "ค", "ง"];
 const fmtTime = (s: number) => `${Math.floor(s / 60)} นาที ${s % 60} วินาที`;
@@ -13,11 +16,15 @@ export default function MockResult({ payload, onBack, onReview }: Props) {
   const list = payload.items.filter(i => filter === "all" || (filter === "blank" ? i.picked == null : i.picked !== i.answer));
   const blank = r.total - r.answered;
   const passed = r.pct >= PASS_PCT;
+  const mm = scoreMood(r.pct);
 
   return (
     <>
       <div className="pp-card pp-mock-score">
+        {mm.party && <Confetti />}
         <div className="pp-muted">{payload.name}</div>
+        <div className="pp-result-mascot"><Mascot mood={mm.mood} motion={mm.party ? "cheer" : "pop"} size={112} /></div>
+        <div className="pp-result-say">{mm.say}</div>
         <div className={`pp-score ${passed ? "ok" : "low"}`}>{r.score}<small>/{r.total}</small></div>
         <div><b>{Math.round(r.pct)}%</b> <span className="pp-muted">· เกณฑ์อ้างอิง {PASS_PCT}% {passed ? "ผ่าน" : "ยังไม่ถึง"}</span></div>
         <div className="pp-muted small">ใช้เวลา {fmtTime(r.used_seconds)} จาก {payload.minutes} นาที · ตอบ {r.answered} ข้อ{blank ? ` · ไม่ได้ตอบ ${blank} ข้อ (นับผิด)` : ""}</div>

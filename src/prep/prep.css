@@ -1032,3 +1032,13 @@ div.pp-todo-item { cursor: default; }
 .pp-gk-key code { font-size: 14px; letter-spacing: .04em; font-weight: 700; color: var(--pp-primary-dark); }
 .pp-gk-key.used code { color: var(--pp-muted); text-decoration: line-through; }
 .pp-gk-act { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* Claude verdict on a question waiting for review */
+.pp-claude { border-radius: 12px; padding: 10px 12px; margin: 6px 0 10px; border: 1px solid var(--pp-line); background: #fafafa; }
+.pp-claude.ok { background: #eaf6ef; border-color: #bfe0cf; }
+.pp-claude.warn { background: #fff6e5; border-color: #f0d79a; }
+.pp-claude.bad { background: #fbeaec; border-color: #f0c4ca; }
+.pp-claude-h { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.pp-claude p { margin: 6px 0 0; }
+.pp-claude-fix { margin-top: 8px; display: grid; gap: 4px; }
+.pp-claude-fix .pp-btn { justify-self: start; margin-top: 4px; }

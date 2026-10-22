@@ -22,9 +22,10 @@ type Props = {
   onCalendar: () => void;
   onUpgrade: () => void;
   onStats: () => void;
+  onBoard: () => void;
 };
 
-export default function Home({ me, profile, onMajor, onCreate, onStart, onReview, onDaily, onMock, onCalendar, onUpgrade, onStats }: Props) {
+export default function Home({ me, profile, onMajor, onCreate, onStart, onReview, onDaily, onMock, onCalendar, onUpgrade, onStats, onBoard }: Props) {
   const [picking, setPicking] = useState(false);
   const [sets, setSets] = useState<SetSummary[] | null>(null);
   const [error, setError] = useState("");
@@ -58,7 +59,7 @@ export default function Home({ me, profile, onMajor, onCreate, onStart, onReview
         </div>
       </div>
 
-      <LevelCard />
+      <LevelCard onBoard={onBoard} />
 
       <section className="pp-hero">
         <div className="pp-hero-top">

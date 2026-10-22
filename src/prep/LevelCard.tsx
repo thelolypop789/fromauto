@@ -9,7 +9,7 @@ const readSeen = () => { try { return Number(localStorage.getItem(SEEN_KEY)) || 
 const writeSeen = (n: number) => { try { localStorage.setItem(SEEN_KEY, String(n)); } catch { /* private mode */ } };
 
 // Level (fire-themed, from XP) and the day streak. Celebrates once when the level went up since the last visit.
-export default function LevelCard() {
+export default function LevelCard({ onBoard }: { onBoard?: () => void }) {
   const [p, setP] = useState<Progress | null>(null);
   const [up, setUp] = useState(false);
 
@@ -43,6 +43,7 @@ export default function LevelCard() {
       <div className="pp-bar thin pp-lv-bar" role="progressbar" aria-valuemin={0} aria-valuemax={span} aria-valuenow={into}>
         <div style={{ width: `${Math.min(100, (100 * into) / span)}%` }} />
       </div>
+      {onBoard && <button className="pp-link small pp-lv-board" onClick={onBoard}>🏆 ดูตารางอันดับ →</button>}
       {up ? (
         <div className="pp-lv-up"><Mascot mood="cheer" motion="cheer" size={44} /><span>เลเวลอัป! ตอนนี้เป็น <b>{lv.name}</b> แล้ว</span>
           <button className="pp-link small" onClick={() => setUp(false)}>ปิด</button></div>

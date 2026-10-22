@@ -33,7 +33,7 @@ h1{font-size:clamp(2.2rem,6.6vw,3.7rem);line-height:1.14;margin:16px 0 14px;lett
 .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:0;margin-top:34px;border-top:1px solid rgba(243,217,138,.25)}
 .stats div{padding:16px 0 18px;border-bottom:1px solid rgba(243,217,138,.18)}.stats b{display:block;font-size:2rem;line-height:1.1;font-weight:800;color:var(--g2)}.stats span{font-size:.85rem;color:#e6c9ce}
 @media(min-width:820px){.stats{grid-template-columns:repeat(4,1fr)}.stats div{border-bottom:0;border-right:1px solid rgba(243,217,138,.18);padding-left:18px}.stats div:first-child{padding-left:0}.stats div:last-child{border-right:0}}
-.mock{position:relative;justify-self:center;width:min(430px,100%);padding:6px 0 40px}
+.mock{position:relative;justify-self:center;width:min(430px,100%);padding:6px 0 64px}
 .uic{background:#fff;color:var(--ink);border-radius:26px;padding:20px;box-shadow:0 40px 70px -26px rgba(0,0,0,.75);position:relative}
 .uic .smp{position:absolute;top:14px;right:16px;font-size:.7rem;background:#f3ece4;color:var(--mut);border-radius:99px;padding:2px 10px}
 .uic h4{margin:0 0 12px;font-size:.95rem;color:var(--mut);font-weight:600}
@@ -46,6 +46,14 @@ h1{font-size:clamp(2.2rem,6.6vw,3.7rem);line-height:1.14;margin:16px 0 14px;lett
 .fl.a{left:-10px;top:-10px}.fl.b{right:-6px;bottom:6px}
 @media(max-width:560px){.fl.a{left:0;top:-14px}.fl.b{right:0}}
 @media(min-width:900px){.hero .w{grid-template-columns:1.05fr .95fr}}
+.mc{position:absolute;z-index:3;height:auto;pointer-events:none;filter:drop-shadow(0 14px 18px rgba(0,0,0,.35));animation:bob 3.6s ease-in-out infinite}
+.mc.hero-mc{left:-96px;bottom:-56px;width:150px}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@media(prefers-reduced-motion:reduce){.mc{animation:none}}
+@media(max-width:560px){.mc.hero-mc{left:auto;right:4px;bottom:auto;top:-50px;width:92px}.mock{padding-top:64px}}
+.pain .pm{width:104px;height:auto;display:block;margin:0 auto 6px;filter:drop-shadow(0 10px 14px rgba(0,0,0,.4))}
+.vp .sad{position:absolute;right:12px;top:10px;width:46px;height:auto;pointer-events:none}
+.final .fm{width:140px;height:auto;display:block;margin:0 auto 6px;filter:drop-shadow(0 12px 16px rgba(0,0,0,.4))}
 .hero .strip{margin-top:30px;background:rgba(0,0,0,.25);border-top:1px solid rgba(243,217,138,.2)}
 .strip .w{display:flex;gap:10px 28px;flex-wrap:wrap;justify-content:center;padding-top:14px;padding-bottom:14px;font-size:.88rem;color:#ecd2d6}.strip b{color:var(--g2)}
 section.s{padding:64px 0}section.s.alt{background:#fff}
@@ -116,19 +124,19 @@ footer{padding:28px 0;font-size:.85rem;color:var(--mut);text-align:center}footer
 <div class="uic"><span class="smp">ตัวอย่าง</span><h4>ความพร้อมสอบ</h4>
 <div class="gz"><div class="gauge"><svg viewBox="0 0 120 66"><path d="M10 60A50 50 0 0 1 110 60" fill="none" stroke="#f1e8e8" stroke-width="12" stroke-linecap="round"/><path d="M10 60A50 50 0 0 1 110 60" fill="none" stroke="#d4a017" stroke-width="12" stroke-linecap="round" pathLength="100" stroke-dasharray="66 100"/></svg><b>66<small>%</small></b></div><p><b>ใกล้ถึงเกณฑ์</b>ประเมินจากข้อที่ทำ เกณฑ์ผ่าน 60%</p></div>
 <div class="bars"><div class="bar-r"><span>คิดวิเคราะห์</span><i><u class="m" style="width:58%"></u></i><em>58%</em></div><div class="bar-r"><span>ภาษาอังกฤษ</span><i><u class="" style="width:61%"></u></i><em>61%</em></div><div class="bar-r"><span>ข้าราชการที่ดี</span><i><u class="" style="width:72%"></u></i><em>72%</em></div><div class="bar-r"><span>วิชาเอก</span><i><u class="" style="width:69%"></u></i><em>69%</em></div><div class="bar-r"><span>กฎหมายการศึกษา</span><i><u class="l" style="width:42%"></u></i><em>42%</em></div></div></div>
-<div class="fl b"><span class="ic">🎯</span><div><b>ฝึกหมวดนี้ได้คะแนนเพิ่มมากสุด</b>ฉันทลักษณ์ · ออกราว 7 ข้อ</div></div></div></div>
+<img class="mc hero-mc" src="/prep/welcome/img/mascot-teacher-cheer.webp" alt="น้องไฟ มาสคอตซ้อมสอบ SOBPREP" width="512" height="512"><div class="fl b"><span class="ic">🎯</span><div><b>ฝึกหมวดนี้ได้คะแนนเพิ่มมากสุด</b>ฉันทลักษณ์ · ออกราว 7 ข้อ</div></div></div></div>
 <div class="w"><div class="stats"><div><b>10,000+</b><span>ข้อสอบฝึกในคลัง</span></div><div><b>ทุกข้อ</b><span>มีเฉลยพร้อมเหตุผล</span></div><div><b>17 วิชา</b><span>วิชาเอกที่มีข้อสอบ 200+ ข้อ</span></div><div><b>3 ชุด</b><span>ลองฟรี ไม่ต้องสมัคร</span></div></div></div>
 <div class="strip"><div class="w"><span>🛠️ <b>แก้ไขเร็ว</b> ได้รับรายงานข้อผิด 111 รายการ แก้ไขแล้ว 102 รายการ</span><span>⏱️ เวลาแก้ค่ากลางประมาณ <b>3 ชั่วโมง</b></span><span>ข้อมูล ณ ตุลาคม 2569</span></div></div>
 </header>
 
-<div class="pain"><div class="w"><h2>ทำข้อสอบเก่าไปเรื่อย ๆ แต่ไม่รู้ว่า<em style="color:var(--g2)">อ่อนตรงไหน</em>?</h2>
+<div class="pain"><div class="w"><img class="pm" src="/prep/welcome/img/mascot-none-think.webp" alt="" width="512" height="512" loading="lazy"><h2>ทำข้อสอบเก่าไปเรื่อย ๆ แต่ไม่รู้ว่า<em style="color:var(--g2)">อ่อนตรงไหน</em>?</h2>
 <p>ทำเสร็จก็ผ่านไป ผิดแล้วลืม สองอาทิตย์ผ่านไปผิดข้อเดิม เฉลยก็มีแค่ ก ข ค ง ไม่บอกว่าทำไม</p>
 <p><b>SOBPREP จัดการให้ ตั้งแต่เฉลยละเอียด จนถึงทวนข้อที่ผิด</b></p></div></div>
 
 <section class="s" id="why"><div class="w"><div class="hd"><span class="pill">ทำไมต้อง SOBPREP</span><h2>เปลี่ยนการทำข้อสอบ<br><em>ให้เป็นการซ้อมที่เห็นผล</em></h2><p class="lead">ออกแบบจากปัญหาของคนเตรียมสอบจริง ไม่ใช่แค่คลังข้อสอบให้ไล่ทำ</p></div>
 <div class="grid">
 <div class="card vp"><span class="prob">ปัญหา: "เฉลยมีแค่ตัวเลือก ไม่รู้ว่าทำไม"</span><h3>เฉลยละเอียด บอกเหตุผล</h3><p>ตอบเสร็จเห็นเฉลยและคำอธิบายทันที ข้อที่เกี่ยวกับกฎหมายมีมาตราอ้างอิงให้ไปเปิดต่อ</p>
-<div class="pv"><b>ยังไม่ถูก — คำตอบคือ ข</b><div class="ex bad">คำอธิบาย: บทนิยามคำว่า "หน่วยงานของรัฐ" ไม่รวมหน่วยงานธุรการของรัฐสภา...</div><div class="ex ok">อ้างอิง: พ.ร.บ. มาตรฐานทางจริยธรรม พ.ศ. 2562 มาตรา 3</div></div>
+<div class="pv" style="position:relative"><img class="sad" src="/prep/welcome/img/mascot-none-sad.webp" alt="" width="512" height="512" loading="lazy"><b>ยังไม่ถูก — คำตอบคือ ข</b><div class="ex bad">คำอธิบาย: บทนิยามคำว่า "หน่วยงานของรัฐ" ไม่รวมหน่วยงานธุรการของรัฐสภา...</div><div class="ex ok">อ้างอิง: พ.ร.บ. มาตรฐานทางจริยธรรม พ.ศ. 2562 มาตรา 3</div></div>
 <ul><li>มีคำอธิบายครบทุกข้อ</li><li>รายงานข้อที่เฉลยผิดได้ทันที</li></ul><span class="n">01</span></div>
 <div class="card vp"><span class="prob">ปัญหา: "ผิดแล้วลืม ผิดข้อเดิมซ้ำ"</span><h3>ทวนข้อที่ผิดให้เอง</h3><p>ข้อที่ผิดวนกลับมาตามรอบ ทำถูกก็ผ่านไปรอบถัดไป ไม่ต้องจดเอง</p>
 <div class="pv"><div class="chain"><span>ผิด</span><i>→</i><span>วันถัดไป</span><i>→</i><span>3 วัน</span><i>→</i><span>7 วัน</span><i>→</i><span>14 วัน</span></div><div class="ex ok" style="margin-top:12px">ปุ่ม "ทบทวนวันนี้" และ "ทวนข้อผิดทั้งหมด" อยู่หน้าแรก</div></div>
@@ -200,7 +208,7 @@ footer{padding:28px 0;font-size:.85rem;color:var(--mut);text-align:center}footer
 <details><summary>ลองฟรีได้อะไรบ้าง?</summary><p>สร้างชุดข้อสอบได้ 3 ชุด (ชุดละไม่เกิน 40 ข้อ) และทำข้อสอบประจำวัน 10 ข้อได้ฟรีทุกวัน เข้าสู่ระบบด้วยบัญชี Google ได้เลย ไม่ต้องสมัครสมาชิกและไม่ต้องใส่บัตร</p></details><details><summary>เป็นข้อสอบจริงหรือเปล่า?</summary><p>ไม่ใช่ข้อสอบจริง เป็นข้อสอบฝึกตามหัวข้อที่ออกสอบ เพื่อให้ซ้อมเป็นระบบและรู้จุดอ่อนก่อนวันสอบ เราไม่รับประกันว่าข้อสอบในเว็บจะออกสอบ และไม่รับประกันผลการสอบ</p></details><details><summary>ซื้อแล้วใช้ได้นานแค่ไหน?</summary><p>มี 2 แบบ รายรอบใช้ได้ 3 เดือนนับจากวันกรอกคีย์ และซื้อขาดใช้ได้ต่อเนื่อง ซื้อภาคเดียวก่อนได้ ค่อยอัปเกรดทีหลัง จ่ายแค่ส่วนต่าง</p></details><details><summary>จ่ายเงินอย่างไร?</summary><p>สแกน Thai QR / พร้อมเพย์ จ่ายได้ทุกแอปธนาคาร แล้วส่งสลิปทาง LINE เพื่อรับคีย์ไปกรอกในแอป</p></details><details><summary>มีวิชาเอกของฉันไหม?</summary><p>วิชาเอกที่มีข้อสอบ 200 ข้อขึ้นไปตอนนี้มี 17 วิชา ได้แก่ ภาษาไทย อุตสาหกรรมศิลป์ คณิตศาสตร์ ภาษาอังกฤษ เคมี ชีววิทยา ฟิสิกส์ วิทยาศาสตร์ทั่วไป สังคมศึกษา ปฐมวัย ประถมศึกษา การศึกษาพิเศษ คอมพิวเตอร์ ดนตรี ศิลปศึกษา พลศึกษา และนาฏศิลป์ วิชาเอกอื่นกำลังทยอยเพิ่ม ทักมาบอกได้ว่าอยากได้วิชาไหนก่อน</p></details><details><summary>ใช้บนมือถือได้ไหม?</summary><p>ได้ เปิดผ่านเบราว์เซอร์บนมือถือหรือคอมพิวเตอร์ได้เลย และติดตั้งเป็นไอคอนบนหน้าจอได้</p></details>
 </div></section>
 
-<section class="final"><div class="w"><h2>เริ่มซ้อมวันนี้<br>แล้วดูว่าอ่อนตรงไหน</h2>
+<section class="final"><div class="w"><img class="fm" src="/prep/welcome/img/mascot-none-wave.webp" alt="" width="512" height="512" loading="lazy"><h2>เริ่มซ้อมวันนี้<br>แล้วดูว่าอ่อนตรงไหน</h2>
 <p>ลองฟรี 3 ชุด ไม่ต้องสมัคร ไม่ต้องใส่บัตร</p>
 <div class="row"><a class="btn big" href="/prep">ลองฟรี 3 ชุด →</a><a class="btn big line" href="https://lin.ee/ROuWTfN">ทัก LINE @701pvghq</a></div></div></section>
 

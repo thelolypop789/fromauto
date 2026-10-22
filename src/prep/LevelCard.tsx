@@ -37,7 +37,7 @@ export default function LevelCard({ onBoard }: { onBoard?: () => void }) {
           <span className="pp-muted small">{p.xp.toLocaleString("th-TH")} XP · อีก {(lv.to - p.xp).toLocaleString("th-TH")} XP ถึงเลเวล {lv.no + 1}</span>
         </div>
         <div className={`pp-lv-streak ${p.streak ? "" : "off"}`} title={`สถิติสูงสุด ${p.best_streak} วัน`}>
-          <span aria-hidden>🔥</span><b>{p.streak}</b><small>วันติด</small>
+          <span aria-hidden>🔥</span><b>{p.streak}</b><small>วันต่อเนื่อง</small>
         </div>
       </div>
       <div className="pp-bar thin pp-lv-bar" role="progressbar" aria-valuemin={0} aria-valuemax={span} aria-valuenow={into}>
@@ -50,7 +50,7 @@ export default function LevelCard({ onBoard }: { onBoard?: () => void }) {
       ) : atRisk ? (
         <p className="pp-lv-hint">ทำวันนี้อย่างน้อย 1 ข้อ เพื่อรักษาสถิติ 🔥 {p.streak} วัน</p>
       ) : (
-        <p className="pp-muted small pp-lv-how">ตอบ 1 ข้อ = 1 XP · ตอบถูก +1 · ข้อสอบประจำวันครบ +20 · ส่งจำลองสอบ +50{p.best_streak > p.streak ? ` · สถิติวันติดสูงสุด ${p.best_streak} วัน` : ""}</p>
+        <p className="pp-muted small pp-lv-how">ตอบ 1 ข้อ = 1 XP · ตอบถูก +1 · ข้อสอบประจำวันครบ +20 · ส่งจำลองสอบ +50{p.best_streak > p.streak ? ` · ต่อเนื่องนานสุดที่เคยทำ ${p.best_streak} วัน` : ""}</p>
       )}
     </div>
   );

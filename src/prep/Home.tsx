@@ -7,6 +7,8 @@ import InstallBanner from "./InstallBanner";
 import ExpiryBanner from "./ExpiryBanner";
 import StudyPlan, { LineCard } from "./StudyPlan";
 import Mascot from "./Mascot";
+import LevelCard from "./LevelCard";
+import Readiness from "./Readiness";
 
 type Props = {
   me: Me;
@@ -19,9 +21,10 @@ type Props = {
   onMock: () => void;
   onCalendar: () => void;
   onUpgrade: () => void;
+  onStats: () => void;
 };
 
-export default function Home({ me, profile, onMajor, onCreate, onStart, onReview, onDaily, onMock, onCalendar, onUpgrade }: Props) {
+export default function Home({ me, profile, onMajor, onCreate, onStart, onReview, onDaily, onMock, onCalendar, onUpgrade, onStats }: Props) {
   const [picking, setPicking] = useState(false);
   const [sets, setSets] = useState<SetSummary[] | null>(null);
   const [error, setError] = useState("");
@@ -55,6 +58,8 @@ export default function Home({ me, profile, onMajor, onCreate, onStart, onReview
         </div>
       </div>
 
+      <LevelCard />
+
       <section className="pp-hero">
         <div className="pp-hero-top">
           <div>
@@ -72,6 +77,7 @@ export default function Home({ me, profile, onMajor, onCreate, onStart, onReview
         </div>
       </section>
 
+      <Readiness compact onMore={onStats} onPractice={canCreate ? onCreate : undefined} />
       <StudyPlan answeredToday={me.answered_today} onCalendar={onCalendar} />
       <LineCard />
 

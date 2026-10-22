@@ -4,7 +4,7 @@ import AdminPrices from "./AdminPrices";
 import { IconCheck, IconX } from "./icons";
 
 type Row = {
-  id: number; email: string | null; package: PackageKey; term: "round" | "lifetime"; amount: number | null; credit: number; list_price: number | null;
+  id: number; email: string | null; package: PackageKey; term: "round" | "lifetime"; amount: number | null; credit: number; list_price: number | null; promo_code?: string | null; discount?: number;
   slip_path: string; note: string | null; status: "pending" | "approved" | "rejected"; admin_note: string | null;
   created_at: string; reviewed_at: string | null; active_packages: PackageKey[];
 };
@@ -81,6 +81,7 @@ function OrderCard({ r, onDone }: { r: Row; onDone: (id: number) => void }) {
           <div className={r.credit ? "pp-note" : "pp-muted small"}>
             {r.credit ? `อัปเกรด: ราคาเต็ม ${r.list_price ?? "-"} − หักแพ็กเดิม ${r.credit} = ${r.amount} บาท` : `ราคาแพ็ก ${r.list_price ?? "-"} บาท`} · ยอดในสลิปต้องเป็น {r.amount} บาท
           </div>
+          {r.promo_code && <div className="pp-note">โค้ด <b>{r.promo_code}</b> ลด {r.discount} บาท · ยอดในสลิปต้องเป็น {r.amount} บาท</div>}
           <div className="pp-muted small">#{r.id} · ส่งเมื่อ {fmt(r.created_at)}{r.reviewed_at ? ` · ตรวจเมื่อ ${fmt(r.reviewed_at)}` : ""}</div>
           {r.note && <div className="small">หมายเหตุผู้ซื้อ: {r.note}</div>}
           <div className="pp-muted small">แพ็กที่มีอยู่ตอนนี้: {r.active_packages.length ? r.active_packages.map(k => PACKAGE_LABEL[k]).join(", ") : "ไม่มี"}</div>

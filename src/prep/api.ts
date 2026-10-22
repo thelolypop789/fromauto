@@ -97,6 +97,15 @@ const ERRORS: Record<string, string> = {
   invalid_price: "ราคาไม่ถูกต้อง",
   empty_recipient: "กรุณาใส่ชื่อผู้รับส่วนลด",
   already_redeemed: "รหัสนี้ถูกใช้ไปแล้ว ยกเลิกไม่ได้ (ถอนสิทธิ์ได้ที่หน้าผู้ใช้)",
+  promo_not_found: "ไม่พบโค้ดส่วนลดนี้ ตรวจตัวสะกดอีกครั้ง",
+  promo_inactive: "โค้ดนี้ปิดใช้งานแล้ว",
+  promo_expired: "โค้ดนี้หมดอายุแล้ว",
+  promo_used_up: "โค้ดนี้ถูกใช้ครบจำนวนแล้ว",
+  promo_already_used: "บัญชีนี้ใช้โค้ดนี้ไปแล้ว",
+  promo_not_for_package: "โค้ดนี้ใช้กับแพ็กที่เลือกไม่ได้",
+  promo_exists: "มีโค้ดนี้อยู่แล้ว",
+  promo_bad_code: "โค้ดใช้ได้เฉพาะ A–Z, 0–9, - และ _ ยาว 3–30 ตัว",
+  promo_bad_value: "ส่วนลดไม่ถูกต้อง (เปอร์เซ็นต์ได้ 1–90)",
   nothing_to_review: "ยังไม่มีข้อให้ทวน ทำชุดฝึกก่อน ข้อที่ตอบผิดจะมารอทวนที่นี่",
   network_timeout: "เครือข่ายช้าหรือหลุด ลองใหม่อีกครั้ง",
   mock_locked: "วิชานี้ต้องมีแพ็กที่ครอบคลุม (ทดลองฟรีได้เฉพาะภาษาอังกฤษ 1 ครั้ง)",
@@ -241,6 +250,22 @@ export type ScoreDistData = {
   kind: "daily" | "mock"; total: number; mine: number; players: number; rank: number | null; avg: number | null;
   best: number | null; buckets: number[] | null; history: { label: string; value: number; current: boolean }[];
 };
+export type Progress = {
+  xp: number; answered: number; correct: number; daily_done: number; mocks: number;
+  streak: number; best_streak: number; active_days: number; practiced_today: boolean;
+};
+export type Readiness = {
+  has_major: boolean; answered: number; overall: number | null;
+  sections: { section: "A" | "B"; pct: number; n: number; subjects: { code: string; name: string; questions: number; pct: number; n: number }[] }[];
+  focus: { code: string; name: string; subject: string; w: number; pct: number; n: number }[];
+};
+export type Scorecard = {
+  sections: {
+    section: "A" | "B"; questions: number; best_sum: number; done: number; subjects_n: number;
+    subjects: { code: string; name: string; questions: number; best: number | null; last: number | null; last_at: string | null; tries: number; history: number[] }[];
+  }[];
+};
+export type PromoQuote = Quote & { code?: string; before?: number; discount?: number };
 export type MockSubject = {
   code: string; section: "A" | "B"; name: string; questions: number; minutes: number; available: number;
   reason: "no_major" | "not_enough_questions" | null; access: "pack" | "free_trial" | "locked";

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PACKAGE_LABEL, TERM_LABEL, rpc, thaiError, type PackageKey, type Price } from "./api";
+import AdminPromo from "./AdminPromo";
 
 type Term = "round" | "lifetime";
 type Item = {
@@ -113,6 +114,8 @@ export default function AdminDiscounts() {
           </div>
         )}
       </div>
+
+      <AdminPromo />
 
       <div className="pp-card">
         <h3>ส่วนลดที่ให้ไป{t ? ` (${t.count})` : ""}</h3>

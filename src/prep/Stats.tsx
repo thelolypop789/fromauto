@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { GROUPS, LEVELS, PASS_PCT, SECTIONS, rpc, thaiError, type Dashboard, type Insights, type Me, type TopicStat } from "./api";
 import type { Preset } from "./CreateSet";
 import { IconCheck, IconTarget, IconX } from "./icons";
+import Readiness from "./Readiness";
 
 type Props = { me: Me; onPractice: (preset?: Preset) => void };
 
@@ -155,6 +156,7 @@ export default function Stats({ me, onPractice }: Props) {
 
       {tab === "overview" && (
         <>
+          <Readiness onPractice={canMakeSet ? onPractice : undefined} />
           <div className="pp-kpis">
             <div className="pp-kpi"><b>{d.answered_total.toLocaleString()}</b><span>ข้อที่ทำทั้งหมด (รวมทำซ้ำ)</span></div>
             <div className="pp-kpi"><b>{firstTry ? `${pct(firstRight, firstTry)}%` : "–"}</b><span>ถูกตั้งแต่ครั้งแรก</span></div>

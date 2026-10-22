@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, supabase, thaiError, track, type Order, type PackageKey, type Quote } from "./api";
+import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, supabase, thaiError, track, type Order, type PackageKey, type PromoQuote, type Quote } from "./api";
 import { PACKAGES, SHOP } from "./config";
 import { IconCheck } from "./icons";
 
@@ -37,6 +37,11 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [quotes, setQuotes] = useState<Quote[] | null>(null);
+  // Promo code: the typed text, the code applied, and the server's price for (code, package, term).
+  const [promoOpen, setPromoOpen] = useState(false);
+  const [promoText, setPromoText] = useState("");
+  const [applied, setApplied] = useState("");
+  const [pq, setPq] = useState<{ key: string; res: PromoQuote | null; err: string } | null>(null);
 
   // Refresh the account when an order was approved since the page loaded data last.
   const load = useCallback(() => { rpc<Quote[]>("prep_quotes").then(setQuotes).catch(() => {
@@ -60,11 +65,23 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
     .find(c => { const x = quoteOf(c.pkg, c.term); return !!x && !x.error; });
   const { pkg, term } = choice ?? firstOpen ?? { pkg: "ALL" as PackageKey, term: "round" as const };
   const q = quoteOf(pkg, term);
-  const amount = q && !q.error ? q.amount ?? null : null;
+  const promoKey = applied ? `${applied}|${pkg}|${term}` : "";
+  const promo = pq && pq.key === promoKey ? pq : null;      // only a result for the current choice counts
+  const promoOk = promo?.res && !promo.res.error ? promo.res : null;
+  const amount = promoOk ? promoOk.amount ?? null : q && !q.error ? q.amount ?? null : null;
   const price = amount ? `${amount} บาท` : "";
   const qr = amount ? SHOP.qrByAmount[amount] || SHOP.qrImage : "";
   const fixed = !!(amount && SHOP.qrByAmount[amount]);
   const offers = (quotes ?? []).filter(x => x.kind === "upgrade" && !x.error && x.package === "ALL");
+
+  useEffect(() => {
+    if (!promoKey) return;
+    let alive = true;
+    rpc<PromoQuote>("prep_check_promo", { p_code: applied, p_package: pkg, p_term: term })
+      .then(r => { if (alive) setPq({ key: promoKey, res: r, err: r.error ? thaiError(r.error) : "" }); })
+      .catch(e => { if (alive) setPq({ key: promoKey, res: null, err: thaiError(e) }); });
+    return () => { alive = false; };
+  }, [promoKey, applied, pkg, term]);
 
   const pick = (f: File | undefined) => {
     if (!f) return;
@@ -84,9 +101,9 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
       const path = `${uid}/${crypto.randomUUID()}.${img.ext}`;
       const up = await supabase.storage.from("prep-slips").upload(path, img.blob, { contentType: img.type, upsert: false });
       if (up.error) throw up.error;
-      await rpc("prep_submit_order", { p_package: pkg, p_term: term, p_amount: amount, p_slip_path: path, p_note: note.trim() || null });
+      await rpc("prep_submit_order", { p_package: pkg, p_term: term, p_amount: amount, p_slip_path: path, p_note: note.trim() || null, p_promo: promoOk ? applied : null });
       setMsg({ ok: true, text: "ส่งสลิปแล้ว ทีมงานจะตรวจและเปิดสิทธิ์ให้โดยเร็ว ดูสถานะได้ด้านล่าง" });
-      setFile(null); setPreview(""); setNote("");
+      setFile(null); setPreview(""); setNote(""); setApplied(""); setPromoText(""); setPromoOpen(false);
       load();
     } catch (e) { setMsg({ ok: false, text: thaiError(e) }); }
     setBusy(false);
@@ -123,6 +140,22 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
           </button>
         ))}
       </div>
+      {!promoOpen && !applied ? (
+        <button className="pp-link small pp-promo-open" onClick={() => setPromoOpen(true)}>มีโค้ดส่วนลด?</button>
+      ) : (
+        <div className="pp-promo">
+          <div className="pp-row">
+            <input className="pp-input" placeholder="กรอกโค้ดส่วนลด" maxLength={30} value={promoText} disabled={!!applied}
+              onChange={e => setPromoText(e.target.value.toUpperCase())} onKeyDown={e => { if (e.key === "Enter" && promoText.trim()) setApplied(promoText.trim()); }} />
+            {applied
+              ? <button className="pp-btn pp-btn-ghost" onClick={() => { setApplied(""); setPromoText(""); }}>ยกเลิกโค้ด</button>
+              : <button className="pp-btn pp-btn-primary" disabled={!promoText.trim()} onClick={() => setApplied(promoText.trim())}>ใช้โค้ด</button>}
+          </div>
+          {applied && !promo && <span className="pp-muted small">กำลังตรวจโค้ด…</span>}
+          {promo?.err && <div className="pp-error">{promo.err}</div>}
+          {promoOk && <div className="pp-success">ใช้โค้ด <b>{promoOk.code}</b> แล้ว: {promoOk.before} − ส่วนลด {promoOk.discount} = <b>{promoOk.amount} บาท</b></div>}
+        </div>
+      )}
       <label className="small pp-muted"><span className="pp-step">2</span>สแกนจ่าย {price && <b className="pp-paysum">{price}</b>}</label>
       {q?.error && <div className="pp-note">{thaiError(q.error)}</div>}
       {q && !q.error && q.credit ? (

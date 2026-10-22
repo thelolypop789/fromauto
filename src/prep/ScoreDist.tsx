@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { rpc, type ScoreDistData } from "./api";
+import { rpc, track, type ScoreDistData } from "./api";
 
 // "How did everyone else do?" under a result: rank, average, best, a histogram with the user's bar in gold, and the
 // user's own recent scores. kind 'daily' = today's daily quiz; kind 'mock' = this mock attempt vs. the subject.
@@ -8,7 +8,7 @@ export default function ScoreDist({ kind, attemptId }: { kind: "daily" | "mock";
   const [hot, setHot] = useState<number | null>(null);
 
   useEffect(() => {
-    rpc<ScoreDistData | null>("prep_score_dist", { p_kind: kind, p_key: attemptId ?? null }).then(setD).catch(() => setD(null));
+    rpc<ScoreDistData | null>("prep_score_dist", { p_kind: kind, p_key: attemptId ?? null }).then(r => { setD(r); if (r) track("scoredist_view"); }).catch(() => setD(null));
   }, [kind, attemptId]);
 
   if (!d) return null;

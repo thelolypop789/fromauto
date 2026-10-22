@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { rpc, type Progress } from "./api";
+import { rpc, track, type Progress } from "./api";
 import { levelOf } from "./levels";
 import Mascot from "./Mascot";
 import Confetti from "./Confetti";
@@ -15,7 +15,7 @@ export default function LevelCard() {
 
   useEffect(() => {
     rpc<Progress>("prep_progress").then(x => {
-      setP(x);
+      setP(x); track("level_view");
       const no = levelOf(x.xp).no, seen = readSeen();
       if (seen && no > seen) setUp(true);
       writeSeen(no);

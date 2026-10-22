@@ -38,9 +38,10 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
   const [orders, setOrders] = useState<Order[]>([]);
   const [quotes, setQuotes] = useState<Quote[] | null>(null);
   // Promo code: the typed text, the code applied, and the server's price for (code, package, term).
-  const [promoOpen, setPromoOpen] = useState(false);
-  const [promoText, setPromoText] = useState("");
-  const [applied, setApplied] = useState("");
+  // A code from a campaign link (?promo=) is applied as soon as the buy screen opens.
+  const [linkPromo] = useState(() => { try { return localStorage.getItem("pp-promo") ?? ""; } catch { return ""; } });
+  const [promoText, setPromoText] = useState(linkPromo);
+  const [applied, setApplied] = useState(linkPromo);
   const [pq, setPq] = useState<{ key: string; res: PromoQuote | null; err: string } | null>(null);
 
   // Refresh the account when an order was approved since the page loaded data last.
@@ -68,6 +69,7 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
   const promoKey = applied ? `${applied}|${pkg}|${term}` : "";
   const promo = pq && pq.key === promoKey ? pq : null;      // only a result for the current choice counts
   const promoOk = promo?.res && !promo.res.error ? promo.res : null;
+  useEffect(() => { if (promoOk) track("promo_apply"); }, [promoOk]);
   const amount = promoOk ? promoOk.amount ?? null : q && !q.error ? q.amount ?? null : null;
   const price = amount ? `${amount} บาท` : "";
   const qr = amount ? SHOP.qrByAmount[amount] || SHOP.qrImage : "";
@@ -103,7 +105,8 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
       if (up.error) throw up.error;
       await rpc("prep_submit_order", { p_package: pkg, p_term: term, p_amount: amount, p_slip_path: path, p_note: note.trim() || null, p_promo: promoOk ? applied : null });
       setMsg({ ok: true, text: "ส่งสลิปแล้ว ทีมงานจะตรวจและเปิดสิทธิ์ให้โดยเร็ว ดูสถานะได้ด้านล่าง" });
-      setFile(null); setPreview(""); setNote(""); setApplied(""); setPromoText(""); setPromoOpen(false);
+      setFile(null); setPreview(""); setNote(""); setApplied(""); setPromoText("");
+      try { localStorage.removeItem("pp-promo"); } catch { /* ignore */ }
       load();
     } catch (e) { setMsg({ ok: false, text: thaiError(e) }); }
     setBusy(false);
@@ -140,22 +143,20 @@ export default function PayForm({ email, onApproved }: { email: string; onApprov
           </button>
         ))}
       </div>
-      {!promoOpen && !applied ? (
-        <button className="pp-link small pp-promo-open" onClick={() => setPromoOpen(true)}>มีโค้ดส่วนลด?</button>
-      ) : (
-        <div className="pp-promo">
-          <div className="pp-row">
-            <input className="pp-input" placeholder="กรอกโค้ดส่วนลด" maxLength={30} value={promoText} disabled={!!applied}
-              onChange={e => setPromoText(e.target.value.toUpperCase())} onKeyDown={e => { if (e.key === "Enter" && promoText.trim()) setApplied(promoText.trim()); }} />
-            {applied
-              ? <button className="pp-btn pp-btn-ghost" onClick={() => { setApplied(""); setPromoText(""); }}>ยกเลิกโค้ด</button>
-              : <button className="pp-btn pp-btn-primary" disabled={!promoText.trim()} onClick={() => setApplied(promoText.trim())}>ใช้โค้ด</button>}
-          </div>
-          {applied && !promo && <span className="pp-muted small">กำลังตรวจโค้ด…</span>}
-          {promo?.err && <div className="pp-error">{promo.err}</div>}
-          {promoOk && <div className="pp-success">ใช้โค้ด <b>{promoOk.code}</b> แล้ว: {promoOk.before} − ส่วนลด {promoOk.discount} = <b>{promoOk.amount} บาท</b></div>}
+      <div className="pp-promo">
+        <label className="small pp-muted" htmlFor="pp-promo-in">โค้ดส่วนลด (ถ้ามี)</label>
+        <div className="pp-row">
+          <input id="pp-promo-in" className="pp-input" placeholder="กรอกโค้ดส่วนลด" maxLength={30} value={promoText} disabled={!!applied}
+            autoCapitalize="characters" autoComplete="off" onChange={e => setPromoText(e.target.value.toUpperCase())}
+            onKeyDown={e => { if (e.key === "Enter" && promoText.trim()) setApplied(promoText.trim()); }} />
+          {applied
+            ? <button className="pp-btn pp-btn-ghost" onClick={() => { setApplied(""); setPromoText(""); setPq(null); }}>ยกเลิกโค้ด</button>
+            : <button className="pp-btn pp-btn-primary" disabled={!promoText.trim()} onClick={() => setApplied(promoText.trim())}>ใช้โค้ด</button>}
         </div>
-      )}
+        {applied && !promo && <span className="pp-muted small">กำลังตรวจโค้ด…</span>}
+        {promo?.err && <div className="pp-error">{promo.err}</div>}
+        {promoOk && <div className="pp-success">ใช้โค้ด <b>{promoOk.code}</b> แล้ว: {promoOk.before} − ส่วนลด {promoOk.discount} = <b>{promoOk.amount} บาท</b></div>}
+      </div>
       <label className="small pp-muted"><span className="pp-step">2</span>สแกนจ่าย {price && <b className="pp-paysum">{price}</b>}</label>
       {q?.error && <div className="pp-note">{thaiError(q.error)}</div>}
       {q && !q.error && q.credit ? (

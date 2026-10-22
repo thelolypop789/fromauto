@@ -13,6 +13,7 @@ import AdminLive from "./AdminLive";
 import AdminCalendar from "./AdminCalendar";
 import AdminFacebook from "./AdminFacebook";
 import AdminMajors from "./AdminMajors";
+import AdminDiscounts from "./AdminDiscounts";
 import AdminTimes from "./AdminTimes";
 
 type Stats = { users: number; paid: number; answered_today: number; active_today: number;
@@ -28,12 +29,12 @@ type QItem = { id: number; topic: string; stem: string; choices: string[]; answe
 const LABELS = ["ก", "ข", "ค", "ง"];
 const fmt = (s: string | null) => (s ? new Date(s).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "");
 
-type Tab = "stats" | "live" | "charts" | "users" | "majors" | "times" | "orders" | "keys" | "bank" | "reports" | "review" | "health" | "import" | "facebook" | "calendar";
+type Tab = "stats" | "live" | "charts" | "users" | "majors" | "times" | "orders" | "keys" | "discounts" | "bank" | "reports" | "review" | "health" | "import" | "facebook" | "calendar";
 // 15 screens in 5 groups: pick a group, then one of its few tabs.
 const GROUPS: { id: string; icon: string; label: string; tabs: [Tab, string][] }[] = [
   { id: "overview", icon: "📊", label: "ภาพรวม", tabs: [["stats", "สรุปวันนี้"], ["live", "ตอนนี้"], ["charts", "กราฟ"]] },
   { id: "people", icon: "👥", label: "ผู้ใช้", tabs: [["users", "รายชื่อ"], ["majors", "วิเคราะห์เอก"], ["times", "ช่วงเวลา"]] },
-  { id: "sales", icon: "💰", label: "ขาย", tabs: [["orders", "คำสั่งซื้อ"], ["keys", "คีย์"]] },
+  { id: "sales", icon: "💰", label: "ขาย", tabs: [["orders", "คำสั่งซื้อ"], ["discounts", "ส่วนลด"], ["keys", "คีย์"]] },
   { id: "content", icon: "📚", label: "ข้อสอบ", tabs: [["bank", "คลังข้อสอบ"], ["reports", "รายงาน"], ["review", "ตรวจข้อสอบ"], ["health", "คุณภาพคลัง"], ["import", "นำเข้า"]] },
   { id: "page", icon: "📣", label: "เพจ·ปฏิทิน", tabs: [["facebook", "Facebook"], ["calendar", "ปฏิทินสอบ"]] },
 ];
@@ -76,6 +77,7 @@ export default function Admin() {
       {tab === "majors" && <AdminMajors />}
       {tab === "times" && <AdminTimes />}
       {tab === "orders" && <AdminOrders onChanged={loadPending} />}
+      {tab === "discounts" && <AdminDiscounts />}
       {tab === "keys" && <KeysTab />}
       {tab === "bank" && <AdminBank onChanged={loadCount} />}
       {tab === "reports" && <><AdminReportAI onChanged={loadCount} /><AdminBank reportsOnly onChanged={loadCount} /></>}

@@ -104,6 +104,8 @@ const ERRORS: Record<string, string> = {
   promo_already_used: "บัญชีนี้ใช้โค้ดนี้ไปแล้ว",
   promo_not_for_package: "โค้ดนี้ใช้กับแพ็กที่เลือกไม่ได้",
   promo_exists: "มีโค้ดนี้อยู่แล้ว",
+  bad_nickname: "ชื่อต้องยาว 2–16 ตัวอักษร ใช้ไทย อังกฤษ ตัวเลข ช่องว่าง . _ - ได้ และห้ามใส่ลิงก์",
+  bad_board: "ไม่พบตารางอันดับนี้",
   promo_bad_code: "โค้ดใช้ได้เฉพาะ A–Z, 0–9, - และ _ ยาว 3–30 ตัว",
   promo_bad_value: "ส่วนลดไม่ถูกต้อง (เปอร์เซ็นต์ได้ 1–90)",
   nothing_to_review: "ยังไม่มีข้อให้ทวน ทำชุดฝึกก่อน ข้อที่ตอบผิดจะมารอทวนที่นี่",
@@ -300,7 +302,7 @@ try {
   if (promo && /^[A-Za-z0-9_-]{3,30}$/.test(promo)) localStorage.setItem("pp-promo", promo.toUpperCase());
 } catch { /* storage blocked: no source, nothing else lost */ }
 
-export type TrackName = "visit" | "buy_view" | "free_limit" | "level_view" | "readiness_view" | "subtopic_pick" | "promo_apply" | "scoredist_view";
+export type TrackName = "visit" | "buy_view" | "free_limit" | "level_view" | "readiness_view" | "subtopic_pick" | "promo_apply" | "scoredist_view" | "board_view";
 export function track(name: TrackName) {
   try {
     const flag = `pp-ev-${name}`;

@@ -991,3 +991,30 @@ div.pp-todo-item { cursor: default; }
 .pp-gen-row label { display: flex; align-items: center; gap: 6px; }
 .pp-gen-row .pp-rd-track > div.ok { background: var(--pp-ok); } .pp-gen-row .pp-rd-track > div.mid { background: var(--pp-gold-bright); }
 @media (max-width: 520px) { .pp-gen-row { grid-template-columns: 1fr 1fr; } }
+
+/* ---------- leaderboard ---------- */
+.pp-lv-board { display: block; margin-top: 8px; }
+.pp-lb-head { display: grid; gap: 6px; }
+.pp-lb-title { display: flex; align-items: center; gap: 12px; }
+.pp-lb-title h2 { margin: 0; }
+.pp-lb-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0; }
+@media (min-width: 560px) { .pp-lb-stats { grid-template-columns: repeat(4, 1fr); } }
+.pp-lb-stats > div { background: var(--pp-gold-soft); border-radius: 14px; padding: 10px 12px; display: grid; gap: 1px; }
+.pp-lb-stats b { font-size: 22px; color: var(--pp-gold); font-variant-numeric: tabular-nums; }
+.pp-lb-stats span { font-size: 12px; color: var(--pp-muted); }
+.pp-lb-boards { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 4px; scrollbar-width: thin; }
+.pp-lb-boards button { flex: none; border: 1.5px solid var(--pp-line); background: #fff; border-radius: 99px; padding: 7px 14px; font: inherit; font-size: 14px; cursor: pointer; color: var(--pp-ink); }
+.pp-lb-boards button.on { border-color: var(--pp-primary); background: var(--pp-primary); color: #fff; font-weight: 600; }
+.pp-lb-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 2px; }
+.pp-lb-list li { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 9px 10px; border-radius: 12px; }
+.pp-lb-list li.top { background: #FBF7F1; }
+.pp-lb-list li.you { background: var(--pp-primary-soft); outline: 1.5px solid var(--pp-primary); }
+.pp-lb-rank { text-align: center; font-weight: 700; font-size: 16px; color: var(--pp-muted); font-variant-numeric: tabular-nums; }
+.pp-lb-list li.top .pp-lb-rank { font-size: 22px; }
+.pp-lb-name { display: grid; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.pp-lb-name em { font-style: normal; font-size: 11px; margin-left: 6px; padding: 1px 7px; border-radius: 99px; background: var(--pp-primary); color: #fff; }
+.pp-lb-name small { font-weight: 400; font-size: 12px; }
+.pp-lb-list b { font-variant-numeric: tabular-nums; color: var(--pp-primary-dark); white-space: nowrap; }
+.pp-lb-me { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--pp-gold-soft); font-size: 14px; }
+.pp-lb-me.muted { background: #F6F1EC; color: var(--pp-muted); }
+.pp-lb-hide { display: flex; gap: 8px; align-items: center; margin-top: 10px; font-size: 14px; }

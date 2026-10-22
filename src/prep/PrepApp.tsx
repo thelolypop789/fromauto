@@ -14,6 +14,7 @@ import Calendar from "./Calendar";
 import Privacy from "./Privacy";
 import MovedBanner from "./MovedBanner";
 import DailyQuiz from "./DailyQuiz";
+import Leaderboard from "./Leaderboard";
 import MockHome from "./MockHome";
 import MockPlayer from "./MockPlayer";
 import MockResult from "./MockResult";
@@ -32,6 +33,7 @@ type View =
   | { name: "result"; result: SubmitResult; title: string }
   | { name: "stats" }
   | { name: "daily" }
+  | { name: "board" }
   | { name: "mock" }
   | { name: "mockplay"; payload: MockPayload }
   | { name: "mockresult"; payload: MockPayload }
@@ -152,7 +154,7 @@ function PrepShell() {
     { key: "account", label: me.plan === "paid" ? "บัญชี" : "อัปเกรด", icon: me.plan === "paid" ? <IconUser /> : <IconCrown /> },
     ...(me.is_admin ? [{ key: "admin" as const, label: "แอดมิน", icon: <IconShield /> }] : []),
   ];
-  const active = (k: View["name"]) => view.name === k || (k === "home" && (view.name === "create" || view.name === "result" || view.name === "daily" || view.name === "mock" || view.name === "mockresult"));
+  const active = (k: View["name"]) => view.name === k || (k === "home" && (view.name === "create" || view.name === "result" || view.name === "daily" || view.name === "board" || view.name === "mock" || view.name === "mockresult"));
   const go = (k: View["name"]) => { setView({ name: k } as View); window.scrollTo(0, 0); };
   const practice = (preset?: Preset) => { setView({ name: "create", preset }); window.scrollTo(0, 0); };
 
@@ -174,12 +176,13 @@ function PrepShell() {
         </div>
       </header>
       <main className="pp-main">
-        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onCalendar={() => go("calendar")} onUpgrade={() => go("account")} onStats={() => go("stats")} />}
+        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onCalendar={() => go("calendar")} onUpgrade={() => go("account")} onStats={() => go("stats")} onBoard={() => go("board")} />}
         {view.name === "create" && <CreateSet me={me} major={profile.major} preset={view.preset} onCancel={() => go("home")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} onUpgrade={() => go("account")} />}
         {view.name === "result" && <RoundResult result={view.result} title={view.title} me={me} onStart={startRound}
           onHome={() => go("home")} onUpgrade={() => go("account")} />}
         {view.name === "daily" && <DailyQuiz onBack={() => go("home")} />}
+        {view.name === "board" && <Leaderboard onBack={() => go("home")} isAdmin={me.is_admin} />}
         {view.name === "mock" && <MockHome onBack={() => go("home")} onUpgrade={() => go("account")} onAccount={() => go("account")}
           onOpen={payload => { setView(payload.submitted ? { name: "mockresult", payload } : { name: "mockplay", payload }); window.scrollTo(0, 0); }} />}
         {view.name === "mockresult" && <MockResult payload={view.payload} onBack={() => go("mock")} onReview={() => startReview("wrong")} />}

@@ -3,6 +3,8 @@ import { PACKAGE_LABEL, fmtUntil, rpc, thaiError, type PackageKey } from "./api"
 import ImportAI from "./ImportAI";
 import AdminBank from "./AdminBank";
 import AdminReportAI from "./AdminReportAI";
+import { AiBox } from "./AiReview";
+import { AI_BATCH, fixPatch, loadVerdicts, reviewWithAi, type AiVerdict } from "./aiVerdicts";
 import AdminOrders from "./AdminOrders";
 import AdminGuide from "./AdminGuide";
 import AdminDashboard from "./AdminDashboard";
@@ -113,11 +115,34 @@ function ReviewTab() {
   const [picked, setPicked] = useState<Set<number>>(new Set());
   const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
   const [msg, setMsg] = useState("");
+  const [verdicts, setVerdicts] = useState<Record<string, AiVerdict>>({});
+  const [ai, setAi] = useState<{ done: number; total: number; cost: number } | null>(null);
   const load = useCallback(() => {
     rpc<QItem[]>("prep_admin_review_queue", { p_limit: size })
-      .then(r => { setItems(r); setPicked(new Set()); })
+      .then(r => { setItems(r); setPicked(new Set()); return loadVerdicts(r.map(q => q.id)); })
+      .then(setVerdicts)
       .catch(e => setError(thaiError(e)));
   }, [size]);
+
+  // DeepSeek reviews the questions on screen that have no verdict yet, AI_BATCH per call.
+  const runAi = async () => {
+    const todo = (items ?? []).filter(q => !verdicts[q.id]).map(q => q.id);
+    if (!todo.length || ai || bulk) return;
+    let cost = 0;
+    setAi({ done: 0, total: todo.length, cost }); setMsg("");
+    try {
+      for (let i = 0; i < todo.length; i += AI_BATCH) {
+        const got = await reviewWithAi(todo.slice(i, i + AI_BATCH));
+        cost += got.cost;
+        setVerdicts(prev => ({ ...prev, ...got.verdicts }));
+        setAi({ done: Math.min(i + AI_BATCH, todo.length), total: todo.length, cost });
+      }
+      setMsg(`AI ตรวจเสร็จแล้ว · ค่าใช้จ่ายโดยประมาณ $${cost.toFixed(3)}`);
+    } catch (e) { setMsg(`AI ตรวจไม่สำเร็จ: ${(e as Error).message}`); }
+    setAi(null);
+  };
+  const aiOk = (items ?? []).filter(q => verdicts[q.id]?.verdict === "ok" && verdicts[q.id]?.confidence !== "low").map(q => q.id);
+  const unreviewed = (items ?? []).filter(q => !verdicts[q.id]).length;
   useEffect(load, [load]);
 
   // Saves the (possibly edited) question with a new status.
@@ -182,6 +207,16 @@ function ReviewTab() {
             {bulk ? `กำลังบันทึก ${bulk.done}/${bulk.total}...` : `เผยแพร่ที่เลือก (${picked.size})`}
           </button>
         </div>
+        <div className="pp-row">
+          <button className="pp-btn pp-btn-outline" disabled={!unreviewed || !!ai || !!bulk} onClick={runAi}>
+            {ai ? `AI กำลังตรวจ ${ai.done}/${ai.total}...` : `ตรวจด้วย AI (${unreviewed} ข้อที่ยังไม่ตรวจ)`}
+          </button>
+          <button className="pp-btn pp-btn-ghost" disabled={!aiOk.length || !!bulk} onClick={() => setPicked(new Set(aiOk))}>
+            เลือกข้อที่ AI ว่าถูกต้อง ({aiOk.length})
+          </button>
+        </div>
+        <p className="pp-muted small">ตรวจสองชั้น: DeepSeek Pro และ DeepSeek Flash ทำข้อสอบโดยไม่เห็นเฉลย แล้ว DeepSeek Pro ตรวจเทียบกับเฉลย · ผ่านเฉพาะข้อที่ทั้งสองตอบตรงเฉลยและไม่มีใครติง</p>
+        {ai && <div className="pp-bar"><div style={{ width: `${(100 * ai.done) / ai.total}%` }} /></div>}
         {bulk && <div className="pp-bar"><div style={{ width: `${(100 * bulk.done) / bulk.total}%` }} /></div>}
         {msg && !bulk && <div className="pp-success">{msg}</div>}
       </div>
@@ -192,6 +227,7 @@ function ReviewTab() {
             <span className="pp-muted small">#{q.id} · {q.topic} · {q.status === "review" ? "รอตรวจ" : "มีรายงานปัญหา"}{q.source ? ` · ${q.source}` : ""}</span>
           </label>
           {q.reports.length > 0 && <div className="pp-error">รายงาน: {q.reports.join(" | ")}</div>}
+          {verdicts[q.id] && <AiBox v={verdicts[q.id]} keyAnswer={q.answer} onApply={() => edit(q.id, fixPatch(verdicts[q.id]))} />}
           <textarea className="pp-input" rows={3} value={q.stem} onChange={e => edit(q.id, { stem: e.target.value })} />
           {q.choices.map((c, i) => (
             <label key={i} className={`pp-review-choice ${q.answer === i ? "right" : ""}`}>

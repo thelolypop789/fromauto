@@ -1033,6 +1033,16 @@ div.pp-todo-item { cursor: default; }
 .pp-gk-key.used code { color: var(--pp-muted); text-decoration: line-through; }
 .pp-gk-act { display: flex; gap: 6px; flex-wrap: wrap; }
 
+/* AI verdict on a question waiting for review */
+.pp-aiv { border-radius: 12px; padding: 10px 12px; margin: 6px 0 10px; border: 1px solid var(--pp-line); background: #fafafa; }
+.pp-aiv.ok { background: #eaf6ef; border-color: #bfe0cf; }
+.pp-aiv.warn { background: #fff6e5; border-color: #f0d79a; }
+.pp-aiv.bad { background: #fbeaec; border-color: #f0c4ca; }
+.pp-aiv-h { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.pp-aiv p { margin: 6px 0 0; }
+.pp-aiv-fix { margin-top: 8px; display: grid; gap: 4px; }
+.pp-aiv-fix .pp-btn { justify-self: start; margin-top: 4px; }
+
 /* "แนวข้อสอบ สอศ. 2567" next to the topic chip */
 .pp-q-tag { font-size: 12px; font-weight: 600; color: var(--pp-primary); background: #fff; display: inline-block; padding: 3px 10px; border-radius: 99px; margin: 0 0 8px 6px; border: 1px solid var(--pp-primary); }
 

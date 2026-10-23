@@ -1,9 +1,10 @@
-// Labels questions of a major with one of its sub-topics (prep.subtopics) using a cheap Gemini model.
+// Labels questions of a major with one of its sub-topics (prep.subtopics) using a cheap Gemini model, or DeepSeek Flash when the admin switch says so.
 // Callers: pg_cron via prep.subtopic_tick() with header x-cron-secret (checked in the database), or an admin JWT.
 // Body: { topic?: string, batches?: number } — without topic it takes the major with the most unlabelled questions.
 // Reads/writes only through the service_role RPCs prep_ai_subtopic_work / prep_ai_subtopic_save.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { DEEPSEEK_FAST, aiProvider, deepseekJson } from "../_shared/deepseek.ts";
 
 const GEMINI_KEY = Deno.env.get("GEMINI_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -62,7 +63,18 @@ ${subs}
 ${qs}`;
 }
 
-async function classify(w: Work): Promise<{ items: Item[]; model: string }> {
+function readItems(w: Work, parsed: { items?: Item[] }): Item[] {
+  const codes = new Set(w.subtopics.map(s => s.code));
+  return (parsed.items ?? [])
+    .filter((x: Item) => Number.isInteger(x.id))
+    .map((x: Item) => ({ id: x.id, sub: codes.has(String(x.sub)) ? String(x.sub) : null, conf: Math.max(0, Math.min(1, Number(x.conf) || 0)) }));
+}
+
+async function classify(w: Work, ds: boolean): Promise<{ items: Item[]; model: string }> {
+  if (ds) {
+    const r = await deepseekJson(DEEPSEEK_FAST, prompt(w), SCHEMA, { maxTokens: 8000 });
+    return { items: readItems(w, r.data as { items?: Item[] }), model: r.model };
+  }
   const body = JSON.stringify({
     contents: [{ role: "user", parts: [{ text: prompt(w) }] }],
     generationConfig: { temperature: 0, maxOutputTokens: 8000, responseMimeType: "application/json", responseSchema: SCHEMA },
@@ -81,11 +93,7 @@ async function classify(w: Work): Promise<{ items: Item[]; model: string }> {
       }
       const text = (data.candidates?.[0]?.content?.parts ?? []).map((p: { text?: string }) => p.text ?? "").join("");
       const parsed = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, ""));
-      const codes = new Set(w.subtopics.map(s => s.code));
-      const items: Item[] = (parsed.items ?? [])
-        .filter((x: Item) => Number.isInteger(x.id))
-        .map((x: Item) => ({ id: x.id, sub: codes.has(String(x.sub)) ? String(x.sub) : null, conf: Math.max(0, Math.min(1, Number(x.conf) || 0)) }));
-      return { items, model };
+      return { items: readItems(w, parsed), model };
     } catch (e) {
       last = `${model}: ${(e as Error).message}`;
       if (/spending cap|billing|API key not valid|403/i.test(last)) throw new Error(last);
@@ -119,13 +127,14 @@ serve(async (req) => {
       if (!topic) return json({ ok: true, done: true });
     }
     const batches = Math.max(1, Math.min(Number(body.batches) || 3, 6));
+    const ds = (await aiProvider(svc)) === "deepseek";
     let saved = 0, none = 0, missing = 0, model = "";
     for (let b = 0; b < batches && Date.now() - started < TIME_BUDGET_MS; b++) {
       const { data: w, error } = await svc.rpc("prep_ai_subtopic_work", { p_topic: topic, p_limit: BATCH });
       if (error) throw new Error(error.message);
       const work = w as Work;
       if (!work.questions?.length) break;
-      const r = await classify(work);
+      const r = await classify(work, ds);
       model = r.model;
       const got = new Map(r.items.map(i => [i.id, i]));
       // Every question in the batch gets a row, so a question the model skips cannot loop forever.

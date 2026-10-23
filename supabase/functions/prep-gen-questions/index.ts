@@ -1,4 +1,4 @@
-// Writes new questions for one major sub-topic (prep.subtopics) with Gemini, then has a second, stronger model answer
+// Writes new questions for one major sub-topic (prep.subtopics) with Gemini or DeepSeek (admin switch, _shared/deepseek.ts), then has a second, stronger model answer
 // them blind; only questions where it picks the same answer and calls them sound are saved (approved, labelled).
 // Callers: pg_cron via prep.gen_tick() with header x-cron-secret (checked in the database), or an admin JWT.
 // Body: { subtopic: "B3-HEALTH-BODY", count?: number }. Work and writes go through service_role RPCs only.
@@ -8,6 +8,7 @@ import {
   GENERATE_SCHEMA, VERIFY_SCHEMA, accept, cleanDraft, generatePrompt, parseJson, shuffleChoices, verifyPrompt,
   type Draft, type Verdict, type Work,
 } from "./logic.ts";
+import { DEEPSEEK_FAST, DEEPSEEK_STRONG, aiProvider, deepseekJson } from "../_shared/deepseek.ts";
 
 const GEMINI_KEY = Deno.env.get("GEMINI_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -86,7 +87,11 @@ serve(async (req) => {
     if (!work || work.need <= 0) return json({ ok: true, subtopic: sub, saved: 0, skipped: "ไม่ต้องสร้างเพิ่ม" });
 
     const count = Math.max(1, Math.min(Number(body.count) || BATCH, BATCH, work.need));
-    const gen = await ask(GEN_MODELS, generatePrompt(work, count), GENERATE_SCHEMA, 0.8);
+    // DeepSeek: Flash writes, Pro (thinking) checks, so the checker is still a different, stronger model.
+    const ds = (await aiProvider(svc)) === "deepseek";
+    const gen = ds
+      ? await deepseekJson(DEEPSEEK_FAST, generatePrompt(work, count), GENERATE_SCHEMA, { temperature: 0.8, timeoutMs: 60_000 })
+      : await ask(GEN_MODELS, generatePrompt(work, count), GENERATE_SCHEMA, 0.8);
     const dropped: string[] = [];
     const drafts: Draft[] = [];
     for (const raw of (gen.data.questions as unknown[]) ?? []) {
@@ -95,7 +100,9 @@ serve(async (req) => {
     }
     if (!drafts.length) return json({ ok: true, subtopic: sub, saved: 0, dropped, model: gen.model });
 
-    const ver = await ask(VERIFY_MODELS, verifyPrompt(work, drafts), VERIFY_SCHEMA, 0);
+    const ver = ds
+      ? await deepseekJson(DEEPSEEK_STRONG, verifyPrompt(work, drafts), VERIFY_SCHEMA, { thinking: true, timeoutMs: 80_000 })
+      : await ask(VERIFY_MODELS, verifyPrompt(work, drafts), VERIFY_SCHEMA, 0);
     const { kept, rejected } = accept(drafts, ((ver.data.results as Verdict[]) ?? []).filter(v => Number.isInteger(v?.id)));
     const items = kept.map(d => shuffleChoices(d)).map(d => ({ level: d.level, stem: d.stem, choices: d.choices, answer: d.answer, explanation: d.explanation }));
     let saved = 0;

@@ -6,7 +6,7 @@ type Row = {
   subtopics: { code: string; name: string; kind: "content" | "pedagogy"; share: number; n: number }[];
 };
 type Gen = {
-  enabled: boolean; topics: string[]; review_topics: string[]; made_24h: number; made_total: number; held: number;
+  enabled: boolean; topics: string[]; review_topics: string[]; ai_provider: "gemini" | "deepseek"; made_24h: number; made_total: number; held: number;
   majors: { topic: string; name: string; have: number; held: number; goal: number | null; filled: number | null }[];
 };
 // A mock exam draws `share` questions from a sub-topic; three times that keeps repeated mocks from repeating questions.
@@ -33,12 +33,37 @@ export default function AdminSubtopics() {
     setBusy(false);
   };
 
+  const setProvider = async (p: Gen["ai_provider"]) => {
+    if (busy || !gen || gen.ai_provider === p) return;
+    setBusy(true);
+    try {
+      await rpc("prep_admin_ai_provider_set", { p_provider: p });
+      setGen(await rpc<Gen>("prep_admin_gen_get"));
+    } catch (e) { setError(thaiError(e)); }
+    setBusy(false);
+  };
+
   if (error) return <div className="pp-error">{error}</div>;
   if (!rows) return <div className="pp-spinner" />;
   const untagged = rows.reduce((n, r) => n + r.untagged, 0);
 
   return (
     <>
+    {gen && (
+      <div className="pp-card">
+        <h3>AI ที่ใช้</h3>
+        <div className="pp-seg" role="radiogroup" aria-label="AI ที่ใช้">
+          {(["gemini", "deepseek"] as const).map(p => (
+            <button key={p} role="radio" aria-checked={gen.ai_provider === p} className={gen.ai_provider === p ? "on" : ""}
+              disabled={busy} onClick={() => setProvider(p)}>{p === "gemini" ? "Gemini" : "DeepSeek"}</button>
+          ))}
+        </div>
+        <p className="pp-muted small">
+          ใช้กับ AI เขียนข้อสอบ, จัดหมวดย่อย, ตรวจรายงาน และนำเข้าข้อสอบ (ปุ่ม "ตรวจด้วย AI" ใช้ DeepSeek เสมอ)
+          {gen.ai_provider === "deepseek" && " · DeepSeek อ่านได้แค่ข้อความ: นำเข้า PDF ไม่ได้ และรูปในไฟล์ Word จะถูกข้าม"}
+        </p>
+      </div>
+    )}
     {gen && (
       <div className="pp-card">
         <h3>AI เขียนข้อสอบเติมหมวดย่อย</h3>

@@ -1054,3 +1054,7 @@ div.pp-todo-item { cursor: default; }
 .pp-track-pick b { display: block; font-size: 17px; }
 .pp-track-pick small { display: block; color: var(--pp-muted); font-size: 13px; line-height: 1.45; margin-top: 2px; }
 .pp-track-pick img { flex: none; }
+
+/* Admin: ทุกสาย / สพฐ. / สอศ. filter above the overview and people tabs */
+.pp-track-filter { margin-top: -4px; }
+.pp-track-filter button.on { background: var(--pp-gold-soft); color: var(--pp-ink); border-color: var(--pp-gold-bright); box-shadow: none; }

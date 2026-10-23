@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAdminTrack } from "./adminTrack";
 import { rpc, thaiError } from "./api";
 import { Delta } from "./ChartParts";
 import CompareChart from "./CompareChart";
@@ -44,6 +45,7 @@ function Spark({ v }: { v: number[] }) {
 // One screen to see whether things are getting better: every number is this period against the one before it
 // (or after a release against the days before it), the five daily numbers share one chart, and the extras sit under it.
 export default function AdminCharts() {
+  const track = useAdminTrack();
   const [days, setDays] = useState(14);
   const [mark, setMark] = useState<string>("");     // "" = compare with the period before
   const [d, setD] = useState<Compare | null>(null);
@@ -53,10 +55,10 @@ export default function AdminCharts() {
 
   useEffect(() => {
     let live = true;
-    rpc<Compare>("prep_admin_compare", { p_days: days, p_mark: mark || null })
+    rpc<Compare>("prep_admin_compare", { p_days: days, p_mark: mark || null, p_track: track })
       .then(r => { if (live) { setD(r); setError(""); } }).catch(e => { if (live) setError(thaiError(e)); });
     return () => { live = false; };
-  }, [days, mark]);
+  }, [days, mark, track]);
 
   const view = useMemo(() => {
     if (!d) return null;
@@ -194,7 +196,7 @@ export default function AdminCharts() {
         );
       })()}
 
-      <MarkEditor marks={d.all_marks} reload={() => rpc<Compare>("prep_admin_compare", { p_days: days, p_mark: mark || null }).then(setD)} />
+      <MarkEditor marks={d.all_marks} reload={() => rpc<Compare>("prep_admin_compare", { p_days: days, p_mark: mark || null, p_track: track }).then(setD)} />
 
       <details className="pp-cmp-more" onToggle={e => setMore((e.target as HTMLDetailsElement).open)}>
         <summary>รายละเอียดข้อสอบ: หมวดที่ผิดมาก · ข้อที่หลอกคน · จำลองสอบ</summary>

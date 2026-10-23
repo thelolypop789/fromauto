@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAdminTrack } from "./adminTrack";
 import { rpc, thaiError } from "./api";
 
 type Stats = {
@@ -22,6 +23,7 @@ const peakOf = (rows: { h: number; n: number }[]) => rows.reduce((b, r) => (r.n 
 
 // When people use the app (Thai time, from the once-a-minute "I am here" ping): plain-language summary first, then bands, hours and a day x hour map.
 export default function AdminTimes() {
+  const track = useAdminTrack();
   const [days, setDays] = useState(14);
   const [st, setSt] = useState<Stats | null>(null);
   const [error, setError] = useState("");
@@ -29,11 +31,11 @@ export default function AdminTimes() {
 
   useEffect(() => {
     let alive = true;
-    rpc<Stats>("prep_admin_time_stats", { p_days: days })
+    rpc<Stats>("prep_admin_time_stats", { p_days: days, p_track: track })
       .then(s => { if (alive) { setSt(s); setError(""); } })
       .catch(e => { if (alive) setError(thaiError(e)); });
     return () => { alive = false; };
-  }, [days]);
+  }, [days, track]);
 
   const v = useMemo(() => {
     if (!st) return null;

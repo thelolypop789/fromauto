@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useAdminTrack } from "./adminTrack";
 import { rpc, thaiError } from "./api";
 import { ColumnChart } from "./ChartParts";
 import { nf } from "./chartFormat";
@@ -14,12 +15,13 @@ const REFRESH_MS = 15_000;
 
 // "Right now" tab: refreshes every 15 s while the tab is visible. Counts signed-in people only (the app pings once a minute).
 export default function AdminLive() {
+  const track = useAdminTrack();
   const [d, setD] = useState<Live | null>(null);
   const [error, setError] = useState("");
   const [at, setAt] = useState<string>("");
   const load = useCallback(() => {
-    rpc<Live>("prep_admin_live").then(r => { setD(r); setAt(r.now); setError(""); }).catch(e => setError(thaiError(e)));
-  }, []);
+    rpc<Live>("prep_admin_live", { p_track: track }).then(r => { setD(r); setAt(r.now); setError(""); }).catch(e => setError(thaiError(e)));
+  }, [track]);
   useEffect(() => {
     load();
     const id = setInterval(() => { if (document.visibilityState === "visible") load(); }, REFRESH_MS);

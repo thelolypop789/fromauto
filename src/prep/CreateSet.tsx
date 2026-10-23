@@ -57,8 +57,10 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
   }, [topics, section, major]);
   const sectionTopics = (sec: "A" | "B") => topics?.filter(t => t.section === sec) ?? [];
   const pickedIn = (sec: "A" | "B") => sectionTopics(sec).filter(t => picked.has(t.code)).length;
-  const playable = (sec: "A" | "B") => sectionTopics(sec).filter(t => t.available > 0);
-  const allSection = playable(section).length > 0 && playable(section).every(t => picked.has(t.code));
+  // "Select all" boxes take only the user's own major from วิชาเอก; other majors are ticked one by one.
+  const bulk = (list: Topic[]) => list.filter(t => t.available > 0 && (t.grp !== "B3" || t.code === major));
+  const sectionBulk = bulk(sectionTopics(section));
+  const allSection = sectionBulk.length > 0 && sectionBulk.every(t => picked.has(t.code));
 
   const available = topics?.filter(t => picked.has(t.code)).reduce((s, t) => s + availableOf(t), 0) ?? 0;
   // Sets whose topics are all inside the user's packages are unlimited (up to 200); others use the free quota.
@@ -132,13 +134,14 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
       {!topics && !error && <div className="pp-spinner" />}
       {topics && (
         <label className="pp-group-head pp-all">
-          <input type="checkbox" checked={allSection} onChange={e => toggle(playable(section).map(t => t.code), e.target.checked)} />
+          <input type="checkbox" checked={allSection} disabled={sectionBulk.length === 0} onChange={e => toggle(sectionBulk.map(t => t.code), e.target.checked)} />
           <b>เลือกทั้ง{SECTIONS[section].short}</b>
-          <span className="pp-group-n">{sectionTopics(section).reduce((s, t) => s + t.available, 0)} ข้อ</span>
+          {sectionTopics(section).some(t => t.grp === "B3") && <span className="pp-muted small">{major ? "(วิชาเอกเฉพาะของฉัน)" : "(ไม่รวมวิชาเอก)"}</span>}
+          <span className="pp-group-n">{sectionBulk.reduce((s, t) => s + t.available, 0)} ข้อ</span>
         </label>
       )}
       {groups.map(([grp, list]) => {
-        const open = list.filter(t => t.available > 0);
+        const open = bulk(list);
         const all = open.length > 0 && open.every(t => picked.has(t.code));
         return (
           <div key={grp} className="pp-group">

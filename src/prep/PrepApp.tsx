@@ -22,6 +22,7 @@ import { IconCalendar, IconChart, IconCrown, IconHome, IconShield, IconUser, Log
 import { setupPwa } from "./pwa";
 import Waiting from "./Waiting";
 import MajorPicker from "./MajorPicker";
+import TrackPicker from "./TrackPicker";
 import "./prep.css";
 
 setupPwa();
@@ -117,6 +118,17 @@ function PrepShell() {
     );
   }
 
+  // The exam (สพฐ./สอศ.) is asked once. First-time users (and returning users who still have no major) get it as the
+  // first screen, before the major picker; everyone else sees it as a popup over the app (see below).
+  const askTrack = profileLoaded && profile.track_chosen === false;
+  if (askTrack && (!profile.returning || !profile.major)) {
+    return (
+      <div className="pp-center">
+        <TrackPicker variant={profile.returning ? "popup" : "first"} current={profile.track} onDone={changeProfile} />
+      </div>
+    );
+  }
+
   // Everyone without a major is asked to choose one at the start of each visit (first visit, and old accounts that never did).
   // "Skip" lasts for this browser session and can be used only MAX_MAJOR_SKIPS times on a device: after that a choice is required.
   if (profileLoaded && !profile.major && !skipMajor) {
@@ -163,6 +175,7 @@ function PrepShell() {
 
   return (
     <div className="pp-app">
+      {askTrack && <TrackPicker variant="popup" current={profile.track} onDone={changeProfile} />}
       <header className="pp-top">
         <div className="pp-top-in">
           <button className="pp-brand" onClick={() => go("home")}>

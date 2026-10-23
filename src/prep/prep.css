@@ -1032,3 +1032,15 @@ div.pp-todo-item { cursor: default; }
 .pp-gk-key code { font-size: 14px; letter-spacing: .04em; font-weight: 700; color: var(--pp-primary-dark); }
 .pp-gk-key.used code { color: var(--pp-muted); text-decoration: line-through; }
 .pp-gk-act { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* "แนวข้อสอบ สอศ. 2567" next to the topic chip */
+.pp-q-tag { font-size: 12px; font-weight: 600; color: var(--pp-primary); background: #fff; display: inline-block; padding: 3px 10px; border-radius: 99px; margin: 0 0 8px 6px; border: 1px solid var(--pp-primary); }
+
+/* Exam picker (สพฐ. / สอศ.) */
+.pp-track-pick { display: grid; gap: 12px; margin: 14px 0 6px; }
+.pp-track-pick button { display: flex; align-items: center; gap: 14px; text-align: left; background: #fff; border: 2px solid var(--pp-line); border-radius: 18px; padding: 14px 16px; font: inherit; color: var(--pp-ink); cursor: pointer; }
+.pp-track-pick button.on { border-color: var(--pp-primary); box-shadow: 0 0 0 3px var(--pp-gold-soft); }
+.pp-track-pick button:disabled { opacity: .6; cursor: default; }
+.pp-track-pick b { display: block; font-size: 17px; }
+.pp-track-pick small { display: block; color: var(--pp-muted); font-size: 13px; line-height: 1.45; margin-top: 2px; }
+.pp-track-pick img { flex: none; }

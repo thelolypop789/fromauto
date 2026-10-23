@@ -23,10 +23,11 @@ const PAGE = 60;            // drafts rendered at a time
 const MAX_ROUNDS = 60;      // safety stop per slice (60 rounds × 30 = 1,800 questions from one slice)
 const BATCH: Record<string, number> = { best: 30, balanced: 40, fast: 40 };
 const ACCEPT = ".pdf,.docx,.doc,.txt,.md,.csv,.png,.jpg,.jpeg,.webp,.heic,.heif,.gif,.bmp";
-const QUALITY: [Quality, string, string][] = [
-  ["best", "ละเอียดสุด", "Gemini Pro · อ่านสแกน/รูปแม่นที่สุด"],
-  ["balanced", "สมดุล", "Gemini Flash"],
-  ["fast", "ประหยัด", "Flash-Lite · เร็วและถูก"],
+// Model shown under each level, per AI; must match the model chosen in supabase/functions/prep-import/index.ts.
+const QUALITY: [Quality, string, string, string][] = [
+  ["best", "ละเอียดสุด", "Gemini Pro · อ่านสแกน/รูปแม่นที่สุด", "DeepSeek V4 Pro · แม่นที่สุด"],
+  ["balanced", "สมดุล", "Gemini Flash", "DeepSeek V4 Pro (เหมือนละเอียดสุด)"],
+  ["fast", "ประหยัด", "Flash-Lite · เร็วและถูก", "DeepSeek Flash · เร็วและถูก"],
 ];
 
 type Kind = "pdf" | "docx" | "doc" | "text" | "image" | "unknown";
@@ -399,8 +400,8 @@ export default function ImportAI() {
         </div>
         <h3>ความละเอียดของ AI</h3>
         <div className="pp-modes">
-          {QUALITY.map(([k, l, h]) => (
-            <button key={k} className={quality === k ? "on" : ""} disabled={busy} onClick={() => setQuality(k)}><b>{l}</b><span>{h}</span></button>
+          {QUALITY.map(([k, l, g, d]) => (
+            <button key={k} className={quality === k ? "on" : ""} disabled={busy} onClick={() => setQuality(k)}><b>{l}</b><span>{provider === "deepseek" ? d : g}</span></button>
           ))}
         </div>
         <div className="pp-row">

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAdminTrack } from "./adminTrack";
 import { rpc, thaiError } from "./api";
 import { BarList } from "./ChartParts";
 import { nf } from "./chartFormat";
@@ -12,14 +13,15 @@ type Charts = {
 
 // Question- and exam-level detail, loaded only when the admin opens it.
 export default function AdminChartDetails() {
+  const track = useAdminTrack();
   const days = 30;
   const [c, setC] = useState<Charts | null>(null);
   const [error, setError] = useState("");
   useEffect(() => {
     let live = true;
-    rpc<Charts>("prep_admin_charts", { p_days: days }).then(r => { if (live) { setC(r); setError(""); } }).catch(e => { if (live) setError(thaiError(e)); });
+    rpc<Charts>("prep_admin_charts", { p_days: days, p_track: track }).then(r => { if (live) { setC(r); setError(""); } }).catch(e => { if (live) setError(thaiError(e)); });
     return () => { live = false; };
-  }, [days]);
+  }, [days, track]);
 
   if (error) return <div className="pp-error">{error}</div>;
   if (!c) return <div className="pp-spinner" />;

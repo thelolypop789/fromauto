@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAdminTrack } from "./adminTrack";
 import { rpc, thaiError } from "./api";
 import { nf } from "./chartFormat";
 
@@ -16,6 +17,7 @@ const pct = (a: number, b: number) => (b > 0 ? Math.round((100 * a) / b) : 0);
 
 // Which majors come in, practise and pay: users per major, activity, answers, buyers, revenue and each major's favourite topics.
 export default function AdminMajors() {
+  const track = useAdminTrack();
   const [days, setDays] = useState(30);
   const [st, setSt] = useState<Stats | null>(null);
   const [error, setError] = useState("");
@@ -23,11 +25,11 @@ export default function AdminMajors() {
 
   useEffect(() => {
     let alive = true;
-    rpc<Stats>("prep_admin_major_stats", { p_days: days })
+    rpc<Stats>("prep_admin_major_stats", { p_days: days, p_track: track })
       .then(s => { if (alive) { setSt(s); setError(""); } })
       .catch(e => { if (alive) setError(thaiError(e)); });
     return () => { alive = false; };
-  }, [days]);
+  }, [days, track]);
 
   const rows = useMemo(() => [...(st?.majors ?? [])].sort((a, b) => val(b, sort) - val(a, sort) || b.users - a.users), [st, sort]);
   const max = Math.max(1, ...rows.map(m => val(m, sort)));

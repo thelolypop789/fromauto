@@ -17,6 +17,7 @@ import AdminFacebook from "./AdminFacebook";
 import AdminMajors from "./AdminMajors";
 import AdminDiscounts from "./AdminDiscounts";
 import AdminSubtopics from "./AdminSubtopics";
+import { AdminTrackContext, type AdminTrack } from "./adminTrack";
 import AdminTimes from "./AdminTimes";
 
 type Stats = { users: number; paid: number; answered_today: number; active_today: number;
@@ -56,8 +57,16 @@ export default function Admin() {
   const badge: Partial<Record<Tab, number>> = { orders: pending ?? 0, reports: open ?? 0 };
   const groupBadge = (id: string) => GROUPS.find(g => g.id === id)!.tabs.reduce((n, [k]) => n + (badge[k] ?? 0), 0);
   const g = groupOf(tab);
+  const [track, setTrackState] = useState<AdminTrack>(() => {
+    try { const v = localStorage.getItem("pp-admin-track"); return v === "obec" || v === "vec" ? v : null; } catch { return null; }
+  });
+  const setTrack = (t: AdminTrack) => {
+    setTrackState(t);
+    try { if (t) localStorage.setItem("pp-admin-track", t); else localStorage.removeItem("pp-admin-track"); } catch { /* per-device only */ }
+  };
+  const trackScoped = g.id === "overview" || g.id === "people";
   return (
-    <>
+    <AdminTrackContext.Provider value={trackScoped ? track : null}>
       <AdminGuide />
       <div className="pp-agroups" role="tablist" aria-label="หมวดของแอดมิน">
         {GROUPS.map(x => (
@@ -73,6 +82,13 @@ export default function Admin() {
           <button key={k} className={tab === k ? "on" : ""} onClick={() => go(k)}>{badge[k] ? `${l} (${badge[k]})` : l}</button>
         ))}
       </div>
+      {trackScoped && (
+        <div className="pp-seg pp-seg-sub pp-track-filter" role="radiogroup" aria-label="แสดงข้อมูลของผู้สอบสายใด">
+          {([[null, "ทุกสาย"], ["obec", "สพฐ."], ["vec", "สอศ. (อาชีวะ)"]] as [AdminTrack, string][]).map(([k, l]) => (
+            <button key={l} role="radio" aria-checked={track === k} className={track === k ? "on" : ""} onClick={() => setTrack(k)}>{l}</button>
+          ))}
+        </div>
+      )}
       {tab === "stats" && <AdminDashboard onGo={go} />}
       {tab === "live" && <AdminLive />}
       {tab === "charts" && <AdminCharts />}
@@ -90,7 +106,7 @@ export default function Admin() {
       {tab === "import" && <ImportHub />}
       {tab === "facebook" && <AdminFacebook />}
       {tab === "calendar" && <AdminCalendar />}
-    </>
+    </AdminTrackContext.Provider>
   );
 }
 

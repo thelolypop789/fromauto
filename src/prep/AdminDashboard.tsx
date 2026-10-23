@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useAdminTrack } from "./adminTrack";
 import { PACKAGE_LABEL, TERM_LABEL, rpc, thaiError, type PackageKey } from "./api";
 
 type Dash = {
@@ -52,14 +53,15 @@ function DeletionRequests() {
 
 // First tab of the admin area: what needs doing today, money, who is about to lose access, and the old counters.
 export default function AdminDashboard({ onGo }: { onGo: (tab: "orders" | "reports" | "review" | "users") => void }) {
+  const track = useAdminTrack();
   const [d, setD] = useState<Dash | null>(null);
   const [s, setS] = useState<Stats | null>(null);
   const [error, setError] = useState("");
   const [now] = useState(() => Date.now());
   useEffect(() => {
-    rpc<Dash>("prep_admin_dashboard").then(setD).catch(e => setError(thaiError(e)));
-    rpc<Stats>("prep_admin_stats").then(setS).catch(() => { /* counters are secondary */ });
-  }, []);
+    rpc<Dash>("prep_admin_dashboard", { p_track: track }).then(setD).catch(e => setError(thaiError(e)));
+    rpc<Stats>("prep_admin_stats", { p_track: track }).then(setS).catch(() => { /* counters are secondary */ });
+  }, [track]);
   if (error) return <div className="pp-error">{error}</div>;
   if (!d) return <div className="pp-spinner" />;
   const t = d.todo, r = d.revenue;

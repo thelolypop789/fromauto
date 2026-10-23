@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useAdminTrack } from "./adminTrack";
 import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, thaiError, type PackageKey } from "./api";
 import { ColumnChart, CompareList } from "./ChartParts";
 import { nf } from "./chartFormat";
@@ -27,6 +28,7 @@ const ORDER_STATUS = { pending: "รอตรวจ", approved: "อนุมั
 
 // Look a customer up by e-mail: what they own, what they paid, and support actions (give / take back a package).
 export default function AdminUsers() {
+  const track = useAdminTrack();
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[] | null>(null);
   const [d, setD] = useState<Detail | null>(null);
@@ -42,7 +44,7 @@ export default function AdminUsers() {
   const [list, setList] = useState<ListPage | null>(null);
   const [listError, setListError] = useState("");
   const [more, setMore] = useState(false);
-  const loadList = useCallback(() => rpc<ListPage>("prep_admin_list_users", { p_filter: filter, p_offset: 0, p_limit: PAGE }), [filter]);
+  const loadList = useCallback(() => rpc<ListPage>("prep_admin_list_users", { p_filter: filter, p_offset: 0, p_limit: PAGE, p_track: track }), [filter, track]);
   useEffect(() => {
     let alive = true;
     loadList().then(r => { if (alive) { setList(r); setListError(""); } }).catch(e => { if (alive) setListError(thaiError(e)); });
@@ -52,7 +54,7 @@ export default function AdminUsers() {
     if (!list || more) return;
     setMore(true);
     try {
-      const r = await rpc<ListPage>("prep_admin_list_users", { p_filter: filter, p_offset: list.items.length, p_limit: PAGE });
+      const r = await rpc<ListPage>("prep_admin_list_users", { p_filter: filter, p_offset: list.items.length, p_limit: PAGE, p_track: track });
       setList({ total: r.total, items: [...list.items, ...r.items] });
     } catch (e) { setListError(thaiError(e)); }
     setMore(false);

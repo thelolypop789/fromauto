@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import AiProviderSwitch, { type AiProvider } from "./AiProviderSwitch";
 import { rpc, supabase, thaiError } from "./api";
 
 type Draft = {
@@ -209,6 +210,7 @@ export default function ImportAI() {
   const [files, setFiles] = useState<File[]>([]);
   const [mode, setMode] = useState<Mode>("auto");
   const [quality, setQuality] = useState<Quality>("best");
+  const [provider, setProvider] = useState<AiProvider | null>(null);
   const [limit, setLimit] = useState("");   // empty = no limit: keep going until the content is covered
   const [shown, setShown] = useState(PAGE);
   const [pagesPer, setPagesPer] = useState(4);
@@ -362,8 +364,10 @@ export default function ImportAI() {
 
   return (
     <>
+      <AiProviderSwitch onChange={setProvider} />
       <div className="pp-card">
-        <h3>นำเข้าด้วย AI (Gemini)</h3>
+        <h3>นำเข้าด้วย AI ({provider === "deepseek" ? "DeepSeek" : "Gemini"})</h3>
+        {provider === "deepseek" && <p className="pp-note">ตอนนี้ใช้ DeepSeek ซึ่งอ่านได้แค่ข้อความ: ใช้ไฟล์ Word หรือ TXT ได้ (รูปในไฟล์ Word จะถูกข้าม) ถ้าจะนำเข้า PDF หรือรูปถ่าย ให้สลับเป็น Gemini ด้านบนก่อน</p>}
         <p className="pp-muted small">อัปโหลดได้หลายไฟล์พร้อมกัน: PDF, Word (.docx รวมรูปและตารางในไฟล์), รูปถ่าย/สแกน (PNG, JPG, HEIC), TXT → AI สร้างหรือคัดข้อสอบเป็น "ร่าง" → ตรวจ → บันทึกเข้าคิว "ตรวจข้อสอบ" (ไม่เผยแพร่ทันที)</p>
         <label className={`pp-drop ${busy ? "off" : ""}`}
           onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); if (!busy) addFiles(e.dataTransfer.files); }}>

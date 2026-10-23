@@ -1058,3 +1058,11 @@ div.pp-todo-item { cursor: default; }
 /* Admin: ทุกสาย / สพฐ. / สอศ. filter above the overview and people tabs */
 .pp-track-filter { margin-top: -4px; }
 .pp-track-filter button.on { background: var(--pp-gold-soft); color: var(--pp-ink); border-color: var(--pp-gold-bright); box-shadow: none; }
+
+/* Facebook post with several pictures */
+.pp-fb-imgs { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
+.pp-fb-body > .pp-fb-imgs { flex: none; max-width: 208px; margin: 0; }
+.pp-fb-body > .pp-fb-imgs .pp-fb-thumb { width: 64px; height: 80px; margin: 0; }
+.pp-fb-body > .pp-fb-imgs .pp-fb-thumb:first-child { width: 208px; height: 260px; }
+.pp-fb-img { display: flex; flex-direction: column; gap: 4px; }
+.pp-fb-img .pp-chipbtn { display: block; margin-top: 2px; }

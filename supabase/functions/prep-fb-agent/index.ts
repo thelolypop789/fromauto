@@ -54,9 +54,30 @@ async function loadImage(sb: ReturnType<typeof sbService>, path: unknown): Promi
   return new Blob([await data.arrayBuffer()], { type: mimeFor(p) });
 }
 
-async function publishPost(sb: ReturnType<typeof sbService>, p: { caption: string; image_path: string | null }): Promise<string> {
+type Post = { id: number; caption: string; image_path: string | null; extra_images?: string[] | null };
+
+async function publishPost(sb: ReturnType<typeof sbService>, p: Post): Promise<string> {
   const text = cleanText(p.caption);
   const form = new FormData();
+  const extra = (p.extra_images ?? []).filter(Boolean);
+  if (p.image_path && extra.length) {
+    // Several pictures: upload each one unpublished, then one feed post that attaches them all (Facebook allows 10).
+    const ids: string[] = [];
+    for (const path of [p.image_path, ...extra].slice(0, 10)) {
+      const f = new FormData();
+      f.set("source", await loadImage(sb, path), path.split("/").pop() ?? "image.png");
+      f.set("published", "false");
+      const r = await graph(`${PAGE_ID}/photos`, { form: f });
+      if (!r.id) throw new FbError("Facebook ไม่ส่งรหัสรูปกลับมา");
+      ids.push(String(r.id));
+    }
+    if (text) form.set("message", text);
+    ids.forEach((id, i) => form.set(`attached_media[${i}]`, JSON.stringify({ media_fbid: id })));
+    const r = await graph(`${PAGE_ID}/feed`, { form });
+    const id = String(r.id ?? "");
+    if (!id) throw new FbError("Facebook ไม่ส่งรหัสโพสต์กลับมา");
+    return id;
+  }
   if (p.image_path) {
     form.set("source", await loadImage(sb, p.image_path), p.image_path.split("/").pop() ?? "image.png");
     if (text) form.set("caption", text);
@@ -90,7 +111,7 @@ async function tick() {
   if (error) throw new Error("claim: " + error.message);
   const out = { ok: true, enabled: data.enabled as boolean, posted: 0, commented: 0, failed: 0, errors: [] as string[] };
   let tokenDead = false;
-  for (const p of data.posts as { id: number; caption: string; image_path: string | null }[]) {
+  for (const p of data.posts as Post[]) {
     try {
       if (tokenDead) throw new FbError("ข้ามเพราะ token ใช้ไม่ได้ในรอบนี้", true);
       const id = await publishPost(sb, p);

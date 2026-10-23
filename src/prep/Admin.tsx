@@ -124,7 +124,7 @@ function ReviewTab() {
       .catch(e => setError(thaiError(e)));
   }, [size]);
 
-  // DeepSeek + Qwen review the questions on screen that have no verdict yet, AI_BATCH per call.
+  // DeepSeek reviews the questions on screen that have no verdict yet, AI_BATCH per call.
   const runAi = async () => {
     const todo = (items ?? []).filter(q => !verdicts[q.id]).map(q => q.id);
     if (!todo.length || ai || bulk) return;
@@ -215,7 +215,7 @@ function ReviewTab() {
             เลือกข้อที่ AI ว่าถูกต้อง ({aiOk.length})
           </button>
         </div>
-        <p className="pp-muted small">ตรวจสองชั้น: DeepSeek และ Qwen ทำข้อสอบโดยไม่เห็นเฉลย แล้ว DeepSeek ตรวจเทียบกับเฉลย · ผ่านเฉพาะข้อที่ทุกตัวตอบตรงเฉลยและไม่มีใครติง</p>
+        <p className="pp-muted small">ตรวจสองชั้น: DeepSeek Pro และ DeepSeek Flash ทำข้อสอบโดยไม่เห็นเฉลย แล้ว DeepSeek Pro ตรวจเทียบกับเฉลย · ผ่านเฉพาะข้อที่ทั้งสองตอบตรงเฉลยและไม่มีใครติง</p>
         {ai && <div className="pp-bar"><div style={{ width: `${(100 * ai.done) / ai.total}%` }} /></div>}
         {bulk && <div className="pp-bar"><div style={{ width: `${(100 * bulk.done) / bulk.total}%` }} /></div>}
         {msg && !bulk && <div className="pp-success">{msg}</div>}

@@ -11,23 +11,23 @@ const J = (verdict, confidence = 'high', fix = {}) => ({ id: 7, verdict, confide
 
 // prompts
 t('blind prompt hides the key', !/เฉลย/.test(L.blindPrompt([q])) && /สอศ\./.test(L.blindPrompt([q])));
-const jp = L.judgePrompt([q], { DeepSeek: new Map([[7, B(2, 'medium', ['ambiguous'])]]), Qwen: new Map() });
-t('judge prompt has key and both experts', /เฉลย: ข/.test(jp) && /DeepSeek: ตอบ ค/.test(jp) && /Qwen: ไม่ได้ตอบ/.test(jp));
+const jp = L.judgePrompt([q], { Pro: new Map([[7, B(2, 'medium', ['ambiguous'])]]), Flash: new Map() });
+t('judge prompt has key and both experts', /เฉลย: ข/.test(jp) && /Pro: ตอบ ค/.test(jp) && /Flash: ไม่ได้ตอบ/.test(jp));
 
 // combine rules
-t('ok only when everyone agrees with the key', L.combine(q, { DeepSeek: B(1), Qwen: B(1) }, J('ok')).verdict === 'ok');
-t('ok has high confidence with two models', L.combine(q, { DeepSeek: B(1), Qwen: B(1) }, J('ok')).confidence === 'high');
-t('single model ok is only medium', L.combine(q, { DeepSeek: B(1) }, J('ok')).confidence === 'medium');
-t('one blind answer off the key -> not ok, low confidence', (() => { const v = L.combine(q, { DeepSeek: B(1), Qwen: B(2) }, J('ok')); return v.verdict === 'fix' && v.confidence === 'low' && /Qwen ตอบ ค/.test(v.issue); })());
-t('both blind agree against key -> fix, suggests their answer', (() => { const v = L.combine(q, { DeepSeek: B(2), Qwen: B(2) }, J('fix', 'high', { answer: 2 })); return v.verdict === 'fix' && v.answer === 2 && v.fix.answer === 2 && v.confidence === 'high'; })());
-t('a flag blocks ok', L.combine(q, { DeepSeek: B(1, 'high', ['multiple_correct']), Qwen: B(1) }, J('ok')).verdict === 'fix');
-t('missing context -> hide', L.combine(q, { DeepSeek: B(null, 'low', ['missing_context']), Qwen: B(1) }, J('ok')).verdict === 'hide');
-t('low confidence blocks ok', L.combine(q, { DeepSeek: B(1, 'low'), Qwen: B(1) }, J('ok')).verdict === 'fix');
-t('judge unsure blocks ok', L.combine(q, { DeepSeek: B(1), Qwen: B(1) }, J('ok', 'low')).verdict === 'fix');
-t('model that did not answer blocks ok', L.combine(q, { DeepSeek: B(1), Qwen: undefined }, J('ok')).verdict === 'fix');
-t('no judge blocks ok', L.combine(q, { DeepSeek: B(1), Qwen: B(1) }, undefined).verdict === 'fix');
-t('judge hide wins', L.combine(q, { DeepSeek: B(1), Qwen: B(1) }, J('hide')).verdict === 'hide');
-t('ok carries no fix and no issue', (() => { const v = L.combine(q, { DeepSeek: B(1), Qwen: B(1) }, J('ok', 'high', { answer: 3 })); return v.issue === '' && v.fix.answer === null; })());
+t('ok only when everyone agrees with the key', L.combine(q, { Pro: B(1), Flash: B(1) }, J('ok')).verdict === 'ok');
+t('ok has high confidence with two models', L.combine(q, { Pro: B(1), Flash: B(1) }, J('ok')).confidence === 'high');
+t('single model ok is only medium', L.combine(q, { Pro: B(1) }, J('ok')).confidence === 'medium');
+t('one blind answer off the key -> not ok, low confidence', (() => { const v = L.combine(q, { Pro: B(1), Flash: B(2) }, J('ok')); return v.verdict === 'fix' && v.confidence === 'low' && /Flash ตอบ ค/.test(v.issue); })());
+t('both blind agree against key -> fix, suggests their answer', (() => { const v = L.combine(q, { Pro: B(2), Flash: B(2) }, J('fix', 'high', { answer: 2 })); return v.verdict === 'fix' && v.answer === 2 && v.fix.answer === 2 && v.confidence === 'high'; })());
+t('a flag blocks ok', L.combine(q, { Pro: B(1, 'high', ['multiple_correct']), Flash: B(1) }, J('ok')).verdict === 'fix');
+t('missing context -> hide', L.combine(q, { Pro: B(null, 'low', ['missing_context']), Flash: B(1) }, J('ok')).verdict === 'hide');
+t('low confidence blocks ok', L.combine(q, { Pro: B(1, 'low'), Flash: B(1) }, J('ok')).verdict === 'fix');
+t('judge unsure blocks ok', L.combine(q, { Pro: B(1), Flash: B(1) }, J('ok', 'low')).verdict === 'fix');
+t('model that did not answer blocks ok', L.combine(q, { Pro: B(1), Flash: undefined }, J('ok')).verdict === 'fix');
+t('no judge blocks ok', L.combine(q, { Pro: B(1), Flash: B(1) }, undefined).verdict === 'fix');
+t('judge hide wins', L.combine(q, { Pro: B(1), Flash: B(1) }, J('hide')).verdict === 'hide');
+t('ok carries no fix and no issue', (() => { const v = L.combine(q, { Pro: B(1), Flash: B(1) }, J('ok', 'high', { answer: 3 })); return v.issue === '' && v.fix.answer === null; })());
 
 // parsing
 t('parseJson strips fences and prose', L.parseJson('ผล:\n```json\n{"results":[]}\n```').results.length === 0);
@@ -39,6 +39,6 @@ t('readJudge: duplicate choices rejected, rest kept', rj.get(7).fix.choices === 
 // cost
 t('deepseek peak doubles', Math.abs(L.costUSD('deepseek-v4-pro', { prompt_tokens: 1e6, completion_tokens: 0 }, new Date('2026-10-21T02:00:00Z')) - 1.32) < 1e-9);
 t('deepseek off-peak on weekend', Math.abs(L.costUSD('deepseek-v4-pro', { prompt_tokens: 0, completion_tokens: 1e6 }, new Date('2026-10-24T02:00:00Z')) - 1.98) < 1e-9);
-t('qwen flat', Math.abs(L.costUSD('qwen3.7-plus', { prompt_tokens: 1e6, completion_tokens: 1e6 }, new Date()) - 2.0) < 1e-9);
+t('flash price', Math.abs(L.costUSD('deepseek-flash', { prompt_tokens: 1e6, completion_tokens: 1e6 }, new Date('2026-10-24T02:00:00Z')) - 0.75) < 1e-9);
 console.log(`${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

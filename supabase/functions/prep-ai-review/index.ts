@@ -1,8 +1,8 @@
-// Admin-only: "ตรวจด้วย AI" for up to 5 questions per call (แอดมิน → ข้อสอบรอตรวจ). Two cheap models instead of one
-// expensive one: DeepSeek and Qwen answer blind, then DeepSeek judges with the key (rules in logic.ts).
-// Body: { ids: number[] }. Questions are read and verdicts saved through admin RPCs called with the admin's own token.
-// Secrets: DEEPSEEK_API_KEY, QWEN_API_KEY (Alibaba Cloud Model Studio, International). Optional: DEEPSEEK_MODEL,
-// QWEN_MODEL, QWEN_BASE_URL. With only one key the review still runs, but can never reach high confidence.
+// Admin-only: "ตรวจด้วย AI" for up to 5 questions per call (แอดมิน → ข้อสอบรอตรวจ). DeepSeek only, two models so the
+// blind answers are independent: DeepSeek Pro and DeepSeek Flash answer blind, then DeepSeek Pro judges with the key
+// (rules in logic.ts). Body: { ids: number[] }. Questions are read and verdicts saved through admin RPCs called with
+// the admin's own token. Secret: DEEPSEEK_API_KEY. Optional: DEEPSEEK_MODEL (judge, default deepseek-v4-pro),
+// DEEPSEEK_SECOND_MODEL (second blind answer, default deepseek-flash; set it to "none" to run one model only).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
@@ -16,12 +16,13 @@ const MAX_IDS = 5;
 type Provider = { name: string; url: string; key: string; model: string; extra: Record<string, unknown> };
 function providers(): Provider[] {
   const out: Provider[] = [];
-  const ds = Deno.env.get("DEEPSEEK_API_KEY");
-  if (ds) out.push({ name: "DeepSeek", url: "https://api.deepseek.com/chat/completions", key: ds,
-    model: Deno.env.get("DEEPSEEK_MODEL") || "deepseek-v4-pro", extra: { thinking: { type: "enabled" }, reasoning_effort: "high" } });
-  const qw = Deno.env.get("QWEN_API_KEY");
-  if (qw) out.push({ name: "Qwen", url: `${(Deno.env.get("QWEN_BASE_URL") || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1").replace(/\/$/, "")}/chat/completions`,
-    key: qw, model: Deno.env.get("QWEN_MODEL") || "qwen3.7-plus", extra: { enable_thinking: true } });
+  const key = Deno.env.get("DEEPSEEK_API_KEY");
+  if (!key) return out;
+  const url = "https://api.deepseek.com/chat/completions";
+  const extra = { thinking: { type: "enabled" }, reasoning_effort: "high" };
+  out.push({ name: "DeepSeek Pro", url, key, model: Deno.env.get("DEEPSEEK_MODEL") || "deepseek-v4-pro", extra });
+  const second = Deno.env.get("DEEPSEEK_SECOND_MODEL") || "deepseek-flash";
+  if (second !== "none") out.push({ name: "DeepSeek Flash", url, key, model: second, extra });
   return out;
 }
 
@@ -74,7 +75,7 @@ serve(async (req) => {
   if (adminErr || isAdmin !== true) return json({ error: "ไม่มีสิทธิ์แอดมิน" }, 403);
 
   const ps = providers();
-  if (!ps.length) return json({ error: "ยังไม่ได้ตั้งค่า DEEPSEEK_API_KEY หรือ QWEN_API_KEY ใน Supabase (Edge Functions → Secrets)" }, 503);
+  if (!ps.length) return json({ error: "ยังไม่ได้ตั้งค่า DEEPSEEK_API_KEY ใน Supabase (Edge Functions → Secrets)" }, 503);
 
   const body = await req.json().catch(() => ({}));
   const ids = (Array.isArray(body.ids) ? body.ids : []).map(Number).filter(Number.isInteger).slice(0, MAX_IDS);
@@ -93,7 +94,7 @@ serve(async (req) => {
     const blind: Record<string, Map<number, Blind>> = {};
     ps.forEach((p, i) => { const r = blindRaw[i]; blind[p.name] = r.status === "fulfilled" ? readBlind(questions, r.value) : new Map(); });
 
-    // 2) judge with the key: DeepSeek when available, otherwise Qwen.
+    // 2) judge with the key: DeepSeek Pro.
     const judgeRaw = await ask(ps[0], JUDGE_SYSTEM, judgePrompt(questions, blind), spend);
     const judges = readJudge(questions, judgeRaw);
 

@@ -1,5 +1,5 @@
 -- "ตรวจด้วย AI" in แอดมิน → ข้อสอบรอตรวจ. The Edge Function prep-ai-review reads the questions through
--- prep_admin_ai_pick (with the admin's own token), has DeepSeek and Qwen answer blind and DeepSeek judge with the key,
+-- prep_admin_ai_pick (with the admin's own token), has two DeepSeek models answer blind and DeepSeek Pro judge with the key,
 -- and stores one combined verdict per question with prep_admin_ai_save. The admin still decides: a verdict never
 -- changes a question by itself.
 

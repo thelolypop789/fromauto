@@ -1,6 +1,6 @@
 import { rpc, supabase } from "./api";
 
-// One AI verdict per question (prep.ai_reviews: DeepSeek + Qwen answer blind, DeepSeek judges). The admin decides;
+// One AI verdict per question (prep.ai_reviews: two DeepSeek models answer blind, DeepSeek Pro judges). The admin decides;
 // a verdict never changes a question.
 export type AiFix = { stem: string | null; choices: string[] | null; answer: number | null; explanation: string | null };
 export type AiBlind = { answer: number | null; confidence: string; flags: string[]; note: string } | null;

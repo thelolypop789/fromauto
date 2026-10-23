@@ -4,7 +4,7 @@ import { rpc, supabase, thaiError } from "./api";
 type Status = "draft" | "scheduled" | "posting" | "posted" | "failed" | "cancelled";
 type CStatus = "none" | "pending" | "commenting" | "done" | "failed";
 type Post = {
-  id: number; title: string; caption: string; image_path: string | null; comment_text: string | null; comment_image_path: string | null;
+  id: number; title: string; caption: string; image_path: string | null; extra_images: string[] | null; comment_text: string | null; comment_image_path: string | null;
   comment_delay_min: number; scheduled_at: string | null; status: Status; fb_post_id: string | null; posted_at: string | null;
   comment_status: CStatus; commented_at: string | null; error: string | null;
 };
@@ -56,23 +56,38 @@ async function upload(file: File): Promise<string> {
   return path;
 }
 
-type Draft = { id?: number; title: string; caption: string; image_path: string | null; comment_text: string; comment_image_path: string | null; comment_delay_min: number; scheduled_at: string };
-const blank: Draft = { title: "", caption: "", image_path: null, comment_text: "", comment_image_path: null, comment_delay_min: 150, scheduled_at: "" };
+// images: every picture of the post in order (Facebook allows 10); saved as image_path = first + extra_images = the rest.
+const MAX_IMAGES = 10;
+type Draft = { id?: number; title: string; caption: string; images: string[]; comment_text: string; comment_image_path: string | null; comment_delay_min: number; scheduled_at: string };
+const blank: Draft = { title: "", caption: "", images: [], comment_text: "", comment_image_path: null, comment_delay_min: 150, scheduled_at: "" };
+const imagesOf = (p: Pick<Post, "image_path" | "extra_images">) => [p.image_path, ...(p.extra_images ?? [])].filter((x): x is string => !!x);
 
 function Editor({ init, onSaved, onCancel }: { init: Draft; onSaved: () => void; onCancel: () => void }) {
   const [d, setD] = useState(init);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const pick = async (key: "image_path" | "comment_image_path", f: File | undefined) => {
+  const pick = async (f: File | undefined) => {
     if (!f) return;
     setBusy(true); setError("");
-    try { const path = await upload(f); setD(x => ({ ...x, [key]: path })); } catch (e) { setError(thaiError(e)); }
+    try { const path = await upload(f); setD(x => ({ ...x, comment_image_path: path })); } catch (e) { setError(thaiError(e)); }
     setBusy(false);
   };
+  const addImages = async (files: FileList | null) => {
+    const list = Array.from(files ?? []).slice(0, MAX_IMAGES - d.images.length);
+    if (!list.length) return;
+    setBusy(true); setError("");
+    try {
+      for (const f of list) { const path = await upload(f); setD(x => ({ ...x, images: [...x.images, path].slice(0, MAX_IMAGES) })); }
+    } catch (e) { setError(thaiError(e)); }
+    setBusy(false);
+  };
+  const moveFirst = (i: number) => setD(x => ({ ...x, images: [x.images[i], ...x.images.filter((_, k) => k !== i)] }));
   const save = async () => {
     setBusy(true); setError("");
     try {
-      await rpc("prep_admin_fb_save", { p_post: { ...d, scheduled_at: d.scheduled_at ? new Date(d.scheduled_at).toISOString() : null } });
+      const { images, ...rest } = d;
+      await rpc("prep_admin_fb_save", { p_post: { ...rest, image_path: images[0] ?? null, extra_images: images.slice(1),
+                                                   scheduled_at: d.scheduled_at ? new Date(d.scheduled_at).toISOString() : null } });
       onSaved();
     } catch (e) { setError(thaiError(e)); setBusy(false); }
   };
@@ -84,16 +99,26 @@ function Editor({ init, onSaved, onCancel }: { init: Draft; onSaved: () => void;
         <input className="pp-input" type="datetime-local" value={d.scheduled_at} onChange={e => setD({ ...d, scheduled_at: e.target.value })} /></label>
       <label><span className="pp-muted small">แคปชั่น</span>
         <textarea className="pp-input" rows={6} value={d.caption} onChange={e => setD({ ...d, caption: e.target.value })} /></label>
-      <div><span className="pp-muted small">รูปโพสต์</span><br />
-        <Thumb path={d.image_path} />
-        <input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={e => pick("image_path", e.target.files?.[0])} />
-        {d.image_path && <button type="button" className="pp-chipbtn" onClick={() => setD({ ...d, image_path: null })}>เอารูปออก</button>}
+      <div><span className="pp-muted small">รูปโพสต์ ({d.images.length}/{MAX_IMAGES}) · รูปแรกเป็นรูปหลัก</span>
+        <div className="pp-fb-imgs">
+          {d.images.map((path, i) => (
+            <div key={path} className="pp-fb-img">
+              <Thumb path={path} />
+              <div>
+                {i > 0 && <button type="button" className="pp-chipbtn" disabled={busy} onClick={() => moveFirst(i)}>ให้เป็นรูปแรก</button>}
+                <button type="button" className="pp-chipbtn" disabled={busy} onClick={() => setD(x => ({ ...x, images: x.images.filter((_, k) => k !== i) }))}>เอาออก</button>
+              </div>
+            </div>
+          ))}
+        </div>
+        {d.images.length < MAX_IMAGES && (
+          <input type="file" multiple accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={e => { addImages(e.target.files); e.target.value = ""; }} />)}
       </div>
       <label><span className="pp-muted small">คอมเมนต์เฉลย (เว้นว่างถ้าไม่ต้องการ)</span>
         <textarea className="pp-input" rows={5} value={d.comment_text} onChange={e => setD({ ...d, comment_text: e.target.value })} /></label>
       <div><span className="pp-muted small">รูปในคอมเมนต์ (ไม่บังคับ)</span><br />
         <Thumb path={d.comment_image_path} />
-        <input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={e => pick("comment_image_path", e.target.files?.[0])} />
+        <input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={e => pick(e.target.files?.[0])} />
         {d.comment_image_path && <button type="button" className="pp-chipbtn" onClick={() => setD({ ...d, comment_image_path: null })}>เอารูปออก</button>}
       </div>
       <label><span className="pp-muted small">คอมเมนต์หลังโพสต์กี่นาที</span>
@@ -128,11 +153,11 @@ function Row({ p, onChanged, setError }: { p: Post; onChanged: () => void; setEr
       </div>
       {edit ? (
         <Editor
-          init={{ id: p.id, title: p.title, caption: p.caption, image_path: p.image_path, comment_text: p.comment_text ?? "", comment_image_path: p.comment_image_path, comment_delay_min: p.comment_delay_min, scheduled_at: toLocalInput(p.scheduled_at) }}
+          init={{ id: p.id, title: p.title, caption: p.caption, images: imagesOf(p), comment_text: p.comment_text ?? "", comment_image_path: p.comment_image_path, comment_delay_min: p.comment_delay_min, scheduled_at: toLocalInput(p.scheduled_at) }}
           onSaved={() => { setEdit(false); onChanged(); }} onCancel={() => setEdit(false)} />
       ) : (
         <div className="pp-fb-body">
-          <Thumb path={p.image_path} />
+          <div className="pp-fb-imgs">{imagesOf(p).map(path => <Thumb key={path} path={path} />)}</div>
           <div>
             <div className="pp-ai-q">{p.caption || <span className="pp-muted">(ไม่มีแคปชั่น)</span>}</div>
             {p.comment_text && <div className="pp-ai-an"><b>คอมเมนต์ (หลัง {p.comment_delay_min} นาที):</b><br />{p.comment_text}</div>}

@@ -116,6 +116,7 @@ export default function Player({ round, onExit, onSubmitted }: Props) {
         <div className="pp-card pp-q">
           <div className="pp-q-head">
             <div className="pp-q-topic">{item.topic}</div>
+            {item.tag && <div className="pp-q-tag">{item.tag}</div>}
             {reported.has(item.question_id)
               ? <span className="pp-report-btn done"><IconCheck size={14} />รายงานแล้ว</span>
               : <button className="pp-report-btn" onClick={() => setReporting(true)}><IconFlag size={14} />รายงานข้อนี้</button>}

@@ -83,6 +83,7 @@ export default function MockPlayer({ payload, onDone, onExit }: Props) {
         <div className="pp-card pp-q">
           <div className="pp-q-head">
             <div className="pp-q-topic">{item.topic}</div>
+            {item.tag && <div className="pp-q-tag">{item.tag}</div>}
             <button className={`pp-report-btn ${flags.has(pos) ? "done" : ""}`} onClick={flag}><IconFlag size={14} />{flags.has(pos) ? "ทำเครื่องหมายแล้ว" : "กลับมาดูทีหลัง"}</button>
           </div>
           <div className="pp-q-stem"><span className="pp-q-no">{pos + 1}.</span> {item.stem}</div>

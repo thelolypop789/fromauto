@@ -2,7 +2,7 @@
 """Generate the public, crawlable sample-question pages under public/prep/sample/.
 
 Usage: python3 scripts/prep/gen_public_pages.py samples.json
-samples.json maps a group key (A2, ANALOGY, B1, ENG, CHEM, MATH, PRIMARY, DANCE) to rows
+samples.json maps a group key (A2, ANALOGY, B1, ENG, CHEM, ...; see PAGES) to rows
 {id, topic, level, stem, choices[], answer, explanation} read from prep.questions. Only questions whose
 rights we hold (source 'authored-*') belong in here; never feed it questions imported from third-party files.
 Also writes public/sitemap.xml.
@@ -35,6 +35,26 @@ PAGES = [
      "แนวข้อสอบวิชาเอกประถมศึกษา เนื้อหา 8 กลุ่มสาระ จิตวิทยาเด็ก การสอนอ่านเขียน พร้อมเฉลย"),
     ("major-dance", "DANCE", "วิชาเอกนาฏศิลป์", "ข้อสอบครูผู้ช่วย วิชาเอกนาฏศิลป์",
      "แนวข้อสอบวิชาเอกนาฏศิลป์ นาฏศิลป์ไทย นาฏศิลป์สากล การละคร พร้อมเฉลยและคำอธิบาย"),
+    ("major-biology", "BIO", "วิชาเอกชีววิทยา", "ข้อสอบครูผู้ช่วย วิชาเอกชีววิทยา",
+     "แนวข้อสอบวิชาเอกชีววิทยา เซลล์ พันธุศาสตร์ วิวัฒนาการ ระบบนิเวศ พร้อมเฉลยและคำอธิบาย"),
+    ("major-physics", "PHYS", "วิชาเอกฟิสิกส์", "ข้อสอบครูผู้ช่วย วิชาเอกฟิสิกส์",
+     "แนวข้อสอบวิชาเอกฟิสิกส์ กลศาสตร์ ไฟฟ้า แสง ฟิสิกส์นิวเคลียร์ พร้อมเฉลยและวิธีคิด"),
+    ("major-general-science", "SCI", "วิชาเอกวิทยาศาสตร์ทั่วไป", "ข้อสอบครูผู้ช่วย วิชาเอกวิทยาศาสตร์ทั่วไป",
+     "แนวข้อสอบวิชาเอกวิทยาศาสตร์ทั่วไป ชีววิทยา เคมี ฟิสิกส์ โลกและอวกาศ พร้อมเฉลยและคำอธิบาย"),
+    ("major-social-studies", "SOC", "วิชาเอกสังคมศึกษา", "ข้อสอบครูผู้ช่วย วิชาเอกสังคมศึกษา",
+     "แนวข้อสอบวิชาเอกสังคมศึกษา ศาสนา หน้าที่พลเมือง เศรษฐศาสตร์ ประวัติศาสตร์ ภูมิศาสตร์ พร้อมเฉลย"),
+    ("major-computer", "COMP", "วิชาเอกคอมพิวเตอร์", "ข้อสอบครูผู้ช่วย วิชาเอกคอมพิวเตอร์",
+     "แนวข้อสอบวิชาเอกคอมพิวเตอร์ วิทยาการคำนวณ การเขียนโปรแกรม เครือข่าย AI พร้อมเฉลยและคำอธิบาย"),
+    ("major-early-childhood", "EARLY", "วิชาเอกการศึกษาปฐมวัย", "ข้อสอบครูผู้ช่วย วิชาเอกปฐมวัย",
+     "แนวข้อสอบวิชาเอกการศึกษาปฐมวัย พัฒนาการเด็ก หลักสูตรปฐมวัย 2560 แนวคิดการศึกษา พร้อมเฉลย"),
+    ("major-special-education", "SPED", "วิชาเอกการศึกษาพิเศษ", "ข้อสอบครูผู้ช่วย วิชาเอกการศึกษาพิเศษ",
+     "แนวข้อสอบวิชาเอกการศึกษาพิเศษ IEP การปรับพฤติกรรม เด็กที่มีความต้องการพิเศษ พร้อมเฉลย"),
+    ("major-music", "MUSIC", "วิชาเอกดนตรี", "ข้อสอบครูผู้ช่วย วิชาเอกดนตรี",
+     "แนวข้อสอบวิชาเอกดนตรี ทฤษฎีดนตรี ประวัติดนตรี การขับร้อง การสอนดนตรี พร้อมเฉลยและคำอธิบาย"),
+    ("major-art", "ART", "วิชาเอกศิลปศึกษา", "ข้อสอบครูผู้ช่วย วิชาเอกศิลปศึกษา",
+     "แนวข้อสอบวิชาเอกศิลปศึกษา ทัศนธาตุ ประวัติศาสตร์ศิลป์ ศิลปะไทย การสอนศิลปะ พร้อมเฉลย"),
+    ("major-physical-education", "PE", "วิชาเอกพลศึกษา", "ข้อสอบครูผู้ช่วย วิชาเอกพลศึกษา",
+     "แนวข้อสอบวิชาเอกพลศึกษา วิทยาศาสตร์การกีฬา กติกากีฬา การปฐมพยาบาล การสอนพลศึกษา พร้อมเฉลย"),
 ]
 
 CSS = """
@@ -66,10 +86,10 @@ def head(title, desc, path, extra=""):
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(desc)}">
 <link rel="canonical" href="{url}">
-<link rel="icon" href="/prep-icons/favicon-32.png">
+<link rel="icon" href="/prep-icons/favicon-32.png?v=2">
 <meta property="og:type" content="website"><meta property="og:url" content="{url}">
 <meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(desc)}">
-<meta property="og:image" content="{BASE}/prep-og-v2.jpg"><meta property="og:image:type" content="image/jpeg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:site_name" content="ซ้อมสอบ SOBPREP"><meta property="og:locale" content="th_TH">
+<meta property="og:image" content="{BASE}/prep-og-v3.jpg"><meta property="og:image:type" content="image/jpeg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:site_name" content="ซ้อมสอบ SOBPREP"><meta property="og:locale" content="th_TH">
 <meta name="twitter:card" content="summary_large_image">
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>{CSS}</style>{extra}</head><body>
@@ -136,7 +156,8 @@ def main(src):
     idx = (head("ตัวอย่างข้อสอบครูผู้ช่วย พร้อมเฉลย ภาค ก ภาค ข วิชาเอก | ซ้อมสอบ SOBPREP", idx_desc, "/prep/sample/")
            + f'<h1>ตัวอย่างข้อสอบครูผู้ช่วย พร้อมเฉลย</h1><p class="lead">{idx_desc} เลือกวิชาที่ต้องการ</p>{cards}{FOOT}')
     (OUT / "index.html").write_text(idx, encoding="utf-8")
-    urls = [f"{BASE}/prep", f"{BASE}/prep/welcome/", f"{BASE}/prep/guide", f"{BASE}/prep/sample/"] + [BASE + p for p in pages]
+    # Only pages a crawler can read: /prep and /prep/guide are the app shell (rendered by JavaScript, canonical /prep).
+    urls = [f"{BASE}/prep/welcome/", f"{BASE}/prep/sample/"] + [BASE + p for p in pages]
     today = date.today().isoformat()
     sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "".join(
         f"  <url><loc>{u}</loc><lastmod>{today}</lastmod></url>\n" for u in urls) + "</urlset>\n"

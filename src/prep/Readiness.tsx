@@ -4,6 +4,7 @@ import type { Preset } from "./CreateSet";
 import Mascot, { type Costume, type Mood } from "./Mascot";
 import ReadinessRadar from "./ReadinessRadar";
 import ReadinessScene from "./ReadinessScene";
+import ReadinessSignals from "./ReadinessSignals";
 
 const MIN_ANSWERS = 100;   // under this the estimate is shown as rough
 const READY = 75;          // "พร้อมมาก" from here
@@ -79,8 +80,8 @@ function Road({ pct, level }: { pct: number; level: number }) {
 
 // "Ready for the exam?" — estimated score from topic accuracy weighted by the mock-exam blueprint, drawn over a sky
 // that brightens with readiness. compact: Home card (one focus topic). full: Stats (three focus topics + the subject radar).
-export default function Readiness({ compact = false, onPractice, onMore }: {
-  compact?: boolean; onPractice?: (p: Preset) => void; onMore?: () => void;
+export default function Readiness({ compact = false, onPractice, onMore, onMock }: {
+  compact?: boolean; onPractice?: (p: Preset) => void; onMore?: () => void; onMock?: () => void;
 }) {
   const [d, setD] = useState<Data | null>(null);
   useEffect(() => { rpc<Data>("prep_readiness").then(r => { setD(r); if (r.overall != null) track("readiness_view"); }).catch(() => setD(null)); }, []);
@@ -116,7 +117,7 @@ export default function Readiness({ compact = false, onPractice, onMore }: {
             </div>
           </div>
           <p className="pp-rx-note small">
-            คาดคะแนนจากความแม่นแต่ละหมวด ถ่วงตามจำนวนข้อที่ออกจริงในผังข้อสอบ ·{" "}
+            คาดคะแนนจากความแม่นและการจำระยะยาวแต่ละหมวด ถ่วงตามผังข้อสอบ หมวดที่ไม่ได้ทบทวนนานจะค่อยๆ ลดลง ·{" "}
             {rough ? <b className="pp-rd-rough">ข้อมูลยังน้อย ({d.answered} ข้อ) ทำเพิ่มอีก {MIN_ANSWERS - d.answered} ข้อผลจะแม่นขึ้น</b> : `จาก ${d.answered.toLocaleString("th-TH")} ข้อที่ทำ`}
             {!d.has_major && " · ยังไม่ได้เลือกวิชาเอก จึงยังไม่รวมวิชาเอก"}
           </p>
@@ -135,6 +136,7 @@ export default function Readiness({ compact = false, onPractice, onMore }: {
         </div>
       </div>
       {!compact && <ReadinessRadar d={d} level={level} onPractice={onPractice} />}
+      {!compact && d.signals && <ReadinessSignals s={d.signals} onMock={onMock} />}
     </>
   );
 }

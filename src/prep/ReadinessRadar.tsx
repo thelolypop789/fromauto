@@ -31,7 +31,7 @@ export default function ReadinessRadar({ d, level, onPractice }: {
   const mood: Mood = allPass ? "cheer" : level >= 2 ? "happy" : "think";
   const costume: Costume = level >= 2 ? "teacher" : "none";
   // The practice button opens the set builder on the best-paying topic of that subject (from the focus list).
-  const f = allPass ? undefined : d.focus.find(x => x.subject === worst.name);
+  const f = allPass ? undefined : d.subject_focus?.[worst.name] ?? d.focus.find(x => x.subject === worst.name);
   const go: Preset | null = f ? (f.sub ? { topics: [f.code], subtopics: [f.sub] } : { topics: [f.code] }) : null;
 
   return (

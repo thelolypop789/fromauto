@@ -267,6 +267,17 @@ export type Readiness = {
   has_major: boolean; answered: number; overall: number | null;
   sections: { section: "A" | "B"; pct: number; n: number; subjects: { code: string; name: string; questions: number; pct: number; n: number }[] }[];
   focus: { code: string; sub: string | null; name: string; subject: string; w: number; pct: number; n: number }[];
+  subject_focus?: Record<string, { code: string; sub: string | null; name: string }>;
+  signals?: ReadinessSignals;
+};
+// Six behaviour readings, 0–100 each; score is null until there is enough data (see prep_readiness).
+export type ReadinessSignals = {
+  accuracy: { score: number | null; n: number; retained: number; shaky: number };
+  speed: { score: number | null; n: number; median_s: number | null; slow: number };
+  errors: { score: number | null; n: number; repeated: number; guess: number; careless: number; concept: number };
+  stamina: { score: number | null; sessions: number; first: number | null; last: number | null };
+  fix: { score: number | null; n: number; fixed: number; redo: number; dwell_s: number | null };
+  coverage: { score: number | null; fresh: number; untouched: number; units: number };
 };
 export type Scorecard = {
   sections: {

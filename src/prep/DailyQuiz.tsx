@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { rpc, thaiError, type Daily } from "./api";
 import { IconBack, IconCheck, IconNext, IconX } from "./icons";
 import ScoreDist from "./ScoreDist";
+import { useSinceShown } from "./timing";
 
 const LABELS = ["ก", "ข", "ค", "ง"];
 
@@ -11,6 +12,7 @@ export default function DailyQuiz({ onBack }: { onBack: () => void }) {
   const [pos, setPos] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const sinceShown = useSinceShown(pos);
 
   useEffect(() => {
     rpc<Daily>("prep_daily_quiz").then(d => {
@@ -29,7 +31,7 @@ export default function DailyQuiz({ onBack }: { onBack: () => void }) {
   const pick = async (c: number) => {
     if (busy || item.picked != null) return;
     setBusy(true); setError("");
-    try { setData(await rpc<Daily>("prep_daily_answer", { p_idx: item.idx, p_choice: c })); }
+    try { setData(await rpc<Daily>("prep_daily_answer", { p_idx: item.idx, p_choice: c, p_ms: sinceShown() })); }
     catch (e) { setError(thaiError(e)); }
     setBusy(false);
   };

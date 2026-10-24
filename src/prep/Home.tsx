@@ -5,6 +5,7 @@ import type { Preset } from "./CreateSet";
 import { IconCheck, IconCrown, IconPlus } from "./icons";
 import InstallBanner from "./InstallBanner";
 import InstallSheet from "./InstallSheet";
+import Announcement from "./Announcement";
 import { useAutoInstallSheet } from "./pwa";
 import ExpiryBanner from "./ExpiryBanner";
 import StudyPlan, { LineCard } from "./StudyPlan";
@@ -52,6 +53,7 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
       <ExpiryBanner me={me} onRenew={onUpgrade} />
       <InstallBanner />
       {installSheet.open && <InstallSheet onClose={() => installSheet.setOpen(false)} />}
+      <Announcement />
 
       <div className="pp-greet">
         <Mascot costume="teacher" mood="happy" size={72} />

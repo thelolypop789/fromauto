@@ -4,6 +4,8 @@ import MajorPicker from "./MajorPicker";
 import type { Preset } from "./CreateSet";
 import { IconCheck, IconCrown, IconPlus } from "./icons";
 import InstallBanner from "./InstallBanner";
+import InstallSheet from "./InstallSheet";
+import { useAutoInstallSheet } from "./pwa";
 import ExpiryBanner from "./ExpiryBanner";
 import StudyPlan, { LineCard } from "./StudyPlan";
 import Mascot from "./Mascot";
@@ -39,6 +41,7 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
     rpc<Dashboard>("prep_dashboard").then(setDash).catch(() => { /* explorer just shows without progress */ });
   }, []);
 
+  const installSheet = useAutoInstallSheet();
   const canCreate = me.plan === "paid" || me.free_sets_used < me.free_sets_limit;
 
   const freeLeft = Math.max(0, me.free_sets_limit - me.free_sets_used);
@@ -48,6 +51,7 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
     <>
       <ExpiryBanner me={me} onRenew={onUpgrade} />
       <InstallBanner />
+      {installSheet.open && <InstallSheet onClose={() => installSheet.setOpen(false)} />}
 
       <div className="pp-greet">
         <Mascot costume="teacher" mood="happy" size={72} />

@@ -3,6 +3,7 @@ import { useAdminTrack } from "./adminTrack";
 import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, thaiError, type PackageKey } from "./api";
 import { ColumnChart, CompareList } from "./ChartParts";
 import { nf } from "./chartFormat";
+import AdminUserView from "./AdminUserView";
 
 type Hit = { id: string; email: string; created_at: string; packages: PackageKey[]; last_active: string | null; orders: number };
 type Row = Hit & { major_name: string | null; src: string | null; answered: number; sets: number };
@@ -10,7 +11,7 @@ type ListPage = { total: number; items: Row[] };
 const FILTERS: [string, string][] = [["all", "ทั้งหมด"], ["paid", "จ่ายแล้ว"], ["free", "ยังฟรี"], ["nomajor", "ยังไม่เลือกเอก"]];
 const PAGE = 50;
 type Detail = {
-  user: { id: string; email: string; created_at: string; plan: string; major_name: string | null; free_sets_used: number; free_mock_used: boolean };
+  user: { id: string; email: string; created_at: string; plan: string; major?: string | null; track?: string | null; major_name: string | null; free_sets_used: number; free_mock_used: boolean };
   entitlements: { id: number; package: PackageKey; starts_at: string; expires_at: string | null; revoked_at: string | null; source: string; active: boolean }[];
   orders: { id: number; package: PackageKey; term: "round" | "lifetime"; amount: number | null; credit: number; status: "pending" | "approved" | "rejected"; created_at: string; reviewed_at: string | null; admin_note: string | null }[];
   activity: { answered_total: number; last_active: string | null; sets: number; mock_done: number };
@@ -32,6 +33,7 @@ export default function AdminUsers() {
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[] | null>(null);
   const [d, setD] = useState<Detail | null>(null);
+  const [viewing, setViewing] = useState(false);
   const [st, setSt] = useState<UserStats | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -154,6 +156,10 @@ export default function AdminUsers() {
           </p>
           <p className="pp-muted small">ตอบแล้ว {Number(d.activity.answered_total).toLocaleString("th-TH")} ข้อ · {d.activity.sets} ชุด · จำลองสอบจบ {d.activity.mock_done} ครั้ง · ใช้ล่าสุด {d.activity.last_active ?? "ยังไม่เคย"}</p>
           {msg && <div className={msg.ok ? "pp-success" : "pp-error"}>{msg.text}</div>}
+
+          {/* Only once the view-as migration is live (it adds "major" here); before that the page would show the admin's own data. */}
+          {"major" in d.user && <button className="pp-btn pp-btn-ghost" onClick={() => setViewing(true)}>ดูหน้าวิเคราะห์ของผู้ใช้คนนี้</button>}
+          {viewing && <AdminUserView user={{ id: d.user.id, email: d.user.email, major: d.user.major ?? null, major_name: d.user.major_name, track: d.user.track }} onClose={() => setViewing(false)} />}
 
           {st && <UserStatsView st={st} />}
 

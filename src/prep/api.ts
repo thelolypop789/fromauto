@@ -137,8 +137,15 @@ export function thaiError(e: unknown): string {
 
 // A request that never answers (bad network, stuck connection) must end in an error the screen can show,
 // not an endless spinner. 30s is far above any normal call.
+// Admin "view as": while set, every call carries the user's id. The database honours it only for admins and only in
+// read-only (STABLE) functions, so the analysis page shows that user's data and nothing can be written as them.
+let viewAs: string | null = null;
+export const setViewAs = (id: string | null) => { viewAs = id; };
+
 export async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.rpc(fn, args).abortSignal(AbortSignal.timeout(30_000));
+  const q = supabase.rpc(fn, args);
+  if (viewAs) q.setHeader("x-view-as", viewAs);
+  const { data, error } = await q.abortSignal(AbortSignal.timeout(30_000));
   if (error) throw new Error(error.name === "AbortError" || /abort/i.test(error.message) ? "network_timeout" : error.message);
   return data as T;
 }
@@ -333,6 +340,7 @@ try {
 
 export type TrackName = "visit" | "buy_view" | "free_limit" | "level_view" | "readiness_view" | "subtopic_pick" | "promo_apply" | "scoredist_view" | "board_view" | "install_view" | "install_click" | "install_done";
 export function track(name: TrackName) {
+  if (viewAs) return;   // an admin looking at someone's page is not a usage event
   try {
     const flag = `pp-ev-${name}`;
     if (sessionStorage.getItem(flag)) return;

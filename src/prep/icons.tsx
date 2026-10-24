@@ -26,3 +26,7 @@ export const IconLogout = ({ size = 18 }: P) => svg(size, <><path d="M15 4h4v16h
 
 export const Logo = ({ size = 36 }: P) => <img src="/prep-icons/icon-192.png?v=2" width={size} height={size} alt="" className="pp-logo-img" />;
 export const IconCalendar = ({ size = 22 }: P) => svg(size, <><rect x="3" y="5" width="18" height="16" rx="2.5" /><path d="M8 3v4" /><path d="M16 3v4" /><path d="M3 10h18" /><path d="M8 14h2" /><path d="M14 14h2" /><path d="M8 17.5h2" /></>);
+export const IconBolt = ({ size = 20 }: P) => svg(size, <path d="M13 2 4 14h7l-1 8 9-12h-7z" />);
+export const IconExpand = ({ size = 20 }: P) => svg(size, <><path d="M4 9V4h5" /><path d="M20 9V4h-5" /><path d="M4 15v5h5" /><path d="M20 15v5h-5" /></>);
+export const IconShare = ({ size = 20 }: P) => svg(size, <><path d="M12 3v12" /><path d="m7 8 5-5 5 5" /><path d="M5 12v8h14v-8" /></>);
+export const IconFeather = ({ size = 20 }: P) => svg(size, <><path d="M20 4c-7 0-12 5-12 12v4" /><path d="M20 4c0 7-5 12-12 12" /><path d="M8 16 4 20" /></>);

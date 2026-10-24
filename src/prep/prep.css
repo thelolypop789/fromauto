@@ -1066,3 +1066,32 @@ div.pp-todo-item { cursor: default; }
 .pp-fb-body > .pp-fb-imgs .pp-fb-thumb:first-child { width: 208px; height: 260px; }
 .pp-fb-img { display: flex; flex-direction: column; gap: 4px; }
 .pp-fb-img .pp-chipbtn { display: block; margin-top: 2px; }
+
+/* install sheet (InstallSheet.tsx) */
+.pp-inst { text-align: center; padding-top: 10px; background: linear-gradient(180deg, #FFF8EC 0%, #fff 46%); }
+.pp-inst-grip { display: block; width: 44px; height: 5px; border-radius: 99px; background: #E6D9CC; margin: 4px auto 0; }
+.pp-inst-x { position: absolute; top: 14px; right: 14px; }
+.pp-inst-hero { position: relative; width: 150px; height: 140px; margin: 2px auto 0; display: grid; place-items: center; }
+.pp-inst-glow { position: absolute; inset: 6px 0 0; border-radius: 50%; background: radial-gradient(circle, rgba(243, 217, 138, .75) 0%, rgba(243, 217, 138, 0) 68%); animation: pp-inst-pulse 2.6s ease-in-out infinite; }
+.pp-inst-hero .pp-mascot { position: relative; }
+.pp-inst-h { margin: 4px 0 6px; font-size: 21px; line-height: 1.35; color: var(--pp-ink); }
+.pp-inst-h b { color: var(--pp-primary); }
+.pp-inst-sub { margin: 0 auto 16px; max-width: 320px; font-size: 14.5px; line-height: 1.55; color: var(--pp-muted); }
+.pp-inst-perks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 18px; }
+.pp-inst-perks > div { display: grid; justify-items: center; gap: 8px; padding: 14px 6px 12px; border-radius: 16px; background: #fff; border: 1px solid #F0E4D3; box-shadow: 0 6px 16px -12px rgba(74, 11, 22, .35); font-size: 13px; line-height: 1.4; color: var(--pp-ink); }
+.pp-inst-perks i { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: var(--pp-primary); background: linear-gradient(180deg, #FBF0D2, #F3DFA6); }
+.pp-inst-go { width: 100%; min-height: 54px; border-radius: 16px; font-size: 16.5px; font-weight: 700; color: #fff; gap: 10px;
+  background: linear-gradient(135deg, var(--pp-primary) 0%, var(--pp-primary-dark) 55%, var(--pp-primary-deep) 100%);
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px #E8CF8A, 0 14px 26px -14px rgba(74, 11, 22, .8); }
+.pp-inst-go-i { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--pp-primary-deep); background: linear-gradient(180deg, #F7E3A4, #D4AF37); }
+.pp-inst-later { width: 100%; min-height: 48px; margin-top: 12px; border-radius: 16px; background: #fff; border: 1.5px solid #E8CF8A; color: #8C6A12; font-weight: 600; }
+.pp-inst-note { margin: 10px 0 2px; font-size: 12.5px; color: var(--pp-muted); }
+.pp-inst-steps { list-style: none; margin: 0 0 4px; padding: 0; display: grid; gap: 8px; text-align: left; }
+.pp-inst-steps li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: #fff; border: 1px solid #F0E4D3; font-size: 14.5px; line-height: 1.5; }
+.pp-inst-steps em { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 700; color: #fff; background: var(--pp-primary); }
+.pp-inst-key { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 8px; background: var(--pp-gold-soft); color: var(--pp-primary-dark); white-space: nowrap; }
+.pp-inst-inapp p { margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; background: var(--pp-gold-soft); color: #6B4E0A; font-size: 14px; line-height: 1.55; text-align: left; }
+.pp-inst-arrow { position: fixed; left: 50%; bottom: 10px; width: 18px; height: 18px; margin-left: -9px; border-right: 4px solid var(--pp-gold-bright); border-bottom: 4px solid var(--pp-gold-bright); transform: rotate(45deg); animation: pp-inst-bob 1.2s ease-in-out infinite; pointer-events: none; }
+@keyframes pp-inst-pulse { 0%, 100% { transform: scale(.92); opacity: .8; } 50% { transform: scale(1.05); opacity: 1; } }
+@keyframes pp-inst-bob { 0%, 100% { transform: translateY(0) rotate(45deg); } 50% { transform: translateY(6px) rotate(45deg); } }
+@media (prefers-reduced-motion: reduce) { .pp-inst-glow, .pp-inst-arrow { animation: none; } }

@@ -79,14 +79,16 @@ export function useInstall() {
 
 // Install sheet (InstallSheet.tsx): how often it may open by itself.
 const KEY = "pp-install-sheet";       // { n: times dismissed, at: last dismissed (ms) }
-const AUTO_DELAY = 6000;
+const FIRST_DELAY = 1500, AUTO_DELAY = 4000, RETRY = 1500;
 const SNOOZE_DAYS = 3, MAX_DISMISS = 3;
 
 type Seen = { n: number; at: number };
 export const readSeen = (): Seen => { try { return { n: 0, at: 0, ...JSON.parse(localStorage.getItem(KEY) ?? "{}") }; } catch { return { n: 0, at: 0 }; } };
 export const writeSeen = (s: Seen) => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* private mode */ } };
 
-// Opens the sheet by itself on Home a few seconds after load, at most once per SNOOZE_DAYS and never after MAX_DISMISS "later"s.
+// Opens the sheet by itself on Home for everyone who has not installed the app: 1.5 s in on the first visit, 4 s on later
+// ones; at most once per SNOOZE_DAYS after a "later", and never after MAX_DISMISS of them. If another dialog is open
+// (the major or track picker), it waits until that one closes.
 export function useAutoInstallSheet() {
   const { kind } = useInstall();
   const [open, setOpen] = useState(false);
@@ -94,10 +96,12 @@ export function useAutoInstallSheet() {
     if (!kind) return;
     const s = readSeen();
     if (s.n >= MAX_DISMISS || Date.now() - s.at < SNOOZE_DAYS * 864e5) return;
-    const id = window.setTimeout(() => {
-      // Never stack on top of the major/track pickers or another dialog.
-      if (!document.querySelector(".pp-modal")) setOpen(true);
-    }, AUTO_DELAY);
+    let id = 0;
+    const tryOpen = () => {
+      if (document.querySelector(".pp-modal") || document.visibilityState === "hidden") id = window.setTimeout(tryOpen, RETRY);
+      else setOpen(true);
+    };
+    id = window.setTimeout(tryOpen, s.at === 0 ? FIRST_DELAY : AUTO_DELAY);
     return () => window.clearTimeout(id);
   }, [kind]);
   return { open, setOpen };

@@ -1113,7 +1113,7 @@ div.pp-todo-item { cursor: default; }
 .pp-rx-body { position: relative; padding: 16px; }
 .pp-rx .pp-rd-head h3 { color: var(--rx-ink); }
 .pp-rx .pp-rd-head .pp-link { color: var(--rx-ink); }
-.pp-rx-main { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; margin-top: 8px; }
+.pp-rx-main { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; padding-top: 18px; }
 .pp-rx-hero { position: relative; flex: 1 1 300px; max-width: 380px; display: flex; align-items: flex-end; }
 .pp-rx-gauge { position: relative; flex: 1; aspect-ratio: 200 / 112; min-width: 0; }
 .pp-rx-gauge svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
@@ -1211,22 +1211,27 @@ div.pp-todo-item { cursor: default; }
 .pp-notice li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: #fff; border: 1px solid #F0E4D3; font-size: 14px; line-height: 1.5; }
 .pp-notice li svg { flex: none; margin-top: 3px; color: var(--pp-ok); }
 
-/* six readiness signals (ReadinessSignals.tsx) */
-.pp-sg-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.pp-sg-head h3 { margin: 0; }
-.pp-sg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 10px; margin-top: 10px; }
-.pp-sg-item { display: grid; gap: 6px; align-content: start; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--pp-line); background: #fff; --sg: var(--pp-bad); }
-.pp-sg-item.ok { --sg: var(--pp-ok); } .pp-sg-item.mid { --sg: var(--pp-gold-bright); } .pp-sg-item.wait { --sg: #CDBFB4; background: #FDFAF6; }
-.pp-sg-top { display: flex; align-items: center; gap: 10px; }
-.pp-sg-top i { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--pp-primary); background: var(--pp-gold-soft); }
-.pp-sg-top b { flex: 1; font-size: 14.5px; line-height: 1.3; }
-.pp-sg-score { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--pp-ink); }
-.pp-sg-bar { height: 8px; border-radius: 99px; background: #F1E9E3; overflow: hidden; }
-.pp-sg-bar > div { height: 100%; border-radius: 99px; background: var(--sg); transition: width .8s ease; }
-.pp-sg-label { font-size: 12px; font-weight: 700; color: var(--pp-muted); }
-.pp-sg-item.ok .pp-sg-label { color: var(--pp-ok); } .pp-sg-item.mid .pp-sg-label { color: #8C6A12; } .pp-sg-item.low .pp-sg-label { color: var(--pp-bad); }
-.pp-sg-item p { margin: 0; font-size: 13px; line-height: 1.55; color: var(--pp-muted); }
-.pp-sg-item p b { color: var(--pp-ink); }
-.pp-sg-item .pp-sg-tip { padding: 8px 10px; border-radius: 10px; background: var(--pp-gold-soft); color: #6B4E0A; }
-.pp-sg-item .pp-btn { justify-self: start; }
-@media (prefers-reduced-motion: reduce) { .pp-sg-bar > div { transition: none; } }
+
+/* readiness card slides: exam score / six signals */
+.pp-rx-tabs { display: inline-flex; gap: 4px; padding: 4px; border-radius: 99px; background: rgba(255, 255, 255, .9); box-shadow: 0 4px 12px -8px rgba(0, 0, 0, .4); max-width: 100%; overflow-x: auto; }
+.pp-rx-tabs button { min-height: 36px; padding: 0 14px; border: 0; border-radius: 99px; background: none; font: inherit; font-size: 14px; font-weight: 700; color: var(--pp-muted); white-space: nowrap; cursor: pointer; }
+.pp-rx-tabs button.on { background: var(--pp-primary); color: #fff; }
+.pp-rx .pp-rd-head { flex-wrap: wrap; align-items: center; }
+.pp-rx-slides { display: flex; align-items: flex-start; transition: height .3s ease; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.pp-rx-slides::-webkit-scrollbar { display: none; }
+.pp-rx-slide { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; }
+.pp-rx-dots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; position: relative; }
+.pp-rx-dots i { width: 8px; height: 8px; border-radius: 99px; background: rgba(255, 255, 255, .6); box-shadow: 0 0 0 1px rgba(0, 0, 0, .12); transition: width .2s; }
+.pp-rx-dots i.on { width: 22px; background: #fff; }
+.pp-rs-panel { gap: 10px; }
+.pp-rs-row { display: flex; gap: 10px; align-items: flex-start; --sg: var(--pp-bad); }
+.pp-rs-row.g-ok { --sg: var(--pp-ok); } .pp-rs-row.g-mid { --sg: var(--pp-gold-bright); } .pp-rs-row.g-wait { --sg: #CDBFB4; }
+.pp-rs-row > i { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: var(--pp-primary); background: var(--pp-gold-soft); }
+.pp-rs-txt { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.pp-rs-h { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+.pp-rs-h b { font-variant-numeric: tabular-nums; }
+.pp-rs-row.g-ok .pp-rs-h b { color: var(--pp-ok); } .pp-rs-row.g-mid .pp-rs-h b { color: #8C6A12; } .pp-rs-row.g-low .pp-rs-h b { color: var(--pp-bad); } .pp-rs-row.g-wait .pp-rs-h b { color: var(--pp-muted); }
+.pp-rs-bar { height: 8px; border-radius: 99px; background: #F1E9E3; overflow: hidden; }
+.pp-rs-bar > div { height: 100%; border-radius: 99px; background: var(--sg); transition: width .8s ease; }
+.pp-rs-txt small { font-size: 12px; line-height: 1.45; color: var(--pp-muted); }
+@media (prefers-reduced-motion: reduce) { .pp-rs-bar > div, .pp-rx-dots i, .pp-rx-slides { transition: none; } }

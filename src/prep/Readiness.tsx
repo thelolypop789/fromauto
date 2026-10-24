@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PASS_PCT, SECTIONS, rpc, track, type Readiness as Data } from "./api";
 import type { Preset } from "./CreateSet";
 import Mascot, { type Costume, type Mood } from "./Mascot";
 import ReadinessRadar from "./ReadinessRadar";
 import ReadinessScene from "./ReadinessScene";
+import ReadinessGauge from "./ReadinessGauge";
+import ReadinessSignals from "./ReadinessSignals";
+import { signalLevel, signalsIndex } from "./signals";
 
 const MIN_ANSWERS = 100;   // under this the estimate is shown as rough
 const READY = 75;          // "พร้อมมาก" from here
@@ -13,35 +16,6 @@ const levelOf = (p: number) => (p >= READY ? 3 : p >= PASS_PCT ? 2 : p >= PASS_P
 const VERDICT = ["ยังไม่พร้อม", "ใกล้ถึงเกณฑ์", "ผ่านเกณฑ์", "พร้อมมาก"];
 const MASCOT: [Mood, Costume][] = [["sad", "none"], ["think", "none"], ["happy", "teacher"], ["cheer", "teacher"]];
 const MOTION = ["sway", "tilt", "float", "jump"];
-
-// Half-circle gauge 0–100: glowing arc with a knob at the score, a tick at the pass mark, the number drawn in HTML on top.
-function Gauge({ pct, level }: { pct: number; level: number }) {
-  const r = 80, cx = 100, cy = 92, len = Math.PI * r;
-  const v = Math.max(0, Math.min(100, pct));
-  const at = (x: number) => { const a = Math.PI * (1 - x / 100); return [cx + r * Math.cos(a), cy - r * Math.sin(a)]; };
-  const [kx, ky] = at(v);
-  const [px, py] = at(PASS_PCT);
-  const ux = (px - cx) / r, uy = (py - cy) / r;
-  return (
-    <div className="pp-rx-gauge" role="img" aria-label={`ความพร้อมสอบ ${Math.round(pct)}% ${VERDICT[level]} เกณฑ์ผ่าน ${PASS_PCT}%`}>
-      <svg viewBox="0 0 200 112" aria-hidden="true">
-        <defs>
-          <linearGradient id="pp-rx-grad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" className="s0" /><stop offset="1" className="s1" /></linearGradient>
-        </defs>
-        <path className="track" d={`M${cx - r},${cy} A${r},${r} 0 0 1 ${cx + r},${cy}`} />
-        <path className="fill" d={`M${cx - r},${cy} A${r},${r} 0 0 1 ${cx + r},${cy}`} style={{ strokeDasharray: `${(len * v) / 100} ${len}` }} />
-        <line className="tick" x1={px - ux * 11} y1={py - uy * 11} x2={px + ux * 11} y2={py + uy * 11} />
-        <circle className="knob" cx={kx} cy={ky} r="11" />
-        <circle className="knob-in" cx={kx} cy={ky} r="6" />
-      </svg>
-      <span className="pp-rx-pass" style={{ left: `${(px + ux * 14) / 2}%`, top: `${((py + uy * 14) / 112) * 100}%` }}>เกณฑ์ผ่าน {PASS_PCT}</span>
-      <div className="pp-rx-num">
-        <b>{Math.round(pct)}<small>%</small></b>
-        <span className={tone(pct)}>{VERDICT[level]}</span>
-      </div>
-    </div>
-  );
-}
 
 // Road to exam day: stops at 0, 50, PASS_PCT and READY, a finish gate with the school, the mascot at the score.
 function Road({ pct, level }: { pct: number; level: number }) {
@@ -79,10 +53,36 @@ function Road({ pct, level }: { pct: number; level: number }) {
 
 // "Ready for the exam?" — estimated score from topic accuracy weighted by the mock-exam blueprint, drawn over a sky
 // that brightens with readiness. compact: Home card (one focus topic). full: Stats (three focus topics + the subject radar).
-export default function Readiness({ compact = false, onPractice, onMore }: {
-  compact?: boolean; onPractice?: (p: Preset) => void; onMore?: () => void;
+export default function Readiness({ compact = false, onPractice, onMore, onMock }: {
+  compact?: boolean; onPractice?: (p: Preset) => void; onMore?: () => void; onMock?: () => void;
 }) {
   const [d, setD] = useState<Data | null>(null);
+  // Two slides in one card: the exam score and the six practice signals. Swipe, or tap the tabs.
+  const [slide, setSlide] = useState(0);
+  const slides = useRef<HTMLDivElement>(null);
+  // While a tab click is scrolling, ignore scroll events until the scroll ends (or 700 ms pass).
+  const jumping = useRef(0);
+  const goTo = (k: number) => {
+    const el = slides.current; if (!el) return;
+    setSlide(k);
+    window.clearTimeout(jumping.current);
+    jumping.current = window.setTimeout(() => { jumping.current = 0; }, 700);
+    el.scrollTo({ left: k * el.clientWidth, behavior: "smooth" });
+  };
+  // The card takes the height of the slide on screen, so the shorter slide leaves no empty sky below it.
+  useLayoutEffect(() => {
+    const el = slides.current; const cur = el?.children[slide] as HTMLElement | undefined;
+    if (!el || !cur) return;
+    const fit = () => { el.style.height = `${cur.offsetHeight}px`; };
+    fit();
+    const ro = new ResizeObserver(fit); ro.observe(cur);
+    return () => ro.disconnect();
+  }, [slide, d]);
+  const onScroll = () => {
+    const el = slides.current;
+    if (jumping.current || !el || !el.clientWidth) return;
+    setSlide(Math.round(el.scrollLeft / el.clientWidth));
+  };
   useEffect(() => { rpc<Data>("prep_readiness").then(r => { setD(r); if (r.overall != null) track("readiness_view"); }).catch(() => setD(null)); }, []);
   if (!d || d.overall == null) return null;
 
@@ -90,19 +90,30 @@ export default function Readiness({ compact = false, onPractice, onMore }: {
   const focus = compact ? d.focus.slice(0, 1) : d.focus;
   const level = levelOf(d.overall);
   const [mood, costume] = MASCOT[level];
+  const sig = d.signals ? signalsIndex(d.signals).score : null;
+  // The sky follows the slide on screen.
+  const sky = slide === 1 && d.signals ? (sig == null ? 0 : signalLevel(sig)) : level;
 
   return (
     <>
-      <div className={`pp-card pp-rd pp-rx lv-${level} ${compact ? "compact" : ""}`}>
+      <div className={`pp-card pp-rd pp-rx lv-${sky} ${compact ? "compact" : ""}`}>
         <ReadinessScene />
         <div className="pp-rx-body">
           <div className="pp-rd-head">
-            <h3>ความพร้อมสอบ</h3>
+            {d.signals
+              ? <div className="pp-rx-tabs" role="tablist" aria-label="มุมมองความพร้อม">
+                  {["ความพร้อมสอบ", compact ? "6 สัญญาณ" : "6 สัญญาณความพร้อม"].map((t, k) => (
+                    <button key={k} role="tab" aria-selected={slide === k} className={slide === k ? "on" : ""} onClick={() => goTo(k)}>{t}</button>
+                  ))}
+                </div>
+              : <h3>ความพร้อมสอบ</h3>}
             {onMore && <button className="pp-link small" onClick={onMore}>ดูรายละเอียด →</button>}
           </div>
+          <div className="pp-rx-slides" ref={slides} onScroll={onScroll}>
+          <div className="pp-rx-slide" role="tabpanel" aria-label="ความพร้อมสอบ" inert={slide !== 0 ? true : undefined}>
           <div className="pp-rx-main">
             <div className="pp-rx-hero">
-              <Gauge pct={d.overall} level={level} />
+              <ReadinessGauge pct={d.overall} tone={tone(d.overall)} label={VERDICT[level]} aria={`ความพร้อมสอบ ${Math.round(d.overall)}% ${VERDICT[level]} เกณฑ์ผ่าน ${PASS_PCT}%`} />
               <div className={`pp-rx-mascot pp-rx-m-${MOTION[level]}`}><Mascot mood={mood} costume={costume} size={compact ? 84 : 100} motion="still" /></div>
             </div>
             <div className="pp-rx-panel">
@@ -116,7 +127,7 @@ export default function Readiness({ compact = false, onPractice, onMore }: {
             </div>
           </div>
           <p className="pp-rx-note small">
-            คาดคะแนนจากความแม่นแต่ละหมวด ถ่วงตามจำนวนข้อที่ออกจริงในผังข้อสอบ ·{" "}
+            คาดคะแนนจากความแม่นและการจำระยะยาวแต่ละหมวด ถ่วงตามผังข้อสอบ หมวดที่ไม่ได้ทบทวนนานจะค่อยๆ ลดลง ·{" "}
             {rough ? <b className="pp-rd-rough">ข้อมูลยังน้อย ({d.answered} ข้อ) ทำเพิ่มอีก {MIN_ANSWERS - d.answered} ข้อผลจะแม่นขึ้น</b> : `จาก ${d.answered.toLocaleString("th-TH")} ข้อที่ทำ`}
             {!d.has_major && " · ยังไม่ได้เลือกวิชาเอก จึงยังไม่รวมวิชาเอก"}
           </p>
@@ -131,6 +142,16 @@ export default function Readiness({ compact = false, onPractice, onMore }: {
                 </div>
               ))}
             </div>
+          )}
+          </div>
+          {d.signals && (
+            <div className="pp-rx-slide" role="tabpanel" aria-label="6 สัญญาณความพร้อม" inert={slide !== 1 ? true : undefined}>
+              <ReadinessSignals s={d.signals} compact={compact} onMock={onMock} />
+            </div>
+          )}
+          </div>
+          {d.signals && (
+            <div className="pp-rx-dots" aria-hidden="true">{[0, 1].map(k => <i key={k} className={slide === k ? "on" : ""} />)}</div>
           )}
         </div>
       </div>

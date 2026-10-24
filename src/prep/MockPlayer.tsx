@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { rpc, thaiError, type MockPayload } from "./api";
 import { IconBack, IconFlag, IconGrid, IconNext } from "./icons";
+import { useSinceShown } from "./timing";
 
 const LABELS = ["ก", "ข", "ค", "ง"];
 const mmss = (s: number) => `${Math.floor(s / 3600) ? Math.floor(s / 3600) + ":" : ""}${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
@@ -40,12 +41,13 @@ export default function MockPlayer({ payload, onDone, onExit }: Props) {
   const answered = picks.filter(p => p != null).length;
   const total = payload.items.length;
 
+  const sinceShown = useSinceShown(pos);
   const pick = async (c: number | null) => {
     if (closing.current) return;
     const before = picks[pos];
     setPicks(prev => prev.map((p, i) => (i === pos ? c : p)));
     setError("");
-    try { await rpc("prep_mock_answer", { p_attempt: payload.attempt_id, p_idx: item.idx, p_choice: c }); }
+    try { await rpc("prep_mock_answer", { p_attempt: payload.attempt_id, p_idx: item.idx, p_choice: c, p_ms: sinceShown() }); }
     catch (e) {
       if (e instanceof Error && e.message === "time_up") { submitRef.current(); return; }
       setPicks(prev => prev.map((p, i) => (i === pos ? before : p)));

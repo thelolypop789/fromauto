@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { choiceOrder, rpc, thaiError, type AnswerResult, type Item, type Round, type SubmitResult } from "./api";
 import { IconBack, IconCheck, IconFlag, IconGrid, IconNext, IconX } from "./icons";
 import ReportDialog from "./ReportDialog";
+import { useSinceShown } from "./timing";
 
 // A short line from the mascot under the verdict. Picked by question id so it does not change on re-render.
 const CHEER_OK = ["เก่งมาก! ไฟลุกแล้ว 🔥", "แม่นมาก ไปต่อเลย", "ถูกต้อง จำแบบนี้ไว้นะ", "เยี่ยม! อีกข้อก็ได้แน่"];
@@ -28,11 +29,26 @@ export default function Player({ round, onExit, onSubmitted }: Props) {
   const right = items.filter(i => i.correct).length;
   const order = useMemo(() => choiceOrder(`${round.attempt_id}:${item.question_id}`), [round.attempt_id, item.question_id]);
 
+  // Readiness signals: think time before answering, and time spent on the explanation (sent with the next answer).
+  const sinceShown = useSinceShown(item.idx);
+  const answeredAt = useRef<{ idx: number; t: number } | null>(null);
+  const dwell = useRef<{ idx: number; ms: number } | null>(null);
+  useEffect(() => () => {
+    const a = answeredAt.current;
+    if (a) { dwell.current = { idx: a.idx, ms: Math.round(performance.now() - a.t) }; answeredAt.current = null; }
+  }, [item.idx]);
+
   const pick = async (choice: number) => {
     if (busy || item.picked != null) return;
     setBusy(true); setError("");
     try {
-      const r = await rpc<AnswerResult>("prep_answer", { p_attempt: round.attempt_id, p_idx: item.idx, p_choice: choice });
+      const prev = dwell.current;
+      const r = await rpc<AnswerResult>("prep_answer", {
+        p_attempt: round.attempt_id, p_idx: item.idx, p_choice: choice, p_ms: sinceShown(),
+        ...(prev ? { p_prev_idx: prev.idx, p_prev_dwell: prev.ms } : {}),
+      });
+      dwell.current = null;
+      answeredAt.current = { idx: item.idx, t: performance.now() };
       setItems(prev => prev.map(i => i.idx === item.idx
         ? { ...i, picked: r.picked, correct: r.correct, answer: r.answer, explanation: r.explanation, law_ref: r.law_ref } : i));
     } catch (e) {

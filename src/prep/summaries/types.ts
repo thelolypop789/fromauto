@@ -15,7 +15,8 @@ export type Block =
   | { k: "words"; items: { w: string; m: string; ex?: string }[] }                              // vocabulary cards
   | { k: "memo"; t: string }                                                                    // memory trick
   | { k: "oops"; t: string }                                                                    // common mistake
-  | { k: "note"; t: string };
+  | { k: "note"; t: string }
+  | { k: "past"; src: string; q: string; choices: string[]; a: number; why: string };          // a guide question from a named year; answer shown on tap
 
 export type Branch = {
   id: string;

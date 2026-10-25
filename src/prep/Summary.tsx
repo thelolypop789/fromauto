@@ -34,13 +34,7 @@ export default function Summary({ isAdmin, full, onPractice, onUpgrade }: {
 
   const map = MAPS.find(m => m.id === openId && canOpen(m));
   if (map) {
-    const setOk = async (ok: boolean) => {
-      try {
-        await rpc("prep_admin_summary_set", { p_id: map.id, p_ok: ok });
-        setApproved(prev => { const s = new Set(prev); if (ok) s.add(map.id); else s.delete(map.id); return s; });
-      } catch (e) { alert(thaiError(e)); }
-    };
-    return <MapView key={map.id} map={map} isAdmin={isAdmin} ok={approved.has(map.id)} onSetOk={setOk}
+    return <MapView key={map.id} map={map} isAdmin={isAdmin} ok={approved.has(map.id)} onSetOk={ok => setApproval(map.id, ok, setApproved)}
       onBack={() => open(null)} onPractice={() => onPractice({ topics: map.topics })} />;
   }
 
@@ -56,8 +50,8 @@ export default function Summary({ isAdmin, full, onPractice, onUpgrade }: {
         <div className={`mm-upsell ${locked ? "on" : ""}`}>
           <span className="cr"><IconCrown size={20} /></span>
           <div>
-            <b>{locked ? `"${locked.title}" สำหรับผู้ซื้อแพ็ก` : "ลองฟรีได้วิชาละ 1 หมวด"}</b>
-            <p>ปลดล็อกแผนผังสรุปภาค ก ครบทุกหมวด ด้วยแพ็กภาค ก หรือแพ็กครบทุกภาค</p>
+            <b>{locked ? `ปลดล็อก "${locked.title}"` : "ลองฟรีได้วิชาละ 1 หมวด"}</b>
+            <p>หมวดที่มีมงกุฎ เปิดได้ด้วยแพ็กภาค ก หรือแพ็กครบทุกภาค</p>
           </div>
           <button className="pp-btn pp-btn-primary sm" onClick={onUpgrade}>ดูแพ็ก</button>
         </div>
@@ -74,7 +68,7 @@ export default function Summary({ isAdmin, full, onPractice, onUpgrade }: {
                 <button key={m.id} className={`mm-item t-${m.branches[i % m.branches.length].tone} ${canOpen(m) ? "" : "locked"}`}
                   onClick={() => { if (canOpen(m)) open(m.id); else { setLocked(m); window.scrollTo({ top: 0, behavior: "smooth" }); } }}>
                   <span className="ic">{m.icon}</span>
-                  {!full && (m.free ? <span className="tag free">ฟรี</span> : <span className="tag crown"><IconCrown size={12} />ผู้ซื้อ</span>)}
+                  {!full && (m.free ? <span className="tag free">ฟรี</span> : <span className="tag crown" aria-label="ปลดล็อกด้วยแพ็ก"><IconCrown size={13} /></span>)}
                   <b>{m.title}</b>
                   <small>{m.branches.length} กิ่ง{isAdmin && !approved.has(m.id) ? " · ร่าง" : ""}</small>
                 </button>
@@ -83,6 +77,53 @@ export default function Summary({ isAdmin, full, onPractice, onUpgrade }: {
           </section>
         );
       })}
+    </div>
+  );
+}
+
+async function setApproval(id: string, ok: boolean, set: (f: (s: Set<string> | null) => Set<string>) => void) {
+  try {
+    await rpc("prep_admin_summary_set", { p_id: id, p_ok: ok });
+    set(prev => { const s = new Set(prev); if (ok) s.add(id); else s.delete(id); return s; });
+  } catch (e) { alert(thaiError(e)); }
+}
+
+// แอดมิน → ข้อสอบ → สรุปแผนผัง: every map with its status; open one to read it and approve or withdraw it.
+export function AdminSummaries({ onChanged }: { onChanged?: () => void }) {
+  const [approved, setApproved] = useState<Set<string> | null>(null);
+  const [error, setError] = useState("");
+  const [openId, setOpenId] = useState<string | null>(null);
+  useEffect(() => {
+    rpc<string[]>("prep_summary_approved").then(ids => setApproved(new Set(ids))).catch(e => setError(thaiError(e)));
+  }, []);
+  const set = (id: string, ok: boolean) => setApproval(id, ok, f => { const n = f(approved); setApproved(n); onChanged?.(); return n; });
+  if (error) return <div className="pp-card"><div className="pp-error">{error}</div></div>;
+  if (!approved) return <div className="pp-spinner" />;
+  const map = MAPS.find(m => m.id === openId);
+  if (map) return <MapView key={map.id} map={map} isAdmin ok={approved.has(map.id)} onSetOk={ok => set(map.id, ok)}
+    onBack={() => { setOpenId(null); window.scrollTo(0, 0); }} onPractice={() => { /* preview only */ }} />;
+  const drafts = MAPS.filter(m => !approved.has(m.id)).length;
+  return (
+    <div className="pp-card mm-admin-list">
+      <h3>สรุปแผนผัง · รอตรวจ {drafts} จาก {MAPS.length}</h3>
+      <p className="pp-muted small">เปิดอ่านทุกกิ่ง เทียบกับตัวบทกฎหมายหรือหลักสูตร แล้วกด "ตรวจแล้ว" ผู้ใช้จะเห็นเฉพาะแผนผังที่ตรวจแล้ว · หมวดที่มีป้าย ฟรี ผู้ใช้ฟรีเปิดได้ ควรตรวจก่อน</p>
+      {GROUPS.map(g => (
+        <div key={g.key}>
+          <h4>{g.title}</h4>
+          {MAPS.filter(m => m.group === g.key).map(m => {
+            const ok = approved.has(m.id);
+            return (
+              <div key={m.id} className="mm-arow">
+                <span className="ic">{m.icon}</span>
+                <button className="pp-link" onClick={() => { setOpenId(m.id); window.scrollTo(0, 0); }}>{m.title}</button>
+                {m.free && <span className="pp-badge ok">ฟรี</span>}
+                <span className={`pp-badge ${ok ? "ok" : "warn"}`}>{ok ? "เปิดแล้ว" : "ร่าง"}</span>
+                <button className="pp-btn pp-btn-ghost sm" onClick={() => set(m.id, !ok)}>{ok ? "ซ่อน" : "ตรวจแล้ว"}</button>
+              </div>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }

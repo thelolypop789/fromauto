@@ -32,6 +32,10 @@
 .mm-item .tag.crown { background: #FFC93C; color: #6B4A00; box-shadow: 0 3px 0 #D19B00; }
 .mm-item.locked { filter: saturate(.55); }
 .mm-item.locked b { color: #7A6468; }
+.mm-admin-list h4 { margin: 14px 0 4px; font-size: 14px; color: var(--pp-muted); }
+.mm-arow { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-top: 1px dashed var(--pp-line); flex-wrap: wrap; }
+.mm-arow .pp-link { flex: 1; min-width: 160px; text-align: left; }
+.mm-item .tag.crown { padding: 3px 7px; }
 .mm-upsell { display: flex; align-items: center; gap: 10px; background: #FFF8DD; border: 2px dashed #FFC93C; border-radius: 20px; padding: 10px 12px; }
 .mm-upsell.on { border-style: solid; box-shadow: 0 0 0 4px rgba(255, 201, 60, .25); }
 .mm-upsell .cr { flex: none; width: 38px; height: 38px; border-radius: 50%; background: #FFC93C; color: #6B4A00; display: grid; place-items: center; }

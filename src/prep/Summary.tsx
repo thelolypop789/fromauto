@@ -51,6 +51,7 @@ export default function Summary({ isAdmin, onPractice, onPastSet, onUpgrade }: {
   const { cards, error, map, busy, load, approve } = useSummaries();
   const [locked, setLocked] = useState<Card | null>(null);
   const [past, setPast] = useState<PastTag[]>([]);
+  const [sec, setSec] = useState<"A" | "B" | null>(() => { try { const v = localStorage.getItem("mm-sec"); return v === "A" || v === "B" ? v : null; } catch { return null; } });
   useEffect(() => { rpc<PastTag[]>("prep_past_tags").then(setPast).catch(() => setPast([])); }, []);
   if (error) return <div className="pp-card"><div className="pp-error">{error}</div></div>;
   if (!cards || busy) return <div className="pp-spinner" />;
@@ -63,11 +64,16 @@ export default function Summary({ isAdmin, onPractice, onPastSet, onUpgrade }: {
   }
 
   const sample = cards.some(c => c.locked);   // free user: show the ฟรี / crown tags and the upgrade card
+  // ภาค ก / ภาค ข tabs. Until the user picks one (remembered on this device), open the ภาค their package covers.
+  const has = (k: string) => cards.some(c => c.group.startsWith(k));
+  const auto = has("B") && !cards.some(c => c.group.startsWith("A") && !c.locked) && cards.some(c => c.group.startsWith("B") && !c.locked) ? "B" : "A";
+  const shown = sec && has(sec) ? sec : auto;
+  const pick = (k: "A" | "B") => { setSec(k); try { localStorage.setItem("mm-sec", k); } catch { /* private mode */ } };
   return (
     <div className="mm">
       <div className="mm-intro">
         <Mascot mood="happy" costume="teacher" size={84} motion="idle" />
-        <div><h2>สรุปแบบแผนผัง · ภาค ก · ภาค ข</h2><p>อ่านภาพเดียวจบหมวด แล้วลองโหมดท่องจำ จำได้แล้วค่อยไปฝึกข้อสอบ</p></div>
+        <div><h2>สรุปแบบแผนผัง</h2><p>อ่านภาพเดียวจบหมวด แล้วลองโหมดท่องจำ จำได้แล้วค่อยไปฝึกข้อสอบ</p></div>
       </div>
       {isAdmin && <p className="pp-note small">แอดมินเห็นทุกแผนผัง ผู้ใช้เห็นเฉพาะแผนผังที่ตรวจแล้ว ({cards.filter(c => c.approved).length}/{cards.length}) · ตรวจได้ที่ แอดมิน → ข้อสอบ → สรุปแผนผัง</p>}
       {sample && (
@@ -81,7 +87,16 @@ export default function Summary({ isAdmin, onPractice, onPastSet, onUpgrade }: {
         </div>
       )}
       {!cards.length && <div className="pp-card pp-empty">กำลังเตรียมสรุปให้อยู่ เร็ว ๆ นี้</div>}
-      {GROUPS.map(g => {
+      {has("A") && has("B") && (
+        <div className="pp-seg mm-sec" role="tablist" aria-label="เลือกภาค">
+          {(["A", "B"] as const).map(k => (
+            <button key={k} role="tab" aria-selected={shown === k} className={shown === k ? "on" : ""} onClick={() => pick(k)}>
+              ภาค {k === "A" ? "ก" : "ข"} <small>{cards.filter(c => c.group.startsWith(k)).length} หมวด</small>
+            </button>
+          ))}
+        </div>
+      )}
+      {GROUPS.filter(g => g.key.startsWith(shown)).map(g => {
         const ms = cards.filter(c => c.group === g.key);
         if (!ms.length) return null;
         return (

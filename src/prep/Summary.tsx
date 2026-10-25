@@ -9,7 +9,7 @@ import "./summary.css";
 
 // "สรุปแบบแผนผัง": list of maps → one map (mascot hub + branches) → one branch's detail. Recall mode hides the value to
 // remember on each branch: tap once to reveal, tap again to mark it remembered. The server decides what each user gets
-// (prep_summary_list / prep_summary_get): approved maps only, and without a ภาค ก package only the free sample per group.
+// (prep_summary_list / prep_summary_get): approved maps only, and without a package for that ภาค only the free sample per group.
 const SLOTS: Record<number, string[]> = {
   4: ["tl", "tr", "bl", "br"],
   5: ["tl", "tr", "ml", "mr", "bc"],
@@ -32,7 +32,7 @@ function useSummaries() {
     if (!id) { setMap(null); return; }
     setBusy(true);
     try { setMap(await rpc<MindMap>("prep_summary_get", { p_id: id })); track("summary_view"); }
-    catch (e) { alert(e instanceof Error && e.message === "summary_locked" ? "แผนผังนี้เปิดได้ด้วยแพ็กภาค ก หรือแพ็กครบทุกภาค" : thaiError(e)); }
+    catch (e) { alert(e instanceof Error && e.message === "summary_locked" ? "แผนผังนี้เปิดได้ด้วยแพ็กของภาคนั้น หรือแพ็กครบทุกภาค" : thaiError(e)); }
     setBusy(false);
   };
   const approve = async (id: string, ok: boolean) => {
@@ -67,7 +67,7 @@ export default function Summary({ isAdmin, onPractice, onPastSet, onUpgrade }: {
     <div className="mm">
       <div className="mm-intro">
         <Mascot mood="happy" costume="teacher" size={84} motion="idle" />
-        <div><h2>สรุปแบบแผนผัง · ภาค ก</h2><p>อ่านภาพเดียวจบหมวด แล้วลองโหมดท่องจำ จำได้แล้วค่อยไปฝึกข้อสอบ</p></div>
+        <div><h2>สรุปแบบแผนผัง · ภาค ก · ภาค ข</h2><p>อ่านภาพเดียวจบหมวด แล้วลองโหมดท่องจำ จำได้แล้วค่อยไปฝึกข้อสอบ</p></div>
       </div>
       {isAdmin && <p className="pp-note small">แอดมินเห็นทุกแผนผัง ผู้ใช้เห็นเฉพาะแผนผังที่ตรวจแล้ว ({cards.filter(c => c.approved).length}/{cards.length}) · ตรวจได้ที่ แอดมิน → ข้อสอบ → สรุปแผนผัง</p>}
       {sample && (
@@ -75,7 +75,7 @@ export default function Summary({ isAdmin, onPractice, onPastSet, onUpgrade }: {
           <span className="cr"><IconCrown size={20} /></span>
           <div>
             <b>{locked ? `ปลดล็อก "${locked.title}"` : "ลองฟรีได้วิชาละ 1 หมวด"}</b>
-            <p>หมวดที่มีมงกุฎ เปิดได้ด้วยแพ็กภาค ก หรือแพ็กครบทุกภาค</p>
+            <p>{locked ? `เปิดได้ด้วยแพ็กภาค ${locked.group.startsWith("B") ? "ข" : "ก"} หรือแพ็กครบทุกภาค` : "หมวดที่มีมงกุฎ เปิดได้ด้วยแพ็กของภาคนั้น หรือแพ็กครบทุกภาค"}</p>
           </div>
           <button className="pp-btn pp-btn-primary sm" onClick={onUpgrade}>ดูแพ็ก</button>
         </div>
@@ -163,7 +163,7 @@ function MapView({ map, isAdmin, ok, onSetOk, onBack, onPractice, past, onPastSe
       <button className="pp-link small" onClick={onBack}>← สรุปทั้งหมด</button>
       <div className="mm-head">
         <h2>{map.title}</h2>
-        <p><span className="mm-chip">ภาค ก</span>{recall ? "นึกให้ออกก่อน แล้วแตะ ? เพื่อดูเฉลย · แตะอีกครั้งถ้าจำได้" : map.intro ?? "แตะกิ่งไหนก็ได้ เพื่อดูรายละเอียด"}</p>
+        <p><span className="mm-chip">{map.group.startsWith("B") ? "ภาค ข" : "ภาค ก"}</span>{recall ? "นึกให้ออกก่อน แล้วแตะ ? เพื่อดูเฉลย · แตะอีกครั้งถ้าจำได้" : map.intro ?? "แตะกิ่งไหนก็ได้ เพื่อดูรายละเอียด"}</p>
       </div>
       {isAdmin && (
         <div className={`mm-admin ${ok ? "ok" : ""}`}>

@@ -215,7 +215,8 @@ function PrepShell() {
         {view.name === "calendar" && <Calendar onBack={() => go("home")} />}
         {view.name === "past" && <PastExams onBack={() => go("home")} onUpgrade={() => go("account")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} />}
-        {view.name === "summary" && <Summary isAdmin={me.is_admin} onPractice={practice} onUpgrade={() => go("account")} />}
+        {view.name === "summary" && <Summary isAdmin={me.is_admin} onPractice={practice} onUpgrade={() => go("account")}
+          onPastSet={async id => { await refreshMe(); startRound(id, "full"); }} />}
         {view.name === "stats" && <Stats me={me} profile={profile} onPractice={practice} />}
         {view.name === "account" && <Account me={me} email={session.user.email ?? ""} profile={profile} onMajor={setMajor} onProfile={changeProfile} onChanged={refreshMe} onNotifRead={clearUnread} />}
         {view.name === "admin" && me.is_admin && <Admin />}

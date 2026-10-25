@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { SECTIONS, rpc, thaiError } from "./api";
 
-type PastTag = { tag: string; section: "A" | "B"; n: number; covered: boolean };
+// groups: question count per subject group, e.g. { A3: 10 } (the topic code before the first "-")
+export type PastTag = { tag: string; section: "A" | "B"; n: number; covered: boolean; groups: Record<string, number> };
 
 // Questions that carry an exam_tag ("แนวข้อสอบ สอศ. 2565"), grouped by exam, year and section. A tap builds a normal set from
 // only those questions, as large as the learner's packages allow, so scoring, review and the wrong-answer list work as usual.

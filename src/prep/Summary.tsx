@@ -3,6 +3,7 @@ import { rpc, thaiError, track } from "./api";
 import type { Preset } from "./CreateSet";
 import { IconCrown } from "./icons";
 import Mascot from "./Mascot";
+import type { PastTag } from "./PastExams";
 import { GROUPS, type Block, type Branch, type MindMap } from "./summaries/types";
 import "./summary.css";
 
@@ -44,16 +45,21 @@ function useSummaries() {
   return { cards, error, map, busy, load, approve };
 }
 
-export default function Summary({ isAdmin, onPractice, onUpgrade }: { isAdmin: boolean; onPractice: (p: Preset) => void; onUpgrade: () => void }) {
+export default function Summary({ isAdmin, onPractice, onPastSet, onUpgrade }: {
+  isAdmin: boolean; onPractice: (p: Preset) => void; onPastSet: (setId: string) => void; onUpgrade: () => void;
+}) {
   const { cards, error, map, busy, load, approve } = useSummaries();
   const [locked, setLocked] = useState<Card | null>(null);
+  const [past, setPast] = useState<PastTag[]>([]);
+  useEffect(() => { rpc<PastTag[]>("prep_past_tags").then(setPast).catch(() => setPast([])); }, []);
   if (error) return <div className="pp-card"><div className="pp-error">{error}</div></div>;
   if (!cards || busy) return <div className="pp-spinner" />;
 
   if (map) {
     const ok = cards.find(c => c.id === map.id)?.approved ?? false;
     return <MapView key={map.id} map={map} isAdmin={isAdmin} ok={ok} onSetOk={v => approve(map.id, v)}
-      onBack={() => load(null)} onPractice={() => onPractice({ topics: map.topics })} />;
+      onBack={() => load(null)} onPractice={() => onPractice({ topics: map.topics })}
+      past={past.filter(t => (t.groups[map.group] ?? 0) >= 5)} onPastSet={onPastSet} />;
   }
 
   const sample = cards.some(c => c.locked);   // free user: show the ฟรี / crown tags and the upgrade card
@@ -106,7 +112,7 @@ export function AdminSummaries({ onChanged }: { onChanged?: () => void }) {
   if (error) return <div className="pp-card"><div className="pp-error">{error}</div></div>;
   if (!cards || busy) return <div className="pp-spinner" />;
   if (map) return <MapView key={map.id} map={map} isAdmin ok={cards.find(c => c.id === map.id)?.approved ?? false} onSetOk={ok => set(map.id, ok)}
-    onBack={() => load(null)} onPractice={() => { /* preview only */ }} />;
+    onBack={() => load(null)} onPractice={() => { /* preview only */ }} past={[]} onPastSet={() => { /* preview only */ }} />;
   const drafts = cards.filter(c => !c.approved).length;
   return (
     <div className="pp-card mm-admin-list">
@@ -130,8 +136,9 @@ export function AdminSummaries({ onChanged }: { onChanged?: () => void }) {
   );
 }
 
-function MapView({ map, isAdmin, ok, onSetOk, onBack, onPractice }: {
+function MapView({ map, isAdmin, ok, onSetOk, onBack, onPractice, past, onPastSet }: {
   map: MindMap; isAdmin: boolean; ok: boolean; onSetOk: (ok: boolean) => void; onBack: () => void; onPractice: () => void;
+  past: PastTag[]; onPastSet: (setId: string) => void;
 }) {
   const [branchId, setBranchId] = useState<string | null>(null);
   const [recall, setRecall] = useState(false);
@@ -182,6 +189,28 @@ function MapView({ map, isAdmin, ok, onSetOk, onBack, onPractice }: {
         <button className={`mm-btn ${done ? "gold" : "p"}`} onClick={onPractice}>✏️ ฝึกข้อสอบหมวดนี้</button>
       </div>
       {recall && !done && <button className="pp-link small mm-exit" onClick={() => { setRecall(false); restart(); }}>ออกจากโหมดท่องจำ</button>}
+      {!recall && past.length > 0 && <PastSets map={map} past={past} onPastSet={onPastSet} />}
+    </div>
+  );
+}
+
+// Past-exam questions of this map's subject group (A3, A1 ...): a tap builds a set from them and starts it.
+function PastSets({ map, past, onPastSet }: { map: MindMap; past: PastTag[]; onPastSet: (setId: string) => void }) {
+  const [busy, setBusy] = useState("");
+  const start = async (t: PastTag) => {
+    setBusy(t.tag);
+    try { onPastSet(await rpc<string>("prep_create_past_set", { p_tag: t.tag, p_section: t.section, p_prefix: map.group + "-" })); }
+    catch (e) { alert(thaiError(e)); setBusy(""); }
+  };
+  return (
+    <div className="mm-card mm-pastsets">
+      <b>📝 แนวข้อสอบเก่าที่เกี่ยวข้อง</b>
+      {past.map(t => (
+        <button key={t.tag} className="mm-btn g" disabled={!!busy} onClick={() => start(t)}>
+          {busy === t.tag ? "กำลังสร้างชุด…" : `${t.tag.replace(/^แนวข้อสอบ\s*/, "")} · ${t.groups[map.group]} ข้อ`}
+        </button>
+      ))}
+      <p>เป็นแนวข้อสอบ ไม่ใช่ข้อสอบฉบับจริง · ทำแล้วนับคะแนนและเข้าทวนข้อผิด</p>
     </div>
   );
 }

@@ -28,7 +28,7 @@
       "source": "/",
       "has": [{ "type": "host", "value": "(www\\.)?sobprep\\.com" }],
       "destination": "/prep/welcome/",
-      "permanent": false
+      "permanent": true
     }
   ],
   "rewrites": [

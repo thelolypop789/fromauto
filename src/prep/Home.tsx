@@ -55,7 +55,7 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
       <ExpiryBanner me={me} onRenew={onUpgrade} />
       <InstallBanner />
       {installSheet.open && <InstallSheet onClose={() => installSheet.setOpen(false)} />}
-      <Announcement />
+      <Announcement track={profile.track} />
 
       <LevelCard onBoard={onBoard} />
       <Readiness compact mini onMore={onStats} onPractice={canCreate ? onCreate : undefined} />

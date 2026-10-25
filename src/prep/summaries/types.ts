@@ -16,7 +16,12 @@ export type Block =
   | { k: "memo"; t: string }                                                                    // memory trick
   | { k: "oops"; t: string }                                                                    // common mistake
   | { k: "note"; t: string }
-  | { k: "past"; src: string; q: string; choices: string[]; a: number; why: string };          // a guide question from a named year; answer shown on tap
+  | { k: "past"; src: string; q: string; choices: string[]; a: number; why: string }           // a guide question from a named year; answer shown on tap
+  | { k: "seq"; terms: string[]; rows: SeqRow[]; ans?: number; cap?: string };                 // number line with a labelled bracket under each step
+
+// One row of brackets under a sequence. step 1 joins neighbours (from `from`, default 0), step 2 joins every other term
+// (odd/even series). level2 sits under the gaps of the row above: a difference of differences.
+export type SeqRow = { ops: string[]; step?: 1 | 2; from?: number; level2?: boolean };
 
 export type Branch = {
   id: string;

@@ -5,10 +5,10 @@ import type { Block, MindMap } from "../../src/prep/summaries/types";
 // พ.ร.บ.การศึกษาภาคบังคับ 2545, พ.ร.บ.คุ้มครองเด็ก 2546, พ.ร.บ.การอาชีวศึกษา 2551. Hot branches come from answer statistics.
 // Every map is a draft until an admin checks it.
 
-// Guide questions published for that year's round, reworded; several originals had wrong keys, so the answer follows the
+// Guide questions published to prepare for that year's round (not from a past paper), reworded; several originals had wrong keys, so the answer follows the
 // law. สอศ. questions are the bank's tagged guide questions.
 const past = (src: string) => (q: string, choices: string[], a: number, why: string): Block => ({ k: "past", src, q, choices, a, why });
-const p69 = past("สพฐ. ปี 2569");
+const p69 = past("เตรียมสอบ สพฐ. 2569");
 const v65 = past("สอศ. ปี 2565");
 
 export const B2: MindMap[] = [

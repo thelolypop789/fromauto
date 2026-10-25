@@ -407,7 +407,7 @@ function PastView({ x }: { x: Extract<Block, { k: "past" }> }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="mm-card mm-past">
-      <span className="lab">แนวข้อสอบเก่า</span> <span className="src">{x.src}</span>
+      <span className="lab">แนวข้อสอบ</span> <span className="src">{x.src}</span>
       <p className="q">{x.q}</p>
       <ol>{x.choices.map((c, i) => <li key={i} className={open && i === x.a ? "ok" : undefined}>{c}</li>)}</ol>
       {open

@@ -156,7 +156,7 @@ export const A1: MindMap[] = [
     ],
   },
   {
-    id: "a1-word", group: "A1", topics: ["A1-QUANT-WORD"], icon: "🧠",
+    id: "a1-word", group: "A1", topics: ["A1-QUANT-WORD"], icon: "🧠", free: true,
     title: "โจทย์ปัญหายอดฮิต 1", hub: "โจทย์ยอดฮิต", hubSub: "เสาไฟ · ขาสัตว์ · ความเร็ว",
     branches: [
       {

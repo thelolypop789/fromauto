@@ -41,6 +41,7 @@ export type MindMap = {
   hub: string;            // text in the hub cloud
   hubSub?: string;
   intro?: string;
+  free?: boolean;         // open to free users as a sample (one per group); the rest need a ภาค ก package
   branches: Branch[];     // 4–6
 };
 

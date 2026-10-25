@@ -1,4 +1,4 @@
-import type { MindMap } from "./types";
+import type { MindMap } from "../../src/prep/summaries/types";
 
 // ภาค ก · ความสามารถในการคิดวิเคราะห์: formulas, shortcuts and worked examples of the problem types that come up most.
 export const A1: MindMap[] = [
@@ -156,7 +156,7 @@ export const A1: MindMap[] = [
     ],
   },
   {
-    id: "a1-word", group: "A1", topics: ["A1-QUANT-WORD"], icon: "🧠",
+    id: "a1-word", group: "A1", topics: ["A1-QUANT-WORD"], icon: "🧠", free: true,
     title: "โจทย์ปัญหายอดฮิต 1", hub: "โจทย์ยอดฮิต", hubSub: "เสาไฟ · ขาสัตว์ · ความเร็ว",
     branches: [
       {

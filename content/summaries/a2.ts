@@ -1,4 +1,4 @@
-import type { MindMap } from "./types";
+import type { MindMap } from "../../src/prep/summaries/types";
 
 // ภาค ก · ภาษาอังกฤษ: grammar, vocabulary (two maps), conversation and reading.
 export const A2: MindMap[] = [
@@ -141,7 +141,7 @@ export const A2: MindMap[] = [
     ],
   },
   {
-    id: "a2-vocab1", group: "A2", topics: ["A2-VOCAB"], icon: "🧱",
+    id: "a2-vocab1", group: "A2", topics: ["A2-VOCAB"], icon: "🧱", free: true,
     title: "Vocabulary 1: รากคำ คำคล้าย คำตรงข้าม", hub: "Vocabulary", hubSub: "เดาความหมายจากส่วนประกอบคำ",
     branches: [
       {

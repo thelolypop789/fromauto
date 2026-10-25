@@ -1262,3 +1262,7 @@ div.pp-todo-item { cursor: default; }
 .pp-fb-admin .pp-fb-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
 .pp-fb-admin .pp-fb-body { margin: 6px 0; line-height: 1.6; white-space: pre-wrap; }
 .pp-fb-admin .pp-fb-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
+.pp-hero-resume { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; margin-top: 12px; padding: 11px 14px; border-radius: 14px; border: 1.5px solid rgba(251, 233, 180, .55); background: rgba(255, 255, 255, .12); color: #fff; font: inherit; font-size: 14.5px; text-align: left; cursor: pointer; }
+.pp-hero-resume span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-hero-resume small { flex: none; color: #FBE9B4; font-weight: 600; }
+.pp-hero-resume:active { background: rgba(255, 255, 255, .2); }

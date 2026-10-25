@@ -18,7 +18,8 @@ import Leaderboard from "./Leaderboard";
 import MockHome from "./MockHome";
 import MockPlayer from "./MockPlayer";
 import MockResult from "./MockResult";
-import { IconCalendar, IconChart, IconCrown, IconHome, IconMap, IconShield, IconUser, Logo } from "./icons";
+import { IconCalendar, IconChart, IconChat, IconCrown, IconHome, IconMap, IconShield, IconUser, Logo } from "./icons";
+import Feedback from "./Feedback";
 import { setupPwa } from "./pwa";
 import Waiting from "./Waiting";
 import Summary from "./Summary";
@@ -41,6 +42,7 @@ type View =
   | { name: "mockplay"; payload: MockPayload }
   | { name: "mockresult"; payload: MockPayload }
   | { name: "calendar" }
+  | { name: "feedback" }
   | { name: "account" }
   | { name: "summary" }
   | { name: "past" }
@@ -176,6 +178,7 @@ function PrepShell() {
     ...(me.is_admin || summaries > 0 ? [{ key: "summary" as const, label: "สรุป", icon: <IconMap /> }] : []),
     { key: "calendar", label: "ปฏิทิน", icon: <IconCalendar /> },
     { key: "stats", label: "วิเคราะห์", icon: <IconChart /> },
+    { key: "feedback", label: "รีวิว", icon: <IconChat /> },
     { key: "account", label: me.plan === "paid" ? "บัญชี" : "อัปเกรด", icon: me.plan === "paid" ? <IconUser /> : <IconCrown /> },
     ...(me.is_admin ? [{ key: "admin" as const, label: "แอดมิน", icon: <IconShield /> }] : []),
   ];
@@ -213,6 +216,7 @@ function PrepShell() {
           onOpen={payload => { setView(payload.submitted ? { name: "mockresult", payload } : { name: "mockplay", payload }); window.scrollTo(0, 0); }} />}
         {view.name === "mockresult" && <MockResult payload={view.payload} onBack={() => go("mock")} onReview={() => startReview("wrong")} />}
         {view.name === "calendar" && <Calendar onBack={() => go("home")} />}
+        {view.name === "feedback" && <Feedback page="tab" />}
         {view.name === "past" && <PastExams onBack={() => go("home")} onUpgrade={() => go("account")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} />}
         {view.name === "summary" && <Summary isAdmin={me.is_admin} onPractice={practice} onUpgrade={() => go("account")}

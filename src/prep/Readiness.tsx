@@ -53,10 +53,12 @@ function Road({ pct, level }: { pct: number; level: number }) {
 
 // "Ready for the exam?" — estimated score from topic accuracy weighted by the mock-exam blueprint, drawn over a sky
 // that brightens with readiness. compact: Home card (one focus topic). full: Stats (three focus topics + the subject radar).
-export default function Readiness({ compact = false, onPractice, onMore, onMock }: {
-  compact?: boolean; onPractice?: (p: Preset) => void; onMore?: () => void; onMock?: () => void;
+export default function Readiness({ compact = false, mini = false, onPractice, onMore, onMock }: {
+  compact?: boolean; mini?: boolean; onPractice?: (p: Preset) => void; onMore?: () => void; onMock?: () => void;
 }) {
   const [d, setD] = useState<Data | null>(null);
+  // mini: Home shows one strip (score, verdict, ภาค ก/ข bars) and opens the compact card on tap.
+  const [open, setOpen] = useState(false);
   // Two slides in one card: the exam score and the six practice signals. Swipe, or tap the tabs.
   const [slide, setSlide] = useState(0);
   const slides = useRef<HTMLDivElement>(null);
@@ -94,6 +96,22 @@ export default function Readiness({ compact = false, onPractice, onMore, onMock 
   // The sky follows the slide on screen.
   const sky = slide === 1 && d.signals ? (sig == null ? 0 : signalLevel(sig)) : level;
 
+  if (mini && !open) return (
+    <button className={`pp-card pp-rx-mini lv-${level}`} onClick={() => setOpen(true)} aria-expanded="false" aria-label={`ความพร้อมสอบ ${Math.round(d.overall)}% ${VERDICT[level]} แตะเพื่อดูเพิ่ม`}>
+      <span className="pp-rx-mini-pct"><b className={tone(d.overall)}>{Math.round(d.overall)}%</b><small>พร้อมสอบ</small></span>
+      <span className="pp-rx-mini-secs">
+        {d.sections.map(s => (
+          <span key={s.section} className="pp-rx-mini-sec">
+            <span>{SECTIONS[s.section].short}</span>
+            <span className="pp-rd-track sm"><span className={tone(s.pct)} style={{ width: `${s.pct}%` }} /><i style={{ left: `${PASS_PCT}%` }} /></span>
+            <b className={tone(s.pct)}>{Math.round(s.pct)}%</b>
+          </span>
+        ))}
+      </span>
+      <span className="pp-rx-mini-more" aria-hidden="true">▾</span>
+    </button>
+  );
+
   return (
     <>
       <div className={`pp-card pp-rd pp-rx lv-${sky} ${compact ? "compact" : ""}`}>
@@ -107,6 +125,7 @@ export default function Readiness({ compact = false, onPractice, onMore, onMock 
                   ))}
                 </div>
               : <h3>ความพร้อมสอบ</h3>}
+            {mini && <button className="pp-link small" onClick={() => setOpen(false)}>ย่อ ▴</button>}
             {onMore && <button className="pp-link small" onClick={onMore}>ดูรายละเอียด →</button>}
           </div>
           <div className="pp-rx-slides" ref={slides} onScroll={onScroll}>

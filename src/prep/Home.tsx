@@ -57,7 +57,8 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
       {installSheet.open && <InstallSheet onClose={() => installSheet.setOpen(false)} />}
       <Announcement />
 
-      <Readiness compact onMore={onStats} onPractice={canCreate ? onCreate : undefined} />
+      <LevelCard onBoard={onBoard} />
+      <Readiness compact mini onMore={onStats} onPractice={canCreate ? onCreate : undefined} />
       <section className="pp-hero">
         <div className="pp-hero-top">
           <div>
@@ -218,7 +219,6 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
       </div>
 
 
-      <LevelCard onBoard={onBoard} />
       <StudyPlan answeredToday={me.answered_today} onCalendar={onCalendar} />
       <LineCard />
 

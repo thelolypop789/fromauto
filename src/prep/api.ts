@@ -338,7 +338,7 @@ try {
   if (trk === "obec" || trk === "vec") localStorage.setItem("pp-track", trk);
 } catch { /* storage blocked: no source, nothing else lost */ }
 
-export type TrackName = "visit" | "buy_view" | "free_limit" | "level_view" | "readiness_view" | "subtopic_pick" | "promo_apply" | "scoredist_view" | "board_view" | "install_view" | "install_click" | "install_done";
+export type TrackName = "visit" | "buy_view" | "free_limit" | "level_view" | "readiness_view" | "subtopic_pick" | "promo_apply" | "scoredist_view" | "board_view" | "install_view" | "install_click" | "install_done" | "summary_view";
 export function track(name: TrackName) {
   if (viewAs) return;   // an admin looking at someone's page is not a usage event
   try {

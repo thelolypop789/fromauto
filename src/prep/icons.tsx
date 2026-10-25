@@ -11,6 +11,7 @@ export const IconChart = ({ size = 22 }: P) => svg(size, <><path d="M4 20V10" />
 export const IconMap = ({ size = 22 }: P) => svg(size, <><circle cx="12" cy="12" r="3" /><circle cx="4.5" cy="5.5" r="2" /><circle cx="19.5" cy="5.5" r="2" /><circle cx="4.5" cy="18.5" r="2" /><circle cx="19.5" cy="18.5" r="2" /><path d="m6 7 3.8 3M18 7l-3.8 3M6 17l3.8-3M18 17l-3.8-3" /></>);
 export const IconCrown = ({ size = 22 }: P) => svg(size, <><path d="m3 7 4.5 4L12 4l4.5 7L21 7l-2 12H5z" /></>);
 export const IconUser = ({ size = 22 }: P) => svg(size, <><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" /></>);
+export const IconChat = ({ size = 22 }: P) => svg(size, <><path d="M4 5h16v11H9l-5 4z" /><path d="M8 9.5h8" /><path d="M8 12.5h5" /></>);
 export const IconShield = ({ size = 22 }: P) => svg(size, <><path d="M12 3 4 6v6c0 4.5 3.4 8 8 9 4.6-1 8-4.5 8-9V6z" /><path d="m9 12 2 2 4-4" /></>);
 export const IconPlus = ({ size = 20 }: P) => svg(size, <><path d="M12 5v14" /><path d="M5 12h14" /></>);
 export const IconBack = ({ size = 20 }: P) => svg(size, <path d="M15 18 9 12l6-6" />);

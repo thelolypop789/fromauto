@@ -6,8 +6,8 @@ import type { Block, MindMap } from "../../src/prep/summaries/types";
 // Hot branches come from answer statistics. ส่วนท้องถิ่น is kept to one branch: สพฐ./สอศ. papers rarely ask it.
 // Every map is a draft until an admin checks it.
 
-// Guide questions labelled 2566 on kruchiangrai.net. The answer follows the current law, not the site's key.
-const SRC = "แนวข้อสอบครูผู้ช่วย ปี 2566 · ครูเชียงราย";
+// Guide questions from the 2566 สพฐ. round (source kept in the bank's ref, not shown). The answer follows the current law.
+const SRC = "สพฐ. ปี 2566";
 const past = (q: string, choices: string[], a: number, why: string): Block => ({ k: "past", src: SRC, q, choices, a, why });
 
 export const A3: MindMap[] = [

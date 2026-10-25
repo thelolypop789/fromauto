@@ -22,6 +22,7 @@ import { IconCalendar, IconChart, IconCrown, IconHome, IconMap, IconShield, Icon
 import { setupPwa } from "./pwa";
 import Waiting from "./Waiting";
 import Summary from "./Summary";
+import PastExams from "./PastExams";
 import MajorPicker from "./MajorPicker";
 import TrackPicker from "./TrackPicker";
 import "./prep.css";
@@ -42,6 +43,7 @@ type View =
   | { name: "calendar" }
   | { name: "account" }
   | { name: "summary" }
+  | { name: "past" }
   | { name: "admin" };
 
 // "ครบทุกภาค" / "ภาค ข + วิชาเอก" / "ภาค ก + ข" for the header badge.
@@ -200,7 +202,7 @@ function PrepShell() {
         </div>
       </header>
       <main className="pp-main" key={reloadKey}>
-        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onProfile={changeProfile} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onCalendar={() => go("calendar")} onUpgrade={() => go("account")} onStats={() => go("stats")} onBoard={() => go("board")} />}
+        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onProfile={changeProfile} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onPast={() => go("past")} onCalendar={() => go("calendar")} onUpgrade={() => go("account")} onStats={() => go("stats")} onBoard={() => go("board")} />}
         {view.name === "create" && <CreateSet me={me} major={profile.major} preset={view.preset} onCancel={() => go("home")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} onUpgrade={() => go("account")} />}
         {view.name === "result" && <RoundResult result={view.result} title={view.title} me={me} onStart={startRound}
@@ -211,6 +213,8 @@ function PrepShell() {
           onOpen={payload => { setView(payload.submitted ? { name: "mockresult", payload } : { name: "mockplay", payload }); window.scrollTo(0, 0); }} />}
         {view.name === "mockresult" && <MockResult payload={view.payload} onBack={() => go("mock")} onReview={() => startReview("wrong")} />}
         {view.name === "calendar" && <Calendar onBack={() => go("home")} />}
+        {view.name === "past" && <PastExams onBack={() => go("home")} onUpgrade={() => go("account")}
+          onCreated={async id => { await refreshMe(); startRound(id, "full"); }} />}
         {view.name === "summary" && <Summary isAdmin={me.is_admin} onPractice={practice} onUpgrade={() => go("account")} />}
         {view.name === "stats" && <Stats me={me} profile={profile} onPractice={practice} />}
         {view.name === "account" && <Account me={me} email={session.user.email ?? ""} profile={profile} onMajor={setMajor} onProfile={changeProfile} onChanged={refreshMe} onNotifRead={clearUnread} />}

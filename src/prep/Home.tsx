@@ -48,6 +48,7 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
 
   const freeLeft = Math.max(0, me.free_sets_limit - me.free_sets_used);
   const cleared = sets?.filter(s => s.cleared_at).length ?? 0;
+  const resume = sets?.find(s => s.open_round);   // the list comes newest first
 
   return (
     <>
@@ -56,19 +57,8 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
       {installSheet.open && <InstallSheet onClose={() => installSheet.setOpen(false)} />}
       <Announcement />
 
-      <div className="pp-greet">
-        <Mascot costume="teacher" mood="happy" size={72} />
-        <div className="pp-greet-bubble">
-          {me.answered_today === 0
-            ? <>สวัสดี! วันนี้ยังไม่ได้ซ้อมเลย <b>ลองข้อสอบประจำวันสัก 10 ข้อ</b> กันไหม</>
-            : me.answered_today < 30
-              ? <>วันนี้ทำไปแล้ว <b>{me.answered_today.toLocaleString()} ข้อ</b> ไฟเริ่มติดแล้ว ไปต่ออีกนิด!</>
-              : <>วันนี้ทำไปแล้ว <b>{me.answered_today.toLocaleString()} ข้อ</b> ไฟลุกโชนเลย 🔥 เก่งมาก</>}
-        </div>
-      </div>
-
       <LevelCard onBoard={onBoard} />
-
+      <Readiness compact mini onMore={onStats} onPractice={canCreate ? onCreate : undefined} />
       <section className="pp-hero">
         <div className="pp-hero-top">
           <div>
@@ -79,6 +69,11 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
             ? <button className="pp-btn pp-btn-gold" onClick={() => onCreate()}><IconPlus />สร้างชุดใหม่</button>
             : <button className="pp-btn pp-btn-gold" onClick={onUpgrade}><IconCrown size={20} />อัปเกรดเพื่อสร้างชุดใหม่</button>}
         </div>
+        {resume?.open_round && (
+          <button className="pp-hero-resume" onClick={() => onStart(resume.id, resume.open_round!.mode)}>
+            <span>▶ ทำต่อ · <b>{resume.title}</b></span><small>{resume.open_round.answered}/{resume.open_round.total} ข้อ</small>
+          </button>
+        )}
         <div className="pp-hero-stats">
           <div><b>{sets?.length ?? "–"}</b><span>ชุดที่ทำ</span></div>
           <div><b>{sets ? cleared : "–"}</b><span>เคลียร์แล้ว</span></div>
@@ -86,29 +81,16 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
         </div>
       </section>
 
-      <Readiness compact onMore={onStats} onPractice={canCreate ? onCreate : undefined} />
-      <StudyPlan answeredToday={me.answered_today} onCalendar={onCalendar} />
-      <LineCard />
 
-      <div className="pp-h"><h2>ฝึกแบบอื่น</h2></div>
-      <div className="pp-modes pp-modes-home">
-        <button onClick={onMock}>
-          <b>จำลองสอบจริง</b><span>จำนวนข้อและเวลาเท่าสนามจริง ไม่เฉลยจนส่ง</span>
-        </button>
-        <button onClick={onPast}>
-          <b>แนวข้อสอบเก่า</b><span>ฝึกจากประเด็นที่เคยออกสอบ แยกตามสนามและปี</span>
-        </button>
-        <button onClick={onDaily}>
-          <b>ข้อสอบประจำวัน</b><span>10 ข้อ ทุกคนได้ชุดเดียวกัน · ฟรี</span>
-        </button>
-        <button disabled={!counts || counts.due === 0} onClick={() => onReview("due")}>
-          <b>ทบทวนวันนี้{counts ? ` (${counts.due})` : ""}</b>
-          <span>{counts && counts.due === 0 ? "ยังไม่มีข้อถึงรอบทวน" : "ข้อที่ผิดมา ถึงรอบทวนตามเวลา"}</span>
-        </button>
-        <button disabled={!counts || counts.wrong === 0} onClick={() => onReview("wrong")}>
-          <b>ทวนข้อผิดทั้งหมด{counts ? ` (${counts.wrong})` : ""}</b>
-          <span>{counts && counts.wrong === 0 ? "ไม่มีข้อที่ยังผิดอยู่" : "รวมข้อที่ยังตอบผิด จากทุกชุด"}</span>
-        </button>
+      <div className="pp-greet">
+        <Mascot costume="teacher" mood="happy" size={72} />
+        <div className="pp-greet-bubble">
+          {me.answered_today === 0
+            ? <>สวัสดี! วันนี้ยังไม่ได้ซ้อมเลย <b>ลองข้อสอบประจำวันสัก 10 ข้อ</b> กันไหม</>
+            : me.answered_today < 30
+              ? <>วันนี้ทำไปแล้ว <b>{me.answered_today.toLocaleString()} ข้อ</b> ไฟเริ่มติดแล้ว ไปต่ออีกนิด!</>
+              : <>วันนี้ทำไปแล้ว <b>{me.answered_today.toLocaleString()} ข้อ</b> ไฟลุกโชนเลย 🔥 เก่งมาก</>}
+        </div>
       </div>
 
       <div className="pp-h"><h2>เลือกฝึกตามภาค</h2><span className="pp-muted small">แตะหมวดเพื่อเริ่ม</span></div>
@@ -214,6 +196,32 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
         );
       })}
       </div>
+
+      <div className="pp-h"><h2>ฝึกแบบอื่น</h2></div>
+      <div className="pp-modes pp-modes-home">
+        <button onClick={onMock}>
+          <b>จำลองสอบจริง</b><span>จำนวนข้อและเวลาเท่าสนามจริง ไม่เฉลยจนส่ง</span>
+        </button>
+        <button onClick={onPast}>
+          <b>แนวข้อสอบเก่า</b><span>ฝึกจากประเด็นที่เคยออกสอบ แยกตามสนามและปี</span>
+        </button>
+        <button onClick={onDaily}>
+          <b>ข้อสอบประจำวัน</b><span>10 ข้อ ทุกคนได้ชุดเดียวกัน · ฟรี</span>
+        </button>
+        <button disabled={!counts || counts.due === 0} onClick={() => onReview("due")}>
+          <b>ทบทวนวันนี้{counts ? ` (${counts.due})` : ""}</b>
+          <span>{counts && counts.due === 0 ? "ยังไม่มีข้อถึงรอบทวน" : "ข้อที่ผิดมา ถึงรอบทวนตามเวลา"}</span>
+        </button>
+        <button disabled={!counts || counts.wrong === 0} onClick={() => onReview("wrong")}>
+          <b>ทวนข้อผิดทั้งหมด{counts ? ` (${counts.wrong})` : ""}</b>
+          <span>{counts && counts.wrong === 0 ? "ไม่มีข้อที่ยังผิดอยู่" : "รวมข้อที่ยังตอบผิด จากทุกชุด"}</span>
+        </button>
+      </div>
+
+
+      <StudyPlan answeredToday={me.answered_today} onCalendar={onCalendar} />
+      <LineCard />
+
     </>
   );
 }

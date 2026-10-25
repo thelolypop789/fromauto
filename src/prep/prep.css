@@ -1262,3 +1262,19 @@ div.pp-todo-item { cursor: default; }
 .pp-fb-admin .pp-fb-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
 .pp-fb-admin .pp-fb-body { margin: 6px 0; line-height: 1.6; white-space: pre-wrap; }
 .pp-fb-admin .pp-fb-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
+.pp-hero-resume { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; margin-top: 12px; padding: 11px 14px; border-radius: 14px; border: 1.5px solid rgba(251, 233, 180, .55); background: rgba(255, 255, 255, .12); color: #fff; font: inherit; font-size: 14.5px; text-align: left; cursor: pointer; }
+.pp-hero-resume span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-hero-resume small { flex: none; color: #FBE9B4; font-weight: 600; }
+.pp-hero-resume:active { background: rgba(255, 255, 255, .2); }
+/* Home: ERI as one strip, tap to open the full card */
+.pp-rx-mini { display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 14px; font: inherit; color: var(--pp-ink); text-align: left; cursor: pointer; }
+.pp-rx-mini-pct { display: flex; flex-direction: column; align-items: center; flex: none; min-width: 64px; line-height: 1.1; }
+.pp-rx-mini-pct b { font-size: 26px; font-variant-numeric: tabular-nums; }
+.pp-rx-mini-pct small { font-size: 11.5px; color: var(--pp-muted); }
+.pp-rx-mini-pct b.ok { color: var(--pp-ok); } .pp-rx-mini-pct b.mid { color: #B07D00; } .pp-rx-mini-pct b.low { color: var(--pp-bad); }
+.pp-rx-mini-secs { flex: 1; display: grid; gap: 7px; min-width: 0; }
+.pp-rx-mini-sec { display: grid; grid-template-columns: 42px 1fr 38px; align-items: center; gap: 8px; font-size: 13px; }
+.pp-rx-mini-sec b { text-align: right; font-variant-numeric: tabular-nums; }
+.pp-rx-mini-sec .pp-rd-track > span { display: block; height: 100%; border-radius: 99px; }
+.pp-rx-mini-sec .pp-rd-track > span.ok { background: var(--pp-ok); } .pp-rx-mini-sec .pp-rd-track > span.mid { background: var(--pp-gold-bright); } .pp-rx-mini-sec .pp-rd-track > span.low { background: var(--pp-bad); }
+.pp-rx-mini-more { flex: none; color: var(--pp-muted); font-size: 18px; }

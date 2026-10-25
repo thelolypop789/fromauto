@@ -40,19 +40,21 @@ export type Branch = {
 
 export type MindMap = {
   id: string;             // stable: prep.summary_approvals.id
-  group: "A3" | "A1" | "A2";
+  group: "A3" | "A1" | "A2" | "B1" | "B2";
   topics: string[];       // prep.topics codes for "ฝึกหมวดนี้"
   icon: string;
   title: string;          // page title
   hub: string;            // text in the hub cloud
   hubSub?: string;
   intro?: string;
-  free?: boolean;         // open to free users as a sample (one per group); the rest need a ภาค ก package
+  free?: boolean;         // open to free users as a sample (one per group); the rest need a package for that ภาค
   branches: Branch[];     // 4–6
 };
 
 export const GROUPS: { key: MindMap["group"]; title: string; sub: string }[] = [
-  { key: "A3", title: "ข้าราชการที่ดี", sub: "กฎหมายและจริยธรรม ที่ต้องจำ" },
-  { key: "A1", title: "คิดวิเคราะห์", sub: "สูตร วิธีลัด และโจทย์ที่ออกบ่อย" },
-  { key: "A2", title: "ภาษาอังกฤษ", sub: "ไวยากรณ์ คำศัพท์ บทสนทนา การอ่าน" },
+  { key: "A3", title: "ภาค ก · ข้าราชการที่ดี", sub: "กฎหมายและจริยธรรม ที่ต้องจำ" },
+  { key: "A1", title: "ภาค ก · คิดวิเคราะห์", sub: "สูตร วิธีลัด และโจทย์ที่ออกบ่อย" },
+  { key: "A2", title: "ภาค ก · ภาษาอังกฤษ", sub: "ไวยากรณ์ คำศัพท์ บทสนทนา การอ่าน" },
+  { key: "B1", title: "ภาค ข · วิชาชีพครู", sub: "หลักสูตร การสอน จิตวิทยา วัดผล วิจัย จรรยาบรรณ" },
+  { key: "B2", title: "ภาค ข · กฎหมายการศึกษา", sub: "พ.ร.บ. 7 ฉบับ และแผนการศึกษา" },
 ];

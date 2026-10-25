@@ -23,13 +23,14 @@ type Props = {
   onReview: (kind: "due" | "wrong") => void;
   onDaily: () => void;
   onMock: () => void;
+  onPast: () => void;
   onCalendar: () => void;
   onUpgrade: () => void;
   onStats: () => void;
   onBoard: () => void;
 };
 
-export default function Home({ me, profile, onMajor, onProfile, onCreate, onStart, onReview, onDaily, onMock, onCalendar, onUpgrade, onStats, onBoard }: Props) {
+export default function Home({ me, profile, onMajor, onProfile, onCreate, onStart, onReview, onDaily, onMock, onPast, onCalendar, onUpgrade, onStats, onBoard }: Props) {
   const [picking, setPicking] = useState(false);
   const [sets, setSets] = useState<SetSummary[] | null>(null);
   const [error, setError] = useState("");
@@ -93,6 +94,9 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
       <div className="pp-modes pp-modes-home">
         <button onClick={onMock}>
           <b>จำลองสอบจริง</b><span>จำนวนข้อและเวลาเท่าสนามจริง ไม่เฉลยจนส่ง</span>
+        </button>
+        <button onClick={onPast}>
+          <b>แนวข้อสอบเก่า</b><span>ฝึกจากประเด็นที่เคยออกสอบ แยกตามสนามและปี</span>
         </button>
         <button onClick={onDaily}>
           <b>ข้อสอบประจำวัน</b><span>10 ข้อ ทุกคนได้ชุดเดียวกัน · ฟรี</span>

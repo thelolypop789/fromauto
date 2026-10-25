@@ -357,8 +357,8 @@ function SeqView({ x }: { x: Extract<Block, { k: "seq" }> }) {
   );
 }
 
-// Real papers are not published; these are guide questions that tutoring sites label with an exam year. The answer and its
-// reason follow the current law, which can differ from the site's own key.
+// Real papers are not published; these are guide questions labelled with the exam and year only. The answer and its reason
+// follow the current law.
 function PastView({ x }: { x: Extract<Block, { k: "past" }> }) {
   const [open, setOpen] = useState(false);
   return (
@@ -369,7 +369,7 @@ function PastView({ x }: { x: Extract<Block, { k: "past" }> }) {
       {open
         ? <p className="why"><b>ตอบ {x.a + 1}.</b> {x.why}</p>
         : <button className="pp-link small" onClick={() => setOpen(true)}>ดูเฉลย</button>}
-      <p className="fine">แนวข้อสอบที่เว็บติวรวบรวม ไม่ใช่ข้อสอบฉบับจริง · เฉลยตามตัวบทปัจจุบัน</p>
+      <p className="fine">เป็นแนวข้อสอบ ไม่ใช่ข้อสอบฉบับจริง · เฉลยตามตัวบทปัจจุบัน</p>
     </div>
   );
 }

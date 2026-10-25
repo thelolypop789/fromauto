@@ -18,6 +18,8 @@ const ids = new Set();
 for (const m of MAPS) {
   if (!/^[a-z0-9-]{1,60}$/.test(m.id) || ids.has(m.id)) throw new Error(`bad or duplicate id ${m.id}`);
   if (m.branches.length < 4 || m.branches.length > 6) throw new Error(`${m.id}: needs 4-6 branches`);
+  // The list card takes its colour from the first branch (prep_summary_list), and every card is pink.
+  if (m.branches[0].tone !== "pink") throw new Error(`${m.id}: first branch must be pink`);
   ids.add(m.id);
 }
 const q = s => "'" + String(s).replace(/'/g, "''") + "'";

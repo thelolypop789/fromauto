@@ -327,7 +327,34 @@ function BlockView({ x, tone }: { x: Block; tone: string }) {
       return <p className="mm-note">{x.t}</p>;
     case "past":
       return <PastView x={x} />;
+    case "seq":
+      return <SeqView x={x} />;
   }
+}
+
+// Each term takes two grid columns, so a bracket from the centre of term i to the centre of term j starts at column 2i+2
+// and spans 2(j-i); a level-2 bracket runs between the centres of two neighbouring step-1 brackets.
+function SeqView({ x }: { x: Extract<Block, { k: "seq" }> }) {
+  const n = x.terms.length;
+  return (
+    <div className="mm-card mm-seq">
+      <div className="grid" style={{ gridTemplateColumns: `repeat(${2 * n}, minmax(0, 1fr))` }}>
+        {x.terms.map((t, i) => (
+          <b key={i} className={i === x.ans ? "ans" : undefined} style={{ gridColumn: `${2 * i + 1} / span 2`, gridRow: 1 }}>{t}</b>
+        ))}
+        {x.rows.map((r, ri) => r.ops.map((op, k) => {
+          const step = r.step ?? 1, i = (r.from ?? 0) + k * step;
+          const col = r.level2 ? `${2 * i + 3} / span 2` : `${2 * i + 2} / span ${2 * step}`;
+          return (
+            <span key={`${ri}-${k}`} className={`br t-${["pink", "sky", "lil", "mint"][ri % 4]}${r.level2 ? " l2" : ""}`} style={{ gridColumn: col, gridRow: ri + 2 }}>
+              <i /><em>{op}</em>
+            </span>
+          );
+        }))}
+      </div>
+      {x.cap && <p className="cap">{x.cap}</p>}
+    </div>
+  );
 }
 
 // Real papers are not published; these are guide questions that tutoring sites label with an exam year. The answer and its

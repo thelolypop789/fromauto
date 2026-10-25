@@ -5,11 +5,11 @@ import type { Block, MindMap } from "../../src/prep/summaries/types";
 // ว่าด้วยการลงโทษนักเรียนและนักศึกษา 2548. Theories follow the standard Thai teacher-exam textbooks.
 // Hot branches come from answer statistics. Every map is a draft until an admin checks it.
 
-// Guide questions published for that year's สพฐ. round, reworded. Several of the originals had wrong answer keys; the
+// Guide questions published to prepare for that year's สพฐ. round (not questions from a past paper), reworded. Several of the originals had wrong answer keys; the
 // answer here follows the curriculum and the law, and `why` says so where it matters.
 const past = (src: string) => (q: string, choices: string[], a: number, why: string): Block => ({ k: "past", src, q, choices, a, why });
-const p68 = past("สพฐ. ปี 2568");
-const p69 = past("สพฐ. ปี 2569");
+const p68 = past("เตรียมสอบ สพฐ. 2568");
+const p69 = past("เตรียมสอบ สพฐ. 2569");
 
 export const B1: MindMap[] = [
   {

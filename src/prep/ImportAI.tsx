@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import AiProviderSwitch, { type AiProvider } from "./AiProviderSwitch";
 import { rpc, supabase, thaiError } from "./api";
 
 type Draft = {
@@ -23,11 +22,11 @@ const PAGE = 60;            // drafts rendered at a time
 const MAX_ROUNDS = 60;      // safety stop per slice (60 rounds × 30 = 1,800 questions from one slice)
 const BATCH: Record<string, number> = { best: 30, balanced: 40, fast: 40 };
 const ACCEPT = ".pdf,.docx,.doc,.txt,.md,.csv,.png,.jpg,.jpeg,.webp,.heic,.heif,.gif,.bmp";
-// Model shown under each level, per AI; must match the model chosen in supabase/functions/prep-import/index.ts.
-const QUALITY: [Quality, string, string, string][] = [
-  ["best", "ละเอียดสุด", "Gemini Pro · อ่านสแกน/รูปแม่นที่สุด", "DeepSeek V4 Pro · แม่นที่สุด"],
-  ["balanced", "สมดุล", "Gemini Flash", "DeepSeek V4 Pro (เหมือนละเอียดสุด)"],
-  ["fast", "ประหยัด", "Flash-Lite · เร็วและถูก", "DeepSeek Flash · เร็วและถูก"],
+// Model shown under each level; must match the model chosen in supabase/functions/prep-import/index.ts.
+const QUALITY: [Quality, string, string][] = [
+  ["best", "ละเอียดสุด", "Gemini Pro · อ่านสแกน/รูปแม่นที่สุด"],
+  ["balanced", "สมดุล", "Gemini Flash"],
+  ["fast", "ประหยัด", "Flash-Lite · เร็วและถูก"],
 ];
 
 type Kind = "pdf" | "docx" | "doc" | "text" | "image" | "unknown";
@@ -211,7 +210,6 @@ export default function ImportAI() {
   const [files, setFiles] = useState<File[]>([]);
   const [mode, setMode] = useState<Mode>("auto");
   const [quality, setQuality] = useState<Quality>("best");
-  const [provider, setProvider] = useState<AiProvider | null>(null);
   const [limit, setLimit] = useState("");   // empty = no limit: keep going until the content is covered
   const [shown, setShown] = useState(PAGE);
   const [pagesPer, setPagesPer] = useState(4);
@@ -365,10 +363,8 @@ export default function ImportAI() {
 
   return (
     <>
-      <AiProviderSwitch onChange={setProvider} />
       <div className="pp-card">
-        <h3>นำเข้าด้วย AI ({provider === "deepseek" ? "DeepSeek" : "Gemini"})</h3>
-        {provider === "deepseek" && <p className="pp-note">ตอนนี้ใช้ DeepSeek ซึ่งอ่านได้แค่ข้อความ: ใช้ไฟล์ Word หรือ TXT ได้ (รูปในไฟล์ Word จะถูกข้าม) ถ้าจะนำเข้า PDF หรือรูปถ่าย ให้สลับเป็น Gemini ด้านบนก่อน</p>}
+        <h3>นำเข้าด้วย AI (Gemini)</h3>
         <p className="pp-muted small">อัปโหลดได้หลายไฟล์พร้อมกัน: PDF, Word (.docx รวมรูปและตารางในไฟล์), รูปถ่าย/สแกน (PNG, JPG, HEIC), TXT → AI สร้างหรือคัดข้อสอบเป็น "ร่าง" → ตรวจ → บันทึกเข้าคิว "ตรวจข้อสอบ" (ไม่เผยแพร่ทันที)</p>
         <label className={`pp-drop ${busy ? "off" : ""}`}
           onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); if (!busy) addFiles(e.dataTransfer.files); }}>
@@ -400,8 +396,8 @@ export default function ImportAI() {
         </div>
         <h3>ความละเอียดของ AI</h3>
         <div className="pp-modes">
-          {QUALITY.map(([k, l, g, d]) => (
-            <button key={k} className={quality === k ? "on" : ""} disabled={busy} onClick={() => setQuality(k)}><b>{l}</b><span>{provider === "deepseek" ? d : g}</span></button>
+          {QUALITY.map(([k, l, g]) => (
+            <button key={k} className={quality === k ? "on" : ""} disabled={busy} onClick={() => setQuality(k)}><b>{l}</b><span>{g}</span></button>
           ))}
         </div>
         <div className="pp-row">

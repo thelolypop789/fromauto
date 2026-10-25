@@ -1,9 +1,9 @@
 // Pure helpers for prep-ai-review (no Deno APIs, so they can be unit-tested with node).
 //
 // How a question is judged (strict on purpose):
-//   1. Blind pass: DeepSeek Pro and DeepSeek Flash each answer the question WITHOUT seeing the key, and flag problems
+//   1. Blind pass: Gemini Pro and Gemini Flash each answer the question WITHOUT seeing the key, and flag problems
 //      (ambiguous, more than one correct, no correct choice, missing passage/figure, outdated, off-syllabus).
-//   2. Judge pass: DeepSeek Pro sees the key, the explanation and both blind answers, checks facts and the explanation,
+//   2. Judge pass: Gemini Pro sees the key, the explanation and both blind answers, checks facts and the explanation,
 //      and proposes the smallest fix.
 //   3. combine(): "ok" only when every blind answer equals the key, nobody flagged a problem, the judge says ok and no
 //      one is unsure. Anything else is "fix" or "hide" with the reason, and disagreements are marked low confidence
@@ -146,18 +146,4 @@ export function combine(q: Q, blind: Record<string, Blind | undefined>, judge: J
       judge: judge ?? null,
     },
   };
-}
-
-// USD per 1M tokens (input cache miss / output), from the providers' price pages, Oct 2026. Only used to show an
-// estimate in the admin page; the bill is whatever the provider charges.
-export const PRICE: Record<string, { in: number; out: number; peakX?: number }> = {
-  "deepseek-v4-pro": { in: 0.66, out: 1.98, peakX: 2 },
-  "deepseek-flash": { in: 0.15, out: 0.6, peakX: 2 },
-};
-// DeepSeek doubles its price 01:00-04:00 and 06:00-10:00 UTC on weekdays.
-export const deepseekPeak = (d: Date) => { const h = d.getUTCHours(), w = d.getUTCDay(); return w >= 1 && w <= 5 && ((h >= 1 && h < 4) || (h >= 6 && h < 10)); };
-export function costUSD(model: string, usage: { prompt_tokens?: number; completion_tokens?: number } | undefined, at: Date): number {
-  const p = PRICE[model]; if (!p || !usage) return 0;
-  const x = p.peakX && model.startsWith("deepseek") && deepseekPeak(at) ? p.peakX : 1;
-  return x * ((usage.prompt_tokens ?? 0) * p.in + (usage.completion_tokens ?? 0) * p.out) / 1e6;
 }

@@ -1,6 +1,6 @@
 import { rpc, supabase } from "./api";
 
-// One AI verdict per question (prep.ai_reviews: two DeepSeek models answer blind, DeepSeek Pro judges). The admin decides;
+// One AI verdict per question (prep.ai_reviews: two Gemini models answer blind, Gemini Pro judges). The admin decides;
 // a verdict never changes a question.
 export type AiFix = { stem: string | null; choices: string[] | null; answer: number | null; explanation: string | null };
 export type AiBlind = { answer: number | null; confidence: string; flags: string[]; note: string } | null;
@@ -14,8 +14,8 @@ export const AI_BATCH = 5;   // the Edge Function reviews at most 5 questions pe
 export const loadVerdicts = (ids: number[]) =>
   ids.length ? rpc<Record<string, AiVerdict>>("prep_admin_ai_get", { p_ids: ids }) : Promise.resolve({});
 
-// Reviews up to AI_BATCH questions; returns their verdicts keyed by id and the estimated cost in USD.
-export async function reviewWithAi(ids: number[]): Promise<{ verdicts: Record<number, AiVerdict>; cost: number }> {
+// Reviews up to AI_BATCH questions; returns their verdicts keyed by id.
+export async function reviewWithAi(ids: number[]): Promise<{ verdicts: Record<number, AiVerdict> }> {
   const { data, error } = await supabase.functions.invoke("prep-ai-review", { body: { ids: ids.slice(0, AI_BATCH) } });
   if (error) {
     let msg = error.message;
@@ -25,7 +25,7 @@ export async function reviewWithAi(ids: number[]): Promise<{ verdicts: Record<nu
   if (data?.error) throw new Error(data.error);
   const out: Record<number, AiVerdict> = {};
   for (const r of (data?.results ?? []) as (AiVerdict & { id: number })[]) out[r.id] = r;
-  return { verdicts: out, cost: Number(data?.cost_usd) || 0 };
+  return { verdicts: out };
 }
 
 // The parts of a question that a "fix" verdict replaces, ready to merge into the edit form.

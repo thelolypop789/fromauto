@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { rpc, thaiError } from "./api";
-import AiProviderSwitch from "./AiProviderSwitch";
 
 type Row = {
   topic: string; name: string; approved: number; untagged: number; none: number;
@@ -40,7 +39,6 @@ export default function AdminSubtopics() {
 
   return (
     <>
-    <AiProviderSwitch />
     {gen && (
       <div className="pp-card">
         <h3>AI เขียนข้อสอบเติมหมวดย่อย</h3>

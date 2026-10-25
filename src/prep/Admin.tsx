@@ -20,6 +20,7 @@ import AdminSubtopics from "./AdminSubtopics";
 import { AdminTrackContext, type AdminTrack } from "./adminTrack";
 import AdminTimes from "./AdminTimes";
 import { AdminSummaries } from "./Summary";
+import AdminFeedback from "./AdminFeedback";
 
 type Stats = { users: number; paid: number; answered_today: number; active_today: number;
   questions: Record<string, number> | null; open_reports: number; keys_unused: number };
@@ -34,11 +35,11 @@ type QItem = { id: number; topic: string; stem: string; choices: string[]; answe
 const LABELS = ["ก", "ข", "ค", "ง"];
 const fmt = (s: string | null) => (s ? new Date(s).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "");
 
-type Tab = "stats" | "live" | "charts" | "users" | "majors" | "times" | "orders" | "keys" | "discounts" | "bank" | "reports" | "review" | "health" | "subtopics" | "import" | "facebook" | "calendar" | "summaries";
+type Tab = "stats" | "live" | "charts" | "users" | "majors" | "times" | "orders" | "keys" | "discounts" | "bank" | "reports" | "review" | "health" | "subtopics" | "import" | "facebook" | "calendar" | "summaries" | "feedback";
 // Screens in 5 groups: pick a group, then one of its few tabs.
 const GROUPS: { id: string; icon: string; label: string; tabs: [Tab, string][] }[] = [
   { id: "overview", icon: "📊", label: "ภาพรวม", tabs: [["stats", "สรุปวันนี้"], ["live", "ตอนนี้"], ["charts", "เปรียบเทียบ"]] },
-  { id: "people", icon: "👥", label: "ผู้ใช้", tabs: [["users", "รายชื่อ"], ["majors", "วิเคราะห์เอก"], ["times", "ช่วงเวลา"]] },
+  { id: "people", icon: "👥", label: "ผู้ใช้", tabs: [["users", "รายชื่อ"], ["feedback", "ข้อเสนอแนะ"], ["majors", "วิเคราะห์เอก"], ["times", "ช่วงเวลา"]] },
   { id: "sales", icon: "💰", label: "ขาย", tabs: [["orders", "คำสั่งซื้อ"], ["discounts", "ส่วนลด"], ["keys", "คีย์"]] },
   { id: "content", icon: "📚", label: "ข้อสอบ", tabs: [["bank", "คลังข้อสอบ"], ["reports", "รายงาน+AI"], ["review", "ข้อสอบรอตรวจ"], ["health", "คุณภาพคลัง"], ["subtopics", "หมวดย่อยเอก"], ["import", "นำเข้า"], ["summaries", "สรุปแผนผัง"]] },
   { id: "page", icon: "📣", label: "เพจ·ปฏิทิน", tabs: [["facebook", "Facebook"], ["calendar", "ปฏิทินสอบ"]] },
@@ -58,7 +59,10 @@ export default function Admin() {
   const [drafts, setDrafts] = useState(0);
   const loadDrafts = useCallback(() => { rpc<{ approved: boolean }[]>("prep_summary_list").then(cs => setDrafts(cs.filter(c => !c.approved).length)).catch(() => { /* badge only */ }); }, []);
   useEffect(loadDrafts, [loadDrafts]);
-  const badge: Partial<Record<Tab, number>> = { orders: pending ?? 0, reports: open ?? 0, summaries: drafts };
+  const [fbNew, setFbNew] = useState(0);
+  const loadFb = useCallback(() => { rpc<{ counts: { new: number } }>("prep_admin_feedback", { p_status: "new", p_limit: 1 }).then(d => setFbNew(d.counts.new)).catch(() => { /* badge only */ }); }, []);
+  useEffect(loadFb, [loadFb]);
+  const badge: Partial<Record<Tab, number>> = { orders: pending ?? 0, reports: open ?? 0, summaries: drafts, feedback: fbNew };
   const groupBadge = (id: string) => GROUPS.find(g => g.id === id)!.tabs.reduce((n, [k]) => n + (badge[k] ?? 0), 0);
   const g = groupOf(tab);
   const [track, setTrackState] = useState<AdminTrack>(() => {
@@ -111,6 +115,7 @@ export default function Admin() {
       {tab === "facebook" && <AdminFacebook />}
       {tab === "calendar" && <AdminCalendar />}
       {tab === "summaries" && <AdminSummaries onChanged={loadDrafts} />}
+      {tab === "feedback" && <AdminFeedback onChanged={loadFb} />}
     </AdminTrackContext.Provider>
   );
 }

@@ -325,5 +325,24 @@ function BlockView({ x, tone }: { x: Block; tone: string }) {
       return <div className="mm-oops"><Mascot mood="think" size={48} motion="still" /><p><b>ระวังพลาด!</b> {x.t}</p></div>;
     case "note":
       return <p className="mm-note">{x.t}</p>;
+    case "past":
+      return <PastView x={x} />;
   }
+}
+
+// Real papers are not published; these are guide questions that tutoring sites label with an exam year. The answer and its
+// reason follow the current law, which can differ from the site's own key.
+function PastView({ x }: { x: Extract<Block, { k: "past" }> }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mm-card mm-past">
+      <span className="lab">แนวข้อสอบเก่า</span> <span className="src">{x.src}</span>
+      <p className="q">{x.q}</p>
+      <ol>{x.choices.map((c, i) => <li key={i} className={open && i === x.a ? "ok" : undefined}>{c}</li>)}</ol>
+      {open
+        ? <p className="why"><b>ตอบ {x.a + 1}.</b> {x.why}</p>
+        : <button className="pp-link small" onClick={() => setOpen(true)}>ดูเฉลย</button>}
+      <p className="fine">แนวข้อสอบที่เว็บติวรวบรวม ไม่ใช่ข้อสอบฉบับจริง · เฉลยตามตัวบทปัจจุบัน</p>
+    </div>
+  );
 }

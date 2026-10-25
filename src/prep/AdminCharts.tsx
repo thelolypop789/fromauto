@@ -32,7 +32,7 @@ const FUNNEL = ["สมัคร", "สร้างชุดฝึก", "เป�
 const FEATURES: [string, string][] = [
   ["level_view", "เลเวลและวันต่อเนื่อง"], ["readiness_view", "เกจความพร้อมสอบ"], ["subtopic_pick", "เลือกหมวดย่อยวิชาเอก"],
   ["scoredist_view", "กราฟเทียบคะแนนคนอื่น"], ["promo_apply", "ใช้โค้ดส่วนลด"], ["board_view", "ดูตารางอันดับ"], ["buy_view", "เปิดหน้าซื้อ"],
-  ["install_view", "เห็นป๊อปอัปติดตั้งแอป"], ["install_click", "กดติดตั้งแอป"], ["install_done", "ติดตั้งแอปสำเร็จ"],
+  ["install_view", "เห็นป๊อปอัปติดตั้งแอป"], ["install_click", "กดติดตั้งแอป"], ["install_done", "ติดตั้งแอปสำเร็จ"], ["summary_view", "เปิดสรุปแบบแผนผัง"],
 ];
 const pct = (a: number, b: number) => (b > 0 ? Math.round((100 * a) / b) : null);
 const dayName = (s: string) => new Date(s + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short" });

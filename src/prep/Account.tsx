@@ -5,6 +5,7 @@ import { PACKAGES, SHOP } from "./config";
 import { IconCheck, IconCrown, IconLogout } from "./icons";
 import InstallBanner from "./InstallBanner";
 import MyReports from "./MyReports";
+import Feedback from "./Feedback";
 import Notifications from "./Notifications";
 import PayForm from "./PayForm";
 import GroupKeys from "./GroupKeys";
@@ -131,6 +132,8 @@ export default function Account({ me, email, profile, onMajor, onProfile, onChan
         <button className="pp-btn pp-btn-primary" disabled={busy || !key.trim()} onClick={redeem}>{busy ? "กำลังตรวจสอบ..." : "เปิดใช้งาน"}</button>
         {msg && <div className={msg.ok ? "pp-success" : "pp-error"}>{msg.text}</div>}
       </div>
+
+      <Feedback />
 
       <DeletionCard />
     </>

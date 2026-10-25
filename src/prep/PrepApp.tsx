@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { rpc, supabase, thaiError, startPing, track, type Me, type MockPayload, type Profile, type Round, type SubmitResult } from "./api";
+import { covers, rpc, supabase, thaiError, startPing, track, type Me, type MockPayload, type Profile, type Round, type SubmitResult } from "./api";
 import Login from "./Login";
 import Home from "./Home";
 import CreateSet, { type Preset } from "./CreateSet";
@@ -18,7 +18,7 @@ import Leaderboard from "./Leaderboard";
 import MockHome from "./MockHome";
 import MockPlayer from "./MockPlayer";
 import MockResult from "./MockResult";
-import { IconCalendar, IconChart, IconCrown, IconHome, IconShield, IconUser, Logo } from "./icons";
+import { IconCalendar, IconChart, IconCrown, IconHome, IconMap, IconShield, IconUser, Logo } from "./icons";
 import { setupPwa } from "./pwa";
 import Waiting from "./Waiting";
 import Summary from "./Summary";
@@ -82,6 +82,11 @@ function PrepShell() {
   useEffect(() => { if (session) { refreshMe(); track("visit"); } else setMe(null); }, [session, refreshMe]);
   const [unread, setUnread] = useState(0);
   const signedIn = !!session;
+  // The สรุป tab appears once an admin has approved at least one map (admins always see it).
+  const [summaries, setSummaries] = useState(0);
+  useEffect(() => {
+    if (signedIn) rpc<string[]>("prep_summary_approved").then(ids => setSummaries(ids.length)).catch(() => { /* optional tab */ });
+  }, [signedIn]);
   useEffect(() => (signedIn ? startPing() : undefined), [signedIn]);
   const clearUnread = useCallback(() => setUnread(0), []);
 
@@ -166,12 +171,13 @@ function PrepShell() {
 
   const tabs: { key: View["name"]; label: string; icon: ReactNode }[] = [
     { key: "home", label: "ทำข้อสอบ", icon: <IconHome /> },
+    ...(me.is_admin || summaries > 0 ? [{ key: "summary" as const, label: "สรุป", icon: <IconMap /> }] : []),
     { key: "calendar", label: "ปฏิทิน", icon: <IconCalendar /> },
     { key: "stats", label: "วิเคราะห์", icon: <IconChart /> },
     { key: "account", label: me.plan === "paid" ? "บัญชี" : "อัปเกรด", icon: me.plan === "paid" ? <IconUser /> : <IconCrown /> },
     ...(me.is_admin ? [{ key: "admin" as const, label: "แอดมิน", icon: <IconShield /> }] : []),
   ];
-  const active = (k: View["name"]) => view.name === k || (k === "home" && (view.name === "create" || view.name === "result" || view.name === "daily" || view.name === "board" || view.name === "mock" || view.name === "mockresult" || view.name === "summary"));
+  const active = (k: View["name"]) => view.name === k || (k === "home" && (view.name === "create" || view.name === "result" || view.name === "daily" || view.name === "board" || view.name === "mock" || view.name === "mockresult"));
   const go = (k: View["name"]) => { setView({ name: k } as View); window.scrollTo(0, 0); };
   const practice = (preset?: Preset) => { setView({ name: "create", preset }); window.scrollTo(0, 0); };
 
@@ -194,7 +200,7 @@ function PrepShell() {
         </div>
       </header>
       <main className="pp-main" key={reloadKey}>
-        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onProfile={changeProfile} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onCalendar={() => go("calendar")} onUpgrade={() => go("account")} onStats={() => go("stats")} onBoard={() => go("board")} onSummary={() => go("summary")} />}
+        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onProfile={changeProfile} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onCalendar={() => go("calendar")} onUpgrade={() => go("account")} onStats={() => go("stats")} onBoard={() => go("board")} />}
         {view.name === "create" && <CreateSet me={me} major={profile.major} preset={view.preset} onCancel={() => go("home")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} onUpgrade={() => go("account")} />}
         {view.name === "result" && <RoundResult result={view.result} title={view.title} me={me} onStart={startRound}
@@ -205,7 +211,7 @@ function PrepShell() {
           onOpen={payload => { setView(payload.submitted ? { name: "mockresult", payload } : { name: "mockplay", payload }); window.scrollTo(0, 0); }} />}
         {view.name === "mockresult" && <MockResult payload={view.payload} onBack={() => go("mock")} onReview={() => startReview("wrong")} />}
         {view.name === "calendar" && <Calendar onBack={() => go("home")} />}
-        {view.name === "summary" && <Summary isAdmin={me.is_admin} onPractice={practice} />}
+        {view.name === "summary" && <Summary isAdmin={me.is_admin} full={covers(me, ["A"])} onPractice={practice} onUpgrade={() => go("account")} />}
         {view.name === "stats" && <Stats me={me} profile={profile} onPractice={practice} />}
         {view.name === "account" && <Account me={me} email={session.user.email ?? ""} profile={profile} onMajor={setMajor} onProfile={changeProfile} onChanged={refreshMe} onNotifRead={clearUnread} />}
         {view.name === "admin" && me.is_admin && <Admin />}

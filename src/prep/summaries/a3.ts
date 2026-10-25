@@ -182,7 +182,7 @@ export const A3: MindMap[] = [
     ],
   },
   {
-    id: "a3-goodgov", group: "A3", topics: ["A3-GOODGOV"], icon: "🏡",
+    id: "a3-goodgov", group: "A3", topics: ["A3-GOODGOV"], icon: "🏡", free: true,
     title: "พ.ร.ฎ.บริหารกิจการบ้านเมืองที่ดี พ.ศ. 2546", hub: "บ้านเมืองที่ดี", hubSub: "9 หมวด · ผู้รักษาการ นายกฯ",
     branches: [
       {

@@ -1,13 +1,15 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { rpc, thaiError, track } from "./api";
 import type { Preset } from "./CreateSet";
+import { IconCrown } from "./icons";
 import Mascot from "./Mascot";
 import { MAPS } from "./summaries";
 import { GROUPS, type Block, type Branch, type MindMap } from "./summaries/types";
 import "./summary.css";
 
 // "สรุปแบบแผนผัง": list of maps → one map (mascot hub + branches) → one branch's detail. Recall mode hides the value to
-// remember on each branch: tap once to reveal, tap again to mark it remembered. Users see only maps an admin approved.
+// remember on each branch: tap once to reveal, tap again to mark it remembered. Users see only maps an admin approved;
+// without a ภาค ก package only the sample maps (one per group, `free`) open, the rest show a crown and the upgrade card.
 const SLOTS: Record<number, string[]> = {
   4: ["tl", "tr", "bl", "br"],
   5: ["tl", "tr", "ml", "mr", "bc"],
@@ -15,10 +17,14 @@ const SLOTS: Record<number, string[]> = {
 };
 const TONE: Record<string, string> = { pink: "#E8577A", mint: "#22A06B", sky: "#2F80ED", lem: "#C98A00", lil: "#7B5BD6", pea: "#E07A1F" };
 
-export default function Summary({ isAdmin, onPractice }: { isAdmin: boolean; onPractice: (p: Preset) => void }) {
+export default function Summary({ isAdmin, full, onPractice, onUpgrade }: {
+  isAdmin: boolean; full: boolean; onPractice: (p: Preset) => void; onUpgrade: () => void;
+}) {
   const [approved, setApproved] = useState<Set<string> | null>(null);
   const [error, setError] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [locked, setLocked] = useState<MindMap | null>(null);
+  const canOpen = (m: MindMap) => full || isAdmin || !!m.free;
   useEffect(() => {
     rpc<string[]>("prep_summary_approved").then(ids => setApproved(new Set(ids))).catch(e => setError(thaiError(e)));
   }, []);
@@ -26,7 +32,7 @@ export default function Summary({ isAdmin, onPractice }: { isAdmin: boolean; onP
   if (error) return <div className="pp-card"><div className="pp-error">{error}</div></div>;
   if (!approved) return <div className="pp-spinner" />;
 
-  const map = MAPS.find(m => m.id === openId);
+  const map = MAPS.find(m => m.id === openId && canOpen(m));
   if (map) {
     const setOk = async (ok: boolean) => {
       try {
@@ -45,7 +51,17 @@ export default function Summary({ isAdmin, onPractice }: { isAdmin: boolean; onP
         <Mascot mood="happy" costume="teacher" size={84} motion="idle" />
         <div><h2>สรุปแบบแผนผัง · ภาค ก</h2><p>อ่านภาพเดียวจบหมวด แล้วลองโหมดท่องจำ จำได้แล้วค่อยไปฝึกข้อสอบ</p></div>
       </div>
-      {isAdmin && <p className="pp-note small">แอดมินเห็นทุกแผนผัง ผู้ใช้เห็นเฉพาะแผนผังที่กด "ตรวจแล้ว" ({approved.size}/{MAPS.length})</p>}
+      {isAdmin && <p className="pp-note small">แอดมินเห็นทุกแผนผัง ผู้ใช้เห็นเฉพาะแผนผังที่กด "ตรวจแล้ว" ({approved.size}/{MAPS.length}) · ผู้ใช้ฟรีเปิดได้เฉพาะป้าย "ฟรี"</p>}
+      {!full && !isAdmin && visible.length > 0 && (
+        <div className={`mm-upsell ${locked ? "on" : ""}`}>
+          <span className="cr"><IconCrown size={20} /></span>
+          <div>
+            <b>{locked ? `"${locked.title}" สำหรับผู้ซื้อแพ็ก` : "ลองฟรีได้วิชาละ 1 หมวด"}</b>
+            <p>ปลดล็อกแผนผังสรุปภาค ก ครบทุกหมวด ด้วยแพ็กภาค ก หรือแพ็กครบทุกภาค</p>
+          </div>
+          <button className="pp-btn pp-btn-primary sm" onClick={onUpgrade}>ดูแพ็ก</button>
+        </div>
+      )}
       {!visible.length && <div className="pp-card pp-empty">กำลังเตรียมสรุปให้อยู่ เร็ว ๆ นี้</div>}
       {GROUPS.map(g => {
         const ms = visible.filter(m => m.group === g.key);
@@ -55,8 +71,10 @@ export default function Summary({ isAdmin, onPractice }: { isAdmin: boolean; onP
             <h3>{g.title}<small>{g.sub}</small></h3>
             <div className="mm-list">
               {ms.map((m, i) => (
-                <button key={m.id} className={`mm-item t-${m.branches[i % m.branches.length].tone}`} onClick={() => open(m.id)}>
+                <button key={m.id} className={`mm-item t-${m.branches[i % m.branches.length].tone} ${canOpen(m) ? "" : "locked"}`}
+                  onClick={() => { if (canOpen(m)) open(m.id); else { setLocked(m); window.scrollTo({ top: 0, behavior: "smooth" }); } }}>
                   <span className="ic">{m.icon}</span>
+                  {!full && (m.free ? <span className="tag free">ฟรี</span> : <span className="tag crown"><IconCrown size={12} />ผู้ซื้อ</span>)}
                   <b>{m.title}</b>
                   <small>{m.branches.length} กิ่ง{isAdmin && !approved.has(m.id) ? " · ร่าง" : ""}</small>
                 </button>

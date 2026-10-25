@@ -27,18 +27,14 @@ type Props = {
   onUpgrade: () => void;
   onStats: () => void;
   onBoard: () => void;
-  onSummary: () => void;
 };
 
-export default function Home({ me, profile, onMajor, onProfile, onCreate, onStart, onReview, onDaily, onMock, onCalendar, onUpgrade, onStats, onBoard, onSummary }: Props) {
+export default function Home({ me, profile, onMajor, onProfile, onCreate, onStart, onReview, onDaily, onMock, onCalendar, onUpgrade, onStats, onBoard }: Props) {
   const [picking, setPicking] = useState(false);
   const [sets, setSets] = useState<SetSummary[] | null>(null);
   const [error, setError] = useState("");
   const [dash, setDash] = useState<Dashboard | null>(null);
   const [counts, setCounts] = useState<ReviewCounts | null>(null);
-  // The summaries entry shows once an admin has approved at least one map (admins always see it).
-  const [summaries, setSummaries] = useState(0);
-  useEffect(() => { rpc<string[]>("prep_summary_approved").then(ids => setSummaries(ids.length)).catch(() => { /* optional entry */ }); }, []);
 
   useEffect(() => {
     rpc<SetSummary[]>("prep_list_sets").then(setSets).catch(e => setError(thaiError(e)));
@@ -95,11 +91,6 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
 
       <div className="pp-h"><h2>ฝึกแบบอื่น</h2></div>
       <div className="pp-modes pp-modes-home">
-        {(me.is_admin || summaries > 0) && (
-          <button onClick={onSummary}>
-            <b>สรุปแบบแผนผัง ภาค ก</b><span>อ่านภาพเดียวจบหมวด มีโหมดท่องจำ</span>
-          </button>
-        )}
         <button onClick={onMock}>
           <b>จำลองสอบจริง</b><span>จำนวนข้อและเวลาเท่าสนามจริง ไม่เฉลยจนส่ง</span>
         </button>

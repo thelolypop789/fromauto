@@ -61,7 +61,10 @@ export default function Account({ me, email, profile, onMajor, onProfile, onChan
         </div>
       </div>
 
-      <div className="pp-card"><a className="pp-btn pp-btn-ghost pp-wide" href="/prep/guide">คู่มือการใช้งาน</a></div>
+      <div className="pp-card pp-acc-links">
+        <a className="pp-btn pp-btn-ghost" href="/prep/guide">คู่มือการใช้งาน</a>
+        <button className="pp-btn pp-btn-ghost" onClick={() => document.getElementById("feedback")?.scrollIntoView({ behavior: "smooth", block: "start" })}>💬 รีวิว / ข้อเสนอแนะ</button>
+      </div>
 
       <div className="pp-card pp-major-card">
         <div>

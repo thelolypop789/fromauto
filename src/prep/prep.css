@@ -1262,3 +1262,6 @@ div.pp-todo-item { cursor: default; }
 .pp-fb-admin .pp-fb-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
 .pp-fb-admin .pp-fb-body { margin: 6px 0; line-height: 1.6; white-space: pre-wrap; }
 .pp-fb-admin .pp-fb-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
+.pp-acc-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pp-acc-links .pp-btn { width: 100%; justify-content: center; }
+#feedback { scroll-margin-top: calc(72px + env(safe-area-inset-top)); }

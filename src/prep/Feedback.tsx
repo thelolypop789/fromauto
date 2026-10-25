@@ -48,7 +48,7 @@ export default function Feedback({ page = "account" }: { page?: string }) {
   };
 
   return (
-    <div className="pp-card pp-fb">
+    <div className="pp-card pp-fb" id="feedback">
       <h3>💬 รีวิว / ข้อเสนอแนะ</h3>
       <p className="pp-muted small">ทุกข้อความส่งถึงทีมงานโดยตรง ถ้าทีมงานตอบกลับ จะแจ้งในหน้านี้</p>
       <div className="pp-seg" role="tablist" aria-label="ประเภทข้อความ">

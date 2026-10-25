@@ -174,3 +174,7 @@
 .mm-flower .pet b { font-size: 11.5px; line-height: 1.25; display: block; }
 .mm-flower .pet .k { position: absolute; left: -8px; top: -8px; width: 22px; height: 22px; border-radius: 50%; background: var(--c); color: #fff;
   font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+
+/* ภาค ก / ภาค ข tabs on the list */
+.mm-sec { position: sticky; top: calc(64px + env(safe-area-inset-top)); z-index: 8; background: var(--pp-bg); padding: 6px 0; margin: 4px 0 14px; flex-wrap: nowrap; }
+.mm-sec button small { font-weight: 500; opacity: .75; margin-left: 4px; }

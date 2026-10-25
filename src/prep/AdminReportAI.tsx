@@ -34,8 +34,8 @@ const Choices = ({ choices, answer, mark }: { choices: string[]; answer: number;
 
 type Draft = { stem: string; choices: string[]; answer: number; explanation: string };
 
-// Editing form for a question the AI was unsure about. Only the fields the admin actually changes are sent.
-function FixForm({ q, d, onChange }: { q: Review["question"]; d: Draft; onChange: (d: Draft) => void }) {
+// Editing form for a reported question (AI unsure, or the admin rewrites the AI's fix). Only changed fields are sent.
+function FixForm({ id, d, onChange }: { id: number; d: Draft; onChange: (d: Draft) => void }) {
   return (
     <div className="pp-ai-edit">
       <label><span className="pp-muted small">โจทย์</span>
@@ -43,7 +43,7 @@ function FixForm({ q, d, onChange }: { q: Review["question"]; d: Draft; onChange
       <span className="pp-muted small">ตัวเลือก (เลือกวงกลมหน้าข้อที่ถูก)</span>
       {d.choices.map((c, i) => (
         <div key={i} className="pp-ai-edit-ch">
-          <input type="radio" name={`ans-${q.stem.length}`} checked={d.answer === i} onChange={() => onChange({ ...d, answer: i })} aria-label={`ข้อ ${L[i]} คือเฉลย`} />
+          <input type="radio" name={`ans-${id}`} checked={d.answer === i} onChange={() => onChange({ ...d, answer: i })} aria-label={`ข้อ ${L[i]} คือเฉลย`} />
           <span>{L[i]}.</span>
           <input className="pp-input" value={c} onChange={e => onChange({ ...d, choices: d.choices.map((x, k) => (k === i ? e.target.value : x)) })} />
         </div>
@@ -78,7 +78,17 @@ function Card({ r, onDone }: { r: Review; onDone: () => void }) {
   const [draft, setDraft] = useState<Draft>({ stem: q.stem, choices: [...q.choices], answer: q.answer, explanation: q.explanation ?? "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Any card can be edited by hand: the form starts from the AI's fix (when there is one) on top of the current question.
+  const [editing, setEditing] = useState(false);
   const v = VERDICT[r.verdict];
+  const own = human || editing;   // the admin decides the outcome and the patch
+  const startEdit = () => {
+    const f = r.verdict === "fix" && r.fix ? r.fix : {};
+    setDraft({ stem: f.stem ?? q.stem, choices: [...(f.choices ?? q.choices)], answer: f.answer ?? q.answer, explanation: f.explanation ?? q.explanation ?? "" });
+    if (r.verdict !== "fix") setMsg(PRESETS.fix[0].text);
+    setOutcome("fix"); setEditing(true); setError("");
+  };
+  const cancelEdit = () => { setEditing(false); setOutcome(r.verdict as Outcome); setMsg(r.user_message); setError(""); };
 
   const pick = (o: Outcome) => {
     setOutcome(o); setMsg(PRESETS[o][0].text); setError("");
@@ -94,7 +104,7 @@ function Card({ r, onDone }: { r: Review; onDone: () => void }) {
   const apply = async () => {
     if (!outcome) return;
     let fix: Fix | null = null;
-    if (human && outcome === "fix") {
+    if (own && outcome === "fix") {
       const b = buildFix(q, draft);
       if (b.error) { setError(b.error); return; }
       fix = b.fix ?? null;
@@ -102,7 +112,7 @@ function Card({ r, onDone }: { r: Review; onDone: () => void }) {
     if (!window.confirm(`${APPLY_LABEL[outcome]}?\n\nผู้รายงานทุกคนจะได้รับข้อความนี้:\n${msg}`)) return;
     setBusy(true); setError("");
     try {
-      await rpc("prep_admin_apply_report_review", { p_review: r.id, p_message: msg, p_fix: fix, p_verdict: human ? outcome : null });
+      await rpc("prep_admin_apply_report_review", { p_review: r.id, p_message: msg, p_fix: fix, p_verdict: own ? outcome : null });
       onDone();
     } catch (e) { setError(thaiError(e)); setBusy(false); }
   };
@@ -124,7 +134,7 @@ function Card({ r, onDone }: { r: Review; onDone: () => void }) {
       {r.reports.length > 0 && <div className="pp-ai-rep"><b>ผู้ใช้แจ้งว่า:</b> {r.reports.join(" | ")}</div>}
       <div className="pp-ai-an"><b>AI ตรวจแล้ว:</b> {r.analysis}</div>
 
-      {!human && r.verdict === "fix" && r.fix && (
+      {!human && !editing && r.verdict === "fix" && r.fix && (
         <div className="pp-ai-fix">
           <b>จะแก้เป็น:</b>
           {r.fix.stem && <div className="pp-ai-new"><span className="pp-muted small">โจทย์ใหม่</span>{r.fix.stem}</div>}
@@ -161,9 +171,18 @@ function Card({ r, onDone }: { r: Review; onDone: () => void }) {
               <b>ซ่อนข้อนี้</b><span>เอาข้อนี้ออกจากชุดข้อสอบ (โจทย์ไม่ชัดหรือล้าสมัย) แล้วแจ้งผู้รายงาน</span>
             </button>
           </div>
-          {outcome === "fix" && <FixForm q={q} d={draft} onChange={setDraft} />}
+          {outcome === "fix" && <FixForm id={r.id} d={draft} onChange={setDraft} />}
         </div>
       )}
+
+      {!human && (editing
+        ? <div className="pp-ai-human">
+            <p><b>✏️ แก้ข้อสอบเอง</b> <button type="button" className="pp-link small" onClick={cancelEdit}>ยกเลิก กลับไปใช้ผลของ AI</button></p>
+            <FixForm id={r.id} d={draft} onChange={setDraft} />
+          </div>
+        : <button type="button" className="pp-link small" onClick={startEdit}>
+            ✏️ {r.verdict === "fix" ? "แก้โจทย์ ตัวเลือก เฉลย หรือคำอธิบายเพิ่มเอง" : "แก้ข้อสอบเองแทน (โจทย์ ตัวเลือก เฉลย คำอธิบาย)"}
+          </button>)}
 
       {outcome && (
         <>

@@ -1,4 +1,4 @@
-// Admin-only: AI check of ONE reported question (Gemini, or DeepSeek when the admin switch says so). Same GEMINI_KEY secret and the same admin check as prep-import.
+// Admin-only: AI check of ONE reported question with Gemini. Same GEMINI_KEY secret and the same admin check as prep-import.
 // 1) the model answers the question blind; 2) the model judges the reports; the guards in logic.ts downgrade anything
 // the blind answer does not support to "human". The review is stored with public.prep_admin_save_report_review and
 // returned to the browser, where the admin applies it (public.prep_admin_apply_report_review) or dismisses it.
@@ -7,7 +7,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   BLIND_SCHEMA, JUDGE_SCHEMA, blindPrompt, finalize, judgePrompt, normalizeBlind, parseJson, type Ctx,
 } from "./logic.ts";
-import { DEEPSEEK_FAST, DEEPSEEK_STRONG, DeepSeekFatal, aiProvider, deepseekJson } from "../_shared/deepseek.ts";
 
 const GEMINI_KEY = Deno.env.get("GEMINI_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -81,15 +80,9 @@ serve(async (req) => {
     const c = ctx as Ctx;
     if (!c.reports?.length) return json({ error: "ข้อนี้ไม่มีรายงานที่รอตรวจ" }, 409);
 
-    // DeepSeek: Flash answers blind, Pro judges, both thinking.
-    const ds = (await aiProvider(sb)) === "deepseek";
-    const blindRes = ds
-      ? await deepseekJson(DEEPSEEK_FAST, blindPrompt(c), BLIND_SCHEMA, { thinking: true, timeoutMs: 60_000 })
-      : await ask(BLIND_MODELS, blindPrompt(c), BLIND_SCHEMA, 0);
+    const blindRes = await ask(BLIND_MODELS, blindPrompt(c), BLIND_SCHEMA, 0);
     const blind = normalizeBlind(blindRes.data);
-    const judgeRes = ds
-      ? await deepseekJson(DEEPSEEK_STRONG, judgePrompt(c, blind), JUDGE_SCHEMA, { thinking: true, timeoutMs: 80_000 })
-      : await ask(JUDGE_MODELS, judgePrompt(c, blind), JUDGE_SCHEMA, 0.2);
+    const judgeRes = await ask(JUDGE_MODELS, judgePrompt(c, blind), JUDGE_SCHEMA, 0.2);
     const review = finalize(c, blind, judgeRes.data);
 
     const { data: reviewId, error: saveErr } = await sb.rpc("prep_admin_save_report_review", {
@@ -105,7 +98,6 @@ serve(async (req) => {
     return json({ review_id: reviewId, review, model: judgeRes.model });
   } catch (e) {
     if (e instanceof Fatal) return json({ error: e.message, fatal: e.status === 402 }, e.status);
-    if (e instanceof DeepSeekFatal) return json({ error: e.message, fatal: true }, 402);
     return json({ error: "เกิดข้อผิดพลาด: " + ((e as Error).message ?? String(e)) }, 500);
   }
 });

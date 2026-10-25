@@ -37,8 +37,5 @@ const rj = L.readJudge([q], { results: [{ id: 7, verdict: 'fix', confidence: 'hi
 t('readJudge: duplicate choices rejected, rest kept', rj.get(7).fix.choices === null && rj.get(7).fix.answer === 2 && rj.get(7).fix.explanation === 'e');
 
 // cost
-t('deepseek peak doubles', Math.abs(L.costUSD('deepseek-v4-pro', { prompt_tokens: 1e6, completion_tokens: 0 }, new Date('2026-10-21T02:00:00Z')) - 1.32) < 1e-9);
-t('deepseek off-peak on weekend', Math.abs(L.costUSD('deepseek-v4-pro', { prompt_tokens: 0, completion_tokens: 1e6 }, new Date('2026-10-24T02:00:00Z')) - 1.98) < 1e-9);
-t('flash price', Math.abs(L.costUSD('deepseek-flash', { prompt_tokens: 1e6, completion_tokens: 1e6 }, new Date('2026-10-24T02:00:00Z')) - 0.75) < 1e-9);
 console.log(`${n - bad}/${n} passed`);
 process.exit(bad ? 1 : 0);

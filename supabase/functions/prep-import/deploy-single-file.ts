@@ -1,76 +1,7 @@
-// GENERATED single-file bundle of index.ts + logic.ts + _shared/deepseek.ts, for pasting into the Supabase dashboard editor.
+// GENERATED single-file bundle of index.ts + logic.ts, for pasting into the Supabase dashboard editor.
 // Regenerate with: python3 scripts/prep/bundle_import_fn.py (do not edit by hand).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-// DeepSeek fallback for the prep functions that were written for Gemini. Which one runs is a switch in the admin
-// (แอดมิน → ข้อสอบ → หมวดย่อยเอก → "AI ที่ใช้"), stored in prep.gen_settings.ai_provider and read with public.prep_ai_provider().
-// Secret: DEEPSEEK_API_KEY. Optional: DEEPSEEK_FAST_MODEL (default deepseek-flash), DEEPSEEK_STRONG_MODEL
-// (default deepseek-v4-pro). DeepSeek has no response schema, so the Gemini schema is put in the system prompt as JSON.
-// It reads text only: callers must not send PDFs or images here.
-
-type Provider = "gemini" | "deepseek";
-
-// deno-lint-ignore no-explicit-any
-async function aiProvider(sb: any): Promise<Provider> {
-  const { data } = await sb.rpc("prep_ai_provider");
-  return data === "deepseek" ? "deepseek" : "gemini";
-}
-
-const DEEPSEEK_FAST = Deno.env.get("DEEPSEEK_FAST_MODEL") || "deepseek-flash";
-const DEEPSEEK_STRONG = Deno.env.get("DEEPSEEK_STRONG_MODEL") || "deepseek-v4-pro";
-
-// Key, balance and quota problems: every retry would fail the same way, so callers stop and show the message.
-class DeepSeekFatal extends Error {}
-
-function parseJsonLoose(text: string): Record<string, unknown> {
-  const t = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  try { return JSON.parse(t); } catch { /* fall through */ }
-  const a = t.indexOf("{"), b = t.lastIndexOf("}");
-  if (a < 0 || b <= a) throw new Error("ตอบไม่เป็น JSON");
-  return JSON.parse(t.slice(a, b + 1));
-}
-
-// One JSON answer. Retries on 429/5xx/timeouts and once more when the reply is not valid JSON.
-async function deepseekJson(
-  model: string, prompt: string, schema: unknown,
-  opts: { temperature?: number; maxTokens?: number; thinking?: boolean; timeoutMs?: number } = {},
-): Promise<{ data: Record<string, unknown>; text: string; model: string; truncated: boolean }> {
-  const key = Deno.env.get("DEEPSEEK_API_KEY");
-  if (!key) throw new DeepSeekFatal("ยังไม่ได้ตั้งค่า DEEPSEEK_API_KEY ใน Supabase (Edge Functions → Secrets)");
-  const system = "ตอบเป็น JSON object เพียงก้อนเดียว ไม่มีข้อความอื่นนอก JSON และให้ตรงกับโครงสร้าง (JSON Schema) นี้:\n"
-    + JSON.stringify(schema);
-  const body = JSON.stringify({
-    model, stream: false, max_tokens: opts.maxTokens ?? 16000, temperature: opts.temperature ?? 0,
-    ...(opts.thinking ? { thinking: { type: "enabled" } } : { thinking: { type: "disabled" } }),
-    messages: [{ role: "system", content: system }, { role: "user", content: prompt }],
-  });
-  let last = "";
-  for (let attempt = 0; attempt < 3; attempt++) {
-    let res: Response;
-    try {
-      res = await fetch("https://api.deepseek.com/chat/completions", {
-        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` }, body,
-        signal: AbortSignal.timeout(opts.timeoutMs ?? 110_000),
-      });
-    } catch (e) { last = `${model}: ${(e as Error).message}`; continue; }
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const msg = String(data?.error?.message ?? data?.message ?? res.statusText);
-      if (res.status === 401 || res.status === 403) throw new DeepSeekFatal(`คีย์ DeepSeek ใช้งานไม่ได้ — ตรวจ DEEPSEEK_API_KEY (${msg})`);
-      if (res.status === 402 || /insufficient|balance|quota/i.test(msg)) throw new DeepSeekFatal(`เครดิต DeepSeek หมด — เติมเงินที่ platform.deepseek.com (${msg})`);
-      last = `${model}: ${res.status} ${msg}`;
-      if (res.status === 429 || res.status >= 500) continue;
-      throw new Error(last);
-    }
-    const choice = data?.choices?.[0];
-    const text = String(choice?.message?.content ?? "");
-    try {
-      return { data: parseJsonLoose(text), text, model: String(data.model || model), truncated: choice?.finish_reason === "length" };
-    } catch { last = `${model}: ตอบไม่เป็น JSON${choice?.finish_reason === "length" ? " (ยาวเกิน)" : ""}`; }
-  }
-  throw new Error("DeepSeek ไม่ตอบ: " + last);
-}
 
 // Pure helpers for prep-import (no Deno APIs, so they can be unit-tested with node).
 
@@ -254,8 +185,6 @@ function parseModelJson(text: string): { items: unknown[]; more: boolean } {
 }
 
 // Admin-only: turns a study sheet / old exam (text, PDF slice, images, Word with pictures) into draft questions with Gemini.
-// When the admin switch is on DeepSeek, text goes to DeepSeek instead; it cannot read PDFs or pictures (PDF is refused,
-// pictures in a Word file are left out and the model is told to skip questions that need them).
 // Uses the same GEMINI_KEY secret as parse-exam. Drafts are returned to the browser, which sends
 // the ones the admin keeps to public.prep_admin_import (status = review).
 
@@ -342,37 +271,6 @@ serve(async (req) => {
     const topicCodes = new Set(topics.map(t => t.code));
 
     parts.push({ text: buildPrompt(mode, topics, { count, hint, pages, avoid }) });
-
-    if (await aiProvider(sb) === "deepseek") {
-      if (body.kind === "pdf" || (Array.isArray(body.files) && body.files.some((f: { mimeType?: string }) => f?.mimeType === "application/pdf"))) {
-        return json({ error: "ตอนนี้ตั้งให้ใช้ DeepSeek ซึ่งอ่านไฟล์ PDF ไม่ได้ — แปลงเป็น Word/ข้อความก่อน หรือสลับกลับเป็น Gemini ที่ แอดมิน → ข้อสอบ → หมวดย่อยเอก", fatal: true }, 400);
-      }
-      const pics = Array.isArray(body.files) ? body.files.length : 0;
-      if (!text && pics) {
-        return json({ error: "ตอนนี้ตั้งให้ใช้ DeepSeek ซึ่งอ่านรูปภาพไม่ได้ — ส่งเป็นข้อความ หรือสลับกลับเป็น Gemini ที่ แอดมิน → ข้อสอบ → หมวดย่อยเอก", fatal: true }, 400);
-      }
-      const textParts = (parts as { text?: string }[]).filter(p => typeof p.text === "string").map(p => p.text);
-      if (pics) textParts.unshift(`หมายเหตุ: เอกสารนี้มีรูป ${pics} รูปที่ส่งมาไม่ได้ ให้ข้ามข้อที่ต้องดูรูปจึงจะตอบได้`);
-      try {
-        const r = await deepseekJson(quality === "fast" ? DEEPSEEK_FAST : DEEPSEEK_STRONG, textParts.join("\n\n"),
-          responseSchema([...topicCodes]), { temperature: 0.4, maxTokens: 32000, timeoutMs: 120_000 });
-        const { items: rawItems, more } = parseModelJson(r.text);
-        const items = [], dropped: string[] = [];
-        const seen = new Set<string>();
-        for (const raw of rawItems) {
-          const { q, drop } = normalize(raw, topicCodes);
-          if (!q) { dropped.push(drop!); continue; }
-          const key = q.stem.replace(/\s/g, "");
-          if (seen.has(key)) { dropped.push("ข้อซ้ำในชุดเดียวกัน"); continue; }
-          seen.add(key);
-          items.push(q);
-        }
-        return json({ items, dropped, model: r.model, truncated: r.truncated, more: more || r.truncated, usage: null });
-      } catch (e) {
-        if (e instanceof DeepSeekFatal) return json({ error: e.message, fatal: true }, 402);
-        return json({ error: (e as Error).message }, 502);
-      }
-    }
 
     const payload = JSON.stringify({
       contents: [{ role: "user", parts }],

@@ -1,11 +1,8 @@
 // Admin-only: turns a study sheet / old exam (text, PDF slice, images, Word with pictures) into draft questions with Gemini.
-// When the admin switch is on DeepSeek, text goes to DeepSeek instead; it cannot read PDFs or pictures (PDF is refused,
-// pictures in a Word file are left out and the model is told to skip questions that need them).
 // Uses the same GEMINI_KEY secret as parse-exam. Drafts are returned to the browser, which sends
 // the ones the admin keeps to public.prep_admin_import (status = review).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { DEEPSEEK_FAST, DEEPSEEK_STRONG, DeepSeekFatal, aiProvider, deepseekJson } from "../_shared/deepseek.ts";
 import { buildPrompt, normalize, parseModelJson, responseSchema, type Mode, type TopicInfo } from "./logic.ts";
 
 const GEMINI_KEY = Deno.env.get("GEMINI_KEY")!;
@@ -91,37 +88,6 @@ serve(async (req) => {
     const topicCodes = new Set(topics.map(t => t.code));
 
     parts.push({ text: buildPrompt(mode, topics, { count, hint, pages, avoid }) });
-
-    if (await aiProvider(sb) === "deepseek") {
-      if (body.kind === "pdf" || (Array.isArray(body.files) && body.files.some((f: { mimeType?: string }) => f?.mimeType === "application/pdf"))) {
-        return json({ error: "ตอนนี้ตั้งให้ใช้ DeepSeek ซึ่งอ่านไฟล์ PDF ไม่ได้ — แปลงเป็น Word/ข้อความก่อน หรือสลับกลับเป็น Gemini ที่ แอดมิน → ข้อสอบ → หมวดย่อยเอก", fatal: true }, 400);
-      }
-      const pics = Array.isArray(body.files) ? body.files.length : 0;
-      if (!text && pics) {
-        return json({ error: "ตอนนี้ตั้งให้ใช้ DeepSeek ซึ่งอ่านรูปภาพไม่ได้ — ส่งเป็นข้อความ หรือสลับกลับเป็น Gemini ที่ แอดมิน → ข้อสอบ → หมวดย่อยเอก", fatal: true }, 400);
-      }
-      const textParts = (parts as { text?: string }[]).filter(p => typeof p.text === "string").map(p => p.text);
-      if (pics) textParts.unshift(`หมายเหตุ: เอกสารนี้มีรูป ${pics} รูปที่ส่งมาไม่ได้ ให้ข้ามข้อที่ต้องดูรูปจึงจะตอบได้`);
-      try {
-        const r = await deepseekJson(quality === "fast" ? DEEPSEEK_FAST : DEEPSEEK_STRONG, textParts.join("\n\n"),
-          responseSchema([...topicCodes]), { temperature: 0.4, maxTokens: 32000, timeoutMs: 120_000 });
-        const { items: rawItems, more } = parseModelJson(r.text);
-        const items = [], dropped: string[] = [];
-        const seen = new Set<string>();
-        for (const raw of rawItems) {
-          const { q, drop } = normalize(raw, topicCodes);
-          if (!q) { dropped.push(drop!); continue; }
-          const key = q.stem.replace(/\s/g, "");
-          if (seen.has(key)) { dropped.push("ข้อซ้ำในชุดเดียวกัน"); continue; }
-          seen.add(key);
-          items.push(q);
-        }
-        return json({ items, dropped, model: r.model, truncated: r.truncated, more: more || r.truncated, usage: null });
-      } catch (e) {
-        if (e instanceof DeepSeekFatal) return json({ error: e.message, fatal: true }, 402);
-        return json({ error: (e as Error).message }, 502);
-      }
-    }
 
     const payload = JSON.stringify({
       contents: [{ role: "user", parts }],

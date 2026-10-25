@@ -132,7 +132,7 @@ function ReviewTab() {
   const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
   const [msg, setMsg] = useState("");
   const [verdicts, setVerdicts] = useState<Record<string, AiVerdict>>({});
-  const [ai, setAi] = useState<{ done: number; total: number; cost: number } | null>(null);
+  const [ai, setAi] = useState<{ done: number; total: number } | null>(null);
   const load = useCallback(() => {
     rpc<QItem[]>("prep_admin_review_queue", { p_limit: size })
       .then(r => { setItems(r); setPicked(new Set()); return loadVerdicts(r.map(q => q.id)); })
@@ -140,20 +140,18 @@ function ReviewTab() {
       .catch(e => setError(thaiError(e)));
   }, [size]);
 
-  // DeepSeek reviews the questions on screen that have no verdict yet, AI_BATCH per call.
+  // Gemini reviews the questions on screen that have no verdict yet, AI_BATCH per call.
   const runAi = async () => {
     const todo = (items ?? []).filter(q => !verdicts[q.id]).map(q => q.id);
     if (!todo.length || ai || bulk) return;
-    let cost = 0;
-    setAi({ done: 0, total: todo.length, cost }); setMsg("");
+    setAi({ done: 0, total: todo.length }); setMsg("");
     try {
       for (let i = 0; i < todo.length; i += AI_BATCH) {
         const got = await reviewWithAi(todo.slice(i, i + AI_BATCH));
-        cost += got.cost;
         setVerdicts(prev => ({ ...prev, ...got.verdicts }));
-        setAi({ done: Math.min(i + AI_BATCH, todo.length), total: todo.length, cost });
+        setAi({ done: Math.min(i + AI_BATCH, todo.length), total: todo.length });
       }
-      setMsg(`AI ตรวจเสร็จแล้ว · ค่าใช้จ่ายโดยประมาณ $${cost.toFixed(3)}`);
+      setMsg("AI ตรวจเสร็จแล้ว");
     } catch (e) { setMsg(`AI ตรวจไม่สำเร็จ: ${(e as Error).message}`); }
     setAi(null);
   };
@@ -231,7 +229,7 @@ function ReviewTab() {
             เลือกข้อที่ AI ว่าถูกต้อง ({aiOk.length})
           </button>
         </div>
-        <p className="pp-muted small">ตรวจสองชั้น: DeepSeek Pro และ DeepSeek Flash ทำข้อสอบโดยไม่เห็นเฉลย แล้ว DeepSeek Pro ตรวจเทียบกับเฉลย · ผ่านเฉพาะข้อที่ทั้งสองตอบตรงเฉลยและไม่มีใครติง</p>
+        <p className="pp-muted small">ตรวจสองชั้น: Gemini Pro และ Gemini Flash ทำข้อสอบโดยไม่เห็นเฉลย แล้ว Gemini Pro ตรวจเทียบกับเฉลย · ผ่านเฉพาะข้อที่ทั้งสองตอบตรงเฉลยและไม่มีใครติง</p>
         {ai && <div className="pp-bar"><div style={{ width: `${(100 * ai.done) / ai.total}%` }} /></div>}
         {bulk && <div className="pp-bar"><div style={{ width: `${(100 * bulk.done) / bulk.total}%` }} /></div>}
         {msg && !bulk && <div className="pp-success">{msg}</div>}

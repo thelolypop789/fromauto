@@ -1,12 +1,13 @@
-// Admin-only: "ตรวจด้วย AI" for up to 5 questions per call (แอดมิน → ข้อสอบรอตรวจ). DeepSeek only, two models so the
-// blind answers are independent: DeepSeek Pro and DeepSeek Flash answer blind, then DeepSeek Pro judges with the key
+// Admin-only: "ตรวจด้วย AI" for up to 5 questions per call (แอดมิน → ข้อสอบรอตรวจ). Gemini, two models so the
+// blind answers are independent: Gemini Pro and Gemini Flash answer blind, then Gemini Pro judges with the key
 // (rules in logic.ts). Body: { ids: number[] }. Questions are read and verdicts saved through admin RPCs called with
-// the admin's own token. Secret: DEEPSEEK_API_KEY. Optional: DEEPSEEK_MODEL (judge, default deepseek-v4-pro),
-// DEEPSEEK_SECOND_MODEL (second blind answer, default deepseek-flash; set it to "none" to run one model only).
+// the admin's own token. Secret: GEMINI_KEY (same as the other prep functions), called through Gemini's
+// OpenAI-compatible endpoint. Optional: PREP_REVIEW_MODEL (judge, default gemini-pro-latest),
+// PREP_REVIEW_SECOND_MODEL (second blind answer, default gemini-flash-latest; set it to "none" to run one model only).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
-  BLIND_SYSTEM, JUDGE_SYSTEM, blindPrompt, combine, costUSD, judgePrompt, parseJson, readBlind, readJudge, type Blind, type Q,
+  BLIND_SYSTEM, JUDGE_SYSTEM, blindPrompt, combine, judgePrompt, parseJson, readBlind, readJudge, type Blind, type Q,
 } from "./logic.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -16,13 +17,13 @@ const MAX_IDS = 5;
 type Provider = { name: string; url: string; key: string; model: string; extra: Record<string, unknown> };
 function providers(): Provider[] {
   const out: Provider[] = [];
-  const key = Deno.env.get("DEEPSEEK_API_KEY");
+  const key = Deno.env.get("GEMINI_KEY");
   if (!key) return out;
-  const url = "https://api.deepseek.com/chat/completions";
-  const extra = { thinking: { type: "enabled" }, reasoning_effort: "high" };
-  out.push({ name: "DeepSeek Pro", url, key, model: Deno.env.get("DEEPSEEK_MODEL") || "deepseek-v4-pro", extra });
-  const second = Deno.env.get("DEEPSEEK_SECOND_MODEL") || "deepseek-flash";
-  if (second !== "none") out.push({ name: "DeepSeek Flash", url, key, model: second, extra });
+  const url = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+  const extra = { reasoning_effort: "high" };
+  out.push({ name: "Gemini Pro", url, key, model: Deno.env.get("PREP_REVIEW_MODEL") || "gemini-pro-latest", extra });
+  const second = Deno.env.get("PREP_REVIEW_SECOND_MODEL") || "gemini-flash-latest";
+  if (second !== "none") out.push({ name: "Gemini Flash", url, key, model: second, extra });
   return out;
 }
 
@@ -36,7 +37,7 @@ const json = (data: unknown, status = 200) =>
 class Fatal extends Error {}
 
 // OpenAI-compatible chat call. Retries once on 429/5xx/timeouts and once more if the reply is not valid JSON.
-async function ask(p: Provider, system: string, user: string, spend: { usd: number }): Promise<unknown> {
+async function ask(p: Provider, system: string, user: string): Promise<unknown> {
   let last = "";
   for (let attempt = 0; attempt < 3; attempt++) {
     let res: Response;
@@ -53,12 +54,11 @@ async function ask(p: Provider, system: string, user: string, spend: { usd: numb
     if (!res.ok) {
       const msg = String(data?.error?.message ?? data?.message ?? res.statusText);
       if (res.status === 401 || res.status === 403) throw new Fatal(`${p.name}: คีย์ใช้งานไม่ได้ (${msg})`);
-      if (res.status === 402 || /insufficient|balance|quota|arrearage/i.test(msg)) throw new Fatal(`${p.name}: เครดิตหมดหรือเกินโควตา (${msg})`);
+      if (res.status === 402 || /insufficient|balance|billing|prepay|credit|spend/i.test(msg)) throw new Fatal(`${p.name}: เครดิตหมดหรือยังไม่ได้เปิด billing (${msg})`);
       last = `${p.name}: ${res.status} ${msg}`;
       if (res.status === 429 || res.status >= 500) continue;
       throw new Fatal(last);
     }
-    spend.usd += costUSD(p.model, data.usage, new Date());
     const text = String(data?.choices?.[0]?.message?.content ?? "");
     try { return parseJson(text); } catch { last = `${p.name}: ตอบไม่เป็น JSON`; }
   }
@@ -75,7 +75,7 @@ serve(async (req) => {
   if (adminErr || isAdmin !== true) return json({ error: "ไม่มีสิทธิ์แอดมิน" }, 403);
 
   const ps = providers();
-  if (!ps.length) return json({ error: "ยังไม่ได้ตั้งค่า DEEPSEEK_API_KEY ใน Supabase (Edge Functions → Secrets)" }, 503);
+  if (!ps.length) return json({ error: "ยังไม่ได้ตั้งค่า GEMINI_KEY ใน Supabase (Edge Functions → Secrets)" }, 503);
 
   const body = await req.json().catch(() => ({}));
   const ids = (Array.isArray(body.ids) ? body.ids : []).map(Number).filter(Number.isInteger).slice(0, MAX_IDS);
@@ -85,24 +85,23 @@ serve(async (req) => {
   const questions = (qs ?? []) as Q[];
   if (!questions.length) return json({ ok: true, results: [], saved: 0 });
 
-  const spend = { usd: 0 };
   try {
     // 1) blind answers, both models in parallel. A model that fails is reported as "did not answer".
-    const blindRaw = await Promise.allSettled(ps.map(p => ask(p, BLIND_SYSTEM, blindPrompt(questions), spend)));
+    const blindRaw = await Promise.allSettled(ps.map(p => ask(p, BLIND_SYSTEM, blindPrompt(questions))));
     const fatal = blindRaw.find(r => r.status === "rejected" && r.reason instanceof Fatal) as PromiseRejectedResult | undefined;
     if (fatal) return json({ error: (fatal.reason as Error).message }, 502);
     const blind: Record<string, Map<number, Blind>> = {};
     ps.forEach((p, i) => { const r = blindRaw[i]; blind[p.name] = r.status === "fulfilled" ? readBlind(questions, r.value) : new Map(); });
 
-    // 2) judge with the key: DeepSeek Pro.
-    const judgeRaw = await ask(ps[0], JUDGE_SYSTEM, judgePrompt(questions, blind), spend);
+    // 2) judge with the key: Gemini Pro.
+    const judgeRaw = await ask(ps[0], JUDGE_SYSTEM, judgePrompt(questions, blind));
     const judges = readJudge(questions, judgeRaw);
 
     const results = questions.map(q => combine(q, Object.fromEntries(ps.map(p => [p.name, blind[p.name].get(q.id)])), judges.get(q.id)));
     const model = ps.map(p => p.model).join(" + ");
     const { data: saved, error: saveErr } = await sb.rpc("prep_admin_ai_save", { p_items: results, p_model: model });
     if (saveErr) return json({ error: saveErr.message }, 500);
-    return json({ ok: true, model, saved, results, cost_usd: Math.round(spend.usd * 10000) / 10000 });
+    return json({ ok: true, model, saved, results });
   } catch (e) {
     return json({ error: (e as Error).message }, 502);
   }

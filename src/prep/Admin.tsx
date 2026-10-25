@@ -20,7 +20,6 @@ import AdminSubtopics from "./AdminSubtopics";
 import { AdminTrackContext, type AdminTrack } from "./adminTrack";
 import AdminTimes from "./AdminTimes";
 import { AdminSummaries } from "./Summary";
-import { MAPS } from "./summaries";
 
 type Stats = { users: number; paid: number; answered_today: number; active_today: number;
   questions: Record<string, number> | null; open_reports: number; keys_unused: number };
@@ -57,7 +56,7 @@ export default function Admin() {
   const loadCount = useCallback(() => { rpc<Stats>("prep_admin_stats").then(s => setOpen(s.open_reports)).catch(() => { /* badge only */ }); }, []);
   useEffect(loadCount, [loadCount]);
   const [drafts, setDrafts] = useState(0);
-  const loadDrafts = useCallback(() => { rpc<string[]>("prep_summary_approved").then(ids => setDrafts(MAPS.filter(m => !ids.includes(m.id)).length)).catch(() => { /* badge only */ }); }, []);
+  const loadDrafts = useCallback(() => { rpc<{ approved: boolean }[]>("prep_summary_list").then(cs => setDrafts(cs.filter(c => !c.approved).length)).catch(() => { /* badge only */ }); }, []);
   useEffect(loadDrafts, [loadDrafts]);
   const badge: Partial<Record<Tab, number>> = { orders: pending ?? 0, reports: open ?? 0, summaries: drafts };
   const groupBadge = (id: string) => GROUPS.find(g => g.id === id)!.tabs.reduce((n, [k]) => n + (badge[k] ?? 0), 0);

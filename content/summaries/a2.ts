@@ -1,4 +1,4 @@
-import type { MindMap } from "./types";
+import type { MindMap } from "../../src/prep/summaries/types";
 
 // ภาค ก · ภาษาอังกฤษ: grammar, vocabulary (two maps), conversation and reading.
 export const A2: MindMap[] = [

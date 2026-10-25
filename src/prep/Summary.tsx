@@ -3,13 +3,12 @@ import { rpc, thaiError, track } from "./api";
 import type { Preset } from "./CreateSet";
 import { IconCrown } from "./icons";
 import Mascot from "./Mascot";
-import { MAPS } from "./summaries";
 import { GROUPS, type Block, type Branch, type MindMap } from "./summaries/types";
 import "./summary.css";
 
 // "สรุปแบบแผนผัง": list of maps → one map (mascot hub + branches) → one branch's detail. Recall mode hides the value to
-// remember on each branch: tap once to reveal, tap again to mark it remembered. Users see only maps an admin approved;
-// without a ภาค ก package only the sample maps (one per group, `free`) open, the rest show a crown and the upgrade card.
+// remember on each branch: tap once to reveal, tap again to mark it remembered. The server decides what each user gets
+// (prep_summary_list / prep_summary_get): approved maps only, and without a ภาค ก package only the free sample per group.
 const SLOTS: Record<number, string[]> = {
   4: ["tl", "tr", "bl", "br"],
   5: ["tl", "tr", "ml", "mr", "bc"],
@@ -17,36 +16,55 @@ const SLOTS: Record<number, string[]> = {
 };
 const TONE: Record<string, string> = { pink: "#E8577A", mint: "#22A06B", sky: "#2F80ED", lem: "#C98A00", lil: "#7B5BD6", pea: "#E07A1F" };
 
-export default function Summary({ isAdmin, full, onPractice, onUpgrade }: {
-  isAdmin: boolean; full: boolean; onPractice: (p: Preset) => void; onUpgrade: () => void;
-}) {
-  const [approved, setApproved] = useState<Set<string> | null>(null);
-  const [error, setError] = useState("");
-  const [openId, setOpenId] = useState<string | null>(null);
-  const [locked, setLocked] = useState<MindMap | null>(null);
-  const canOpen = (m: MindMap) => full || isAdmin || !!m.free;
-  useEffect(() => {
-    rpc<string[]>("prep_summary_approved").then(ids => setApproved(new Set(ids))).catch(e => setError(thaiError(e)));
-  }, []);
-  const open = (id: string | null) => { setOpenId(id); window.scrollTo(0, 0); if (id) track("summary_view"); };
-  if (error) return <div className="pp-card"><div className="pp-error">{error}</div></div>;
-  if (!approved) return <div className="pp-spinner" />;
+// One card per map from prep_summary_list; the content comes from prep_summary_get only when the user may open it.
+type Card = { id: string; group: MindMap["group"]; free: boolean; title: string; icon: string; branches: number; tone: string; approved: boolean; locked: boolean };
 
-  const map = MAPS.find(m => m.id === openId && canOpen(m));
+// Loads the list, and one map on demand. `approve` flips a map's approval and updates the list in place.
+function useSummaries() {
+  const [cards, setCards] = useState<Card[] | null>(null);
+  const [error, setError] = useState("");
+  const [map, setMap] = useState<MindMap | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { rpc<Card[]>("prep_summary_list").then(setCards).catch(e => setError(thaiError(e))); }, []);
+  const load = async (id: string | null) => {
+    window.scrollTo(0, 0);
+    if (!id) { setMap(null); return; }
+    setBusy(true);
+    try { setMap(await rpc<MindMap>("prep_summary_get", { p_id: id })); track("summary_view"); }
+    catch (e) { alert(e instanceof Error && e.message === "summary_locked" ? "แผนผังนี้เปิดได้ด้วยแพ็กภาค ก หรือแพ็กครบทุกภาค" : thaiError(e)); }
+    setBusy(false);
+  };
+  const approve = async (id: string, ok: boolean) => {
+    try {
+      await rpc("prep_admin_summary_set", { p_id: id, p_ok: ok });
+      setCards(cs => cs?.map(c => (c.id === id ? { ...c, approved: ok } : c)) ?? cs);
+      return true;
+    } catch (e) { alert(thaiError(e)); return false; }
+  };
+  return { cards, error, map, busy, load, approve };
+}
+
+export default function Summary({ isAdmin, onPractice, onUpgrade }: { isAdmin: boolean; onPractice: (p: Preset) => void; onUpgrade: () => void }) {
+  const { cards, error, map, busy, load, approve } = useSummaries();
+  const [locked, setLocked] = useState<Card | null>(null);
+  if (error) return <div className="pp-card"><div className="pp-error">{error}</div></div>;
+  if (!cards || busy) return <div className="pp-spinner" />;
+
   if (map) {
-    return <MapView key={map.id} map={map} isAdmin={isAdmin} ok={approved.has(map.id)} onSetOk={ok => setApproval(map.id, ok, setApproved)}
-      onBack={() => open(null)} onPractice={() => onPractice({ topics: map.topics })} />;
+    const ok = cards.find(c => c.id === map.id)?.approved ?? false;
+    return <MapView key={map.id} map={map} isAdmin={isAdmin} ok={ok} onSetOk={v => approve(map.id, v)}
+      onBack={() => load(null)} onPractice={() => onPractice({ topics: map.topics })} />;
   }
 
-  const visible = MAPS.filter(m => isAdmin || approved.has(m.id));
+  const sample = cards.some(c => c.locked);   // free user: show the ฟรี / crown tags and the upgrade card
   return (
     <div className="mm">
       <div className="mm-intro">
         <Mascot mood="happy" costume="teacher" size={84} motion="idle" />
         <div><h2>สรุปแบบแผนผัง · ภาค ก</h2><p>อ่านภาพเดียวจบหมวด แล้วลองโหมดท่องจำ จำได้แล้วค่อยไปฝึกข้อสอบ</p></div>
       </div>
-      {isAdmin && <p className="pp-note small">แอดมินเห็นทุกแผนผัง ผู้ใช้เห็นเฉพาะแผนผังที่กด "ตรวจแล้ว" ({approved.size}/{MAPS.length}) · ผู้ใช้ฟรีเปิดได้เฉพาะป้าย "ฟรี"</p>}
-      {!full && !isAdmin && visible.length > 0 && (
+      {isAdmin && <p className="pp-note small">แอดมินเห็นทุกแผนผัง ผู้ใช้เห็นเฉพาะแผนผังที่ตรวจแล้ว ({cards.filter(c => c.approved).length}/{cards.length}) · ตรวจได้ที่ แอดมิน → ข้อสอบ → สรุปแผนผัง</p>}
+      {sample && (
         <div className={`mm-upsell ${locked ? "on" : ""}`}>
           <span className="cr"><IconCrown size={20} /></span>
           <div>
@@ -56,21 +74,21 @@ export default function Summary({ isAdmin, full, onPractice, onUpgrade }: {
           <button className="pp-btn pp-btn-primary sm" onClick={onUpgrade}>ดูแพ็ก</button>
         </div>
       )}
-      {!visible.length && <div className="pp-card pp-empty">กำลังเตรียมสรุปให้อยู่ เร็ว ๆ นี้</div>}
+      {!cards.length && <div className="pp-card pp-empty">กำลังเตรียมสรุปให้อยู่ เร็ว ๆ นี้</div>}
       {GROUPS.map(g => {
-        const ms = visible.filter(m => m.group === g.key);
+        const ms = cards.filter(c => c.group === g.key);
         if (!ms.length) return null;
         return (
           <section key={g.key} className="mm-group">
             <h3>{g.title}<small>{g.sub}</small></h3>
             <div className="mm-list">
-              {ms.map((m, i) => (
-                <button key={m.id} className={`mm-item t-${m.branches[i % m.branches.length].tone} ${canOpen(m) ? "" : "locked"}`}
-                  onClick={() => { if (canOpen(m)) open(m.id); else { setLocked(m); window.scrollTo({ top: 0, behavior: "smooth" }); } }}>
+              {ms.map(m => (
+                <button key={m.id} className={`mm-item t-${m.tone} ${m.locked ? "locked" : ""}`}
+                  onClick={() => { if (!m.locked) load(m.id); else { setLocked(m); window.scrollTo({ top: 0, behavior: "smooth" }); } }}>
                   <span className="ic">{m.icon}</span>
-                  {!full && (m.free ? <span className="tag free">ฟรี</span> : <span className="tag crown" aria-label="ปลดล็อกด้วยแพ็ก"><IconCrown size={13} /></span>)}
+                  {sample && (m.free ? <span className="tag free">ฟรี</span> : m.locked && <span className="tag crown" aria-label="ปลดล็อกด้วยแพ็ก"><IconCrown size={13} /></span>)}
                   <b>{m.title}</b>
-                  <small>{m.branches.length} กิ่ง{isAdmin && !approved.has(m.id) ? " · ร่าง" : ""}</small>
+                  <small>{m.branches} กิ่ง{isAdmin && !m.approved ? " · ร่าง" : ""}</small>
                 </button>
               ))}
             </div>
@@ -81,47 +99,31 @@ export default function Summary({ isAdmin, full, onPractice, onUpgrade }: {
   );
 }
 
-async function setApproval(id: string, ok: boolean, set: (f: (s: Set<string> | null) => Set<string>) => void) {
-  try {
-    await rpc("prep_admin_summary_set", { p_id: id, p_ok: ok });
-    set(prev => { const s = new Set(prev); if (ok) s.add(id); else s.delete(id); return s; });
-  } catch (e) { alert(thaiError(e)); }
-}
-
 // แอดมิน → ข้อสอบ → สรุปแผนผัง: every map with its status; open one to read it and approve or withdraw it.
 export function AdminSummaries({ onChanged }: { onChanged?: () => void }) {
-  const [approved, setApproved] = useState<Set<string> | null>(null);
-  const [error, setError] = useState("");
-  const [openId, setOpenId] = useState<string | null>(null);
-  useEffect(() => {
-    rpc<string[]>("prep_summary_approved").then(ids => setApproved(new Set(ids))).catch(e => setError(thaiError(e)));
-  }, []);
-  const set = (id: string, ok: boolean) => setApproval(id, ok, f => { const n = f(approved); setApproved(n); onChanged?.(); return n; });
+  const { cards, error, map, busy, load, approve } = useSummaries();
+  const set = async (id: string, ok: boolean) => { if (await approve(id, ok)) onChanged?.(); };
   if (error) return <div className="pp-card"><div className="pp-error">{error}</div></div>;
-  if (!approved) return <div className="pp-spinner" />;
-  const map = MAPS.find(m => m.id === openId);
-  if (map) return <MapView key={map.id} map={map} isAdmin ok={approved.has(map.id)} onSetOk={ok => set(map.id, ok)}
-    onBack={() => { setOpenId(null); window.scrollTo(0, 0); }} onPractice={() => { /* preview only */ }} />;
-  const drafts = MAPS.filter(m => !approved.has(m.id)).length;
+  if (!cards || busy) return <div className="pp-spinner" />;
+  if (map) return <MapView key={map.id} map={map} isAdmin ok={cards.find(c => c.id === map.id)?.approved ?? false} onSetOk={ok => set(map.id, ok)}
+    onBack={() => load(null)} onPractice={() => { /* preview only */ }} />;
+  const drafts = cards.filter(c => !c.approved).length;
   return (
     <div className="pp-card mm-admin-list">
-      <h3>สรุปแผนผัง · รอตรวจ {drafts} จาก {MAPS.length}</h3>
+      <h3>สรุปแผนผัง · รอตรวจ {drafts} จาก {cards.length}</h3>
       <p className="pp-muted small">เปิดอ่านทุกกิ่ง เทียบกับตัวบทกฎหมายหรือหลักสูตร แล้วกด "ตรวจแล้ว" ผู้ใช้จะเห็นเฉพาะแผนผังที่ตรวจแล้ว · หมวดที่มีป้าย ฟรี ผู้ใช้ฟรีเปิดได้ ควรตรวจก่อน</p>
       {GROUPS.map(g => (
         <div key={g.key}>
           <h4>{g.title}</h4>
-          {MAPS.filter(m => m.group === g.key).map(m => {
-            const ok = approved.has(m.id);
-            return (
-              <div key={m.id} className="mm-arow">
-                <span className="ic">{m.icon}</span>
-                <button className="pp-link" onClick={() => { setOpenId(m.id); window.scrollTo(0, 0); }}>{m.title}</button>
-                {m.free && <span className="pp-badge ok">ฟรี</span>}
-                <span className={`pp-badge ${ok ? "ok" : "warn"}`}>{ok ? "เปิดแล้ว" : "ร่าง"}</span>
-                <button className="pp-btn pp-btn-ghost sm" onClick={() => set(m.id, !ok)}>{ok ? "ซ่อน" : "ตรวจแล้ว"}</button>
-              </div>
-            );
-          })}
+          {cards.filter(c => c.group === g.key).map(m => (
+            <div key={m.id} className="mm-arow">
+              <span className="ic">{m.icon}</span>
+              <button className="pp-link" onClick={() => load(m.id)}>{m.title}</button>
+              {m.free && <span className="pp-badge ok">ฟรี</span>}
+              <span className={`pp-badge ${m.approved ? "ok" : "warn"}`}>{m.approved ? "เปิดแล้ว" : "ร่าง"}</span>
+              <button className="pp-btn pp-btn-ghost sm" onClick={() => set(m.id, !m.approved)}>{m.approved ? "ซ่อน" : "ตรวจแล้ว"}</button>
+            </div>
+          ))}
         </div>
       ))}
     </div>

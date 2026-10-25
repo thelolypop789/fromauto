@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { covers, rpc, supabase, thaiError, startPing, track, type Me, type MockPayload, type Profile, type Round, type SubmitResult } from "./api";
+import { rpc, supabase, thaiError, startPing, track, type Me, type MockPayload, type Profile, type Round, type SubmitResult } from "./api";
 import Login from "./Login";
 import Home from "./Home";
 import CreateSet, { type Preset } from "./CreateSet";
@@ -211,7 +211,7 @@ function PrepShell() {
           onOpen={payload => { setView(payload.submitted ? { name: "mockresult", payload } : { name: "mockplay", payload }); window.scrollTo(0, 0); }} />}
         {view.name === "mockresult" && <MockResult payload={view.payload} onBack={() => go("mock")} onReview={() => startReview("wrong")} />}
         {view.name === "calendar" && <Calendar onBack={() => go("home")} />}
-        {view.name === "summary" && <Summary isAdmin={me.is_admin} full={covers(me, ["A"])} onPractice={practice} onUpgrade={() => go("account")} />}
+        {view.name === "summary" && <Summary isAdmin={me.is_admin} onPractice={practice} onUpgrade={() => go("account")} />}
         {view.name === "stats" && <Stats me={me} profile={profile} onPractice={practice} />}
         {view.name === "account" && <Account me={me} email={session.user.email ?? ""} profile={profile} onMajor={setMajor} onProfile={changeProfile} onChanged={refreshMe} onNotifRead={clearUnread} />}
         {view.name === "admin" && me.is_admin && <Admin />}

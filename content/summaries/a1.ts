@@ -1,4 +1,4 @@
-import type { MindMap } from "./types";
+import type { MindMap } from "../../src/prep/summaries/types";
 
 // ภาค ก · ความสามารถในการคิดวิเคราะห์: formulas, shortcuts and worked examples of the problem types that come up most.
 export const A1: MindMap[] = [

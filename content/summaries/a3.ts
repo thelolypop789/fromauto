@@ -1,4 +1,4 @@
-import type { MindMap } from "./types";
+import type { MindMap } from "../../src/prep/summaries/types";
 
 // ภาค ก · ความรู้และลักษณะการเป็นข้าราชการที่ดี. Hot branches come from answer statistics (Oct 2026).
 // Every map is a draft until an admin checks it against the current text of the law.

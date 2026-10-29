@@ -70,8 +70,8 @@ export default function Summary({ isAdmin, onPractice, onPastSet, onUpgrade }: {
     return <MapView key={map.id} map={map} isAdmin={isAdmin} ok={ok} onSetOk={v => approve(map.id, v)} sub={sub}
       onSub={v => navigate(v.kind === "flash" ? `${base}/flash` : v.kind === "branch" ? `${base}/b/${v.id}` : base)}
       onSubBack={() => goBack(base)}
-      onBack={() => goBack("/prep/summary")} onPractice={() => onPractice({ topics: map.topics })}
-      past={past.filter(t => (t.groups[map.group] ?? 0) >= 5)} onPastSet={onPastSet} />;
+      onBack={() => goBack("/prep/summary")} onPractice={() => onPractice(map.subtopics?.length ? { topics: map.topics, subtopics: map.subtopics } : { topics: map.topics })}
+      past={map.group === "B3" ? [] : past.filter(t => (t.groups[map.group] ?? 0) >= 5)} onPastSet={onPastSet} />;
   }
 
   const sample = cards.some(c => c.locked);   // free user: show the ฟรี / crown tags and the upgrade card

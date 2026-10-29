@@ -40,8 +40,9 @@ export type Branch = {
 
 export type MindMap = {
   id: string;             // stable: prep.summary_approvals.id
-  group: "A3" | "A1" | "A2" | "B1" | "B2";
+  group: "A3" | "A1" | "A2" | "B1" | "B2" | "B3";   // B3: วิชาเอก, listed only to users whose major is in `topics`
   topics: string[];       // prep.topics codes for "ฝึกหมวดนี้"
+  subtopics?: string[];   // prep.subtopics codes: "ฝึกหมวดนี้" practises just these (a major split into topics)
   icon: string;
   title: string;          // page title
   hub: string;            // text in the hub cloud
@@ -57,4 +58,5 @@ export const GROUPS: { key: MindMap["group"]; title: string; sub: string }[] = [
   { key: "A2", title: "ภาค ก · ภาษาอังกฤษ", sub: "ไวยากรณ์ คำศัพท์ บทสนทนา การอ่าน" },
   { key: "B1", title: "ภาค ข · วิชาชีพครู", sub: "หลักสูตร การสอน จิตวิทยา วัดผล วิจัย จรรยาบรรณ" },
   { key: "B2", title: "ภาค ข · กฎหมายการศึกษา", sub: "พ.ร.บ. 7 ฉบับ และแผนการศึกษา" },
+  { key: "B3", title: "ภาค ข · วิชาเอกของคุณ", sub: "สรุปวิชาเอกแยกเป็นเรื่อง ตามผังข้อสอบ" },
 ];

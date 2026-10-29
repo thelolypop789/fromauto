@@ -41,6 +41,7 @@ Browser (React SPA, lazy chunk ต่อแอป)
 - ข้อความ UI และคอมเมนต์ธุรกิจเป็นภาษาไทย; แก้ `prep-import/index.ts` หรือ `logic.ts` แล้วรัน `python3 scripts/prep/bundle_import_fn.py` เพื่อสร้าง `deploy-single-file.ts` ใหม่
 - ฟังก์ชัน `prep_*` ต้องไม่เปิดให้ `anon` เรียก (ยกเว้น `prep_topics`); migration ใหม่ต้องคง RLS/grant นี้
 - migration schema รันซ้ำไม่ได้ — เพิ่มไฟล์ใหม่ อย่าแก้ไฟล์เก่า
+- หน้า landing `public/prep/welcome/index.html` แก้ด้วยมือ — `scripts/prep/gen_landing.py` ล้าสมัย รันแล้วจะทับเป็นดีไซน์เก่า; ตัวเลขคลังข้อสอบ/ราคาในหน้านี้ต้องอัปเดตเองจาก DB
 - ราคาจริงอยู่ใน DB (`prep.prices`); ค่าใน `config.ts` เป็น fallback; QR ราคาใหม่ทำด้วย `scripts/prep/make_qr.py`
 - ปัญหาที่รู้: `api/lib/sgsHelper.ts` ปิดตรวจ TLS (`NODE_TLS_REJECT_UNAUTHORIZED=0`); README ยังเป็น template Vite
 

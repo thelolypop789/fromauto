@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAdminTrack } from "./adminTrack";
+import AdminOverview from "./AdminOverview";
 import { PACKAGE_LABEL, TERM_LABEL, rpc, thaiError, type PackageKey } from "./api";
 
 type Dash = {
@@ -52,41 +53,6 @@ function DeletionRequests() {
   );
 }
 
-type Funnel = { since: string; events: Record<string, number>; submitted: number; approved: number; wall: { n: number; viewed: number; bought: number } };
-const STEPS: [string, string][] = [
-  ["free_limit", "ใช้ชุดฟรีครบ"], ["paywall_click", "กดดูแพ็กจากหน้าชุดฟรีครบ"], ["buy_view", "เปิดหน้าซื้อ"], ["pkg_select", "เลือกแพ็กเอง"],
-  ["qr_save", "บันทึกรูป QR"], ["slip_pick", "แนบสลิป"], ["submitted", "ส่งสลิปสำเร็จ"], ["approved", "อนุมัติแล้ว"],
-];
-
-// People per step from the free limit to an approved order (14 days). Shows where buyers drop out.
-function PayFunnel({ track }: { track: string | null }) {
-  const [f, setF] = useState<Funnel | null>(null);
-  useEffect(() => { rpc<Funnel>("prep_admin_pay_funnel", { p_days: 14, p_track: track }).then(setF).catch(() => setF(null)); }, [track]);
-  if (!f) return null;
-  const val = (k: string) => (k === "submitted" ? f.submitted : k === "approved" ? f.approved : f.events[k] ?? 0);
-  const top = Math.max(1, ...STEPS.map(([k]) => val(k)));
-  const pct = (a: number, b: number) => (b ? `${Math.round((100 * a) / b)}%` : "–");
-  return (
-    <div className="pp-card">
-      <h3>เส้นทางการซื้อ (14 วัน)</h3>
-      <div className="pp-funnel">
-        {STEPS.map(([k, label]) => (
-          <div key={k} className="pp-funnel-row">
-            <span>{label}</span>
-            <span className="pp-funnel-bar"><i style={{ width: `${(100 * val(k)) / top}%` }} /></span>
-            <b>{val(k).toLocaleString("th-TH")}</b>
-          </div>
-        ))}
-      </div>
-      <p className="pp-muted small">
-        คนที่ใช้ชุดฟรีครบ {f.wall.n} คน: เปิดหน้าซื้อต่อ {pct(f.wall.viewed, f.wall.n)} · ซื้อแล้ว {pct(f.wall.bought, f.wall.n)}
-        {(f.events.slip_fail ?? 0) > 0 ? ` · ส่งสลิปไม่สำเร็จ ${f.events.slip_fail} คน` : ""}
-      </p>
-      <p className="pp-muted small">นับคน ไม่นับครั้ง · แต่ละขั้นนับแยกกัน (บางคนซื้อโดยไม่เคยใช้ชุดฟรีครบ) · ขั้น “กดดูแพ็ก” ถึง “แนบสลิป” เริ่มเก็บตั้งแต่ 29 ต.ค. 2569</p>
-    </div>
-  );
-}
-
 // First tab of the admin area: what needs doing today, money, who is about to lose access, and the old counters.
 export default function AdminDashboard({ onGo }: { onGo: (tab: "orders" | "reports" | "review" | "users") => void }) {
   const track = useAdminTrack();
@@ -108,24 +74,24 @@ export default function AdminDashboard({ onGo }: { onGo: (tab: "orders" | "repor
 
   return (
     <>
-      <div className="pp-card">
-        <h3>ต้องทำวันนี้</h3>
-        {allClear && <p className="pp-muted">ไม่มีงานค้าง 🎉</p>}
-        <div className="pp-todo">
-          <button className={`pp-todo-item ${t.pending_orders ? (oldHours > 12 ? "bad" : "warn") : ""}`} onClick={() => onGo("orders")}>
+      {/* Work waiting: only what is non-zero, so a clear day is one quiet line. */}
+      <div className="pp-card pp-todo-card">
+        <h3>ต้องทำวันนี้{allClear && <span className="pp-muted small"> · ไม่มีงานค้าง 🎉</span>}</h3>
+        {!allClear && <div className="pp-todo">
+          {t.pending_orders > 0 && <button className={`pp-todo-item ${t.pending_orders ? (oldHours > 12 ? "bad" : "warn") : ""}`} onClick={() => onGo("orders")}>
             <b>{t.pending_orders}</b><span>คำสั่งซื้อรอตรวจ</span>
-            {t.pending_orders > 0 && <small>ค้างนานสุด {age(t.oldest_pending_at, now)}</small>}
-          </button>
-          <button className={`pp-todo-item ${t.open_reports ? "warn" : ""}`} onClick={() => onGo("reports")}>
+            <small>ค้างนานสุด {age(t.oldest_pending_at, now)}</small>
+          </button>}
+          {t.open_reports > 0 && <button className="pp-todo-item warn" onClick={() => onGo("reports")}>
             <b>{t.open_reports}</b><span>รายงานข้อสอบผิด</span>
-          </button>
-          <button className={`pp-todo-item ${t.review_queue ? "warn" : ""}`} onClick={() => onGo("review")}>
+          </button>}
+          {t.review_queue > 0 && <button className="pp-todo-item warn" onClick={() => onGo("review")}>
             <b>{t.review_queue.toLocaleString("th-TH")}</b><span>ข้อสอบรอตรวจ</span>
-          </button>
-          <div className={`pp-todo-item ${t.expiring_7d ? "warn" : ""}`}>
+          </button>}
+          {t.expiring_7d > 0 && <div className="pp-todo-item warn">
             <b>{t.expiring_7d}</b><span>แพ็กจะหมดใน 7 วัน</span>
-          </div>
-        </div>
+          </div>}
+        </div>}
         {d.expiring.length > 0 && (
           <div className="pp-expiring">
             <b>ควรทักไปต่ออายุ</b>
@@ -139,10 +105,10 @@ export default function AdminDashboard({ onGo }: { onGo: (tab: "orders" | "repor
 
       <DeletionRequests />
 
-      <PayFunnel track={track} />
+      <AdminOverview />
 
-      <div className="pp-card">
-        <h3>รายได้</h3>
+      <details className="pp-card pp-more">
+        <summary><h3>รายได้แยกแพ็ก & การตรวจสลิป</h3></summary>
         <div className="pp-kpis">
           <div className="pp-kpi"><b>{sum("today").toLocaleString("th-TH")}</b><span>วันนี้ (บาท)</span></div>
           <div className="pp-kpi"><b>{sum("last7").toLocaleString("th-TH")}</b><span>7 วัน</span></div>
@@ -164,11 +130,11 @@ export default function AdminDashboard({ onGo }: { onGo: (tab: "orders" | "repor
         {k
           ? <p className="pp-muted small">รวมคำสั่งซื้อในแอปที่อนุมัติแล้ว (ตามวันที่อนุมัติ) กับคีย์ที่ขายทาง LINE (ตามวันที่สร้าง จากราคาที่ใส่ตอนสร้าง) · คีย์ 30 วัน {k.last30.toLocaleString("th-TH")} บาท{k.unpriced_30d ? ` · คีย์ไม่มีราคา ${k.unpriced_30d} ใบ ไม่ได้นับ` : ""} · คีย์แจกฟรีไม่นับ</p>
           : <p className="pp-muted small">นับเฉพาะคำสั่งซื้อที่ซื้อในแอปและอนุมัติแล้ว (นับตามวันที่อนุมัติ เวลาไทย) แพ็กที่ให้ด้วยมือหรือขายด้วยคีย์ไม่มียอดเงินในระบบ จึงไม่นับ</p>}
-      </div>
+      </details>
 
       {s && (
-        <div className="pp-card">
-          <h3>ภาพรวมระบบ</h3>
+        <details className="pp-card pp-more">
+          <summary><h3>ตัวนับทั้งระบบ</h3></summary>
           <div className="pp-kpis">
             <div className="pp-kpi"><b>{s.users}</b><span>ผู้ใช้ทั้งหมด</span></div>
             <div className="pp-kpi"><b>{s.paid}</b><span>สมาชิกเสียเงิน</span></div>
@@ -178,7 +144,7 @@ export default function AdminDashboard({ onGo }: { onGo: (tab: "orders" | "repor
             <div className="pp-kpi"><b>{(s.questions?.approved ?? 0).toLocaleString("th-TH")}</b><span>ข้อสอบเผยแพร่</span></div>
             <div className="pp-kpi"><b>{s.keys_unused}</b><span>คีย์ที่ยังไม่ใช้</span></div>
           </div>
-        </div>
+        </details>
       )}
     </>
   );

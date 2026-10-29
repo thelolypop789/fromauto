@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { SECTIONS, rpc, thaiError } from "./api";
+import Skeleton from "./Skeleton";
 
 // groups: question count per subject group, e.g. { A3: 10 } (the topic code before the first "-")
 export type PastTag = { tag: string; section: "A" | "B"; n: number; covered: boolean; groups: Record<string, number> };
@@ -29,7 +30,7 @@ export default function PastExams({ onBack, onCreated, onUpgrade }: { onBack: ()
         <p className="pp-muted small">ข้อที่เรียบเรียงจากประเด็นที่เคยออกในสนามสอบแต่ละปี เป็นข้อสอบฝึก ไม่ใช่ข้อสอบฉบับจริง เฉลยตามกฎหมายและหลักสูตรปัจจุบัน</p>
       </div>
       {error && <div className="pp-error">{error}</div>}
-      {!tags && !error && <div className="pp-spinner" />}
+      {!tags && !error && <Skeleton kind="list" n={4} />}
       {tags && tags.length === 0 && <p className="pp-muted small">ยังไม่มีแนวข้อสอบเก่า ทีมงานกำลังเพิ่ม</p>}
       {tags && tags.length > 0 && (
         <div className="pp-modes pp-modes-home">

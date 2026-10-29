@@ -39,14 +39,14 @@ export default function RoundResult({ result: r, title, me, onStart, onHome, onU
       )}
       <div className="pp-col">
         {!r.cleared && <button className="pp-btn pp-btn-primary" onClick={() => onStart(r.set_id, "wrong")}>ทำเฉพาะข้อผิด ({r.wrong_count})</button>}
-        <button className={`pp-btn ${r.cleared ? "pp-btn-primary" : "pp-btn-ghost"}`} onClick={() => onStart(r.set_id, "full")}>ทำทั้งชุดใหม่ (สลับลำดับ)</button>
+        <button className={`pp-btn ${r.cleared ? "pp-btn-primary" : "pp-btn-ghost"}`} onClick={() => onStart(r.set_id, "full")}>ทำทั้งชุดอีกรอบ (สลับลำดับ)</button>
         <button className="pp-btn pp-btn-ghost" onClick={onHome}>กลับหน้าทำข้อสอบ</button>
       </div>
       {r.cleared && outOfFree && (
         <div className="pp-upsell">
           <b>อยากได้ข้อใหม่เพิ่ม?</b>
           <p>ใช้ชุดฟรีครบแล้ว อัปเกรดเพื่อสร้างชุดใหม่จากคลังได้ไม่จำกัด</p>
-          <button className="pp-btn pp-btn-gold" onClick={onUpgrade}><IconCrown size={20} />ดูวิธีอัปเกรด</button>
+          <button className="pp-btn pp-btn-gold" onClick={onUpgrade}><IconCrown size={20} />ดูแพ็ก</button>
         </div>
       )}
     </div>

@@ -29,12 +29,15 @@ import TrackPicker from "./TrackPicker";
 import "./prep.css";
 import { notify } from "./dialog";
 import { DialogHost } from "./DialogHost";
+import { applyReadScale } from "./readScale";
+import Skeleton from "./Skeleton";
 
 // Loaded on first open: the admin screens are for staff only, and the summaries bring their own font and styles.
 const Admin = lazy(() => import("./Admin"));
 const Summary = lazy(() => import("./Summary"));
 
 setupPwa();
+applyReadScale();
 
 // Screens and their URLs (router.ts). play / result / mockplay / mockresult show data held in memory: opened from a
 // refresh or a bookmark without it, they fall back to home (an open round can be resumed from there).
@@ -235,7 +238,7 @@ function PrepShell() {
         </div>
       </header>
       <main className="pp-main" key={reloadKey}>
-        <Suspense fallback={<div className="pp-spinner" />}>
+        <Suspense fallback={<Skeleton kind="cards" n={2} />}>
         {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onProfile={changeProfile} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onPast={() => go("past")} onCalendar={() => go("calendar")} onUpgrade={() => go("buy")} onStats={() => go("stats")} onBoard={() => go("board")} joined={session.user.created_at} />}
         {view.name === "create" && <CreateSet me={me} major={profile.major} preset={held.preset} onCancel={() => go("home")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} onUpgrade={() => go("buy")} />}

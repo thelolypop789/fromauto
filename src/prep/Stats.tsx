@@ -4,6 +4,7 @@ import type { Preset } from "./CreateSet";
 import { IconCheck, IconTarget, IconX } from "./icons";
 import Readiness from "./Readiness";
 import MajorSubtopics from "./MajorSubtopics";
+import Skeleton from "./Skeleton";
 
 type Props = { me: Me; profile?: Profile; onPractice: (preset?: Preset) => void };
 
@@ -120,7 +121,7 @@ export default function Stats({ me, profile, onPractice }: Props) {
   }, []);
 
   if (error) return <div className="pp-error">{error}</div>;
-  if (!d || !ins) return <div className="pp-spinner" />;
+  if (!d || !ins) return <Skeleton kind="cards" n={3} />;
 
   const canMakeSet = me.plan === "paid" || me.free_sets_used < me.free_sets_limit;
   const tried = d.topics.filter(t => t.n > 0);

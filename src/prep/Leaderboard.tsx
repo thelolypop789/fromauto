@@ -5,6 +5,7 @@ import { levelOf } from "./levels";
 import Mascot from "./Mascot";
 import { nf } from "./chartFormat";
 import { ask } from "./dialog";
+import Skeleton from "./Skeleton";
 
 type Period = "week" | "month" | "all";
 type Board = "xp" | "correct" | "answered" | "accuracy" | "streak" | "mock";
@@ -96,7 +97,7 @@ export default function Leaderboard({ onBack, isAdmin = false }: { onBack: () =>
         <p className="pp-muted small">{b.hint}{board === "accuracy" && data?.min_answers ? ` (ขั้นต่ำ ${data.min_answers} ข้อ)` : ""}{period === "week" && board !== "streak" ? " · สัปดาห์เริ่มวันจันทร์ รีเซ็ตทุกสัปดาห์" : ""}</p>
 
         {error && <div className="pp-error">{error}</div>}
-        {!data && !error && <div className="pp-spinner" />}
+        {!data && !error && <Skeleton kind="list" n={5} />}
         {data && data.rows.length === 0 && <p className="pp-muted">ยังไม่มีใครในอันดับนี้ ลองทำข้อสอบแล้วขึ้นอันดับเป็นคนแรกได้เลย</p>}
         {data && (
           <ol className="pp-lb-list">

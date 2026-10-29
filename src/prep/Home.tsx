@@ -12,6 +12,7 @@ import StudyPlan, { LineCard } from "./StudyPlan";
 import Mascot from "./Mascot";
 import LevelCard from "./LevelCard";
 import Readiness from "./Readiness";
+import Skeleton from "./Skeleton";
 
 type Props = {
   me: Me;
@@ -50,6 +51,14 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
   const freeLeft = Math.max(0, me.free_sets_limit - me.free_sets_used);
   const cleared = sets?.filter(s => s.cleared_at).length ?? 0;
   const resume = sets?.find(s => s.open_round);   // the list comes newest first
+  const streak = dash?.streak ?? 0;
+  const greeting = me.answered_today === 0
+    ? <>สวัสดี! วันนี้ยังไม่ได้ซ้อมเลย <button className="pp-link" onClick={onDaily}>ลองข้อสอบประจำวันสัก 10 ข้อ</button> กันไหม</>
+    : [3, 7, 14, 30, 60, 100].includes(streak) && me.answered_today > 0
+      ? <>ซ้อมต่อเนื่อง <b>{streak} วัน</b> แล้ว ไฟลุกโชนเลย 🔥</>
+      : me.answered_today >= 100
+        ? <>วันนี้ทำไปแล้ว <b>{me.answered_today.toLocaleString()} ข้อ</b> เก่งมาก พักสายตาบ้างนะ</>
+        : null;
 
   return (
     <>
@@ -58,7 +67,10 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
       {installSheet.open && <InstallSheet onClose={() => installSheet.setOpen(false)} />}
       <Announcement track={profile.track} joined={joined} />
 
-      {/* Order: what to do today first, then where you stand, then everything else. */}
+      {/* Order: what to do today first, then where you stand, then everything else. On a wide screen the side column
+          (readiness, level, study plan) sits next to the main one; on a phone both columns flow into one (prep.css). */}
+      <div className="pp-home">
+      <div className="pp-home-main">
       <section className="pp-hero">
         <div className="pp-hero-top">
           <div>
@@ -66,7 +78,7 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
             <div className="pp-big">{me.answered_today.toLocaleString()} <small>ข้อ</small></div>
           </div>
           {canCreate
-            ? <button className="pp-btn pp-btn-gold" onClick={() => onCreate()}><IconPlus />สร้างชุดใหม่</button>
+            ? <button className="pp-btn pp-btn-light" onClick={() => onCreate()}><IconPlus />สร้างชุดใหม่</button>
             : <button className="pp-btn pp-btn-gold" onClick={onUpgrade}><IconCrown size={20} />อัปเกรดเพื่อสร้างชุดใหม่</button>}
         </div>
         {resume?.open_round && (
@@ -87,18 +99,14 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
           <div><b>{me.plan === "paid" ? "∞" : freeLeft}</b><span>{me.plan === "paid" ? "สร้างได้" : "ชุดฟรีคงเหลือ"}</span></div>
         </div>
       </section>
-      <Readiness compact mini onMore={onStats} onPractice={canCreate ? onCreate : undefined} />
 
-      <div className="pp-greet">
-        <Mascot costume="teacher" mood="happy" size={72} />
-        <div className="pp-greet-bubble">
-          {me.answered_today === 0
-            ? <>สวัสดี! วันนี้ยังไม่ได้ซ้อมเลย <b>ลองข้อสอบประจำวันสัก 10 ข้อ</b> กันไหม</>
-            : me.answered_today < 30
-              ? <>วันนี้ทำไปแล้ว <b>{me.answered_today.toLocaleString()} ข้อ</b> ไฟเริ่มติดแล้ว ไปต่ออีกนิด!</>
-              : <>วันนี้ทำไปแล้ว <b>{me.answered_today.toLocaleString()} ข้อ</b> ไฟลุกโชนเลย 🔥 เก่งมาก</>}
+      {/* The mascot speaks only when it has something to say: nothing done yet today, or a milestone. */}
+      {greeting && (
+        <div className="pp-greet">
+          <Mascot costume="teacher" mood={me.answered_today === 0 ? "happy" : "cheer"} size={72} />
+          <div className="pp-greet-bubble">{greeting}</div>
         </div>
-      </div>
+      )}
 
       <div className="pp-h"><h2>เลือกฝึกตามภาค</h2><span className="pp-muted small">แตะหมวดเพื่อเริ่ม</span></div>
       <div className="pp-explore">
@@ -112,7 +120,10 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
               <div className="pp-sec-head">
                 <span className="pp-sec-badge">{SECTIONS[sec].short}</span>
                 <div className="pp-sec-t"><b>{SECTIONS[sec].name}</b><span className="pp-muted small">{dash ? `${avail.toLocaleString()} ข้อ · เคยเห็น ${seen}` : "…"}</span></div>
-                {n > 0 && <span className={`pp-pct ${Math.round(100 * c / n) >= PASS_PCT ? "ok" : "low"}`}>{Math.round(100 * c / n)}%</span>}
+                {n > 0 && (() => { const pct = Math.round(100 * c / n), pass = pct >= PASS_PCT; return (
+                  <span className={`pp-pct ${pass ? "ok" : "low"}`} title={`${pass ? "ผ่าน" : "ต่ำกว่า"}เกณฑ์ ${PASS_PCT}%`}>
+                    {pct}%<small>{pass ? "ผ่านเกณฑ์" : "ต่ำกว่าเกณฑ์"}</small>
+                  </span>); })()}
               </div>
               {SECTIONS[sec].groups.map(g => {
                 if (g === "B3") {
@@ -153,7 +164,7 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
       {!canCreate && <p className="pp-note">ใช้ชุดฟรีครบแล้ว — ทำซ้ำชุดเดิมด้านล่างได้ไม่จำกัด หรืออัปเกรดเพื่อสร้างชุดใหม่</p>}
 
       {error && <div className="pp-error">{error}</div>}
-      {sets === null && !error && <div className="pp-spinner" />}
+      {sets === null && !error && <Skeleton kind="grid" n={2} />}
 
       {sets && sets.length === 0 && (
         <div className="pp-card pp-empty">
@@ -194,7 +205,7 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
                     <button className="pp-btn pp-btn-primary" onClick={() => onStart(s.id, "wrong")}>ทำเฉพาะข้อผิด ({s.remaining})</button>
                   )}
                   <button className={`pp-btn ${played && !done ? "pp-btn-ghost" : "pp-btn-primary"}`} onClick={() => onStart(s.id, "full")}>
-                    {played ? "ทำทั้งชุดใหม่" : "เริ่มทำ"}
+                    {played ? "ทำทั้งชุดอีกรอบ" : "เริ่มทำ"}
                   </button>
                 </>
               )}
@@ -219,9 +230,14 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
       </div>
 
 
-      <LevelCard onBoard={onBoard} />
-      <StudyPlan answeredToday={me.answered_today} onCalendar={onCalendar} />
-      <LineCard />
+      </div>
+      <aside className="pp-home-side">
+        <div className="pp-home-ready"><Readiness compact mini onMore={onStats} onPractice={canCreate ? onCreate : undefined} /></div>
+        <LevelCard onBoard={onBoard} />
+        <StudyPlan answeredToday={me.answered_today} onCalendar={onCalendar} />
+        <LineCard />
+      </aside>
+      </div>
 
     </>
   );

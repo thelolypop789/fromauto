@@ -3,6 +3,8 @@ import { rpc, thaiError, type Daily } from "./api";
 import { IconBack, IconCheck, IconNext, IconX } from "./icons";
 import ScoreDist from "./ScoreDist";
 import { useSinceShown } from "./timing";
+import TextSize from "./TextSize";
+import Skeleton from "./Skeleton";
 
 const LABELS = ["ก", "ข", "ค", "ง"];
 
@@ -23,7 +25,7 @@ export default function DailyQuiz({ onBack }: { onBack: () => void }) {
   }, []);
 
   if (error) return <div className="pp-card"><div className="pp-error">{error}</div><button className="pp-btn pp-btn-ghost" onClick={onBack}><IconBack />กลับ</button></div>;
-  if (!data || pos === null) return <div className="pp-center"><div className="pp-spinner" /></div>;
+  if (!data || pos === null) return <Skeleton kind="question" />;
 
   const item = data.items[pos];
   const answered = data.items.filter(i => i.picked != null).length;
@@ -50,12 +52,13 @@ export default function DailyQuiz({ onBack }: { onBack: () => void }) {
         <div className="pp-card pp-daily-done">
           <h3>วันนี้ได้ {data.score}/{data.total} ข้อ</h3>
           <p className="pp-muted">ทำครบต่อเนื่อง {data.streak} วัน · วันนี้มีคนทำแล้ว {data.players.toLocaleString()} คน · พรุ่งนี้มีชุดใหม่ 10 ข้อ</p>
-          <button className="pp-btn pp-btn-gold" onClick={onBack}><IconBack />กลับหน้าแรก</button>
+          <button className="pp-btn pp-btn-primary" onClick={onBack}><IconBack />กลับหน้าแรก</button>
         </div>
       )}
       {data.done && <ScoreDist kind="daily" />}
 
       <div className="pp-card pp-q">
+        <div className="pp-q-head"><TextSize /></div>
         <div className="pp-q-stem"><span className="pp-q-no">{pos + 1}.</span> {item.stem}</div>
         <div className="pp-choices">
           {item.choices.map((text, c) => {

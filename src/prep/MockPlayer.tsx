@@ -4,6 +4,7 @@ import { IconBack, IconFlag, IconGrid, IconNext } from "./icons";
 import { useSinceShown } from "./timing";
 import { ask } from "./dialog";
 import { useTopicNames } from "./topicNames";
+import TextSize from "./TextSize";
 
 const LABELS = ["ก", "ข", "ค", "ง"];
 const mmss = (s: number) => `${Math.floor(s / 3600) ? Math.floor(s / 3600) + ":" : ""}${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
@@ -89,6 +90,7 @@ export default function MockPlayer({ payload, onDone, onExit }: Props) {
           <div className="pp-q-head">
             {topics[item.topic] && <div className="pp-q-topic">{topics[item.topic]}</div>}
             {item.tag && <div className="pp-q-tag">{item.tag}</div>}
+            <TextSize />
             <button className={`pp-report-btn ${flags.has(pos) ? "done" : ""}`} onClick={flag}><IconFlag size={14} />{flags.has(pos) ? "ทำเครื่องหมายแล้ว" : "กลับมาดูทีหลัง"}</button>
           </div>
           <div className="pp-q-stem"><span className="pp-q-no">{pos + 1}.</span> {item.stem}</div>
@@ -110,8 +112,8 @@ export default function MockPlayer({ payload, onDone, onExit }: Props) {
           <button className="pp-btn pp-btn-ghost" disabled={pos === 0} onClick={() => setPos(pos - 1)}><IconBack />ก่อนหน้า</button>
           {pos < total - 1
             ? <button className="pp-btn pp-btn-primary" onClick={() => setPos(pos + 1)}>ข้อต่อไป<IconNext /></button>
-            : <button className="pp-btn pp-btn-gold" disabled={busy} onClick={finish}>ส่งข้อสอบ</button>}
-          {pos < total - 1 && <button className="pp-btn pp-btn-gold" disabled={busy} onClick={finish}>ส่ง</button>}
+            : <button className="pp-btn pp-btn-primary" disabled={busy} onClick={finish}>ส่งข้อสอบ</button>}
+          {pos < total - 1 && <button className="pp-btn pp-btn-outline" disabled={busy} onClick={finish}>ส่ง</button>}
         </div>
       </footer>
     </div>

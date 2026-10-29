@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { rpc, thaiError } from "./api";
 import { DOW, KIND_LABEL, MONTHS, bkkToday, pad, status, when, type CalEvent } from "./calendarUtil";
 import "./calendar.css";
+import Skeleton from "./Skeleton";
 
 // Page for signed-in users. Top: every coming date with its details, in order. Below: a month grid; tap a day to read what is on it.
 export default function Calendar({ onBack }: { onBack: () => void }) {
@@ -24,7 +25,7 @@ export default function Calendar({ onBack }: { onBack: () => void }) {
     <>
       <button className="pp-link" onClick={onBack}>‹ กลับ</button>
       {error && <div className="pp-error">{error}</div>}
-      {!events && !error && <div className="pp-spinner" />}
+      {!events && !error && <Skeleton kind="list" n={3} />}
       {events && (
         <>
           <div className="pp-card">

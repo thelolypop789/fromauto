@@ -19,7 +19,7 @@ export default function InstallBanner({ always = false }: { always?: boolean }) 
         <b>เพิ่มซ้อมสอบไว้บนหน้าจอโฮม</b>
         แตะไอคอนเดียวก็เข้าซ้อมได้ เต็มจอเหมือนแอป
       </div>
-      <button className="pp-btn pp-btn-gold" onClick={() => setSheet(true)}><IconDownload size={18} />ติดตั้ง</button>
+      <button className="pp-btn pp-btn-primary" onClick={() => setSheet(true)}><IconDownload size={18} />ติดตั้ง</button>
       {!always && <button className="pp-x" onClick={dismiss} aria-label="ปิด"><IconX /></button>}
       {sheet && <InstallSheet onClose={() => setSheet(false)} />}
     </div>

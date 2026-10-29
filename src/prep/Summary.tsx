@@ -9,6 +9,7 @@ import { mapCards, type Card as FlashCard } from "./summaries/cards";
 import { GROUPS, type Block, type Branch, type MindMap } from "./summaries/types";
 import "./summary.css";
 import { notify } from "./dialog";
+import Skeleton from "./Skeleton";
 
 // "สรุปแบบแผนผัง": list of maps → one map (mascot hub + branches) → one branch's detail. Recall mode hides the value to
 // remember on each branch: tap once to reveal, tap again to mark it remembered. The server decides what each user gets
@@ -60,7 +61,7 @@ export default function Summary({ isAdmin, onPractice, onPastSet, onUpgrade }: {
   const [sec, setSec] = useState<"A" | "B" | null>(() => { try { const v = localStorage.getItem("mm-sec"); return v === "A" || v === "B" ? v : null; } catch { return null; } });
   useEffect(() => { rpc<PastTag[]>("prep_past_tags").then(setPast).catch(() => setPast([])); }, []);
   if (error) return <div className="pp-card"><div className="pp-error">{error}</div></div>;
-  if (!cards || busy) return <div className="pp-spinner" />;
+  if (!cards || busy) return <Skeleton kind={routeId ? "cards" : "grid"} n={routeId ? 2 : 6} />;
 
   if (map && map.id === routeId) {
     const ok = cards.find(c => c.id === map.id)?.approved ?? false;
@@ -216,7 +217,7 @@ function MapView({ map, isAdmin, ok, onSetOk, sub, onSub, onSubBack, onBack, onP
         {recall
           ? <button className="mm-btn g" onClick={done ? () => { setRecall(false); restart(); } : restart}>{done ? "กลับแผนผัง" : "🔁 ทวนใหม่"}</button>
           : <button className="mm-btn g" onClick={() => { restart(); setRecall(true); }}>🧠 โหมดท่องจำ</button>}
-        <button className={`mm-btn ${done ? "gold" : "p"}`} onClick={onPractice}>✏️ ฝึกข้อสอบหมวดนี้</button>
+        <button className="mm-btn p" onClick={onPractice}>✏️ ฝึกข้อสอบหมวดนี้</button>
       </div>
       {!recall && cards.length > 0 && (
         <button className="mm-btn g mm-flash-open" onClick={() => { onSub({ kind: "flash" }); window.scrollTo(0, 0); }}>🃏 แฟลชการ์ด · {cards.length} ใบ</button>
@@ -375,7 +376,7 @@ function FlashView({ map, cards, onBack, onPractice }: { map: MindMap; cards: Fl
           <p>{again ? `ทวนซ้ำไป ${again} ครั้ง ลองอีกรอบแบบสลับการ์ดดูไหม` : "รอบเดียวผ่านหมด เก่งมาก"}</p>
           <div className="mm-btns">
             <button className="mm-btn g" onClick={restart}>🔀 อีกรอบ</button>
-            <button className="mm-btn gold" onClick={onPractice}>✏️ ฝึกข้อสอบหมวดนี้</button>
+            <button className="mm-btn p" onClick={onPractice}>✏️ ฝึกข้อสอบหมวดนี้</button>
           </div>
         </div>
       )}

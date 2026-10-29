@@ -98,7 +98,7 @@ export default function Readiness({ compact = false, mini = false, onPractice, o
 
   if (mini && !open) return (
     <button className={`pp-card pp-rx-mini lv-${level}`} onClick={() => setOpen(true)} aria-expanded="false" aria-label={`ความพร้อมสอบ ${Math.round(d.overall)}% ${VERDICT[level]} แตะเพื่อดูเพิ่ม`}>
-      <span className="pp-rx-mini-pct"><b className={tone(d.overall)}>{Math.round(d.overall)}%</b><small>พร้อมสอบ</small></span>
+      <span className="pp-rx-mini-pct"><b className={tone(d.overall)}>{Math.round(d.overall)}%</b><small>{VERDICT[level]}</small></span>
       <span className="pp-rx-mini-secs">
         {d.sections.map(s => (
           <span key={s.section} className="pp-rx-mini-sec">
@@ -107,6 +107,7 @@ export default function Readiness({ compact = false, mini = false, onPractice, o
             <b className={tone(s.pct)}>{Math.round(s.pct)}%</b>
           </span>
         ))}
+        <span className="pp-rx-mini-cap"><i aria-hidden="true" />= เกณฑ์ผ่าน {PASS_PCT}%</span>
       </span>
       <span className="pp-rx-mini-more" aria-hidden="true">▾</span>
     </button>

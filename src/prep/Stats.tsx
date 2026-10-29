@@ -97,10 +97,13 @@ function Meter({ label, c, n, sub, action }: { label: ReactNode; c: number; n: n
   );
 }
 
+// First-try accuracy of one part against the pass line. It used to say "พร้อมสอบ" from 10 answers, which could disagree
+// with the readiness card above (the one score that weighs topics and memory); this only says whether accuracy is above
+// the line, and waits for 30 answers.
+const VERDICT_N = 30;
 function Verdict({ p, n }: { p: number; n: number }) {
-  if (n < MIN_N) return <span className="pp-verdict wait">ข้อมูลยังน้อย</span>;
-  if (p >= 75) return <span className="pp-verdict ok"><IconCheck size={14} />พร้อมสอบ</span>;
-  if (p >= PASS_PCT) return <span className="pp-verdict mid"><IconCheck size={14} />ผ่านเกณฑ์</span>;
+  if (n < VERDICT_N) return <span className="pp-verdict wait">ข้อมูลยังน้อย</span>;
+  if (p >= PASS_PCT) return <span className="pp-verdict ok"><IconCheck size={14} />สูงกว่าเกณฑ์</span>;
   return <span className="pp-verdict low"><IconX size={14} />ต่ำกว่าเกณฑ์</span>;
 }
 
@@ -177,6 +180,7 @@ export default function Stats({ me, profile, onPractice }: Props) {
                 <div key={sec} className="pp-card pp-ready-c">
                   <div className="pp-ready-h"><span className="pp-sec-badge sm">{SECTIONS[sec].short}</span><b>{SECTIONS[sec].name}</b></div>
                   <div className="pp-ready-n"><span className="pp-big">{n ? `${p}%` : "–"}</span><Verdict p={p} n={n} /></div>
+                  <span className="pp-muted small">ถูกตั้งแต่ครั้งแรก {n} ข้อ · ความพร้อมสอบดูที่การ์ดด้านบน</span>
                   <div className="pp-bar thin pass"><div className={tone(p)} style={{ width: `${n ? p : 0}%` }} /></div>
                   <div className="pp-ready-g">
                     <span><b>{s?.seen ?? 0}</b>/{s?.available ?? 0}<br />เคยเห็น</span>

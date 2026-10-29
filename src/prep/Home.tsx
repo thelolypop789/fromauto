@@ -87,9 +87,11 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
           </button>
         )}
         <div className="pp-hero-today">
-          <button disabled={!counts || counts.due === 0} onClick={() => onReview("due")}>
+          {/* Spaced review was barely used (8 in 10 due items overdue), and a wrong answer met again a week later is right
+              only half the time: when items are due, this is the first thing on the card. One round is at most 30. */}
+          <button className={counts && counts.due > 0 ? "hot" : ""} disabled={!counts || counts.due === 0} onClick={() => onReview("due")}>
             <b>ทบทวนวันนี้{counts ? ` · ${counts.due}` : ""}</b>
-            <small>{counts && counts.due === 0 ? "ยังไม่มีข้อถึงรอบ" : "ข้อที่ผิดมา ถึงรอบทวน"}</small>
+            <small>{counts && counts.due === 0 ? "ยังไม่มีข้อถึงรอบ" : counts && counts.due > 30 ? "ข้อที่ผิดมา ถึงรอบทวน · รอบละ 30 ข้อ" : "ข้อที่ผิดมา ถึงรอบทวน ช่วยให้จำได้นาน"}</small>
           </button>
           <button onClick={onDaily}><b>ข้อสอบประจำวัน</b><small>10 ข้อ · ฟรี</small></button>
         </div>

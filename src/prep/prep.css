@@ -1443,6 +1443,7 @@ div.pp-todo-item { cursor: default; }
   border: 1.5px solid rgba(251, 233, 180, .55); background: rgba(255, 255, 255, .12); color: #fff; font: inherit; cursor: pointer; }
 .pp-hero-today b { font-size: 14.5px; }
 .pp-hero-today small { font-size: 12px; color: #F8E7B0; }
+.pp-hero-today button.hot { border-color: var(--pp-gold-bright); background: rgba(243, 217, 138, .2); box-shadow: 0 0 0 2px rgba(243, 217, 138, .35); }
 .pp-hero-today button:disabled { opacity: .55; cursor: default; }
 .pp-hero-today button:active:not(:disabled) { transform: translateY(1px); }
 
@@ -1514,3 +1515,9 @@ div.pp-todo-item { cursor: default; }
 .pp-pkg-prices em { font-style: normal; font-size: 12px; font-weight: 600; color: var(--pp-ok-ink); }
 .pp-pkg-more { margin: 6px 0 4px; }
 .pp-pkg-more summary { cursor: pointer; font-weight: 600; color: var(--pp-brand-ink); padding: 8px 0; }
+
+/* "ข้อต่อไป" waits a moment after a wrong answer (Player.tsx): the button fills, then works */
+.pp-btn-primary.pp-hold:disabled { position: relative; overflow: hidden; isolation: isolate; opacity: 1; background: var(--pp-primary-deep); color: rgba(255, 255, 255, .8); }
+.pp-btn-primary.pp-hold::before { content: ""; position: absolute; inset: 0; z-index: -1; transform-origin: left; background: var(--pp-primary); animation: pp-hold-fill var(--hold) linear forwards; }
+@keyframes pp-hold-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .pp-btn-primary.pp-hold::before { animation: none; } }

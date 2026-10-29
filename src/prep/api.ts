@@ -274,7 +274,7 @@ export type Progress = {
   streak: number; best_streak: number; active_days: number; practiced_today: boolean;
 };
 export type Readiness = {
-  has_major: boolean; answered: number; overall: number | null;
+  has_major: boolean; answered: number; overall: number | null; margin?: number;   // rough ± of overall
   sections: { section: "A" | "B"; pct: number; n: number; subjects: { code: string; name: string; questions: number; pct: number; n: number }[] }[];
   focus: { code: string; sub: string | null; name: string; subject: string; w: number; pct: number; n: number }[];
   subject_focus?: Record<string, { code: string; sub: string | null; name: string }>;

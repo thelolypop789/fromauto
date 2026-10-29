@@ -282,6 +282,7 @@ function KeysTab() {
   const [days, setDays] = useState(90);
   const [until, setUntil] = useState("");
   const [free, setFree] = useState(false);
+  const [amount, setAmount] = useState("");   // price of each key, for the revenue on the dashboard
   const [fresh, setFresh] = useState<string[]>([]);
   const [error, setError] = useState("");
   const load = useCallback(() => { rpc<KeyRow[]>("prep_admin_list_keys").then(setRows).catch(e => setError(thaiError(e))); }, []);
@@ -289,13 +290,15 @@ function KeysTab() {
 
   const create = async () => {
     if (term === "until" && !until) { alert("เลือกวันที่หมดอายุ"); return; }
+    if (!free && !amount && !confirm("ไม่ได้ใส่ราคา ยอดนี้จะไม่นับในรายได้บนหน้าสรุป สร้างต่อไหม?")) return;
     if (!note.trim() && !confirm("ไม่ได้ใส่หมายเหตุ (ชื่อผู้ซื้อ/ยอดโอน) สร้างต่อไหม?")) return;
     try {
       setFresh(await rpc<string[]>("prep_admin_create_package_keys", {
         p_count: count, p_note: note.trim() || null, p_package: pkg,
         p_duration_days: term === "days" ? days : null, p_expires_on: term === "until" ? until : null, p_free: free,
+        p_amount: !free && amount ? Number(amount) : null,
       }));
-      setNote(""); load();
+      setNote(""); setAmount(""); load();
     } catch (e) { alert(thaiError(e)); }
   };
   const revoke = async (id: number) => {
@@ -330,6 +333,7 @@ function KeysTab() {
           <input type="checkbox" checked={free} onChange={e => setFree(e.target.checked)} />
           <span>แจกฟรี (ไม่นับเป็นสมาชิกที่จ่ายเงินในตัวเลขภาพรวม)</span>
         </label>
+        {!free && <input className="pp-input" type="number" inputMode="numeric" min={0} placeholder="ราคาต่อคีย์ (บาท) เช่น 99 · ใช้นับรายได้" value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g, ""))} />}
         <input className="pp-input" placeholder={free ? "หมายเหตุ: แจกให้ใคร / เพราะอะไร" : "หมายเหตุ: ชื่อผู้ซื้อ / อีเมล / ยอด / เวลาโอน"} value={note} onChange={e => setNote(e.target.value)} />
         <div className="pp-row">
           <input className="pp-input" type="number" min={1} max={50} value={count} onChange={e => setCount(Number(e.target.value) || 1)} style={{ width: 90 }} />

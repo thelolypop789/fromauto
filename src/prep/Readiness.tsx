@@ -134,7 +134,7 @@ export default function Readiness({ compact = false, mini = false, onPractice, o
           </div>
           <p className="pp-rx-note small">
             คาดคะแนนจากความแม่นและการจำระยะยาวแต่ละหมวด ถ่วงตามผังข้อสอบ หมวดที่ไม่ได้ทบทวนนานจะค่อยๆ ลดลง ·{" "}
-            {rough ? <b className="pp-rd-rough">ข้อมูลยังน้อย ({d.answered} ข้อ) ทำเพิ่มอีก {MIN_ANSWERS - d.answered} ข้อผลจะแม่นขึ้น</b> : `จาก ${d.answered.toLocaleString("th-TH")} ข้อที่ทำ`}
+            {rough ? <b className="pp-rd-rough">ข้อมูลยังน้อย ({d.answered} ข้อ) ทำเพิ่มอีก {MIN_ANSWERS - d.answered} ข้อผลจะแม่นขึ้น</b> : `จาก ${d.answered.toLocaleString("th-TH")} ข้อที่ทำ${d.margin ? ` (คลาดได้ราว ±${d.margin})` : ""}`}
             {!d.has_major && " · ยังไม่ได้เลือกวิชาเอก จึงยังไม่รวมวิชาเอก"}
           </p>
 

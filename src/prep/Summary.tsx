@@ -22,6 +22,13 @@ const SLOTS: Record<number, string[]> = {
 const TONE: Record<string, string> = { pink: "#E8577A", mint: "#22A06B", sky: "#2F80ED", lem: "#C98A00", lil: "#7B5BD6", pea: "#E07A1F" };
 
 // One card per map from prep_summary_list; the content comes from prep_summary_get only when the user may open it.
+// Tabs on the list: ภาค ก, ภาค ข, and the user's major on its own tab (its maps are listed only to that major).
+type Tab = "A" | "B" | "M";
+const TABS: { key: Tab; label: string; groups: MindMap["group"][] }[] = [
+  { key: "A", label: "ภาค ก", groups: ["A3", "A1", "A2"] },
+  { key: "B", label: "ภาค ข", groups: ["B1", "B2"] },
+  { key: "M", label: "วิชาเอก", groups: ["B3"] },
+];
 type Card = { id: string; group: MindMap["group"]; free: boolean; title: string; icon: string; branches: number; tone: string; approved: boolean; locked: boolean };
 
 // Loads the list, and one map on demand. `approve` flips a map's approval and updates the list in place.
@@ -58,7 +65,7 @@ export default function Summary({ isAdmin, onPractice, onPastSet, onUpgrade }: {
   useEffect(() => { if (routeId !== (map?.id ?? "")) load(routeId || null); }, [routeId]); // eslint-disable-line react-hooks/exhaustive-deps
   const [locked, setLocked] = useState<Card | null>(null);
   const [past, setPast] = useState<PastTag[]>([]);
-  const [sec, setSec] = useState<"A" | "B" | null>(() => { try { const v = localStorage.getItem("mm-sec"); return v === "A" || v === "B" ? v : null; } catch { return null; } });
+  const [sec, setSec] = useState<Tab | null>(() => { try { const v = localStorage.getItem("mm-sec"); return v === "A" || v === "B" || v === "M" ? v : null; } catch { return null; } });
   useEffect(() => { rpc<PastTag[]>("prep_past_tags").then(setPast).catch(() => setPast([])); }, []);
   if (error) return <div className="pp-card"><div className="pp-error">{error}</div></div>;
   if (!cards || busy) return <Skeleton kind={routeId ? "cards" : "grid"} n={routeId ? 2 : 6} />;
@@ -75,11 +82,12 @@ export default function Summary({ isAdmin, onPractice, onPastSet, onUpgrade }: {
   }
 
   const sample = cards.some(c => c.locked);   // free user: show the ฟรี / crown tags and the upgrade card
-  // ภาค ก / ภาค ข tabs. Until the user picks one (remembered on this device), open the ภาค their package covers.
-  const has = (k: string) => cards.some(c => c.group.startsWith(k));
-  const auto = has("B") && !cards.some(c => c.group.startsWith("A") && !c.locked) && cards.some(c => c.group.startsWith("B") && !c.locked) ? "B" : "A";
-  const shown = sec && has(sec) ? sec : auto;
-  const pick = (k: "A" | "B") => { setSec(k); try { localStorage.setItem("mm-sec", k); } catch { /* private mode */ } };
+  // ภาค ก / ภาค ข / วิชาเอก tabs. Until the user picks one (remembered on this device), open the ภาค their package covers.
+  const tabs = TABS.filter(t => cards.some(c => t.groups.includes(c.group)));
+  const inTab = (k: Tab) => cards.filter(c => TABS.find(t => t.key === k)!.groups.includes(c.group));
+  const auto: Tab = tabs.some(t => t.key === "B") && !inTab("A").some(c => !c.locked) && inTab("B").some(c => !c.locked) ? "B" : "A";
+  const shown: Tab = sec && tabs.some(t => t.key === sec) ? sec : auto;
+  const pick = (k: Tab) => { setSec(k); try { localStorage.setItem("mm-sec", k); } catch { /* private mode */ } };
   return (
     <div className="mm">
       <div className="mm-intro">
@@ -92,22 +100,22 @@ export default function Summary({ isAdmin, onPractice, onPastSet, onUpgrade }: {
           <span className="cr"><IconCrown size={20} /></span>
           <div>
             <b>{locked ? `ปลดล็อก "${locked.title}"` : "ลองฟรีได้วิชาละ 1 หมวด"}</b>
-            <p>{locked ? `เปิดได้ด้วยแพ็กภาค ${locked.group.startsWith("B") ? "ข" : "ก"} หรือแพ็กครบทุกภาค` : "หมวดที่มีมงกุฎ เปิดได้ด้วยแพ็กของภาคนั้น หรือแพ็กครบทุกภาค"}</p>
+            <p>{locked ? `เปิดได้ด้วยแพ็กภาค ${locked.group.startsWith("B") ? "ข + วิชาเอก" : "ก"} หรือแพ็กครบทุกภาค` : "หมวดที่มีมงกุฎ เปิดได้ด้วยแพ็กของภาคนั้น หรือแพ็กครบทุกภาค"}</p>
           </div>
           <button className="pp-btn pp-btn-primary sm" onClick={onUpgrade}>ดูแพ็ก</button>
         </div>
       )}
       {!cards.length && <div className="pp-card pp-empty">กำลังเตรียมสรุปให้อยู่ เร็ว ๆ นี้</div>}
-      {has("A") && has("B") && (
+      {tabs.length > 1 && (
         <div className="pp-seg mm-sec" role="tablist" aria-label="เลือกภาค">
-          {(["A", "B"] as const).map(k => (
-            <button key={k} role="tab" aria-selected={shown === k} className={shown === k ? "on" : ""} onClick={() => pick(k)}>
-              ภาค {k === "A" ? "ก" : "ข"} <small>{cards.filter(c => c.group.startsWith(k)).length} หมวด</small>
+          {tabs.map(t => (
+            <button key={t.key} role="tab" aria-selected={shown === t.key} className={shown === t.key ? "on" : ""} onClick={() => pick(t.key)} aria-label={`${t.label} ${inTab(t.key).length} หมวด`}>
+              {t.label} <small>{inTab(t.key).length}</small>
             </button>
           ))}
         </div>
       )}
-      {GROUPS.filter(g => g.key.startsWith(shown)).map(g => {
+      {GROUPS.filter(g => TABS.find(t => t.key === shown)!.groups.includes(g.key)).map(g => {
         const ms = cards.filter(c => c.group === g.key);
         if (!ms.length) return null;
         return (
@@ -194,7 +202,7 @@ function MapView({ map, isAdmin, ok, onSetOk, sub, onSub, onSubBack, onBack, onP
       <button className="pp-link small" onClick={onBack}>← สรุปทั้งหมด</button>
       <div className="mm-head">
         <h2>{map.title}</h2>
-        <p><span className="mm-chip">{map.group.startsWith("B") ? "ภาค ข" : "ภาค ก"}</span>{recall ? "นึกให้ออกก่อน แล้วแตะ ? เพื่อดูเฉลย · แตะอีกครั้งถ้าจำได้" : map.intro ?? "แตะกิ่งไหนก็ได้ เพื่อดูรายละเอียด"}</p>
+        <p><span className="mm-chip">{map.group === "B3" ? "วิชาเอก" : map.group.startsWith("B") ? "ภาค ข" : "ภาค ก"}</span>{recall ? "นึกให้ออกก่อน แล้วแตะ ? เพื่อดูเฉลย · แตะอีกครั้งถ้าจำได้" : map.intro ?? "แตะกิ่งไหนก็ได้ เพื่อดูรายละเอียด"}</p>
       </div>
       {isAdmin && (
         <div className={`mm-admin ${ok ? "ok" : ""}`}>
@@ -340,7 +348,7 @@ function FlashView({ map, cards, onBack, onPractice }: { map: MindMap; cards: Fl
       <button className="pp-link small" onClick={onBack}>← {map.title}</button>
       <div className="mm-head">
         <h2>🃏 แฟลชการ์ด</h2>
-        <p><span className="mm-chip">{map.group.startsWith("B") ? "ภาค ข" : "ภาค ก"}</span>นึกคำตอบก่อน แล้วแตะการ์ดเพื่อพลิกดู</p>
+        <p><span className="mm-chip">{map.group === "B3" ? "วิชาเอก" : map.group.startsWith("B") ? "ภาค ข" : "ภาค ก"}</span>นึกคำตอบก่อน แล้วแตะการ์ดเพื่อพลิกดู</p>
       </div>
       <div className="mm-prog">
         <span>จำได้</span>

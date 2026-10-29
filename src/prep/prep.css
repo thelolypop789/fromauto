@@ -1333,9 +1333,10 @@ div.pp-todo-item { cursor: default; }
 .pp-rx-tabs button { min-height: 36px; padding: 0 14px; border: 0; border-radius: 99px; background: none; font: inherit; font-size: 14px; font-weight: 700; color: var(--pp-muted); white-space: nowrap; cursor: pointer; }
 .pp-rx-tabs button.on { background: var(--pp-primary); color: #fff; }
 .pp-rx .pp-rd-head { flex-wrap: wrap; align-items: center; }
-.pp-rx-slides { display: flex; align-items: flex-start; transition: height .3s ease; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
-.pp-rx-slides::-webkit-scrollbar { display: none; }
-.pp-rx-slide { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; }
+.pp-rx-slides { touch-action: pan-y; }
+.pp-rx-slide { animation: rx-slide-in .25s ease; }
+.pp-rx-slide[hidden] { display: none; }
+@keyframes rx-slide-in { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
 .pp-rx-dots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; position: relative; }
 .pp-rx-dots i { width: 8px; height: 8px; border-radius: 99px; background: rgba(255, 255, 255, .6); box-shadow: 0 0 0 1px rgba(0, 0, 0, .12); transition: width .2s; }
 .pp-rx-dots i.on { width: 22px; background: var(--pp-card); }
@@ -1350,7 +1351,7 @@ div.pp-todo-item { cursor: default; }
 .pp-rs-bar { height: 8px; border-radius: 99px; background: var(--pp-surface-2); overflow: hidden; }
 .pp-rs-bar > div { height: 100%; border-radius: 99px; background: var(--sg); transition: width .8s ease; }
 .pp-rs-txt small { font-size: 12px; line-height: 1.45; color: var(--pp-muted); }
-@media (prefers-reduced-motion: reduce) { .pp-rs-bar > div, .pp-rx-dots i, .pp-rx-slides { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .pp-rs-bar > div, .pp-rx-dots i { transition: none; } .pp-rx-slide { animation: none; } }
 
 /* admin: read-only view of a user's analysis page (AdminUserView.tsx) */
 .pp-viewas { position: fixed; inset: 0; z-index: 70; display: flex; flex-direction: column; background: var(--pp-bg); }

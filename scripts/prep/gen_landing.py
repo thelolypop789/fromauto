@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Generate the public marketing landing page: public/prep/welcome/index.html (static; the only script remembers ?src= for the sign-up source report).
 
+OUTDATED: the live page has since been redesigned and is now edited by hand. Running this script overwrites it
+with the older design, so edit public/prep/welcome/index.html directly instead.
+
 Prices and counts here are copied by hand from src/prep/config.ts / the live prep.prices table — update this file
 (and rerun) when the admin changes prices. Run: python3 scripts/prep/gen_landing.py
 """

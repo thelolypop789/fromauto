@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type TouchEvent } from "react";
 import { PASS_PCT, SECTIONS, rpc, track, type Readiness as Data } from "./api";
 import type { Preset } from "./CreateSet";
 import Mascot, { type Costume, type Mood } from "./Mascot";
@@ -59,31 +59,17 @@ export default function Readiness({ compact = false, mini = false, onPractice, o
   const [d, setD] = useState<Data | null>(null);
   // mini: Home shows one strip (score, verdict, ภาค ก/ข bars) and opens the compact card on tap.
   const [open, setOpen] = useState(false);
-  // Two slides in one card: the exam score and the six practice signals. Swipe, or tap the tabs.
+  // Two slides in one card: the exam score and the six practice signals. Tap the tabs, or swipe sideways.
+  // Only the slide on screen is shown, so the card is as tall as its content and an up/down swipe always scrolls
+  // the page (a horizontal scroller here used to trap vertical swipes and cut off the bottom of the slide).
   const [slide, setSlide] = useState(0);
-  const slides = useRef<HTMLDivElement>(null);
-  // While a tab click is scrolling, ignore scroll events until the scroll ends (or 700 ms pass).
-  const jumping = useRef(0);
-  const goTo = (k: number) => {
-    const el = slides.current; if (!el) return;
-    setSlide(k);
-    window.clearTimeout(jumping.current);
-    jumping.current = window.setTimeout(() => { jumping.current = 0; }, 700);
-    el.scrollTo({ left: k * el.clientWidth, behavior: "smooth" });
-  };
-  // The card takes the height of the slide on screen, so the shorter slide leaves no empty sky below it.
-  useLayoutEffect(() => {
-    const el = slides.current; const cur = el?.children[slide] as HTMLElement | undefined;
-    if (!el || !cur) return;
-    const fit = () => { el.style.height = `${cur.offsetHeight}px`; };
-    fit();
-    const ro = new ResizeObserver(fit); ro.observe(cur);
-    return () => ro.disconnect();
-  }, [slide, d]);
-  const onScroll = () => {
-    const el = slides.current;
-    if (jumping.current || !el || !el.clientWidth) return;
-    setSlide(Math.round(el.scrollLeft / el.clientWidth));
+  const touch = useRef<{ x: number; y: number } | null>(null);
+  const onTouchStart = (e: TouchEvent) => { const t = e.touches[0]; touch.current = { x: t.clientX, y: t.clientY }; };
+  const onTouchEnd = (e: TouchEvent) => {
+    const s0 = touch.current; touch.current = null;
+    if (!s0 || !d?.signals) return;
+    const t = e.changedTouches[0], dx = t.clientX - s0.x, dy = t.clientY - s0.y;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) setSlide(dx < 0 ? 1 : 0);
   };
   useEffect(() => { rpc<Data>("prep_readiness").then(r => { setD(r); if (r.overall != null) track("readiness_view"); }).catch(() => setD(null)); }, []);
   if (!d || d.overall == null) return null;
@@ -122,15 +108,15 @@ export default function Readiness({ compact = false, mini = false, onPractice, o
             {d.signals
               ? <div className="pp-rx-tabs" role="tablist" aria-label="มุมมองความพร้อม">
                   {["ความพร้อมสอบ", compact ? "6 สัญญาณ" : "6 สัญญาณความพร้อม"].map((t, k) => (
-                    <button key={k} role="tab" aria-selected={slide === k} className={slide === k ? "on" : ""} onClick={() => goTo(k)}>{t}</button>
+                    <button key={k} role="tab" aria-selected={slide === k} className={slide === k ? "on" : ""} onClick={() => setSlide(k)}>{t}</button>
                   ))}
                 </div>
               : <h3>ความพร้อมสอบ</h3>}
             {mini && <button className="pp-link small" onClick={() => setOpen(false)}>ย่อ ▴</button>}
             {onMore && <button className="pp-link small" onClick={onMore}>ดูรายละเอียด →</button>}
           </div>
-          <div className="pp-rx-slides" ref={slides} onScroll={onScroll}>
-          <div className="pp-rx-slide" role="tabpanel" aria-label="ความพร้อมสอบ" inert={slide !== 0 ? true : undefined}>
+          <div className="pp-rx-slides" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+          <div className="pp-rx-slide" role="tabpanel" aria-label="ความพร้อมสอบ" hidden={slide !== 0}>
           <div className="pp-rx-main">
             <div className="pp-rx-hero">
               <ReadinessGauge pct={d.overall} tone={tone(d.overall)} label={VERDICT[level]} aria={`ความพร้อมสอบ ${Math.round(d.overall)}% ${VERDICT[level]} เกณฑ์ผ่าน ${PASS_PCT}%`} />
@@ -148,7 +134,7 @@ export default function Readiness({ compact = false, mini = false, onPractice, o
           </div>
           <p className="pp-rx-note small">
             คาดคะแนนจากความแม่นและการจำระยะยาวแต่ละหมวด ถ่วงตามผังข้อสอบ หมวดที่ไม่ได้ทบทวนนานจะค่อยๆ ลดลง ·{" "}
-            {rough ? <b className="pp-rd-rough">ข้อมูลยังน้อย ({d.answered} ข้อ) ทำเพิ่มอีก {MIN_ANSWERS - d.answered} ข้อผลจะแม่นขึ้น</b> : `จาก ${d.answered.toLocaleString("th-TH")} ข้อที่ทำ`}
+            {rough ? <b className="pp-rd-rough">ข้อมูลยังน้อย ({d.answered} ข้อ) ทำเพิ่มอีก {MIN_ANSWERS - d.answered} ข้อผลจะแม่นขึ้น</b> : `จาก ${d.answered.toLocaleString("th-TH")} ข้อที่ทำ${d.margin ? ` (คลาดได้ราว ±${d.margin})` : ""}`}
             {!d.has_major && " · ยังไม่ได้เลือกวิชาเอก จึงยังไม่รวมวิชาเอก"}
           </p>
 
@@ -165,7 +151,7 @@ export default function Readiness({ compact = false, mini = false, onPractice, o
           )}
           </div>
           {d.signals && (
-            <div className="pp-rx-slide" role="tabpanel" aria-label="6 สัญญาณความพร้อม" inert={slide !== 1 ? true : undefined}>
+            <div className="pp-rx-slide" role="tabpanel" aria-label="6 สัญญาณความพร้อม" hidden={slide !== 1}>
               <ReadinessSignals s={d.signals} compact={compact} onMock={onMock} />
             </div>
           )}

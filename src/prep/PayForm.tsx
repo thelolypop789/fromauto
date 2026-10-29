@@ -83,6 +83,7 @@ export default function PayForm({ email, onApproved, initial = null }: {
   const price = amount ? `${amount} บาท` : "";
   const qr = amount ? SHOP.qrByAmount[amount] || SHOP.qrImage : "";
   const fixed = !!(amount && SHOP.qrByAmount[amount]);
+  const pending = orders.filter(o => o.status === "pending").length;
   const offers = (quotes ?? []).filter(x => x.kind === "upgrade" && !x.error && x.package === "ALL");
 
   useEffect(() => {
@@ -97,7 +98,7 @@ export default function PayForm({ email, onApproved, initial = null }: {
   const pick = (f: File | undefined) => {
     if (!f) return;
     if (f.size > 15 * 1024 * 1024) { setMsg({ ok: false, text: "ไฟล์ใหญ่เกินไป" }); return; }
-    setFile(f); setMsg(null);
+    setFile(f); setMsg(null); track("slip_pick");
     setPreview(URL.createObjectURL(f));
   };
 
@@ -117,7 +118,7 @@ export default function PayForm({ email, onApproved, initial = null }: {
       setFile(null); setPreview(""); setNote(""); setSeats(1); setApplied(""); setPromoText("");
       try { localStorage.removeItem("pp-promo"); } catch { /* ignore */ }
       load();
-    } catch (e) { setMsg({ ok: false, text: thaiError(e) }); }
+    } catch (e) { setMsg({ ok: false, text: thaiError(e) }); track("slip_fail"); }
     setBusy(false);
   };
 
@@ -136,13 +137,18 @@ export default function PayForm({ email, onApproved, initial = null }: {
           </div>
         </div>
       )}
+      {pending > 0 && (
+        <div className="pp-note pp-pending">
+          <b>มีสลิปรอตรวจ {pending} รายการ ไม่ต้องส่งซ้ำ</b> ทีมงานจะเปิดสิทธิ์ให้เมื่อตรวจเสร็จ (ปกติไม่กี่นาทีถึงไม่กี่ชั่วโมง) ดูสถานะได้ด้านล่าง
+        </div>
+      )}
       <label className="small pp-muted"><span className="pp-step">1</span>เลือกแพ็ก</label>
       <div className="pp-seg">
-        {PACKAGES.map(p => <button key={p.key} className={pkg === p.key ? "on" : ""} onClick={() => setChoice({ pkg: p.key, term })}>{PACKAGE_LABEL[p.key]}</button>)}
+        {PACKAGES.map(p => <button key={p.key} className={pkg === p.key ? "on" : ""} onClick={() => { setChoice({ pkg: p.key, term }); track("pkg_select"); }}>{PACKAGE_LABEL[p.key]}</button>)}
       </div>
       <div className="pp-seg">
         {(["round", "lifetime"] as const).map(t => (
-          <button key={t} className={term === t ? "on" : ""} onClick={() => setChoice({ pkg, term: t })}>
+          <button key={t} className={term === t ? "on" : ""} onClick={() => { setChoice({ pkg, term: t }); track("pkg_select"); }}>
             {TERM_LABEL[t]} · {(() => {
               const x = quoteOf(pkg, t);
               if (!x) return "…";
@@ -205,7 +211,7 @@ export default function PayForm({ email, onApproved, initial = null }: {
             <b>{PACKAGE_LABEL[pkg]} · {TERM_LABEL[term]}</b>
             <span>{fixed ? `QR นี้ล็อกยอด ${price} ไว้แล้ว สแกนแล้วกดยืนยันได้เลย` : `ใส่ยอด ${price || "ตามแพ็ก"} เอง`}</span>
             <span className="pp-muted small">เปิดบนมือถือ? กดบันทึกรูป QR แล้วเลือก "สแกนจากรูป" ในแอปธนาคาร</span>
-            <a className="pp-btn pp-btn-outline" href={qr} download={`QR-${PACKAGE_LABEL[pkg]}-${TERM_LABEL[term]}.png`}>บันทึกรูป QR</a>
+            <a className="pp-btn pp-btn-outline" href={qr} download={`QR-${PACKAGE_LABEL[pkg]}-${TERM_LABEL[term]}.png`} onClick={() => track("qr_save")}>บันทึกรูป QR</a>
           </div>
         </div>
       )}

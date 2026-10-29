@@ -9,6 +9,7 @@ type Dash = {
     avg_review_minutes_30d: number | null; upgrade_orders_30d: number; upgrade_amount_30d: number;
     by_package: { package: PackageKey; term: "round" | "lifetime"; orders: number; amount: number }[];
   };
+  keys?: { today: number; last7: number; last30: number; month: number; unpriced_30d: number };
   expiring: { email: string | null; package: PackageKey; expires_at: string }[];
 };
 type Stats = { users: number; paid: number; free_members?: number; answered_today: number; active_today: number; questions: Record<string, number> | null; open_reports: number; keys_unused: number };
@@ -51,6 +52,41 @@ function DeletionRequests() {
   );
 }
 
+type Funnel = { since: string; events: Record<string, number>; submitted: number; approved: number; wall: { n: number; viewed: number; bought: number } };
+const STEPS: [string, string][] = [
+  ["free_limit", "ใช้ชุดฟรีครบ"], ["paywall_click", "กดดูแพ็กจากหน้าชุดฟรีครบ"], ["buy_view", "เปิดหน้าซื้อ"], ["pkg_select", "เลือกแพ็กเอง"],
+  ["qr_save", "บันทึกรูป QR"], ["slip_pick", "แนบสลิป"], ["submitted", "ส่งสลิปสำเร็จ"], ["approved", "อนุมัติแล้ว"],
+];
+
+// People per step from the free limit to an approved order (14 days). Shows where buyers drop out.
+function PayFunnel({ track }: { track: string | null }) {
+  const [f, setF] = useState<Funnel | null>(null);
+  useEffect(() => { rpc<Funnel>("prep_admin_pay_funnel", { p_days: 14, p_track: track }).then(setF).catch(() => setF(null)); }, [track]);
+  if (!f) return null;
+  const val = (k: string) => (k === "submitted" ? f.submitted : k === "approved" ? f.approved : f.events[k] ?? 0);
+  const top = Math.max(1, ...STEPS.map(([k]) => val(k)));
+  const pct = (a: number, b: number) => (b ? `${Math.round((100 * a) / b)}%` : "–");
+  return (
+    <div className="pp-card">
+      <h3>เส้นทางการซื้อ (14 วัน)</h3>
+      <div className="pp-funnel">
+        {STEPS.map(([k, label]) => (
+          <div key={k} className="pp-funnel-row">
+            <span>{label}</span>
+            <span className="pp-funnel-bar"><i style={{ width: `${(100 * val(k)) / top}%` }} /></span>
+            <b>{val(k).toLocaleString("th-TH")}</b>
+          </div>
+        ))}
+      </div>
+      <p className="pp-muted small">
+        คนที่ใช้ชุดฟรีครบ {f.wall.n} คน: เปิดหน้าซื้อต่อ {pct(f.wall.viewed, f.wall.n)} · ซื้อแล้ว {pct(f.wall.bought, f.wall.n)}
+        {(f.events.slip_fail ?? 0) > 0 ? ` · ส่งสลิปไม่สำเร็จ ${f.events.slip_fail} คน` : ""}
+      </p>
+      <p className="pp-muted small">นับคน ไม่นับครั้ง · แต่ละขั้นนับแยกกัน (บางคนซื้อโดยไม่เคยใช้ชุดฟรีครบ) · ขั้น “กดดูแพ็ก” ถึง “แนบสลิป” เริ่มเก็บตั้งแต่ 29 ต.ค. 2569</p>
+    </div>
+  );
+}
+
 // First tab of the admin area: what needs doing today, money, who is about to lose access, and the old counters.
 export default function AdminDashboard({ onGo }: { onGo: (tab: "orders" | "reports" | "review" | "users") => void }) {
   const track = useAdminTrack();
@@ -64,7 +100,9 @@ export default function AdminDashboard({ onGo }: { onGo: (tab: "orders" | "repor
   }, [track]);
   if (error) return <div className="pp-error">{error}</div>;
   if (!d) return <div className="pp-spinner" />;
-  const t = d.todo, r = d.revenue;
+  const t = d.todo, r = d.revenue, k = d.keys;
+  // Orders plus keys sold by hand (LINE), when the server reports them.
+  const sum = (x: "today" | "last7" | "last30" | "month") => r[x] + (k?.[x] ?? 0);
   const oldHours = t.oldest_pending_at ? (now - new Date(t.oldest_pending_at).getTime()) / 3_600_000 : 0;
   const allClear = !t.pending_orders && !t.open_reports && !t.review_queue && !t.expiring_7d;
 
@@ -101,13 +139,15 @@ export default function AdminDashboard({ onGo }: { onGo: (tab: "orders" | "repor
 
       <DeletionRequests />
 
+      <PayFunnel track={track} />
+
       <div className="pp-card">
         <h3>รายได้</h3>
         <div className="pp-kpis">
-          <div className="pp-kpi"><b>{r.today.toLocaleString("th-TH")}</b><span>วันนี้ (บาท)</span></div>
-          <div className="pp-kpi"><b>{r.last7.toLocaleString("th-TH")}</b><span>7 วัน</span></div>
-          <div className="pp-kpi"><b>{r.last30.toLocaleString("th-TH")}</b><span>30 วัน</span></div>
-          <div className="pp-kpi"><b>{r.month.toLocaleString("th-TH")}</b><span>เดือนนี้</span></div>
+          <div className="pp-kpi"><b>{sum("today").toLocaleString("th-TH")}</b><span>วันนี้ (บาท)</span></div>
+          <div className="pp-kpi"><b>{sum("last7").toLocaleString("th-TH")}</b><span>7 วัน</span></div>
+          <div className="pp-kpi"><b>{sum("last30").toLocaleString("th-TH")}</b><span>30 วัน</span></div>
+          <div className="pp-kpi"><b>{sum("month").toLocaleString("th-TH")}</b><span>เดือนนี้</span></div>
         </div>
         <p className="pp-muted small">
           คำสั่งซื้อ 30 วัน: ส่งมา {r.submitted_30d} · อนุมัติ {r.approved_30d} · ปฏิเสธ {r.rejected_30d}
@@ -121,7 +161,9 @@ export default function AdminDashboard({ onGo }: { onGo: (tab: "orders" | "repor
             ))}
           </div>
         )}
-        <p className="pp-muted small">นับเฉพาะคำสั่งซื้อที่ซื้อในแอปและอนุมัติแล้ว (นับตามวันที่อนุมัติ เวลาไทย) แพ็กที่ให้ด้วยมือหรือขายด้วยคีย์ไม่มียอดเงินในระบบ จึงไม่นับ</p>
+        {k
+          ? <p className="pp-muted small">รวมคำสั่งซื้อในแอปที่อนุมัติแล้ว (ตามวันที่อนุมัติ) กับคีย์ที่ขายทาง LINE (ตามวันที่สร้าง จากราคาที่ใส่ตอนสร้าง) · คีย์ 30 วัน {k.last30.toLocaleString("th-TH")} บาท{k.unpriced_30d ? ` · คีย์ไม่มีราคา ${k.unpriced_30d} ใบ ไม่ได้นับ` : ""} · คีย์แจกฟรีไม่นับ</p>
+          : <p className="pp-muted small">นับเฉพาะคำสั่งซื้อที่ซื้อในแอปและอนุมัติแล้ว (นับตามวันที่อนุมัติ เวลาไทย) แพ็กที่ให้ด้วยมือหรือขายด้วยคีย์ไม่มียอดเงินในระบบ จึงไม่นับ</p>}
       </div>
 
       {s && (

@@ -42,6 +42,17 @@ export default function Player({ round, onExit, onSubmitted }: Props) {
     if (a) { dwell.current = { idx: a.idx, ms: Math.round(performance.now() - a.t) }; answeredAt.current = null; }
   }, [item.idx]);
 
+  // After a wrong answer the explanation stays up for a moment before "ข้อต่อไป" works: people spent a median of 4 s on
+  // it, and 4 in 10 under 3 s. The button fills while it waits.
+  const HOLD_MS = 2000;
+  const [hold, setHold] = useState<number | null>(null);
+  useEffect(() => {
+    if (hold == null) return;
+    const id = window.setTimeout(() => setHold(null), HOLD_MS);
+    return () => window.clearTimeout(id);
+  }, [hold]);
+  const holding = hold === item.idx;
+
   const pick = async (choice: number) => {
     if (busy || item.picked != null) return;
     setBusy(true); setError("");
@@ -55,6 +66,7 @@ export default function Player({ round, onExit, onSubmitted }: Props) {
       answeredAt.current = { idx: item.idx, t: performance.now() };
       setItems(prev => prev.map(i => i.idx === item.idx
         ? { ...i, picked: r.picked, correct: r.correct, answer: r.answer, explanation: r.explanation, law_ref: r.law_ref } : i));
+      if (!r.correct && r.explanation) setHold(item.idx);
     } catch (e) {
       setError(thaiError(e));
     }
@@ -94,7 +106,7 @@ export default function Player({ round, onExit, onSubmitted }: Props) {
     if (reporting || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.metaKey || e.ctrlKey || e.altKey) return;
     const d = "1234".indexOf(e.key) >= 0 ? "1234".indexOf(e.key) : LABELS.indexOf(e.key);
     if (d >= 0 && item.picked == null) { e.preventDefault(); pick(order[d]); return; }
-    if ((e.key === "Enter" || e.key === "ArrowRight") && item.picked != null) {
+    if ((e.key === "Enter" || e.key === "ArrowRight") && item.picked != null && !holding) {
       e.preventDefault();
       if (allDone) { if (e.key === "Enter") submit(); } else next();
     }
@@ -192,7 +204,7 @@ export default function Player({ round, onExit, onSubmitted }: Props) {
           {allDone
             ? <button className="pp-btn pp-btn-primary" disabled={busy} onClick={submit}>ส่งรอบนี้ ดูผล</button>
             : item.picked != null
-              ? <button className="pp-btn pp-btn-primary" onClick={next}>ข้อต่อไป<IconNext /></button>
+              ? <button className={`pp-btn pp-btn-primary ${holding ? "pp-hold" : ""}`} disabled={holding} onClick={next} style={{ ["--hold" as string]: `${HOLD_MS}ms` }}>ข้อต่อไป<IconNext /></button>
               : <button className="pp-btn pp-btn-outline" onClick={submit} disabled={busy}>ส่งเลย</button>}
         </div>
       </footer>

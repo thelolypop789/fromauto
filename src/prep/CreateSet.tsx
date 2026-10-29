@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { GROUPS, PACKAGE_LABEL, SECTIONS, covers, rpc, thaiError, track, type Me, type Quote, type Subtopic, type Topic } from "./api";
-import { IconCrown } from "./icons";
+import FreeWall from "./FreeWall";
 import Skeleton from "./Skeleton";
 
 export type Preset = { section?: "A" | "B"; topics?: string[]; subtopics?: string[]; mode?: "new" | "weak" | "mixed" };
@@ -105,15 +105,7 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
     }
   };
 
-  if (me.plan !== "paid" && quotaLeft <= 0) {
-    return (
-      <div className="pp-card pp-empty">
-        <h3>ใช้ชุดฟรีครบ 3 ชุดแล้ว</h3>
-        <p className="pp-muted">ชุดเดิมยังทำซ้ำได้ไม่จำกัด หรืออัปเกรดเพื่อสร้างชุดใหม่ได้ไม่จำกัด</p>
-        <button className="pp-btn pp-btn-gold" onClick={onUpgrade}><IconCrown size={20} />ดูแพ็ก</button>
-      </div>
-    );
-  }
+  if (me.plan !== "paid" && quotaLeft <= 0) return <FreeWall />;
 
   return (
     <div className="pp-card pp-create">

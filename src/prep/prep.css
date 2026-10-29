@@ -1333,9 +1333,10 @@ div.pp-todo-item { cursor: default; }
 .pp-rx-tabs button { min-height: 36px; padding: 0 14px; border: 0; border-radius: 99px; background: none; font: inherit; font-size: 14px; font-weight: 700; color: var(--pp-muted); white-space: nowrap; cursor: pointer; }
 .pp-rx-tabs button.on { background: var(--pp-primary); color: #fff; }
 .pp-rx .pp-rd-head { flex-wrap: wrap; align-items: center; }
-.pp-rx-slides { display: flex; align-items: flex-start; transition: height .3s ease; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
-.pp-rx-slides::-webkit-scrollbar { display: none; }
-.pp-rx-slide { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; }
+.pp-rx-slides { touch-action: pan-y; }
+.pp-rx-slide { animation: rx-slide-in .25s ease; }
+.pp-rx-slide[hidden] { display: none; }
+@keyframes rx-slide-in { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
 .pp-rx-dots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; position: relative; }
 .pp-rx-dots i { width: 8px; height: 8px; border-radius: 99px; background: rgba(255, 255, 255, .6); box-shadow: 0 0 0 1px rgba(0, 0, 0, .12); transition: width .2s; }
 .pp-rx-dots i.on { width: 22px; background: var(--pp-card); }
@@ -1350,7 +1351,7 @@ div.pp-todo-item { cursor: default; }
 .pp-rs-bar { height: 8px; border-radius: 99px; background: var(--pp-surface-2); overflow: hidden; }
 .pp-rs-bar > div { height: 100%; border-radius: 99px; background: var(--sg); transition: width .8s ease; }
 .pp-rs-txt small { font-size: 12px; line-height: 1.45; color: var(--pp-muted); }
-@media (prefers-reduced-motion: reduce) { .pp-rs-bar > div, .pp-rx-dots i, .pp-rx-slides { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .pp-rs-bar > div, .pp-rx-dots i { transition: none; } .pp-rx-slide { animation: none; } }
 
 /* admin: read-only view of a user's analysis page (AdminUserView.tsx) */
 .pp-viewas { position: fixed; inset: 0; z-index: 70; display: flex; flex-direction: column; background: var(--pp-bg); }
@@ -1442,6 +1443,7 @@ div.pp-todo-item { cursor: default; }
   border: 1.5px solid rgba(251, 233, 180, .55); background: rgba(255, 255, 255, .12); color: #fff; font: inherit; cursor: pointer; }
 .pp-hero-today b { font-size: 14.5px; }
 .pp-hero-today small { font-size: 12px; color: #F8E7B0; }
+.pp-hero-today button.hot { border-color: var(--pp-gold-bright); background: rgba(243, 217, 138, .2); box-shadow: 0 0 0 2px rgba(243, 217, 138, .35); }
 .pp-hero-today button:disabled { opacity: .55; cursor: default; }
 .pp-hero-today button:active:not(:disabled) { transform: translateY(1px); }
 
@@ -1491,3 +1493,31 @@ div.pp-todo-item { cursor: default; }
 .pp-theme { display: flex; flex-direction: column; gap: 8px; }
 .pp-theme .pp-seg { margin: 0; }
 .pp-theme p { margin: 0; }
+
+/* admin: pay funnel (AdminDashboard) */
+.pp-funnel { display: grid; gap: 6px; margin: 4px 0 8px; }
+.pp-funnel-row { display: grid; grid-template-columns: minmax(0, 11em) 1fr 3.5em; align-items: center; gap: 10px; font-size: 14px; }
+.pp-funnel-bar { height: 12px; border-radius: 99px; background: var(--pp-surface-2); overflow: hidden; }
+.pp-funnel-bar i { display: block; height: 100%; border-radius: 99px; background: var(--pp-primary); }
+.pp-funnel-row b { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* free-limit wall (FreeWall.tsx) */
+.pp-wall { text-align: center; padding: 28px 20px; }
+.pp-wall .pp-perks { text-align: left; max-width: 420px; margin: 12px auto; }
+.pp-wall .pp-note { text-align: left; max-width: 420px; margin: 8px auto; }
+.pp-wall-count { margin: 4px 0 8px; font-size: 16px; color: var(--pp-brand-ink); font-weight: 600; }
+.pp-wall-count b { font-size: 28px; color: var(--pp-bad); }
+.pp-wall-buy { display: grid; gap: 10px; max-width: 420px; margin: 8px auto; }
+.pp-wall-buy .pp-btn { justify-content: space-between; min-height: 56px; text-align: left; }
+.pp-wall-buy .pp-btn b { font-size: 18px; white-space: nowrap; }
+
+/* buy screen: lifetime note and the folded single-part packs (Buy.tsx) */
+.pp-pkg-prices em { font-style: normal; font-size: 12px; font-weight: 600; color: var(--pp-ok-ink); }
+.pp-pkg-more { margin: 6px 0 4px; }
+.pp-pkg-more summary { cursor: pointer; font-weight: 600; color: var(--pp-brand-ink); padding: 8px 0; }
+
+/* "ข้อต่อไป" waits a moment after a wrong answer (Player.tsx): the button fills, then works */
+.pp-btn-primary.pp-hold:disabled { position: relative; overflow: hidden; isolation: isolate; opacity: 1; background: var(--pp-primary-deep); color: rgba(255, 255, 255, .8); }
+.pp-btn-primary.pp-hold::before { content: ""; position: absolute; inset: 0; z-index: -1; transform-origin: left; background: var(--pp-primary); animation: pp-hold-fill var(--hold) linear forwards; }
+@keyframes pp-hold-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .pp-btn-primary.pp-hold::before { animation: none; } }

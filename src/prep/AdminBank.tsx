@@ -8,6 +8,7 @@ type Q = {
   stem: string; choices: string[]; answer: number; explanation: string; law_ref: string | null;
   origin: string; source: string | null; status: "approved" | "review" | "hidden"; created_at: string;
   n: number; correct: number; choice_counts: number[]; reports: string[];
+  suspect?: number | null;   // set when learners' answers say the key is probably wrong (lead of the top wrong choice)
 };
 type Page = { total: number; by_status: Record<string, number>; items: Q[] };
 type Filters = { section: string; grp: string; topic: string; status: string; search: string; sort: string };
@@ -15,7 +16,7 @@ type Filters = { section: string; grp: string; topic: string; status: string; se
 const LABELS = ["ก", "ข", "ค", "ง"];
 const STATUS: Record<string, string> = { approved: "เผยแพร่", review: "รอตรวจ", hidden: "ซ่อน" };
 const ORIGIN: Record<string, string> = { sheet: "ข้อสอบเก่า / เอกสารสรุป", template: "สร้างด้วยโค้ด", ai: "AI", manual: "พิมพ์เอง" };
-const SORTS: [string, string][] = [["new", "ใหม่สุด"], ["old", "เก่าสุด"], ["hardest", "ยากสุด (ตอบถูกน้อย)"], ["easiest", "ง่ายสุด"], ["most_answered", "มีคนทำมากสุด"], ["reports", "ถูกรายงานมากสุด"]];
+const SORTS: [string, string][] = [["new", "ใหม่สุด"], ["old", "เก่าสุด"], ["hardest", "ยากสุด (ตอบถูกน้อย)"], ["easiest", "ง่ายสุด"], ["most_answered", "มีคนทำมากสุด"], ["reports", "ถูกรายงานมากสุด"], ["suspect", "เฉลยน่าสงสัยมากสุด"]];
 const PAGE = 30;
 const EMPTY: Filters = { section: "", grp: "", topic: "", status: "", search: "", sort: "new" };
 const pct = (c: number, n: number) => (n ? Math.round((100 * c) / n) : 0);
@@ -145,6 +146,7 @@ export default function AdminBank({ reportsOnly = false, onChanged }: { reportsO
             <option value="">ทุกสถานะ</option>
             <option value="approved">เผยแพร่</option><option value="review">รอตรวจ</option>
             <option value="hidden">ซ่อน</option><option value="reported">มีรายงานปัญหา</option>
+            <option value="suspect">เฉลยน่าสงสัย (ตัวลวงถูกเลือกมากกว่าเฉลย)</option>
           </select>
           <select className="pp-input" value={f.sort} onChange={e => set({ sort: e.target.value })} aria-label="เรียงตาม">
             {SORTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
@@ -161,8 +163,8 @@ export default function AdminBank({ reportsOnly = false, onChanged }: { reportsO
       {page?.items.map(q => (
         <QuestionCard key={q.id} q={q} topics={summary ?? []} open={open === q.id}
           onToggle={() => setOpen(open === q.id ? null : q.id)}
-          onSaved={nq => { if (reportsOnly) drop(nq.id); else replace(nq); loadSummary(); onChanged?.(); }}
-          onResolved={nq => { if (reportsOnly) drop(nq.id); else replace(nq); loadSummary(); onChanged?.(); }} />
+          onSaved={nq => { if (reportsOnly || (f.status === "suspect" && nq.suspect == null)) drop(nq.id); else replace(nq); loadSummary(); onChanged?.(); }}
+          onResolved={nq => { if (reportsOnly || (f.status === "suspect" && nq.suspect == null)) drop(nq.id); else replace(nq); loadSummary(); onChanged?.(); }} />
       ))}
       {page && page.items.length < page.total && (
         <button className="pp-btn pp-btn-ghost pp-wide" disabled={busy} onClick={loadMore}>
@@ -202,6 +204,12 @@ function QuestionCard({ q, topics, open, onToggle, onSaved, onResolved }: {
     setBusy(false);
   };
   const total = q.choice_counts.reduce((s, x) => s + x, 0);
+  const checked = async () => {
+    setBusy(true); setErr("");
+    try { await rpc("prep_admin_item_ok", { p_id: q.id }); onResolved({ ...q, suspect: null }); }
+    catch (e) { setErr(thaiError(e)); }
+    setBusy(false);
+  };
 
   // The fixed wording already exists as another question: show it so the admin can hide this copy instead.
   const findTwins = async (stem: string, choices: string[]) => {
@@ -217,7 +225,8 @@ function QuestionCard({ q, topics, open, onToggle, onSaved, onResolved }: {
     try {
       await rpc("prep_admin_save_question", { p_id: q.id, p_patch: patch });
       const t = topics.find(x => x.code === (patch.topic ?? q.topic));
-      onSaved({ ...q, ...patch, topic_name: t?.name ?? q.topic_name, grp: t?.grp ?? q.grp, section: t?.section ?? q.section, reports: [] });
+      onSaved({ ...q, ...patch, topic_name: t?.name ?? q.topic_name, grp: t?.grp ?? q.grp, section: t?.section ?? q.section, reports: [],
+        suspect: patch.answer != null && patch.answer !== q.answer ? null : q.suspect });
       setEdit(null);
     } catch (e) {
       if (e instanceof Error && e.message === "duplicate_question" && patch.stem && patch.choices) await findTwins(patch.stem, patch.choices);
@@ -233,6 +242,7 @@ function QuestionCard({ q, topics, open, onToggle, onSaved, onResolved }: {
           <span className={`pp-badge ${q.status === "approved" ? "ok" : q.status === "review" ? "warn" : ""}`}>{STATUS[q.status]}</span>
           <span className="pp-muted small">#{q.id} · {SECTIONS[q.section as "A" | "B"]?.short} · {q.topic_name}</span>
           {q.reports.length > 0 && <span className="pp-badge bad">รายงาน {q.reports.length}</span>}
+          {q.suspect != null && <span className="pp-badge warn">เฉลยน่าสงสัย</span>}
           <span className="pp-spacer" />
           {q.n > 0 && <span className="pp-muted small">ถูก {pct(q.correct, q.n)}% ({q.n} คน)</span>}
         </div>
@@ -263,6 +273,13 @@ function QuestionCard({ q, topics, open, onToggle, onSaved, onResolved }: {
                 <button className="pp-btn pp-btn-outline" disabled={busy} onClick={() => resolve("rejected")}>ข้อนี้ถูกต้อง (ปฏิเสธรายงาน)</button>
                 <button className="pp-btn pp-btn-ghost" disabled={busy} onClick={() => resolve("fixed")}>แก้ไขแล้ว (ปิดรายงาน)</button>
               </div>
+            </div>
+          )}
+          {q.suspect != null && (
+            <div className="pp-reports">
+              <b>เฉลยน่าสงสัย</b>
+              <p className="small">ผู้ตอบครั้งแรก {q.n} คน เลือกตัวลวงมากกว่าคำตอบที่เฉลย หรือเลือกเฉลยไม่ถึง 25% (เท่ากับเดา) ตรวจเฉลยกับแหล่งอ้างอิง ถ้าผิดกด “แก้ไข” แล้วเปลี่ยนคำตอบ ถ้าถูกแล้วกดปุ่มด้านล่าง ข้อนี้จะไม่ขึ้นอีกจนกว่าจะมีคนทำเพิ่มอีกครึ่งหนึ่ง</p>
+              <button className="pp-btn pp-btn-outline" disabled={busy} onClick={checked}>เฉลยถูกแล้ว</button>
             </div>
           )}
           {err && <div className="pp-error">{err}</div>}

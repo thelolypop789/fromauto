@@ -1492,3 +1492,25 @@ div.pp-todo-item { cursor: default; }
 .pp-theme { display: flex; flex-direction: column; gap: 8px; }
 .pp-theme .pp-seg { margin: 0; }
 .pp-theme p { margin: 0; }
+
+/* admin: pay funnel (AdminDashboard) */
+.pp-funnel { display: grid; gap: 6px; margin: 4px 0 8px; }
+.pp-funnel-row { display: grid; grid-template-columns: minmax(0, 11em) 1fr 3.5em; align-items: center; gap: 10px; font-size: 14px; }
+.pp-funnel-bar { height: 12px; border-radius: 99px; background: var(--pp-surface-2); overflow: hidden; }
+.pp-funnel-bar i { display: block; height: 100%; border-radius: 99px; background: var(--pp-primary); }
+.pp-funnel-row b { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* free-limit wall (FreeWall.tsx) */
+.pp-wall { text-align: center; padding: 28px 20px; }
+.pp-wall .pp-perks { text-align: left; max-width: 420px; margin: 12px auto; }
+.pp-wall .pp-note { text-align: left; max-width: 420px; margin: 8px auto; }
+.pp-wall-count { margin: 4px 0 8px; font-size: 16px; color: var(--pp-brand-ink); font-weight: 600; }
+.pp-wall-count b { font-size: 28px; color: var(--pp-bad); }
+.pp-wall-buy { display: grid; gap: 10px; max-width: 420px; margin: 8px auto; }
+.pp-wall-buy .pp-btn { justify-content: space-between; min-height: 56px; text-align: left; }
+.pp-wall-buy .pp-btn b { font-size: 18px; white-space: nowrap; }
+
+/* buy screen: lifetime note and the folded single-part packs (Buy.tsx) */
+.pp-pkg-prices em { font-style: normal; font-size: 12px; font-weight: 600; color: var(--pp-ok-ink); }
+.pp-pkg-more { margin: 6px 0 4px; }
+.pp-pkg-more summary { cursor: pointer; font-weight: 600; color: var(--pp-brand-ink); padding: 8px 0; }

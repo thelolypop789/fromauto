@@ -22,9 +22,22 @@ function useLeaveInApp() {
   return inApp;
 }
 
+// The link to reopen outside the in-app browser keeps the campaign source, discount code and exam track: they were saved in
+// this in-app browser's storage, which the phone's own browser cannot see, so without them the visit and sale lose their source.
+function outsideUrl() {
+  const u = new URL(window.location.pathname.startsWith("/prep") ? window.location.pathname : "/prep", window.location.origin);
+  const here = new URLSearchParams(window.location.search);
+  for (const [k, key] of [["src", "pp-src"], ["promo", "pp-promo"], ["track", "pp-track"]]) {
+    let v = here.get(k);
+    if (!v) try { v = localStorage.getItem(key); } catch { /* storage blocked */ }
+    if (v) u.searchParams.set(k, v);
+  }
+  return u;
+}
+
 function InAppNotice() {
   const [copied, setCopied] = useState(false);
-  const url = `${window.location.origin}/prep`;
+  const out = outsideUrl(), url = out.toString();
   const copy = async () => {
     try { await navigator.clipboard.writeText(url); setCopied(true); }
     catch { window.prompt("คัดลอกลิงก์นี้ไปเปิดใน Safari หรือ Chrome", url); }
@@ -35,7 +48,7 @@ function InAppNotice() {
       <p>ตอนนี้เปิดอยู่ในแอป {isLineApp() ? "LINE" : "Facebook / Messenger / Instagram"} ซึ่ง Google ไม่อนุญาตให้เข้าสู่ระบบ
         แตะ <b>⋯</b> หรือ <b>⋮</b> มุมจอ แล้วเลือก <b>เปิดในเบราว์เซอร์</b> ({isAndroid() ? "Chrome" : "Safari"})</p>
       {isAndroid() && (
-        <a className="pp-btn pp-btn-primary" href={`intent://${window.location.host}/prep#Intent;scheme=https;package=com.android.chrome;end`}>เปิดใน Chrome</a>
+        <a className="pp-btn pp-btn-primary" href={`intent://${out.host}${out.pathname}${out.search}#Intent;scheme=https;package=com.android.chrome;end`}>เปิดใน Chrome</a>
       )}
       <button className="pp-btn pp-btn-ghost" onClick={copy}>{copied ? "คัดลอกลิงก์แล้ว วางในเบราว์เซอร์ได้เลย" : "คัดลอกลิงก์"}</button>
     </div>

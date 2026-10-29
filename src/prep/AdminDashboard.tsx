@@ -51,6 +51,41 @@ function DeletionRequests() {
   );
 }
 
+type Funnel = { since: string; events: Record<string, number>; submitted: number; approved: number; wall: { n: number; viewed: number; bought: number } };
+const STEPS: [string, string][] = [
+  ["free_limit", "ใช้ชุดฟรีครบ"], ["paywall_click", "กดดูแพ็กจากหน้าชุดฟรีครบ"], ["buy_view", "เปิดหน้าซื้อ"], ["pkg_select", "เลือกแพ็กเอง"],
+  ["qr_save", "บันทึกรูป QR"], ["slip_pick", "แนบสลิป"], ["submitted", "ส่งสลิปสำเร็จ"], ["approved", "อนุมัติแล้ว"],
+];
+
+// People per step from the free limit to an approved order (14 days). Shows where buyers drop out.
+function PayFunnel({ track }: { track: string | null }) {
+  const [f, setF] = useState<Funnel | null>(null);
+  useEffect(() => { rpc<Funnel>("prep_admin_pay_funnel", { p_days: 14, p_track: track }).then(setF).catch(() => setF(null)); }, [track]);
+  if (!f) return null;
+  const val = (k: string) => (k === "submitted" ? f.submitted : k === "approved" ? f.approved : f.events[k] ?? 0);
+  const top = Math.max(1, ...STEPS.map(([k]) => val(k)));
+  const pct = (a: number, b: number) => (b ? `${Math.round((100 * a) / b)}%` : "–");
+  return (
+    <div className="pp-card">
+      <h3>เส้นทางการซื้อ (14 วัน)</h3>
+      <div className="pp-funnel">
+        {STEPS.map(([k, label]) => (
+          <div key={k} className="pp-funnel-row">
+            <span>{label}</span>
+            <span className="pp-funnel-bar"><i style={{ width: `${(100 * val(k)) / top}%` }} /></span>
+            <b>{val(k).toLocaleString("th-TH")}</b>
+          </div>
+        ))}
+      </div>
+      <p className="pp-muted small">
+        คนที่ใช้ชุดฟรีครบ {f.wall.n} คน: เปิดหน้าซื้อต่อ {pct(f.wall.viewed, f.wall.n)} · ซื้อแล้ว {pct(f.wall.bought, f.wall.n)}
+        {(f.events.slip_fail ?? 0) > 0 ? ` · ส่งสลิปไม่สำเร็จ ${f.events.slip_fail} คน` : ""}
+      </p>
+      <p className="pp-muted small">นับคน ไม่นับครั้ง · แต่ละขั้นนับแยกกัน (บางคนซื้อโดยไม่เคยใช้ชุดฟรีครบ) · ขั้น “กดดูแพ็ก” ถึง “แนบสลิป” เริ่มเก็บตั้งแต่ 29 ต.ค. 2569</p>
+    </div>
+  );
+}
+
 // First tab of the admin area: what needs doing today, money, who is about to lose access, and the old counters.
 export default function AdminDashboard({ onGo }: { onGo: (tab: "orders" | "reports" | "review" | "users") => void }) {
   const track = useAdminTrack();
@@ -100,6 +135,8 @@ export default function AdminDashboard({ onGo }: { onGo: (tab: "orders" | "repor
       </div>
 
       <DeletionRequests />
+
+      <PayFunnel track={track} />
 
       <div className="pp-card">
         <h3>รายได้</h3>

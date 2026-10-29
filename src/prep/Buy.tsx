@@ -10,8 +10,14 @@ type Term = "round" | "lifetime";
 // form below (the form is remounted with it), so the buyer does not choose twice.
 export default function Buy({ me, email, onChanged }: { me: Me; email: string; onChanged: () => void }) {
   const [prices, setPrices] = useState<Price[]>([]);
-  const [pick, setPick] = useState<{ pkg: PackageKey; term: Term; n: number } | null>(null);
+  // A link can pick the package and term (/prep/buy?pkg=ALL&term=lifetime, from the free-limit card or a campaign).
+  const [pick, setPick] = useState<{ pkg: PackageKey; term: Term; n: number } | null>(() => {
+    const q = new URLSearchParams(window.location.search);
+    const pkg = q.get("pkg"), term = q.get("term");
+    return PACKAGES.some(p => p.key === pkg) && (term === "round" || term === "lifetime") ? { pkg: pkg as PackageKey, term, n: 1 } : null;
+  });
   const form = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (pick?.n === 1) window.setTimeout(() => form.current?.scrollIntoView({ block: "start" }), 300); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { rpc<Price[]>("prep_prices").then(setPrices).catch(() => { /* falls back to config */ }); }, []);
   const priceOf = (k: PackageKey, t: Term, fallback: string) => {
     const x = prices.find(y => y.package === k && y.term === t);
@@ -25,6 +31,25 @@ export default function Buy({ me, email, onChanged }: { me: Me; email: string; o
     window.setTimeout(() => form.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   };
 
+  const others = PACKAGES.filter(p => !p.best && (p.key !== "A" || !owned.has("A")));
+  const card = (p: (typeof PACKAGES)[number]) => (
+    <div key={p.key} className={`pp-pkg ${p.best ? "best" : ""}`}>
+      {p.best && <span className="pp-pkg-ribbon">คุ้มที่สุด</span>}
+      <b>{p.name}</b>
+      <span className="pp-muted small">{p.desc}</span>
+      <div className="pp-pkg-prices">
+        {(["round", "lifetime"] as const).map(t => (
+          <button key={t} className={pick?.pkg === p.key && pick.term === t ? "on" : ""} onClick={() => choose(p.key, t)}>
+            <span>{t === "round" ? "รายรอบ 3 เดือน" : "ซื้อขาด"}</span>
+            <b>{priceOf(p.key, t, t === "round" ? p.round : p.lifetime) || "สอบถาม"}</b>
+            {t === "lifetime" && p.best && <em>ใช้ได้ทุกรอบสอบ</em>}
+          </button>
+        ))}
+      </div>
+      {owned.has(p.key) && <span className="pp-mine">มีแล้ว · ซื้อซ้ำเพื่อต่ออายุ</span>}
+    </div>
+  );
+
   if (lifetimeAll) {
     return <div className="pp-card"><h3>คุณมีแพ็กครบทุกภาคแบบซื้อขาดแล้ว</h3><p className="pp-muted">ใช้งานได้ทุกหมวดตลอด ไม่ต้องซื้อเพิ่ม</p></div>;
   }
@@ -36,24 +61,14 @@ export default function Buy({ me, email, onChanged }: { me: Me; email: string; o
         <li><IconCheck />ดึงข้อใหม่จากคลังทั้งหมด พร้อมเฉลยและคำอธิบายทุกข้อ</li>
         <li><IconCheck /><span>เลือกได้ทั้ง <b>รายรอบ</b>{SHOP.roundText ? ` (${SHOP.roundText})` : ""} หรือ <b>ซื้อขาด</b> ใช้ได้ตลอด · ซื้อรายรอบซ้ำจะต่อเวลาจากวันหมดอายุเดิม</span></li>
       </ul>
-      <div className="pp-pkgs">
-        {PACKAGES.filter(p => p.key !== "A" || !owned.has("A")).map(p => (
-          <div key={p.key} className={`pp-pkg ${p.best ? "best" : ""}`}>
-            {p.best && <span className="pp-pkg-ribbon">คุ้มที่สุด</span>}
-            <b>{p.name}</b>
-            <span className="pp-muted small">{p.desc}</span>
-            <div className="pp-pkg-prices">
-              {(["round", "lifetime"] as const).map(t => (
-                <button key={t} className={pick?.pkg === p.key && pick.term === t ? "on" : ""} onClick={() => choose(p.key, t)}>
-                  <span>{t === "round" ? "รายรอบ 3 เดือน" : "ซื้อขาด"}</span>
-                  <b>{priceOf(p.key, t, t === "round" ? p.round : p.lifetime) || "สอบถาม"}</b>
-                </button>
-              ))}
-            </div>
-            {owned.has(p.key) && <span className="pp-mine">มีแล้ว · ซื้อซ้ำเพื่อต่ออายุ</span>}
-          </div>
-        ))}
-      </div>
+      {/* 97% of orders are the full pack: it leads, the single-part packs sit behind "แพ็กแยกภาค". */}
+      <div className="pp-pkgs">{PACKAGES.filter(p => p.best).map(card)}</div>
+      {others.length > 0 && (
+        <details className="pp-pkg-more" open={!!pick && !PACKAGES.find(p => p.key === pick.pkg)?.best}>
+          <summary>แพ็กแยกภาค (ภาค ก / ภาค ข + วิชาเอก)</summary>
+          <div className="pp-pkgs">{others.map(card)}</div>
+        </details>
+      )}
       <p className="pp-muted small">แตะราคาเพื่อเลือกแพ็กนั้นในขั้นตอนด้านล่าง</p>
       <h3>วิธีซื้อ</h3>
       <ol className="pp-list">

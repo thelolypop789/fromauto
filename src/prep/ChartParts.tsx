@@ -1,8 +1,12 @@
 import { useState } from "react";
 import { nf, shortDay } from "./chartFormat";
 
+export type ChartMark = { d: string; kind: string; label: string };
+const EVENT_KIND: Record<string, string> = { exam: "วันสอบ", apply: "รับสมัคร", result: "ประกาศผล", other: "ปฏิทิน" };
+
 // One series, one hue, thin bars with a rounded top. Hover/tap a bar for its value; the table below has every number.
-export function ColumnChart({ title, unit, days, values, format = shortDay, headNote }: { title: string; unit: string; days: string[]; values: number[]; format?: (s: string) => string; headNote?: string }) {
+// marks: calendar events draw a dashed gold line on their day; Facebook posts ("post") a small gold dot under the axis.
+export function ColumnChart({ title, unit, days, values, format = shortDay, headNote, marks = [] }: { title: string; unit: string; days: string[]; values: number[]; format?: (s: string) => string; headNote?: string; marks?: ChartMark[] }) {
   const [hot, setHot] = useState<number | null>(null);
   const total = values.reduce((a, b) => a + b, 0);
   const max = Math.max(1, ...values);
@@ -11,6 +15,10 @@ export function ColumnChart({ title, unit, days, values, format = shortDay, head
   const bw = Math.min(24, Math.max(3, slot - 3));
   const h = (v: number) => (v / max) * (H - padB - top);
   const peak = values.indexOf(Math.max(...values));
+  const at = (d: string) => days.indexOf(d);
+  const events = marks.filter(m => m.kind !== "post" && at(m.d) >= 0);
+  const posts = marks.filter(m => m.kind === "post" && at(m.d) >= 0);
+  const marksOn = (i: number) => marks.filter(m => m.d === days[i]);
   return (
     <div className="pp-chart">
       <div className="pp-chart-head"><b>{title}</b><span className="pp-muted small">{headNote ?? `รวม ${nf(total)} ${unit}`}</span></div>
@@ -27,12 +35,22 @@ export function ColumnChart({ title, unit, days, values, format = shortDay, head
               </g>
             );
           })}
+          {events.map((m, k) => { const x = padL + at(m.d) * slot + slot / 2; return (
+            <g key={`e${k}`} aria-hidden="true"><line className="pp-cc-mark" x1={x} x2={x} y1={top} y2={H - padB} /><text className="pp-cc-marknum" x={x + 2} y={top + 8}>{k + 1}</text></g>
+          ); })}
+          {[...new Set(posts.map(m => m.d))].map(d => <circle key={`p${d}`} className="pp-post-dot" cx={padL + at(d) * slot + slot / 2} cy={H - padB + 3} r={2} aria-hidden="true" />)}
           <text className="pp-axis" x={0} y={H - 3}>{format(days[0])}</text>
           <text className="pp-axis" x={W} y={H - 3} textAnchor="end">{format(days[days.length - 1])}</text>
           {hot === null && values[peak] > 0 && <text className="pp-axis-strong" x={Math.min(W - 4, Math.max(4, padL + peak * slot + slot / 2))} y={Math.max(9, H - padB - h(values[peak]) - 3)} textAnchor="middle">{nf(values[peak])}</text>}
         </svg>
-        {hot !== null && <div className="pp-tip" style={{ left: `${Math.min(80, Math.max(0, ((hot + 0.5) / values.length) * 100 - 10))}%` }}>{format(days[hot])}: <b>{nf(values[hot])}</b> {unit}</div>}
+        {hot !== null && <div className="pp-tip" style={{ left: `${Math.min(80, Math.max(0, ((hot + 0.5) / values.length) * 100 - 10))}%` }}>{format(days[hot])}: <b>{nf(values[hot])}</b> {unit}{marksOn(hot).length > 0 && <span className="pp-tip-marks">{marksOn(hot).map(m => m.kind === "post" ? "โพสต์" : EVENT_KIND[m.kind] ?? "ปฏิทิน").filter((v, i, a) => a.indexOf(v) === i).join(" · ")}</span>}</div>}
       </div>
+      {(events.length > 0 || posts.length > 0) && (
+        <ol className="pp-cc-marks small pp-muted">
+          {events.map((m, k) => <li key={k}><b>{k + 1}</b> {format(m.d)} · {EVENT_KIND[m.kind] ?? "ปฏิทิน"}: {m.label}</li>)}
+          {posts.length > 0 && <li className="pp-post-note">จุดสีทองใต้แกน = วันที่โพสต์ Facebook ({nf(posts.length)} โพสต์)</li>}
+        </ol>
+      )}
       <details className="pp-chart-table">
         <summary className="small pp-muted">ดูเป็นตาราง</summary>
         <div className="pp-guide-table">{days.map((d, i) => <div key={d}><span>{format(d)}</span><b>{nf(values[i])}</b></div>)}</div>

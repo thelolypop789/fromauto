@@ -21,9 +21,9 @@
 
 /* home greeting */
 .pp-greet { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; }
-.pp-greet-bubble { position: relative; flex: 1; background: #fff; border-radius: 16px; padding: 10px 14px; box-shadow: var(--pp-shadow, 0 6px 20px -14px rgba(74, 11, 22, .45)); font-size: 15px; line-height: 1.45; }
-.pp-greet-bubble::before { content: ""; position: absolute; left: -7px; top: 50%; width: 14px; height: 14px; background: #fff; transform: translateY(-50%) rotate(45deg); border-radius: 3px; }
-.pp-greet-bubble b { color: var(--pp-primary); }
+.pp-greet-bubble { position: relative; flex: 1; background: var(--pp-card); color: var(--pp-ink); border: 1px solid var(--pp-line); border-radius: 16px; padding: 10px 14px; box-shadow: var(--pp-shadow, 0 6px 20px -14px rgba(74, 11, 22, .45)); font-size: 15px; line-height: 1.45; }
+.pp-greet-bubble::before { content: ""; position: absolute; left: -7px; top: 50%; width: 14px; height: 14px; background: var(--pp-card); border-left: 1px solid var(--pp-line); border-bottom: 1px solid var(--pp-line); transform: translateY(-50%) rotate(45deg); border-radius: 3px; }
+.pp-greet-bubble b { color: var(--pp-brand-ink); }
 
 /* results */
 .pp-result-mascot { display: flex; justify-content: center; margin: 4px 0 2px; }

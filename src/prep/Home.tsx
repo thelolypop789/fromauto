@@ -28,9 +28,10 @@ type Props = {
   onUpgrade: () => void;
   onStats: () => void;
   onBoard: () => void;
+  joined?: string;   // account creation time: notices about past problems skip newer accounts
 };
 
-export default function Home({ me, profile, onMajor, onProfile, onCreate, onStart, onReview, onDaily, onMock, onPast, onCalendar, onUpgrade, onStats, onBoard }: Props) {
+export default function Home({ me, profile, onMajor, onProfile, onCreate, onStart, onReview, onDaily, onMock, onPast, onCalendar, onUpgrade, onStats, onBoard, joined }: Props) {
   const [picking, setPicking] = useState(false);
   const [sets, setSets] = useState<SetSummary[] | null>(null);
   const [error, setError] = useState("");
@@ -55,7 +56,7 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
       <ExpiryBanner me={me} onRenew={onUpgrade} />
       <InstallBanner />
       {installSheet.open && <InstallSheet onClose={() => installSheet.setOpen(false)} />}
-      <Announcement track={profile.track} />
+      <Announcement track={profile.track} joined={joined} />
 
       <LevelCard onBoard={onBoard} />
       <Readiness compact mini onMore={onStats} onPractice={canCreate ? onCreate : undefined} />

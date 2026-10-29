@@ -4,9 +4,11 @@ import type { Preset } from "./CreateSet";
 import { IconCrown } from "./icons";
 import Mascot from "./Mascot";
 import type { PastTag } from "./PastExams";
+import { goBack, navigate, usePath } from "./router";
 import { mapCards, type Card as FlashCard } from "./summaries/cards";
 import { GROUPS, type Block, type Branch, type MindMap } from "./summaries/types";
 import "./summary.css";
+import { notify } from "./dialog";
 
 // "สรุปแบบแผนผัง": list of maps → one map (mascot hub + branches) → one branch's detail. Recall mode hides the value to
 // remember on each branch: tap once to reveal, tap again to mark it remembered. The server decides what each user gets
@@ -33,7 +35,7 @@ function useSummaries() {
     if (!id) { setMap(null); return; }
     setBusy(true);
     try { setMap(await rpc<MindMap>("prep_summary_get", { p_id: id })); track("summary_view"); }
-    catch (e) { alert(e instanceof Error && e.message === "summary_locked" ? "แผนผังนี้เปิดได้ด้วยแพ็กของภาคนั้น หรือแพ็กครบทุกภาค" : thaiError(e)); }
+    catch (e) { notify(e instanceof Error && e.message === "summary_locked" ? "แผนผังนี้เปิดได้ด้วยแพ็กของภาคนั้น หรือแพ็กครบทุกภาค" : thaiError(e)); }
     setBusy(false);
   };
   const approve = async (id: string, ok: boolean) => {
@@ -41,7 +43,7 @@ function useSummaries() {
       await rpc("prep_admin_summary_set", { p_id: id, p_ok: ok });
       setCards(cs => cs?.map(c => (c.id === id ? { ...c, approved: ok } : c)) ?? cs);
       return true;
-    } catch (e) { alert(thaiError(e)); return false; }
+    } catch (e) { notify(thaiError(e)); return false; }
   };
   return { cards, error, map, busy, load, approve };
 }
@@ -50,6 +52,9 @@ export default function Summary({ isAdmin, onPractice, onPastSet, onUpgrade }: {
   isAdmin: boolean; onPractice: (p: Preset) => void; onPastSet: (setId: string) => void; onUpgrade: () => void;
 }) {
   const { cards, error, map, busy, load, approve } = useSummaries();
+  // /prep/summary/<map>[/flash | /b/<branch>]: a map, its flashcards and each branch have their own URL.
+  const [, , , routeId = "", part = "", partId = ""] = usePath().split("/");
+  useEffect(() => { if (routeId !== (map?.id ?? "")) load(routeId || null); }, [routeId]); // eslint-disable-line react-hooks/exhaustive-deps
   const [locked, setLocked] = useState<Card | null>(null);
   const [past, setPast] = useState<PastTag[]>([]);
   const [sec, setSec] = useState<"A" | "B" | null>(() => { try { const v = localStorage.getItem("mm-sec"); return v === "A" || v === "B" ? v : null; } catch { return null; } });
@@ -57,10 +62,14 @@ export default function Summary({ isAdmin, onPractice, onPastSet, onUpgrade }: {
   if (error) return <div className="pp-card"><div className="pp-error">{error}</div></div>;
   if (!cards || busy) return <div className="pp-spinner" />;
 
-  if (map) {
+  if (map && map.id === routeId) {
     const ok = cards.find(c => c.id === map.id)?.approved ?? false;
-    return <MapView key={map.id} map={map} isAdmin={isAdmin} ok={ok} onSetOk={v => approve(map.id, v)}
-      onBack={() => load(null)} onPractice={() => onPractice({ topics: map.topics })}
+    const base = `/prep/summary/${map.id}`;
+    const sub: Sub = part === "flash" ? { kind: "flash" } : part === "b" && partId ? { kind: "branch", id: partId } : { kind: "map" };
+    return <MapView key={map.id} map={map} isAdmin={isAdmin} ok={ok} onSetOk={v => approve(map.id, v)} sub={sub}
+      onSub={v => navigate(v.kind === "flash" ? `${base}/flash` : v.kind === "branch" ? `${base}/b/${v.id}` : base)}
+      onSubBack={() => goBack(base)}
+      onBack={() => goBack("/prep/summary")} onPractice={() => onPractice({ topics: map.topics })}
       past={past.filter(t => (t.groups[map.group] ?? 0) >= 5)} onPastSet={onPastSet} />;
   }
 
@@ -106,7 +115,7 @@ export default function Summary({ isAdmin, onPractice, onPastSet, onUpgrade }: {
             <div className="mm-list">
               {ms.map(m => (
                 <button key={m.id} className={`mm-item t-${m.tone} ${m.locked ? "locked" : ""}`}
-                  onClick={() => { if (!m.locked) load(m.id); else { setLocked(m); window.scrollTo({ top: 0, behavior: "smooth" }); } }}>
+                  onClick={() => { if (!m.locked) navigate(`/prep/summary/${m.id}`); else { setLocked(m); window.scrollTo({ top: 0, behavior: "smooth" }); } }}>
                   <span className="ic">{m.icon}</span>
                   {sample && (m.free ? <span className="tag free">ฟรี</span> : m.locked && <span className="tag crown" aria-label="ปลดล็อกด้วยแพ็ก"><IconCrown size={13} /></span>)}
                   <b>{m.title}</b>
@@ -124,11 +133,12 @@ export default function Summary({ isAdmin, onPractice, onPastSet, onUpgrade }: {
 // แอดมิน → ข้อสอบ → สรุปแผนผัง: every map with its status; open one to read it and approve or withdraw it.
 export function AdminSummaries({ onChanged }: { onChanged?: () => void }) {
   const { cards, error, map, busy, load, approve } = useSummaries();
+  const [sub, setSub] = useState<Sub>({ kind: "map" });
   const set = async (id: string, ok: boolean) => { if (await approve(id, ok)) onChanged?.(); };
   if (error) return <div className="pp-card"><div className="pp-error">{error}</div></div>;
   if (!cards || busy) return <div className="pp-spinner" />;
   if (map) return <MapView key={map.id} map={map} isAdmin ok={cards.find(c => c.id === map.id)?.approved ?? false} onSetOk={ok => set(map.id, ok)}
-    onBack={() => load(null)} onPractice={() => { /* preview only */ }} past={[]} onPastSet={() => { /* preview only */ }} />;
+    sub={sub} onSub={setSub} onSubBack={() => setSub({ kind: "map" })} onBack={() => { setSub({ kind: "map" }); load(null); }} onPractice={() => { /* preview only */ }} past={[]} onPastSet={() => { /* preview only */ }} />;
   const drafts = cards.filter(c => !c.approved).length;
   return (
     <div className="pp-card mm-admin-list">
@@ -152,29 +162,30 @@ export function AdminSummaries({ onChanged }: { onChanged?: () => void }) {
   );
 }
 
-function MapView({ map, isAdmin, ok, onSetOk, onBack, onPractice, past, onPastSet }: {
-  map: MindMap; isAdmin: boolean; ok: boolean; onSetOk: (ok: boolean) => void; onBack: () => void; onPractice: () => void;
-  past: PastTag[]; onPastSet: (setId: string) => void;
+// Which part of a map is open. The user page keeps it in the URL; the admin preview keeps it in state.
+type Sub = { kind: "map" } | { kind: "flash" } | { kind: "branch"; id: string };
+
+function MapView({ map, isAdmin, ok, onSetOk, sub, onSub, onSubBack, onBack, onPractice, past, onPastSet }: {
+  map: MindMap; isAdmin: boolean; ok: boolean; onSetOk: (ok: boolean) => void; sub: Sub; onSub: (s: Sub) => void; onSubBack: () => void;
+  onBack: () => void; onPractice: () => void; past: PastTag[]; onPastSet: (setId: string) => void;
 }) {
-  const [branchId, setBranchId] = useState<string | null>(null);
   const [recall, setRecall] = useState(false);
   const [seen, setSeen] = useState<Set<string>>(new Set());
   const [got, setGot] = useState<Set<string>>(new Set());
-  const [flash, setFlash] = useState(false);
   const cards = useMemo(() => mapCards(map), [map]);
-  const branch = map.branches.find(b => b.id === branchId);
+  const branch = sub.kind === "branch" ? map.branches.find(b => b.id === sub.id) : undefined;
   const quiz = map.branches.filter(b => b.big);
 
   const tap = (b: Branch) => {
-    if (!recall) { setBranchId(b.id); window.scrollTo(0, 0); return; }
+    if (!recall) { onSub({ kind: "branch", id: b.id }); window.scrollTo(0, 0); return; }
     if (!b.big) return;
     if (!seen.has(b.id)) { setSeen(s => new Set(s).add(b.id)); return; }
     setGot(g => { const n = new Set(g); if (n.has(b.id)) n.delete(b.id); else n.add(b.id); return n; });
   };
   const restart = () => { setSeen(new Set()); setGot(new Set()); };
 
-  if (branch) return <BranchView map={map} b={branch} onBack={() => setBranchId(null)} onPractice={onPractice} />;
-  if (flash) return <FlashView map={map} cards={cards} onBack={() => { setFlash(false); window.scrollTo(0, 0); }} onPractice={onPractice} />;
+  if (branch) return <BranchView map={map} b={branch} onBack={onSubBack} onPractice={onPractice} />;
+  if (sub.kind === "flash") return <FlashView map={map} cards={cards} onBack={onSubBack} onPractice={onPractice} />;
   const done = quiz.length > 0 && got.size === quiz.length;
 
   return (
@@ -208,7 +219,7 @@ function MapView({ map, isAdmin, ok, onSetOk, onBack, onPractice, past, onPastSe
         <button className={`mm-btn ${done ? "gold" : "p"}`} onClick={onPractice}>✏️ ฝึกข้อสอบหมวดนี้</button>
       </div>
       {!recall && cards.length > 0 && (
-        <button className="mm-btn g mm-flash-open" onClick={() => { setFlash(true); window.scrollTo(0, 0); }}>🃏 แฟลชการ์ด · {cards.length} ใบ</button>
+        <button className="mm-btn g mm-flash-open" onClick={() => { onSub({ kind: "flash" }); window.scrollTo(0, 0); }}>🃏 แฟลชการ์ด · {cards.length} ใบ</button>
       )}
       {recall && !done && <button className="pp-link small mm-exit" onClick={() => { setRecall(false); restart(); }}>ออกจากโหมดท่องจำ</button>}
       {!recall && past.length > 0 && <PastSets map={map} past={past} onPastSet={onPastSet} />}
@@ -222,7 +233,7 @@ function PastSets({ map, past, onPastSet }: { map: MindMap; past: PastTag[]; onP
   const start = async (t: PastTag) => {
     setBusy(t.tag);
     try { onPastSet(await rpc<string>("prep_create_past_set", { p_tag: t.tag, p_section: t.section, p_prefix: map.group + "-" })); }
-    catch (e) { alert(thaiError(e)); setBusy(""); }
+    catch (e) { notify(thaiError(e)); setBusy(""); }
   };
   return (
     <div className="mm-card mm-pastsets">

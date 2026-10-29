@@ -4,6 +4,7 @@ import { IconBack } from "./icons";
 import { levelOf } from "./levels";
 import Mascot from "./Mascot";
 import { nf } from "./chartFormat";
+import { ask } from "./dialog";
 
 type Period = "week" | "month" | "all";
 type Board = "xp" | "correct" | "answered" | "accuracy" | "streak" | "mock";
@@ -62,7 +63,7 @@ export default function Leaderboard({ onBack, isAdmin = false }: { onBack: () =>
     } catch (e) { setMsg({ ok: false, text: thaiError(e) }); }
   };
   const clear = async (r: Row) => {
-    if (!r.uid || !confirm(`ล้างชื่อที่แสดงของ "${r.name}"?`)) return;
+    if (!r.uid || !(await ask({ title: `ล้างชื่อที่แสดงของ "${r.name}"?`, ok: "ล้างชื่อ", danger: true }))) return;
     try { await rpc("prep_admin_clear_nickname", { p_user: r.uid }); load(board, period); } catch (e) { setError(thaiError(e)); }
   };
   const inTop = data?.rows.some(r => r.you) ?? false;

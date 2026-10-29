@@ -251,7 +251,8 @@ body { background: var(--pp-bg); }
 .pp-choice.wrong .pp-choice-l { background: var(--pp-bad); color: #fff; border-color: var(--pp-bad); }
 .pp-choice.wrong .pp-choice-ico { display: block; color: var(--pp-bad); }
 .pp-choice.dim { opacity: .5; }
-.pp-explain { margin-top: 16px; padding: 16px; border-radius: 16px; line-height: 1.7; animation: pp-rise .25s ease; }
+.pp-explain { margin-top: 16px; padding: 16px; border-radius: 16px; line-height: 1.7; animation: pp-rise .25s ease;
+  scroll-margin: calc(110px + env(safe-area-inset-top)) 0 calc(96px + env(safe-area-inset-bottom)); }
 .pp-explain.ok { background: var(--pp-ok-soft); border: 1px solid #BFE6D3; }
 .pp-explain.bad { background: var(--pp-bad-soft); border: 1px solid #F4C7C7; }
 .pp-explain-h { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px; }
@@ -1278,3 +1279,44 @@ div.pp-todo-item { cursor: default; }
 .pp-rx-mini-sec .pp-rd-track > span { display: block; height: 100%; border-radius: 99px; }
 .pp-rx-mini-sec .pp-rd-track > span.ok { background: var(--pp-ok); } .pp-rx-mini-sec .pp-rd-track > span.mid { background: var(--pp-gold-bright); } .pp-rx-mini-sec .pp-rd-track > span.low { background: var(--pp-bad); }
 .pp-rx-mini-more { flex: none; color: var(--pp-muted); font-size: 18px; }
+
+/* Login inside LINE / Facebook in-app browsers (Login.tsx) */
+.pp-inapp { display: flex; flex-direction: column; gap: 8px; text-align: left; background: #FFF6DA; border: 1.5px solid #E6C25A; border-radius: 16px; padding: 14px; margin: 0 0 16px; }
+.pp-inapp b { color: var(--pp-primary-dark); }
+.pp-inapp p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--pp-ink); }
+.pp-inapp .pp-btn { width: 100%; text-decoration: none; text-align: center; }
+
+/* In-app confirm and toasts (dialog.tsx) */
+.pp-ask { align-items: center; padding: 16px; }
+.pp-ask .pp-modal-box { border-radius: 22px; max-width: 420px; padding: 20px; }
+.pp-ask h3 { margin: 0 0 8px; font-size: 18px; color: var(--pp-primary-dark); }
+.pp-ask p { margin: 0 0 16px; white-space: pre-line; line-height: 1.6; color: var(--pp-ink); }
+.pp-ask-btns { display: flex; gap: 10px; }
+.pp-ask-btns .pp-btn { flex: 1; }
+.pp-btn-danger { background: #B3261E; color: #fff; }
+.pp-toasts { position: fixed; left: 12px; right: 12px; bottom: calc(var(--pp-nav-h) + env(safe-area-inset-bottom) + 12px); z-index: 70;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+.pp-toast { pointer-events: auto; max-width: 520px; background: #2A1418; color: #fff; border-radius: 14px; padding: 10px 14px; font-size: 14px;
+  line-height: 1.5; box-shadow: 0 10px 30px -12px rgba(0, 0, 0, .6); animation: pp-up .2s ease; }
+.pp-toast.warn { background: #7A4B00; }
+.pp-toast .pp-link { color: #FFD66B; margin-left: 6px; }
+@media (min-width: 900px) { .pp-toasts { bottom: 20px; } }
+
+/* Header upgrade button for free users, the buy page and the "ฉัน" buy card (PrepApp, Buy, Account) */
+.pp-plan-up { display: inline-flex; align-items: center; gap: 6px; font: inherit; cursor: pointer; background: linear-gradient(180deg, #F5D77A, #D4AF37);
+  color: #4A2E00; border: 0; box-shadow: 0 3px 0 #9C7A12; }
+.pp-plan-up span { font-weight: 800; font-size: 13px; }
+.pp-plan-up small { font-weight: 600; font-size: 11px; opacity: .8; border-left: 1px solid rgba(74, 46, 0, .3); padding-left: 6px; }
+.pp-plan-up:active { transform: translateY(2px); box-shadow: 0 1px 0 #9C7A12; }
+@media (max-width: 380px) { .pp-plan-up small { display: none; } }
+.pp-pkg-prices button { font: inherit; cursor: pointer; background: #FBF7F3; border: 1.5px solid transparent; border-radius: 10px; padding: 8px;
+  text-align: center; display: flex; flex-direction: column; color: inherit; }
+.pp-pkg-prices button.on { border-color: var(--pp-gold-bright); background: #FFF6DA; }
+.pp-pkg-prices button:hover { border-color: var(--pp-line); }
+.pp-buy-form { scroll-margin-top: calc(76px + env(safe-area-inset-top)); }
+.pp-buy-cta { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pp-buy-cta div { display: flex; flex-direction: column; gap: 2px; }
+.pp-buy-cta .pp-btn { flex: none; display: inline-flex; align-items: center; gap: 6px; }
+
+/* Disabled main buttons: a solid muted fill reads better than a half-transparent maroon */
+.pp-btn-primary:disabled, .pp-btn-gold:disabled { opacity: 1; background: #ECE3E5; color: #8A7478; box-shadow: none; }

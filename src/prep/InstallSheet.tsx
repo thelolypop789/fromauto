@@ -3,6 +3,7 @@ import Mascot from "./Mascot";
 import { IconBolt, IconCheck, IconDownload, IconExpand, IconFeather, IconShare, IconX } from "./icons";
 import { track } from "./api";
 import { readSeen, useInstall, writeSeen } from "./pwa";
+import { useBackClose } from "./router";
 
 // Bottom sheet that asks the user to add the app to the home screen.
 // Chrome/Android installs with one tap; iPhone and in-app browsers (Facebook, LINE) can't, so the sheet shows the steps instead.
@@ -13,6 +14,7 @@ export default function InstallSheet({ onClose }: { onClose: () => void }) {
   const box = useRef<HTMLDivElement>(null);
 
   const later = () => { const s = readSeen(); writeSeen({ n: s.n + 1, at: Date.now() }); onClose(); };
+  useBackClose(later);
   useEffect(() => { track("install_view"); box.current?.focus(); }, []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") later(); };

@@ -8,6 +8,7 @@ import Player from "./Player";
 import RoundResult from "./RoundResult";
 import Stats from "./Stats";
 import Account from "./Account";
+import Buy from "./Buy";
 import Admin from "./Admin";
 import Guide from "./Guide";
 import Calendar from "./Calendar";
@@ -18,35 +19,37 @@ import Leaderboard from "./Leaderboard";
 import MockHome from "./MockHome";
 import MockPlayer from "./MockPlayer";
 import MockResult from "./MockResult";
-import { IconCalendar, IconChart, IconChat, IconCrown, IconHome, IconMap, IconShield, IconUser, Logo } from "./icons";
+import { IconCalendar, IconChart, IconCrown, IconHome, IconMap, IconShield, IconUser, Logo } from "./icons";
 import Feedback from "./Feedback";
 import { setupPwa } from "./pwa";
+import { goBack, navigate, usePath } from "./router";
 import Waiting from "./Waiting";
 import Summary from "./Summary";
 import PastExams from "./PastExams";
 import MajorPicker from "./MajorPicker";
 import TrackPicker from "./TrackPicker";
 import "./prep.css";
+import { notify } from "./dialog";
+import { DialogHost } from "./DialogHost";
 
 setupPwa();
 
-type View =
-  | { name: "home" }
-  | { name: "create"; preset?: Preset }
-  | { name: "play"; round: Round }
-  | { name: "result"; result: SubmitResult; title: string }
-  | { name: "stats" }
-  | { name: "daily" }
-  | { name: "board" }
-  | { name: "mock" }
-  | { name: "mockplay"; payload: MockPayload }
-  | { name: "mockresult"; payload: MockPayload }
-  | { name: "calendar" }
-  | { name: "feedback" }
-  | { name: "account" }
-  | { name: "summary" }
-  | { name: "past" }
-  | { name: "admin" };
+// Screens and their URLs (router.ts). play / result / mockplay / mockresult show data held in memory: opened from a
+// refresh or a bookmark without it, they fall back to home (an open round can be resumed from there).
+const PATHS = {
+  home: "/prep", create: "/prep/create", play: "/prep/play", result: "/prep/result", stats: "/prep/stats", daily: "/prep/daily",
+  board: "/prep/board", mock: "/prep/mock", mockplay: "/prep/mock/play", mockresult: "/prep/mock/result", calendar: "/prep/calendar",
+  feedback: "/prep/feedback", account: "/prep/me", buy: "/prep/buy", summary: "/prep/summary", past: "/prep/past", admin: "/prep/admin",
+} as const;
+type ViewName = keyof typeof PATHS;
+function viewFromPath(path: string): ViewName {
+  const p = path.replace(/\/+$/, "") || "/prep";
+  if (p === "/prep/account") return "account";   // the old name of /prep/me
+  if (p.startsWith("/prep/summary")) return "summary";
+  const hit = (Object.entries(PATHS) as [ViewName, string][]).find(([, v]) => v === p);
+  return hit ? hit[0] : "home";
+}
+type Held = { preset?: Preset; round?: Round; result?: SubmitResult; title?: string; mock?: MockPayload };
 
 // "ครบทุกภาค" / "ภาค ข + วิชาเอก" / "ภาค ก + ข" for the header badge.
 function planLabel(me: Me) {
@@ -63,7 +66,14 @@ function PrepShell() {
   const [profile, setProfile] = useState<Profile>({ major: null, major_name: null, track: "obec" });
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [skipMajor, setSkipMajor] = useState(() => { try { return sessionStorage.getItem("pp-major-skip") === "1"; } catch { return false; } });
-  const [view, setView] = useState<View>({ name: "home" });
+  const path = usePath();
+  const [held, setHeld] = useState<Held>({});
+  const routed = viewFromPath(path);
+  const missing = (routed === "play" && !held.round) || (routed === "result" && !held.result)
+    || ((routed === "mockplay" || routed === "mockresult") && !held.mock);
+  const view = { name: missing ? "home" as const : routed };
+  useEffect(() => { if (missing) navigate(PATHS.home, { replace: true }); }, [missing]);
+  useEffect(() => { window.scrollTo(0, 0); }, [path]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -102,11 +112,12 @@ function PrepShell() {
   const startRound = async (setId: string, mode: "full" | "wrong") => {
     try {
       const round = await rpc<Round>("prep_start_round", { p_set: setId, p_mode: mode });
-      setView({ name: "play", round });
-      window.scrollTo(0, 0);
+      setHeld({ round });
+      // A round started from "create" replaces it: back from the round should not reopen the create form.
+      navigate(PATHS.play, { replace: viewFromPath(location.pathname) === "create" });
     } catch (e) {
-      alert(thaiError(e));
-      if (e instanceof Error && e.message === "pack_expired") go("account");
+      notify(thaiError(e));
+      if (e instanceof Error && e.message === "pack_expired") go("buy");
     }
   };
 
@@ -114,7 +125,7 @@ function PrepShell() {
     try {
       const id = await rpc<string>("prep_create_review_set", { p_kind: kind });
       await startRound(id, "full");
-    } catch (e) { alert(thaiError(e)); }
+    } catch (e) { notify(thaiError(e)); }
   };
 
   if (session === undefined) return <Waiting />;
@@ -152,39 +163,43 @@ function PrepShell() {
     );
   }
 
-  if (view.name === "mockplay") {
+  if (view.name === "mockplay" && held.mock) {
     return (
       <MockPlayer
-        key={view.payload.attempt_id}
-        payload={view.payload}
-        onExit={() => setView({ name: "mock" })}
-        onDone={payload => { setView({ name: "mockresult", payload }); window.scrollTo(0, 0); refreshMe(); }}
+        key={held.mock.attempt_id}
+        payload={held.mock}
+        onExit={() => navigate(PATHS.mock, { replace: true })}
+        onDone={payload => { setHeld({ mock: payload }); navigate(PATHS.mockresult, { replace: true }); refreshMe(); }}
       />
     );
   }
 
-  if (view.name === "play") {
+  if (view.name === "play" && held.round) {
+    const round = held.round;
     return (
       <Player
-        round={view.round}
-        onExit={() => { setView({ name: "home" }); refreshMe(); }}
-        onSubmitted={result => { setView({ name: "result", result, title: view.round.title }); refreshMe(); }}
+        round={round}
+        onExit={() => { navigate(PATHS.home, { replace: true }); refreshMe(); }}
+        onSubmitted={result => { setHeld({ result, title: round.title }); navigate(PATHS.result, { replace: true }); refreshMe(); }}
       />
     );
   }
 
-  const tabs: { key: View["name"]; label: string; icon: ReactNode }[] = [
+  // Five tabs at most for users (a sixth for admins). Feedback lives on the "ฉัน" page, buying behind the header button.
+  const tabs: { key: ViewName; label: string; icon: ReactNode }[] = [
     { key: "home", label: "ทำข้อสอบ", icon: <IconHome /> },
     ...(me.is_admin || summaries > 0 ? [{ key: "summary" as const, label: "สรุป", icon: <IconMap /> }] : []),
-    { key: "calendar", label: "ปฏิทิน", icon: <IconCalendar /> },
     { key: "stats", label: "วิเคราะห์", icon: <IconChart /> },
-    { key: "feedback", label: "รีวิว", icon: <IconChat /> },
-    { key: "account", label: me.plan === "paid" ? "บัญชี" : "อัปเกรด", icon: me.plan === "paid" ? <IconUser /> : <IconCrown /> },
+    { key: "calendar", label: "ปฏิทิน", icon: <IconCalendar /> },
+    { key: "account", label: "ฉัน", icon: <IconUser /> },
     ...(me.is_admin ? [{ key: "admin" as const, label: "แอดมิน", icon: <IconShield /> }] : []),
   ];
-  const active = (k: View["name"]) => view.name === k || (k === "home" && (view.name === "create" || view.name === "result" || view.name === "daily" || view.name === "board" || view.name === "mock" || view.name === "mockresult"));
-  const go = (k: View["name"]) => { setView({ name: k } as View); window.scrollTo(0, 0); };
-  const practice = (preset?: Preset) => { setView({ name: "create", preset }); window.scrollTo(0, 0); };
+  const active = (k: ViewName) => view.name === k || (k === "home" && (view.name === "create" || view.name === "result" || view.name === "daily" || view.name === "board" || view.name === "mock" || view.name === "mockresult" || view.name === "past"))
+    || (k === "account" && (view.name === "buy" || view.name === "feedback"));
+  const freeLeft = Math.max(0, me.free_sets_limit - me.free_sets_used);
+  const go = (k: ViewName) => navigate(PATHS[k]);
+  const back = (k: ViewName) => goBack(PATHS[k]);
+  const practice = (preset?: Preset) => { setHeld({ preset }); navigate(PATHS.create); };
 
   return (
     <div className="pp-app">
@@ -201,28 +216,35 @@ function PrepShell() {
             ))}
           </nav>
           <span className="pp-spacer" />
-          <span className={`pp-plan ${me.plan}`}>{me.plan === "paid" ? `★ ${planLabel(me)}` : `ฟรี ${Math.max(0, me.free_sets_limit - me.free_sets_used)}/${me.free_sets_limit} ชุด`}</span>
+          {me.plan === "paid"
+            ? <span className="pp-plan paid">★ {planLabel(me)}</span>
+            : (
+              <button className="pp-plan free pp-plan-up" onClick={() => go("buy")} aria-label={`เหลือชุดฟรี ${freeLeft} ชุด · ดูแพ็ก`}>
+                <IconCrown size={15} /><span>อัปเกรด</span><small>เหลือฟรี {freeLeft} ชุด</small>
+              </button>
+            )}
         </div>
       </header>
       <main className="pp-main" key={reloadKey}>
-        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onProfile={changeProfile} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onPast={() => go("past")} onCalendar={() => go("calendar")} onUpgrade={() => go("account")} onStats={() => go("stats")} onBoard={() => go("board")} />}
-        {view.name === "create" && <CreateSet me={me} major={profile.major} preset={view.preset} onCancel={() => go("home")}
-          onCreated={async id => { await refreshMe(); startRound(id, "full"); }} onUpgrade={() => go("account")} />}
-        {view.name === "result" && <RoundResult result={view.result} title={view.title} me={me} onStart={startRound}
-          onHome={() => go("home")} onUpgrade={() => go("account")} />}
-        {view.name === "daily" && <DailyQuiz onBack={() => go("home")} />}
-        {view.name === "board" && <Leaderboard onBack={() => go("home")} isAdmin={me.is_admin} />}
-        {view.name === "mock" && <MockHome onBack={() => go("home")} onUpgrade={() => go("account")} onAccount={() => go("account")}
-          onOpen={payload => { setView(payload.submitted ? { name: "mockresult", payload } : { name: "mockplay", payload }); window.scrollTo(0, 0); }} />}
-        {view.name === "mockresult" && <MockResult payload={view.payload} onBack={() => go("mock")} onReview={() => startReview("wrong")} />}
-        {view.name === "calendar" && <Calendar onBack={() => go("home")} />}
+        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onProfile={changeProfile} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onPast={() => go("past")} onCalendar={() => go("calendar")} onUpgrade={() => go("buy")} onStats={() => go("stats")} onBoard={() => go("board")} joined={session.user.created_at} />}
+        {view.name === "create" && <CreateSet me={me} major={profile.major} preset={held.preset} onCancel={() => go("home")}
+          onCreated={async id => { await refreshMe(); startRound(id, "full"); }} onUpgrade={() => go("buy")} />}
+        {view.name === "result" && held.result && <RoundResult result={held.result} title={held.title ?? ""} me={me} onStart={startRound}
+          onHome={() => go("home")} onUpgrade={() => go("buy")} />}
+        {view.name === "daily" && <DailyQuiz onBack={() => back("home")} />}
+        {view.name === "board" && <Leaderboard onBack={() => back("home")} isAdmin={me.is_admin} />}
+        {view.name === "mock" && <MockHome onBack={() => back("home")} onUpgrade={() => go("buy")} onAccount={() => go("account")}
+          onOpen={payload => { setHeld({ mock: payload }); navigate(payload.submitted ? PATHS.mockresult : PATHS.mockplay); }} />}
+        {view.name === "mockresult" && held.mock && <MockResult payload={held.mock} onBack={() => back("mock")} onReview={() => startReview("wrong")} />}
+        {view.name === "calendar" && <Calendar onBack={() => back("home")} />}
         {view.name === "feedback" && <Feedback page="tab" />}
-        {view.name === "past" && <PastExams onBack={() => go("home")} onUpgrade={() => go("account")}
+        {view.name === "past" && <PastExams onBack={() => back("home")} onUpgrade={() => go("buy")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} />}
-        {view.name === "summary" && <Summary isAdmin={me.is_admin} onPractice={practice} onUpgrade={() => go("account")}
+        {view.name === "summary" && <Summary isAdmin={me.is_admin} onPractice={practice} onUpgrade={() => go("buy")}
           onPastSet={async id => { await refreshMe(); startRound(id, "full"); }} />}
         {view.name === "stats" && <Stats me={me} profile={profile} onPractice={practice} />}
-        {view.name === "account" && <Account me={me} email={session.user.email ?? ""} profile={profile} onMajor={setMajor} onProfile={changeProfile} onChanged={refreshMe} onNotifRead={clearUnread} />}
+        {view.name === "account" && <Account me={me} email={session.user.email ?? ""} profile={profile} onMajor={setMajor} onProfile={changeProfile} onChanged={refreshMe} onNotifRead={clearUnread} onBuy={() => go("buy")} />}
+        {view.name === "buy" && <Buy me={me} email={session.user.email ?? ""} onChanged={refreshMe} />}
         {view.name === "admin" && me.is_admin && <Admin />}
       </main>
       <nav className="pp-nav" aria-label="เมนูหลัก">
@@ -244,5 +266,5 @@ const writeSkips = (n: number) => { try { localStorage.setItem("pp-major-skips",
 export default function PrepApp() {
   const path = window.location.pathname;
   const page = /^\/prep\/guide\/?$/.test(path) ? <Guide /> : /^\/prep\/privacy\/?$/.test(path) ? <Privacy /> : <PrepShell />;
-  return <><MovedBanner />{page}</>;
+  return <><MovedBanner />{page}<DialogHost /></>;
 }

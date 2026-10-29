@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { rpc, thaiError, type MockPayload } from "./api";
 import { IconBack, IconFlag, IconGrid, IconNext } from "./icons";
 import { useSinceShown } from "./timing";
+import { ask } from "./dialog";
+import { useTopicNames } from "./topicNames";
 
 const LABELS = ["ก", "ข", "ค", "ง"];
 const mmss = (s: number) => `${Math.floor(s / 3600) ? Math.floor(s / 3600) + ":" : ""}${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
@@ -37,6 +39,7 @@ export default function MockPlayer({ payload, onDone, onExit }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deadline, offset]);
 
+  const topics = useTopicNames();
   const item = payload.items[pos];
   const answered = picks.filter(p => p != null).length;
   const total = payload.items.length;
@@ -55,10 +58,10 @@ export default function MockPlayer({ payload, onDone, onExit }: Props) {
     }
   };
   const flag = () => setFlags(prev => { const n = new Set(prev); if (n.has(pos)) n.delete(pos); else n.add(pos); return n; });
-  const finish = () => {
+  const finish = async () => {
     const blank = total - answered;
-    const msg = `ส่งข้อสอบ ${payload.name}\nตอบแล้ว ${answered}/${total} ข้อ${blank ? `\nยังไม่ได้ตอบ ${blank} ข้อ (นับเป็นผิด)` : ""}${flags.size ? `\nมี ${flags.size} ข้อที่ทำเครื่องหมายไว้` : ""}\n\nส่งแล้วแก้ไม่ได้`;
-    if (confirm(msg)) submit();
+    const body = `ตอบแล้ว ${answered}/${total} ข้อ${blank ? `\nยังไม่ได้ตอบ ${blank} ข้อ (นับเป็นผิด)` : ""}${flags.size ? `\nมี ${flags.size} ข้อที่ทำเครื่องหมายไว้` : ""}\n\nส่งแล้วแก้ไม่ได้`;
+    if (await ask({ title: `ส่งข้อสอบ ${payload.name}`, body, ok: "ส่งข้อสอบ", cancel: "กลับไปทำต่อ" })) submit();
   };
 
   return (
@@ -84,7 +87,7 @@ export default function MockPlayer({ payload, onDone, onExit }: Props) {
       <main className="pp-main">
         <div className="pp-card pp-q">
           <div className="pp-q-head">
-            <div className="pp-q-topic">{item.topic}</div>
+            {topics[item.topic] && <div className="pp-q-topic">{topics[item.topic]}</div>}
             {item.tag && <div className="pp-q-tag">{item.tag}</div>}
             <button className={`pp-report-btn ${flags.has(pos) ? "done" : ""}`} onClick={flag}><IconFlag size={14} />{flags.has(pos) ? "ทำเครื่องหมายแล้ว" : "กลับมาดูทีหลัง"}</button>
           </div>

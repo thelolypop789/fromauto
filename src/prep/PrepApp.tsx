@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { Suspense, lazy, useCallback, useEffect, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { rpc, supabase, thaiError, startPing, track, type Me, type MockPayload, type Profile, type Round, type SubmitResult } from "./api";
 import Login from "./Login";
@@ -9,7 +9,6 @@ import RoundResult from "./RoundResult";
 import Stats from "./Stats";
 import Account from "./Account";
 import Buy from "./Buy";
-import Admin from "./Admin";
 import Guide from "./Guide";
 import Calendar from "./Calendar";
 import Privacy from "./Privacy";
@@ -24,13 +23,16 @@ import Feedback from "./Feedback";
 import { setupPwa } from "./pwa";
 import { goBack, navigate, usePath } from "./router";
 import Waiting from "./Waiting";
-import Summary from "./Summary";
 import PastExams from "./PastExams";
 import MajorPicker from "./MajorPicker";
 import TrackPicker from "./TrackPicker";
 import "./prep.css";
 import { notify } from "./dialog";
 import { DialogHost } from "./DialogHost";
+
+// Loaded on first open: the admin screens are for staff only, and the summaries bring their own font and styles.
+const Admin = lazy(() => import("./Admin"));
+const Summary = lazy(() => import("./Summary"));
 
 setupPwa();
 
@@ -94,6 +96,13 @@ function PrepShell() {
   const changeProfile = (p: Profile) => { setProfile(p); setReloadKey(k => k + 1); };
 
   useEffect(() => { if (session) { refreshMe(); track("visit"); } else setMe(null); }, [session, refreshMe]);
+  // Back from sign-in: continue to the screen the visitor opened before signing in (Login.tsx remembers it).
+  useEffect(() => {
+    if (!session) return;
+    let to: string | null = null;
+    try { to = sessionStorage.getItem("pp-after-login"); sessionStorage.removeItem("pp-after-login"); } catch { /* storage blocked */ }
+    if (to && location.pathname === "/prep" && to.startsWith("/prep/")) navigate(to, { replace: true });
+  }, [session]);
   const [unread, setUnread] = useState(0);
   const signedIn = !!session;
   // The สรุป tab appears once an admin has approved at least one map (admins always see it).
@@ -226,6 +235,7 @@ function PrepShell() {
         </div>
       </header>
       <main className="pp-main" key={reloadKey}>
+        <Suspense fallback={<div className="pp-spinner" />}>
         {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onProfile={changeProfile} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onPast={() => go("past")} onCalendar={() => go("calendar")} onUpgrade={() => go("buy")} onStats={() => go("stats")} onBoard={() => go("board")} joined={session.user.created_at} />}
         {view.name === "create" && <CreateSet me={me} major={profile.major} preset={held.preset} onCancel={() => go("home")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} onUpgrade={() => go("buy")} />}
@@ -246,6 +256,7 @@ function PrepShell() {
         {view.name === "account" && <Account me={me} email={session.user.email ?? ""} profile={profile} onMajor={setMajor} onProfile={changeProfile} onChanged={refreshMe} onNotifRead={clearUnread} onBuy={() => go("buy")} />}
         {view.name === "buy" && <Buy me={me} email={session.user.email ?? ""} onChanged={refreshMe} />}
         {view.name === "admin" && me.is_admin && <Admin />}
+        </Suspense>
       </main>
       <nav className="pp-nav" aria-label="เมนูหลัก">
         {tabs.map(t => (

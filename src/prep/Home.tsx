@@ -6,7 +6,7 @@ import { IconCheck, IconCrown, IconPlus } from "./icons";
 import InstallBanner from "./InstallBanner";
 import InstallSheet from "./InstallSheet";
 import Announcement from "./Announcement";
-import { useAutoInstallSheet } from "./pwa";
+import { setAppBadge, useAutoInstallSheet } from "./pwa";
 import ExpiryBanner from "./ExpiryBanner";
 import StudyPlan, { LineCard } from "./StudyPlan";
 import Mascot from "./Mascot";
@@ -40,7 +40,7 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
 
   useEffect(() => {
     rpc<SetSummary[]>("prep_list_sets").then(setSets).catch(e => setError(thaiError(e)));
-    rpc<ReviewCounts>("prep_review_counts").then(setCounts).catch(() => { /* tiles show without counts */ });
+    rpc<ReviewCounts>("prep_review_counts").then(c => { setCounts(c); setAppBadge(c.due); }).catch(() => { /* tiles show without counts */ });
     rpc<Dashboard>("prep_dashboard").then(setDash).catch(() => { /* explorer just shows without progress */ });
   }, []);
 
@@ -58,8 +58,7 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
       {installSheet.open && <InstallSheet onClose={() => installSheet.setOpen(false)} />}
       <Announcement track={profile.track} joined={joined} />
 
-      <LevelCard onBoard={onBoard} />
-      <Readiness compact mini onMore={onStats} onPractice={canCreate ? onCreate : undefined} />
+      {/* Order: what to do today first, then where you stand, then everything else. */}
       <section className="pp-hero">
         <div className="pp-hero-top">
           <div>
@@ -75,13 +74,20 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
             <span>▶ ทำต่อ · <b>{resume.title}</b></span><small>{resume.open_round.answered}/{resume.open_round.total} ข้อ</small>
           </button>
         )}
+        <div className="pp-hero-today">
+          <button disabled={!counts || counts.due === 0} onClick={() => onReview("due")}>
+            <b>ทบทวนวันนี้{counts ? ` · ${counts.due}` : ""}</b>
+            <small>{counts && counts.due === 0 ? "ยังไม่มีข้อถึงรอบ" : "ข้อที่ผิดมา ถึงรอบทวน"}</small>
+          </button>
+          <button onClick={onDaily}><b>ข้อสอบประจำวัน</b><small>10 ข้อ · ฟรี</small></button>
+        </div>
         <div className="pp-hero-stats">
           <div><b>{sets?.length ?? "–"}</b><span>ชุดที่ทำ</span></div>
           <div><b>{sets ? cleared : "–"}</b><span>เคลียร์แล้ว</span></div>
           <div><b>{me.plan === "paid" ? "∞" : freeLeft}</b><span>{me.plan === "paid" ? "สร้างได้" : "ชุดฟรีคงเหลือ"}</span></div>
         </div>
       </section>
-
+      <Readiness compact mini onMore={onStats} onPractice={canCreate ? onCreate : undefined} />
 
       <div className="pp-greet">
         <Mascot costume="teacher" mood="happy" size={72} />
@@ -206,13 +212,6 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
         <button onClick={onPast}>
           <b>แนวข้อสอบเก่า</b><span>ฝึกจากประเด็นที่เคยออกสอบ แยกตามสนามและปี</span>
         </button>
-        <button onClick={onDaily}>
-          <b>ข้อสอบประจำวัน</b><span>10 ข้อ ทุกคนได้ชุดเดียวกัน · ฟรี</span>
-        </button>
-        <button disabled={!counts || counts.due === 0} onClick={() => onReview("due")}>
-          <b>ทบทวนวันนี้{counts ? ` (${counts.due})` : ""}</b>
-          <span>{counts && counts.due === 0 ? "ยังไม่มีข้อถึงรอบทวน" : "ข้อที่ผิดมา ถึงรอบทวนตามเวลา"}</span>
-        </button>
         <button disabled={!counts || counts.wrong === 0} onClick={() => onReview("wrong")}>
           <b>ทวนข้อผิดทั้งหมด{counts ? ` (${counts.wrong})` : ""}</b>
           <span>{counts && counts.wrong === 0 ? "ไม่มีข้อที่ยังผิดอยู่" : "รวมข้อที่ยังตอบผิด จากทุกชุด"}</span>
@@ -220,6 +219,7 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
       </div>
 
 
+      <LevelCard onBoard={onBoard} />
       <StudyPlan answeredToday={me.answered_today} onCalendar={onCalendar} />
       <LineCard />
 

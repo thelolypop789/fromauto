@@ -42,6 +42,10 @@ function InAppNotice() {
   );
 }
 
+// OAuth always returns to /prep (the redirect URL Supabase allows). Remember where the visitor was going, e.g. a home
+// screen shortcut to /prep/daily, so PrepApp can continue there after sign-in.
+const rememberPath = () => { try { if (location.pathname !== "/prep") sessionStorage.setItem("pp-after-login", location.pathname); } catch { /* storage blocked */ } };
+
 export default function Login() {
   const inApp = useLeaveInApp();
   const [email, setEmail] = useState("");
@@ -52,6 +56,7 @@ export default function Login() {
 
   const google = async () => {
     setError("");
+    rememberPath();
     const { error: err } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/prep` },

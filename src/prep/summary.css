@@ -178,3 +178,22 @@
 /* ภาค ก / ภาค ข tabs on the list */
 .mm-sec { position: sticky; top: calc(64px + env(safe-area-inset-top)); z-index: 8; background: var(--pp-bg); padding: 6px 0; margin: 4px 0 14px; flex-wrap: nowrap; }
 .mm-sec button small { font-weight: 500; opacity: .75; margin-left: 4px; }
+
+/* flashcards (FlashView) */
+.mm-flash-open { flex: none; width: 100%; }
+.mm-flash { font: inherit; color: var(--mm-ink); cursor: pointer; text-align: center; min-height: 230px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px; padding: 22px 16px; border-radius: 24px; background: #fff;
+  border: 2.5px solid #E8577A; box-shadow: 0 8px 0 -2px #FFD0DB; }
+.mm-flash.open { border-color: #22A06B; box-shadow: 0 8px 0 -2px #C5F0DA; background: #FBFFFC; }
+.mm-flash .br { font-size: 11.5px; font-weight: 700; color: #C2185B; background: #FFE3EA; border-radius: 99px; padding: 2px 10px; }
+.mm-flash .q { font-size: 16px; font-weight: 700; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+.mm-flash .a { display: flex; flex-direction: column; gap: 6px; border-top: 2px dashed #C5F0DA; padding-top: 10px; width: 100%; }
+.mm-flash .a b { font-family: Mali, Prompt, sans-serif; font-size: 18px; color: #13643F; white-space: pre-line; overflow-wrap: anywhere; }
+.mm-flash .a small { font-size: 12.5px; color: #7A6468; line-height: 1.5; }
+.mm-flash .hint { font-size: 12px; color: #A08A8E; }
+.mm-flash:active { transform: translateY(3px); box-shadow: 0 4px 0 -2px #FFD0DB; }
+.mm-flash-note { margin: 0; text-align: center; font-size: 11.5px; color: #8A7478; }
+.mm-flash-done { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 18px 14px; }
+.mm-flash-done b { font-family: Mali, Prompt, sans-serif; font-size: 19px; color: #13643F; }
+.mm-flash-done p { margin: 0 0 6px; font-size: 13px; color: #7A6468; }
+.mm-flash-done .mm-btns { width: 100%; }

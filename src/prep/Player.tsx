@@ -4,6 +4,9 @@ import { choiceOrder, rpc, thaiError, type AnswerResult, type Item, type Round, 
 import { IconBack, IconCheck, IconFlag, IconGrid, IconNext, IconX } from "./icons";
 import ReportDialog from "./ReportDialog";
 import { useSinceShown } from "./timing";
+import { ask } from "./dialog";
+import { useTopicNames } from "./topicNames";
+import TextSize from "./TextSize";
 
 // A short line from the mascot under the verdict. Picked by question id so it does not change on re-render.
 const CHEER_OK = ["เก่งมาก! ไฟลุกแล้ว 🔥", "แม่นมาก ไปต่อเลย", "ถูกต้อง จำแบบนี้ไว้นะ", "เยี่ยม! อีกข้อก็ได้แน่"];
@@ -24,6 +27,7 @@ export default function Player({ round, onExit, onSubmitted }: Props) {
   const [reported, setReported] = useState<Set<number>>(new Set());
   const [reporting, setReporting] = useState(false);
 
+  const topics = useTopicNames();
   const item = items[pos];
   const answered = items.filter(i => i.picked != null).length;
   const right = items.filter(i => i.correct).length;
@@ -66,7 +70,7 @@ export default function Player({ round, onExit, onSubmitted }: Props) {
 
   const submit = async () => {
     const left = items.length - answered;
-    if (left > 0 && !confirm(`ยังไม่ได้ตอบ ${left} ข้อ (นับเป็นข้อผิด) ส่งเลยไหม?`)) return;
+    if (left > 0 && !(await ask({ title: "ส่งรอบนี้เลยไหม?", body: `ยังไม่ได้ตอบ ${left} ข้อ ข้อที่ไม่ได้ตอบนับเป็นข้อผิด`, ok: "ส่งเลย", cancel: "ทำต่อ" }))) return;
     setBusy(true); setError("");
     try {
       onSubmitted(await rpc<SubmitResult>("prep_submit", { p_attempt: round.attempt_id }));
@@ -131,8 +135,9 @@ export default function Player({ round, onExit, onSubmitted }: Props) {
       <main className="pp-main">
         <div className="pp-card pp-q">
           <div className="pp-q-head">
-            <div className="pp-q-topic">{item.topic}</div>
+            {topics[item.topic] && <div className="pp-q-topic">{topics[item.topic]}</div>}
             {item.tag && <div className="pp-q-tag">{item.tag}</div>}
+            <TextSize />
             {reported.has(item.question_id)
               ? <span className="pp-report-btn done"><IconCheck size={14} />รายงานแล้ว</span>
               : <button className="pp-report-btn" onClick={() => setReporting(true)}><IconFlag size={14} />รายงานข้อนี้</button>}
@@ -185,7 +190,7 @@ export default function Player({ round, onExit, onSubmitted }: Props) {
         <div className="pp-foot-in">
           <button className="pp-btn pp-btn-ghost" disabled={pos === 0} onClick={() => setPos(pos - 1)}><IconBack />ก่อนหน้า</button>
           {allDone
-            ? <button className="pp-btn pp-btn-gold" disabled={busy} onClick={submit}>ส่งรอบนี้ ดูผล</button>
+            ? <button className="pp-btn pp-btn-primary" disabled={busy} onClick={submit}>ส่งรอบนี้ ดูผล</button>
             : item.picked != null
               ? <button className="pp-btn pp-btn-primary" onClick={next}>ข้อต่อไป<IconNext /></button>
               : <button className="pp-btn pp-btn-outline" onClick={submit} disabled={busy}>ส่งเลย</button>}

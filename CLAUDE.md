@@ -23,7 +23,7 @@ Browser (React SPA, lazy chunk ต่อแอป)
 
 - `src/main.tsx` — เลือก App หรือ PrepApp, reload เมื่อ chunk เก่าหาย
 - `src/App.tsx` — แอปครูทั้งหมดในไฟล์เดียว (~9,000 บรรทัด)
-- `src/prep/PrepApp.tsx` — shell + routing (state `View`) ของ /prep; `api.ts` = Supabase client (storageKey `fromauto-prep-auth`) + types + wrapper RPC; `config.ts` = ร้าน/แพ็กเกจ/QR; `levels.ts` = XP/เลเวลมาสคอต
+- `src/prep/PrepApp.tsx` — shell ของ /prep (ทุกหน้ามี URL ผ่าน `router.ts`: pushState/popstate, ปุ่มย้อนกลับ, `useBackClose` ให้ back ปิด dialog; ยืนยัน/แจ้งเตือนใช้ `ask()`/`notify()` ใน `dialog.ts` แทน alert/confirm); `api.ts` = Supabase client (storageKey `fromauto-prep-auth`) + types + wrapper RPC; `config.ts` = ร้าน/แพ็กเกจ/QR; `levels.ts` = XP/เลเวลมาสคอต
 - `supabase/functions/` — `parse-exam`, `admin-action`, `sgs-bridge` (แอปครู); `prep-import`, `prep-ai-review`, `prep-gen-questions`, `prep-report-ai`, `prep-fb-agent`, `prep-subtopic-tag` (prep; logic แยกใน `logic.ts` มีเทสต์ใน `scripts/prep/test_*.mjs`)
 - `supabase/migrations/` — ~70 ไฟล์ ตั้งชื่อ `YYYYMMDDHHMMSS_*.sql` รันตามลำดับ; ของ prep ขึ้นต้น `prep_`
 - `api/sgs/*`, `api/lib/sgsHelper.ts` — Vercel functions SGS (vite.config.ts mount middleware เดียวกันตอน dev)

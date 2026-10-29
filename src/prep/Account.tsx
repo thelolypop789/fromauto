@@ -1,30 +1,28 @@
 import { useEffect, useState } from "react";
-import { PACKAGE_LABEL, TRACK_LABEL, fmtUntil, rpc, supabase, thaiError, type Me, type PackageKey, type Price, type Profile } from "./api";
+import { PACKAGE_LABEL, TRACK_LABEL, fmtUntil, rpc, supabase, thaiError, type Me, type PackageKey, type Profile } from "./api";
 import MajorPicker from "./MajorPicker";
-import { PACKAGES, SHOP } from "./config";
-import { IconCheck, IconCrown, IconLogout } from "./icons";
+import { IconCrown, IconLogout } from "./icons";
 import InstallBanner from "./InstallBanner";
 import MyReports from "./MyReports";
 import Notifications from "./Notifications";
-import PayForm from "./PayForm";
+import Feedback from "./Feedback";
 import GroupKeys from "./GroupKeys";
+import { ask as confirmDialog } from "./dialog";
+import ThemePicker from "./ThemePicker";
 
 const noop = () => { /* nothing to refresh */ };
-type Props = { me: Me; email: string; profile: Profile; onMajor: (code: string, name: string) => void; onProfile?: (p: Profile) => void; onChanged: () => void; onNotifRead?: () => void };
+type Props = {
+  me: Me; email: string; profile: Profile; onMajor: (code: string, name: string) => void; onProfile?: (p: Profile) => void;
+  onChanged: () => void; onNotifRead?: () => void; onBuy: () => void;
+};
 
-export default function Account({ me, email, profile, onMajor, onProfile, onChanged, onNotifRead }: Props) {
+// "ฉัน" (/prep/me): the account, packages, major, notices, keys, feedback and data deletion. Buying lives on /prep/buy.
+export default function Account({ me, email, profile, onMajor, onProfile, onChanged, onNotifRead, onBuy }: Props) {
   const [picking, setPicking] = useState(false);
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [prices, setPrices] = useState<Price[]>([]);
-  useEffect(() => { rpc<Price[]>("prep_prices").then(setPrices).catch(() => { /* falls back to config */ }); }, []);
-  const priceOf = (k: PackageKey, t: "round" | "lifetime", fallback: string) => {
-    const x = prices.find(y => y.package === k && y.term === t);
-    return x ? `${x.amount} บาท` : fallback;
-  };
   const pkgs = me.packages ?? [];
-  const owned = new Set(pkgs.map(p => p.package));
   const lifetimeAll = pkgs.some(p => p.package === "ALL" && !p.expires_at);
   const [now] = useState(() => Date.now());
   const daysLeft = (iso: string | null) => {
@@ -71,6 +69,7 @@ export default function Account({ me, email, profile, onMajor, onProfile, onChan
       </div>
       {picking && <MajorPicker current={profile.major} track={profile.track} onTrack={onProfile} onClose={() => setPicking(false)} onSaved={onMajor} />}
 
+      <ThemePicker />
       <InstallBanner always />
       <Notifications onRead={onNotifRead ?? noop} />
       <MyReports />
@@ -89,36 +88,9 @@ export default function Account({ me, email, profile, onMajor, onProfile, onChan
       )}
 
       {!lifetimeAll && (
-        <div className="pp-card pp-upgrade">
-          <h2><IconCrown size={22} /> {pkgs.length ? "ซื้อแพ็กเพิ่ม / ต่ออายุ" : "อัปเกรดเป็นสมาชิก"}</h2>
-          <ul className="pp-perks">
-            <li><IconCheck />สร้างชุดใหม่ได้ไม่จำกัดในหมวดของแพ็ก (ชุดละสูงสุด 200 ข้อ)</li>
-            <li><IconCheck />ดึงข้อใหม่จากคลังทั้งหมด พร้อมเฉลยและคำอธิบายทุกข้อ</li>
-            <li><IconCheck /><span>เลือกได้ทั้ง <b>รายรอบ</b>{SHOP.roundText ? ` (${SHOP.roundText})` : ""} หรือ <b>ซื้อขาด</b> ใช้ได้ตลอด · ซื้อรายรอบซ้ำจะต่อเวลาจากวันหมดอายุเดิม</span></li>
-          </ul>
-          <div className="pp-pkgs">
-            {PACKAGES.filter(p => p.key !== "A" || !owned.has("A")).map(p => (
-              <div key={p.key} className={`pp-pkg ${p.best ? "best" : ""}`}>
-                {p.best && <span className="pp-pkg-ribbon">คุ้มที่สุด</span>}
-                <b>{p.name}</b>
-                <span className="pp-muted small">{p.desc}</span>
-                <div className="pp-pkg-prices">
-                  <div><span>รายรอบ 3 เดือน</span><b>{priceOf(p.key, "round", p.round) || "สอบถาม"}</b></div>
-                  <div><span>ซื้อขาด</span><b>{priceOf(p.key, "lifetime", p.lifetime) || "สอบถาม"}</b></div>
-                </div>
-                {owned.has(p.key) && <span className="pp-mine">มีแล้ว · ซื้อซ้ำเพื่อต่ออายุ</span>}
-              </div>
-            ))}
-          </div>
-          <h3>วิธีซื้อ</h3>
-          <ol className="pp-list">
-            <li>เลือกแพ็กและแบบ (รายรอบ / ซื้อขาด) ด้านล่าง · มีแพ็กอยู่แล้วและอยากได้เพิ่ม ระบบคิดให้จ่ายแค่ส่วนต่าง</li>
-            <li>สแกน QR ที่ขึ้นมา (ยอดเงินตรงตามแพ็กแล้ว ไม่ต้องพิมพ์เอง){SHOP.bankText ? ` · ${SHOP.bankText}` : ""}</li>
-            <li>แนบรูปสลิปแล้วกดส่ง</li>
-            <li>ทีมงานตรวจยอดแล้วเปิดสิทธิ์ให้บัญชีนี้ ({email}) ไม่ต้องกรอกคีย์{SHOP.contactText ? ` · สอบถาม: ${SHOP.contactText}` : ""}</li>
-          </ol>
-          <PayForm email={email} onApproved={onChanged} />
-          {SHOP.contactUrl && <a className="pp-btn pp-btn-gold" href={SHOP.contactUrl} target="_blank" rel="noopener noreferrer">ติดต่อซื้อ</a>}
+        <div className="pp-card pp-buy-cta">
+          <div><b>{pkgs.length ? "ซื้อแพ็กเพิ่ม / ต่ออายุ" : "อัปเกรดเป็นสมาชิก"}</b><span className="pp-muted small">สร้างชุดได้ไม่จำกัดในหมวดของแพ็ก</span></div>
+          <button className="pp-btn pp-btn-gold" onClick={onBuy}><IconCrown size={18} />ดูแพ็ก</button>
         </div>
       )}
 
@@ -131,6 +103,8 @@ export default function Account({ me, email, profile, onMajor, onProfile, onChan
         <button className="pp-btn pp-btn-primary" disabled={busy || !key.trim()} onClick={redeem}>{busy ? "กำลังตรวจสอบ..." : "เปิดใช้งาน"}</button>
         {msg && <div className={msg.ok ? "pp-success" : "pp-error"}>{msg.text}</div>}
       </div>
+
+      <Feedback page="me" />
 
       <DeletionCard />
     </>
@@ -146,7 +120,7 @@ function DeletionCard() {
   const [err, setErr] = useState("");
   useEffect(() => { rpc<Deletion>("prep_my_deletion").then(setD).catch(() => setD(null)); }, []);
   const ask = async () => {
-    if (busy || !confirm("ขอให้ทีมงานลบบัญชีและข้อมูลทั้งหมดของคุณ (รวมถึงสิทธิ์แพ็กที่ซื้อไว้) ยืนยันไหม?")) return;
+    if (busy || !(await confirmDialog({ title: "ขอลบบัญชีและข้อมูลทั้งหมด?", body: "ทีมงานจะลบบัญชีและข้อมูลทั้งหมดของคุณ รวมถึงสิทธิ์แพ็กที่ซื้อไว้ ลบแล้วกู้คืนไม่ได้", ok: "ขอลบข้อมูล", danger: true }))) return;
     setBusy(true); setErr("");
     try { setD(await rpc<Deletion>("prep_request_deletion")); } catch (e) { setErr(thaiError(e)); }
     setBusy(false);

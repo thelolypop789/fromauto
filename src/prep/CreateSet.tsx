@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { GROUPS, PACKAGE_LABEL, SECTIONS, covers, rpc, thaiError, track, type Me, type Quote, type Subtopic, type Topic } from "./api";
 import { IconCrown } from "./icons";
+import Skeleton from "./Skeleton";
 
 export type Preset = { section?: "A" | "B"; topics?: string[]; subtopics?: string[]; mode?: "new" | "weak" | "mixed" };
 type Props = { me: Me; major?: string | null; preset?: Preset; onCancel: () => void; onCreated: (setId: string) => void; onUpgrade: () => void };
@@ -109,7 +110,7 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
       <div className="pp-card pp-empty">
         <h3>ใช้ชุดฟรีครบ 3 ชุดแล้ว</h3>
         <p className="pp-muted">ชุดเดิมยังทำซ้ำได้ไม่จำกัด หรืออัปเกรดเพื่อสร้างชุดใหม่ได้ไม่จำกัด</p>
-        <button className="pp-btn pp-btn-gold" onClick={onUpgrade}><IconCrown size={20} />ดูวิธีอัปเกรด</button>
+        <button className="pp-btn pp-btn-gold" onClick={onUpgrade}><IconCrown size={20} />ดูแพ็ก</button>
       </div>
     );
   }
@@ -131,7 +132,7 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
           </button>
         ))}
       </div>
-      {!topics && !error && <div className="pp-spinner" />}
+      {!topics && !error && <Skeleton kind="list" n={4} />}
       {topics && (
         <label className="pp-group-head pp-all">
           <input type="checkbox" checked={allSection} disabled={sectionBulk.length === 0} onChange={e => toggle(sectionBulk.map(t => t.code), e.target.checked)} />

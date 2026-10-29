@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { rpc, thaiError, type MockOverview, type MockPayload, type MockSubject } from "./api";
 import { IconBack } from "./icons";
 import MockScorecard from "./MockScorecard";
+import { ask } from "./dialog";
 
 type Props = { onBack: () => void; onUpgrade: () => void; onOpen: (p: MockPayload) => void; onAccount: () => void };
 
@@ -22,7 +23,7 @@ export default function MockHome({ onBack, onUpgrade, onOpen, onAccount }: Props
 
   const start = async (s: MockSubject) => {
     if (busy) return;
-    if (!s.open && !confirm(`เริ่มสอบ "${s.name}"\n${s.questions} ข้อ · ${s.minutes} นาที\n\nเวลาเริ่มนับทันทีและเดินต่อแม้ปิดแอป ไม่เฉลยจนกว่าจะกดส่งหรือหมดเวลา`)) return;
+    if (!s.open && !(await ask({ title: `เริ่มสอบ "${s.name}"`, body: `${s.questions} ข้อ · ${s.minutes} นาที\n\nเวลาเริ่มนับทันทีและเดินต่อแม้ปิดแอป ไม่เฉลยจนกว่าจะกดส่งหรือหมดเวลา`, ok: "เริ่มสอบ" }))) return;
     setBusy(s.code); setError("");
     try {
       onOpen(s.open

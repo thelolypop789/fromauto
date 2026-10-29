@@ -28,8 +28,11 @@ async function shrink(file: File): Promise<{ blob: Blob; type: string; ext: stri
   }
 }
 
-export default function PayForm({ email, onApproved }: { email: string; onApproved: () => void }) {
-  const [choice, setChoice] = useState<{ pkg: PackageKey; term: "round" | "lifetime" } | null>(null);
+// `initial`: a package and term already picked on the price cards above the form (Buy.tsx remounts the form with it).
+export default function PayForm({ email, onApproved, initial = null }: {
+  email: string; onApproved: () => void; initial?: { pkg: PackageKey; term: "round" | "lifetime" } | null;
+}) {
+  const [choice, setChoice] = useState<{ pkg: PackageKey; term: "round" | "lifetime" } | null>(initial);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
   const [note, setNote] = useState("");

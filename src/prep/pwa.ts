@@ -31,9 +31,48 @@ export function setupPwa() {
 
   if ("serviceWorker" in navigator && import.meta.env.PROD) {
     // This module loads lazily, usually after the window "load" event has already fired.
-    const register = () => navigator.serviceWorker.register("/prep-sw.js", { scope: "/prep" }).catch(() => { /* app still works online */ });
+    const register = () => navigator.serviceWorker.register("/prep-sw.js", { scope: "/prep" }).then(reg => {
+      // A worker installed while this page already had one means a new deploy: the page still runs the old build.
+      reg.addEventListener("updatefound", () => {
+        const sw = reg.installing;
+        sw?.addEventListener("statechange", () => { if (sw.state === "activated" && hadController) { updateReady = true; updateListeners.forEach(f => f()); } });
+      });
+      // An installed app can stay open for days: look for a new deploy whenever it comes back to the foreground.
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") reg.update().catch(() => { /* offline */ }); });
+    }).catch(() => { /* app still works online */ });
+    const hadController = !!navigator.serviceWorker.controller;
     if (document.readyState === "complete") register(); else window.addEventListener("load", register, { once: true });
   }
+}
+
+let updateReady = false;
+const updateListeners = new Set<() => void>();
+// True once a newer build has been installed while this page was open; the app offers a reload.
+export function useUpdateReady() {
+  const [ready, setReady] = useState(updateReady);
+  useEffect(() => {
+    const f = () => setReady(true);
+    updateListeners.add(f);
+    return () => { updateListeners.delete(f); };
+  }, []);
+  return ready;
+}
+
+// Online/offline state for the "no connection" strip.
+export function useOnline() {
+  const [online, setOnline] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const on = () => setOnline(true), off = () => setOnline(false);
+    window.addEventListener("online", on); window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
+  return online;
+}
+
+// Number on the installed app's icon: questions waiting for today's review (Badging API; ignored where unsupported).
+export function setAppBadge(n: number) {
+  const nav = navigator as Navigator & { setAppBadge?: (n?: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
+  try { (n > 0 ? nav.setAppBadge?.(n) : nav.clearAppBadge?.())?.catch(() => { /* not allowed */ }); } catch { /* unsupported */ }
 }
 
 type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
@@ -47,8 +86,10 @@ export const isStandalone = () =>
   window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true;
 
 // Facebook, Messenger, Instagram, LINE and TikTok open links in their own browser, which cannot install apps.
-const isInApp = () => /FBAN|FBAV|FB_IAB|Instagram|Line\/|musical_ly|Bytedance|TikTok/i.test(navigator.userAgent);
+export const isInApp = () => /FBAN|FBAV|FB_IAB|Instagram|Line\/|musical_ly|Bytedance|TikTok/i.test(navigator.userAgent);
 
+export const isLineApp = () => /Line\//i.test(navigator.userAgent);
+export const isAndroid = () => /android/i.test(navigator.userAgent);
 const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
 // "prompt": Chrome/Edge/Android can show the native install dialog.

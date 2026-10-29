@@ -5,6 +5,7 @@ import Mascot from "./Mascot";
 import Confetti from "./Confetti";
 import { scoreMood } from "./mascotUtil";
 import ScoreDist from "./ScoreDist";
+import { useTopicNames } from "./topicNames";
 
 const LABELS = ["ก", "ข", "ค", "ง"];
 const fmtTime = (s: number) => `${Math.floor(s / 60)} นาที ${s % 60} วินาที`;
@@ -12,6 +13,7 @@ const fmtTime = (s: number) => `${Math.floor(s / 60)} นาที ${s % 60} ว
 type Props = { payload: MockPayload; onBack: () => void; onReview: () => void };
 
 export default function MockResult({ payload, onBack, onReview }: Props) {
+  const topics = useTopicNames();
   const r = payload.result!;
   const [filter, setFilter] = useState<"wrong" | "all" | "blank">("wrong");
   const list = payload.items.filter(i => filter === "all" || (filter === "blank" ? i.picked == null : i.picked !== i.answer));
@@ -61,7 +63,7 @@ export default function MockResult({ payload, onBack, onReview }: Props) {
         {list.length === 0 && <p className="pp-muted">ไม่มีข้อในกลุ่มนี้</p>}
         {list.map(i => (
           <div key={i.idx} className={`pp-mock-review ${i.picked === i.answer ? "ok" : "bad"}`}>
-            <div className="pp-q-topic">{i.topic}</div>
+            {topics[i.topic] && <div className="pp-q-topic">{topics[i.topic]}</div>}
             <div className="pp-q-stem"><span className="pp-q-no">{i.idx + 1}.</span> {i.stem}</div>
             <div className="pp-choices">
               {i.choices.map((text, c) => {

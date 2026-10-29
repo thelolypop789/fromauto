@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { REPORT_CATEGORIES, rpc, thaiError } from "./api";
 import { IconCheck, IconFlag, IconX } from "./icons";
+import { useBackClose } from "./router";
 
 type Props = { questionId: number; stem: string; onClose: () => void; onSent: () => void };
 
@@ -11,6 +12,7 @@ export default function ReportDialog({ questionId, stem, onClose, onSent }: Prop
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
   const box = useRef<HTMLDivElement>(null);
+  useBackClose(onClose);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };

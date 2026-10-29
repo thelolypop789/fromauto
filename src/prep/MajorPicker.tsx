@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { TRACK_LABEL, rpc, thaiError, type Profile, type Topic, type Track } from "./api";
 import { IconCheck, IconX } from "./icons";
+import { useBackClose } from "./router";
 
 // forced = first visit / no major yet: it cannot be dismissed by a stray tap, only by choosing a major or the explicit skip.
 // track/onTrack: the exam (สพฐ. or สอศ.) decides which majors are listed; switching it saves at once and may clear the major.
@@ -17,6 +18,7 @@ export default function MajorPicker({ current, onClose, onSaved, forced, onSkip,
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  useBackClose(onClose, !forced);
   // prep_topics lists the caller's track only, so it is reloaded after a switch.
   useEffect(() => {
     rpc<Topic[]>("prep_topics").then(t => setMajors(t.filter(x => x.grp === "B3"))).catch(e => setError(thaiError(e)));

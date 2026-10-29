@@ -50,7 +50,7 @@ export default function Guide() {
             <span className="pp-brand-t">ซ้อมสอบ<small>คู่มือการใช้งาน</small></span>
           </a>
           <span className="pp-spacer" />
-          <a className="pp-btn pp-btn-gold" href="/prep">เปิดแอป</a>
+          <a className="pp-btn pp-btn-primary" href="/prep">เปิดแอป</a>
         </div>
       </header>
       <main className="pp-main">

@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { rpc, thaiError, track } from "./api";
 import type { Preset } from "./CreateSet";
 import { IconCrown } from "./icons";
 import Mascot from "./Mascot";
 import type { PastTag } from "./PastExams";
+import { mapCards, type Card as FlashCard } from "./summaries/cards";
 import { GROUPS, type Block, type Branch, type MindMap } from "./summaries/types";
 import "./summary.css";
 
@@ -159,6 +160,8 @@ function MapView({ map, isAdmin, ok, onSetOk, onBack, onPractice, past, onPastSe
   const [recall, setRecall] = useState(false);
   const [seen, setSeen] = useState<Set<string>>(new Set());
   const [got, setGot] = useState<Set<string>>(new Set());
+  const [flash, setFlash] = useState(false);
+  const cards = useMemo(() => mapCards(map), [map]);
   const branch = map.branches.find(b => b.id === branchId);
   const quiz = map.branches.filter(b => b.big);
 
@@ -171,6 +174,7 @@ function MapView({ map, isAdmin, ok, onSetOk, onBack, onPractice, past, onPastSe
   const restart = () => { setSeen(new Set()); setGot(new Set()); };
 
   if (branch) return <BranchView map={map} b={branch} onBack={() => setBranchId(null)} onPractice={onPractice} />;
+  if (flash) return <FlashView map={map} cards={cards} onBack={() => { setFlash(false); window.scrollTo(0, 0); }} onPractice={onPractice} />;
   const done = quiz.length > 0 && got.size === quiz.length;
 
   return (
@@ -203,6 +207,9 @@ function MapView({ map, isAdmin, ok, onSetOk, onBack, onPractice, past, onPastSe
           : <button className="mm-btn g" onClick={() => { restart(); setRecall(true); }}>🧠 โหมดท่องจำ</button>}
         <button className={`mm-btn ${done ? "gold" : "p"}`} onClick={onPractice}>✏️ ฝึกข้อสอบหมวดนี้</button>
       </div>
+      {!recall && cards.length > 0 && (
+        <button className="mm-btn g mm-flash-open" onClick={() => { setFlash(true); window.scrollTo(0, 0); }}>🃏 แฟลชการ์ด · {cards.length} ใบ</button>
+      )}
       {recall && !done && <button className="pp-link small mm-exit" onClick={() => { setRecall(false); restart(); }}>ออกจากโหมดท่องจำ</button>}
       {!recall && past.length > 0 && <PastSets map={map} past={past} onPastSet={onPastSet} />}
     </div>
@@ -280,6 +287,87 @@ function Stage({ map, recall, seen, got, onTap, hub, hubSub, mood }: {
         <Mascot mood={mood} costume="teacher" size={86} motion="idle" />
         <div className="cloud"><b>{hub}</b>{hubSub && <small>{hubSub}</small>}</div>
       </div>
+    </div>
+  );
+}
+
+// Flashcards of one map (cards.ts): tap to flip, then "จำได้" takes the card out of the deck and "ยังไม่แม่น" sends it
+// to the back, so the round ends when every card has been remembered once. Session only; nothing is saved.
+function FlashView({ map, cards, onBack, onPractice }: { map: MindMap; cards: FlashCard[]; onBack: () => void; onPractice: () => void }) {
+  const all = useMemo(() => cards.map((_, i) => i), [cards]);
+  const [queue, setQueue] = useState(all);
+  const [open, setOpen] = useState(false);
+  const [again, setAgain] = useState(0);
+  const card = queue.length ? cards[queue[0]] : null;
+  const known = cards.length - queue.length;
+
+  const shuffled = (xs: number[]) => {
+    const q = [...xs];
+    for (let i = q.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]]; }
+    return q;
+  };
+  const restart = () => { setQueue(shuffled(all)); setOpen(false); setAgain(0); };
+  const mark = (ok: boolean) => {
+    setQueue(q => (ok ? q.slice(1) : [...q.slice(1), q[0]]));
+    if (!ok) setAgain(n => n + 1);
+    setOpen(false);
+  };
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (!card || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === " " || e.key === "Enter") { e.preventDefault(); setOpen(o => !o); }
+      else if (open && (e.key === "ArrowRight" || e.key === "2")) mark(true);
+      else if (open && (e.key === "ArrowLeft" || e.key === "1")) mark(false);
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  });
+
+  return (
+    <div className="mm mm-paper">
+      <button className="pp-link small" onClick={onBack}>← {map.title}</button>
+      <div className="mm-head">
+        <h2>🃏 แฟลชการ์ด</h2>
+        <p><span className="mm-chip">{map.group.startsWith("B") ? "ภาค ข" : "ภาค ก"}</span>นึกคำตอบก่อน แล้วแตะการ์ดเพื่อพลิกดู</p>
+      </div>
+      <div className="mm-prog">
+        <span>จำได้</span>
+        <div className="mm-bar"><i style={{ width: `${(100 * known) / cards.length}%` }} /></div>
+        <b>{known}/{cards.length}</b>
+      </div>
+      {card ? (
+        <>
+          <button className={`mm-flash ${open ? "open" : ""}`} onClick={() => setOpen(o => !o)} aria-live="polite">
+            <span className="br">{card.branch}</span>
+            <span className="q">{card.q}</span>
+            {open
+              ? <span className="a"><b>{card.a}</b>{card.sub && <small>{card.sub}</small>}</span>
+              : <span className="hint">แตะเพื่อดูคำตอบ</span>}
+          </button>
+          {open ? (
+            <div className="mm-btns">
+              <button className="mm-btn g" onClick={() => mark(false)}>😅 ยังไม่แม่น</button>
+              <button className="mm-btn p" onClick={() => mark(true)}>✅ จำได้</button>
+            </div>
+          ) : (
+            <div className="mm-btns">
+              <button className="mm-btn g" onClick={() => setQueue(shuffled)}>🔀 สลับการ์ด</button>
+              <button className="mm-btn p" onClick={() => setOpen(true)}>พลิกการ์ด</button>
+            </div>
+          )}
+          <p className="mm-flash-note">เหลือ {queue.length} ใบ{again ? ` · ทวนซ้ำแล้ว ${again} ครั้ง` : ""} · ใบที่ยังไม่แม่นจะวนกลับมาท้ายกอง</p>
+        </>
+      ) : (
+        <div className="mm-card mm-flash-done">
+          <Mascot mood="cheer" costume="teacher" size={84} motion="idle" />
+          <b>จำได้ครบ {cards.length} ใบแล้ว!</b>
+          <p>{again ? `ทวนซ้ำไป ${again} ครั้ง ลองอีกรอบแบบสลับการ์ดดูไหม` : "รอบเดียวผ่านหมด เก่งมาก"}</p>
+          <div className="mm-btns">
+            <button className="mm-btn g" onClick={restart}>🔀 อีกรอบ</button>
+            <button className="mm-btn gold" onClick={onPractice}>✏️ ฝึกข้อสอบหมวดนี้</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -13,8 +13,8 @@ import {
   type Price, type Turn,
 } from "./logic.ts";
 
-const SECRET = Deno.env.get("LINE_CHANNEL_SECRET") ?? "";
-const TOKEN = Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN") ?? "";
+const SECRET = (Deno.env.get("LINE_CHANNEL_SECRET") ?? "").trim(); // trim: a pasted secret often ends with a newline
+const TOKEN = (Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN") ?? "").trim();
 const GEMINI_KEY = Deno.env.get("GEMINI_KEY") ?? "";
 const MODEL = Deno.env.get("PREP_LINE_MODEL") || "gemini-flash-latest";
 

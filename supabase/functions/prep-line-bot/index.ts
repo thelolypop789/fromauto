@@ -4,6 +4,8 @@
 //     answered by Gemini from the facts in systemPrompt() plus the session so far; a picture (usually a slip) gets
 //     SLIP_TEXT (slips are accepted in the app only). Typing แอดมิน hands the chat to a human: the bot stays quiet for
 //     that customer until 2 hours pass without a message (prep_line_session). Only 1:1 chats are answered.
+//     A burst of messages gets one answer: each message is queued (prep_line_pending), LINE gets its 200 at once, and
+//     after PREP_LINE_DEBOUNCE_S (default 8) the newest message of the burst answers them all (planBurst).
 //   * action "chat" / "history" from the app (user JWT): the in-app chat. Same facts, plus the signed-in customer's
 //     own plan, orders and readiness read with their token; a human is reached through LINE. APP_DAILY_LIMIT a day.
 //   * action "summarize" {day}: pg_cron (x-cron-secret, prep_chat_secret_ok) or an admin (JWT) writes the AI summary of
@@ -14,9 +16,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
-  APP_ADMIN_TEXT, APP_DAILY_LIMIT, APP_LIMIT_TEXT, DEFAULT_TEXT, FALLBACK_PRICES, SLIP_TEXT, WELCOME_TEXT, aiMessages,
-  appSystemPrompt, cleanReply, matchPreset, signatureOk, summaryPrompt, systemPrompt,
-  type AppContext, type DayData, type Price, type Turn,
+  APP_ADMIN_TEXT, APP_DAILY_LIMIT, APP_LIMIT_TEXT, DEFAULT_TEXT, FALLBACK_PRICES, PRESETS, SLIP_TEXT, WELCOME_TEXT, aiMessages,
+  appSystemPrompt, cleanReply, matchPreset, planBurst, signatureOk, summaryPrompt, systemPrompt,
+  type AppContext, type DayData, type Pending, type Price, type Turn,
 } from "./logic.ts";
 
 const SECRET = (Deno.env.get("LINE_CHANNEL_SECRET") ?? "").trim(); // trim: a pasted secret often ends with a newline
@@ -24,6 +26,9 @@ const TOKEN = (Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN") ?? "").trim();
 const GEMINI_KEY = Deno.env.get("GEMINI_KEY") ?? "";
 const MODEL = Deno.env.get("PREP_LINE_MODEL") || "gemini-flash-latest";
 const SUMMARY_MODEL = Deno.env.get("PREP_SUMMARY_MODEL") || "gemini-pro-latest";
+// LINE: wait this long after a message for the customer to finish typing; answer a burst at most BURST_MAX_S after its start.
+const DEBOUNCE_S = Math.min(20, Math.max(0, Number(Deno.env.get("PREP_LINE_DEBOUNCE_S") ?? 8) || 0));
+const BURST_MAX_S = 25;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
@@ -114,6 +119,52 @@ async function saveSession(user: string, turns: (Turn & { src?: string })[], han
   if (error) console.error("prep_line_session_save:", error.message);
 }
 
+// Shows LINE's "…" typing animation in the 1:1 chat while the bot waits for the burst to end and thinks. It
+// disappears by itself when the reply arrives (or after `seconds`).
+async function showTyping(userId: string, seconds = 30) {
+  const res = await fetch("https://api.line.me/v2/bot/chat/loading/start", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${TOKEN}` },
+    body: JSON.stringify({ chatId: userId, loadingSeconds: seconds }),
+  });
+  if (!res.ok) console.error("LINE loading", res.status, await res.text());
+}
+
+// Edge runtime: keep working after the 200 has gone back to LINE (the burst wait happens here).
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
+const later = (p: Promise<unknown>) => {
+  const safe = p.catch(e => console.error("background:", (e as Error).message));
+  if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(safe);
+};
+
+// After the wait: the newest message of the burst takes the queue (prep_line_pending_take) and answers it once,
+// with the newest reply token.
+async function answerBurst(user: string, id: number) {
+  await new Promise(r => setTimeout(r, DEBOUNCE_S * 1000));
+  const { data, error } = await sb().rpc("prep_line_pending_take", { p_user: user, p_id: id, p_max_s: BURST_MAX_S });
+  if (error) { console.error("prep_line_pending_take:", error.message); return; }
+  const rows = (data ?? []) as (Pending & { reply_token: string })[];
+  if (!rows.length) return; // a newer message of this burst answers
+  const plan = planBurst(rows);
+  const userTurns = plan.said.map(t => ({ role: "user" as const, content: t }));
+
+  const session = await loadSession(user);
+  if (session.handoff) { await saveSession(user, userTurns, false); return; } // an admin has this chat: log only
+
+  let out: string, src: string;
+  if (plan.type === "slip") { out = SLIP_TEXT; src = "slip"; }
+  else if (plan.type === "preset") { out = PRESETS.find(p => p.id === plan.id)!.text(await prices()); src = `preset:${plan.id}`; }
+  else if (!GEMINI_KEY) { out = DEFAULT_TEXT; src = "fallback"; }
+  else {
+    try { out = await gemini(aiMessages(systemPrompt(await prices()), session.history, plan.question)); src = "ai"; }
+    catch (e) { console.error("AI:", (e as Error).message); out = DEFAULT_TEXT; src = "fallback"; }
+  }
+  const handoff = src === "preset:admin";
+  await reply(rows[rows.length - 1].reply_token, out);
+  if (!handoff) await markRead(user);
+  await saveSession(user, [...userTurns, { role: "assistant", content: out, src }], handoff);
+}
+
 async function handle(ev: LineEvent) {
   const user = ev.source?.userId;
   if (ev.source?.type !== "user" || !user || !ev.replyToken) return; // groups / rooms: stay out
@@ -121,28 +172,12 @@ async function handle(ev: LineEvent) {
   if (ev.type !== "message" || !ev.message) return;
   const kind = ev.message.type;
   const text = kind === "text" ? (ev.message.text ?? "").trim() : "";
-  if (kind !== "image" && kind !== "file" && !text) return; // stickers etc.: stay quiet
-
-  const session = await loadSession(user);
-  if (session.handoff) return; // an admin has this chat
-
-  let out: string, src: string, handoff = false, said = text;
-  if (kind === "image" || kind === "file") {
-    out = SLIP_TEXT; src = "slip"; said = "[ส่งรูป/ไฟล์]";
-  } else {
-    const preset = matchPreset(text);
-    if (preset) {
-      out = preset.text(await prices()); src = `preset:${preset.id}`; handoff = preset.id === "admin";
-    } else if (!GEMINI_KEY) {
-      out = DEFAULT_TEXT; src = "fallback";
-    } else {
-      try { out = await gemini(aiMessages(systemPrompt(await prices()), session.history, text)); src = "ai"; }
-      catch (e) { console.error("AI:", (e as Error).message); out = DEFAULT_TEXT; src = "fallback"; }
-    }
-  }
-  await reply(ev.replyToken, out);
-  if (!handoff) await markRead(user);
-  await saveSession(user, [{ role: "user", content: said }, { role: "assistant", content: out, src }], handoff);
+  const media = kind === "image" || kind === "file";
+  if (!media && !text) return; // stickers etc.: stay quiet
+  const { data: id, error } = await sb().rpc("prep_line_pending_add", { p_user: user, p_kind: media ? "media" : "text", p_text: text, p_token: ev.replyToken });
+  if (error || id == null) { console.error("prep_line_pending_add:", error?.message); return; }
+  if (!(await loadSession(user)).handoff) await showTyping(user);
+  later(answerBurst(user, Number(id)));
 }
 
 async function lineWebhook(req: Request): Promise<Response> {
@@ -150,17 +185,10 @@ async function lineWebhook(req: Request): Promise<Response> {
   const body = await req.text();
   if (!signatureOk(await hmacB64(body), req.headers.get("x-line-signature"))) return new Response("bad signature", { status: 401 });
   const { events = [] } = JSON.parse(body) as { events?: LineEvent[] };
-  // One customer's messages in order (they share a session); different customers in parallel.
-  const byUser = new Map<string, LineEvent[]>();
+  // Queue in order (one customer's messages share a burst); the answers happen in the background.
   for (const ev of events) {
-    const k = ev.source?.userId ?? "";
-    byUser.set(k, [...(byUser.get(k) ?? []), ev]);
+    try { await handle(ev); } catch (e) { console.error("event:", (e as Error).message); }
   }
-  await Promise.all([...byUser.values()].map(async (list) => {
-    for (const ev of list) {
-      try { await handle(ev); } catch (e) { console.error("event:", (e as Error).message); }
-    }
-  }));
   return new Response("ok");
 }
 

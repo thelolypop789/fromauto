@@ -292,3 +292,27 @@ export function summaryPrompt(day: string, d: DayData): string {
 แชททั้งหมด:
 ${transcript(d)}`;
 }
+
+// ---------- LINE: one answer per burst of messages ----------
+
+export type Pending = { kind: "text" | "media"; text: string };
+export type BurstPlan =
+  | { type: "slip"; said: string[] }                          // only pictures/files: most likely a slip
+  | { type: "preset"; id: string; said: string[] }            // one message and it is a keyword (or แอดมิน anywhere)
+  | { type: "ai"; said: string[]; question: string };         // everything else, asked as one question
+
+// What the customer said in this burst, in order, and how to answer it. แอดมิน anywhere in the burst hands over.
+export function planBurst(rows: Pending[]): BurstPlan {
+  const said = rows.map(r => r.kind === "media" ? "[ส่งรูป/ไฟล์]" : r.text.trim()).filter(Boolean);
+  const texts = rows.filter(r => r.kind === "text" && r.text.trim()).map(r => r.text.trim());
+  const media = rows.some(r => r.kind === "media");
+  if (!texts.length) return { type: "slip", said };
+  if (texts.some(t => matchPreset(t)?.id === "admin")) return { type: "preset", id: "admin", said };
+  if (texts.length === 1 && !media) {
+    const p = matchPreset(texts[0]);
+    if (p) return { type: "preset", id: p.id, said };
+  }
+  const question = (texts.length === 1 ? texts[0] : "ลูกค้าส่งมาหลายข้อความติดกัน ตอบรวมครั้งเดียว:\n" + texts.map(t => "- " + t).join("\n"))
+    + (media ? "\n(ลูกค้าส่งรูปหรือไฟล์มาด้วย ถ้าน่าจะเป็นสลิป ให้แนบในหน้าซื้อเท่านั้น)" : "");
+  return { type: "ai", said, question };
+}

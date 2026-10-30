@@ -20,6 +20,7 @@ import MockPlayer from "./MockPlayer";
 import MockResult from "./MockResult";
 import { IconCalendar, IconChart, IconCrown, IconHome, IconMap, IconShield, IconUser, Logo } from "./icons";
 import Feedback from "./Feedback";
+import ChatButton from "./Chat";
 import { setupPwa } from "./pwa";
 import { goBack, navigate, usePath } from "./router";
 import Waiting from "./Waiting";
@@ -261,6 +262,7 @@ function PrepShell() {
         {view.name === "admin" && me.is_admin && <Admin />}
         </Suspense>
       </main>
+      {view.name !== "admin" && <ChatButton />}
       <nav className="pp-nav" aria-label="เมนูหลัก">
         {tabs.map(t => (
           <button key={t.key} className={active(t.key) ? "on" : ""} onClick={() => go(t.key)} aria-current={active(t.key) ? "page" : undefined}>

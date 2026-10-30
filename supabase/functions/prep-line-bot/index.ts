@@ -1,25 +1,41 @@
-// LINE OA chat bot (LINE @701pvghq). LINE posts every event here (webhook, so deploy with --no-verify-jwt);
-// the request is trusted only when its x-line-signature matches LINE_CHANNEL_SECRET.
-// A text that is one of the preset keywords gets the preset reply (logic.ts, same texts as LINE OA Manager);
-// any other text is answered by Gemini from the facts in systemPrompt() plus the session so far; a picture
-// (usually a slip) gets SLIP_TEXT (slips are accepted in the app only). Typing แอดมิน hands the chat to a human:
-// the bot stays quiet for that customer until 2 hours pass without a message (prep_line_session).
-// Only 1:1 chats are answered. Secrets: LINE_CHANNEL_SECRET, LINE_CHANNEL_ACCESS_TOKEN, GEMINI_KEY (shared);
-// optional PREP_LINE_MODEL (default gemini-flash-latest).
+// SOBPREP chat bot: one function, three ways in (deployed with --no-verify-jwt; each way checks its own caller).
+//   * LINE webhook (LINE @701pvghq): trusted only when x-line-signature matches LINE_CHANNEL_SECRET. A text that is one
+//     of the preset keywords gets the preset reply (logic.ts, same texts as LINE OA Manager); any other text is
+//     answered by Gemini from the facts in systemPrompt() plus the session so far; a picture (usually a slip) gets
+//     SLIP_TEXT (slips are accepted in the app only). Typing แอดมิน hands the chat to a human: the bot stays quiet for
+//     that customer until 2 hours pass without a message (prep_line_session). Only 1:1 chats are answered.
+//   * action "chat" / "history" from the app (user JWT): the in-app chat. Same facts, plus the signed-in customer's
+//     own plan, orders and readiness read with their token; a human is reached through LINE. APP_DAILY_LIMIT a day.
+//   * action "summarize" {day}: pg_cron (x-cron-secret, prep_chat_secret_ok) or an admin (JWT) writes the AI summary of
+//     one Bangkok day of chats (prep_chat_day → prep_chat_summary_save), shown in แอดมิน → ผู้ใช้ → แชทลูกค้า.
+// Every message of both channels is logged (prep.chat_log, 90 days). Secrets: LINE_CHANNEL_SECRET,
+// LINE_CHANNEL_ACCESS_TOKEN, GEMINI_KEY (shared); optional PREP_LINE_MODEL (default gemini-flash-latest) and
+// PREP_SUMMARY_MODEL (default gemini-pro-latest).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
-  DEFAULT_TEXT, FALLBACK_PRICES, SLIP_TEXT, WELCOME_TEXT, aiMessages, cleanReply, matchPreset, signatureOk, systemPrompt,
-  type Price, type Turn,
+  APP_ADMIN_TEXT, APP_DAILY_LIMIT, APP_LIMIT_TEXT, DEFAULT_TEXT, FALLBACK_PRICES, SLIP_TEXT, WELCOME_TEXT, aiMessages,
+  appSystemPrompt, cleanReply, matchPreset, signatureOk, summaryPrompt, systemPrompt,
+  type AppContext, type DayData, type Price, type Turn,
 } from "./logic.ts";
 
 const SECRET = (Deno.env.get("LINE_CHANNEL_SECRET") ?? "").trim(); // trim: a pasted secret often ends with a newline
 const TOKEN = (Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN") ?? "").trim();
 const GEMINI_KEY = Deno.env.get("GEMINI_KEY") ?? "";
 const MODEL = Deno.env.get("PREP_LINE_MODEL") || "gemini-flash-latest";
+const SUMMARY_MODEL = Deno.env.get("PREP_SUMMARY_MODEL") || "gemini-pro-latest";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+const json = (data: unknown, status = 200) =>
+  new Response(JSON.stringify(data), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
 let client: ReturnType<typeof createClient> | null = null;
-const sb = () => client ??= createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+const sb = () => client ??= createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
 // prep.prices changes rarely; keep it for 10 minutes per warm instance.
 let priceCache: { at: number; prices: Price[] } | null = null;
@@ -42,17 +58,14 @@ async function hmacB64(body: string): Promise<string> {
   return btoa(String.fromCharCode(...sig));
 }
 
-// Gemini through its OpenAI-compatible endpoint (same as prep-ai-review). The reply token lasts about a minute,
-// so one try with a 25 s timeout; on any failure the caller sends DEFAULT_TEXT instead.
-async function askAI(history: Turn[], text: string): Promise<string> {
+// Gemini through its OpenAI-compatible endpoint (same as prep-ai-review). One try: a LINE reply token lasts about a
+// minute and a customer is waiting, so on any failure the caller answers DEFAULT_TEXT instead.
+async function gemini(messages: { role: string; content: string }[], opts: { model?: string; timeout?: number; effort?: string; max?: number } = {}): Promise<string> {
   const res = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${GEMINI_KEY}` },
-    body: JSON.stringify({
-      model: MODEL, stream: false, max_tokens: 2000, reasoning_effort: "low",
-      messages: aiMessages(systemPrompt(await prices()), history, text),
-    }),
-    signal: AbortSignal.timeout(25_000),
+    body: JSON.stringify({ model: opts.model ?? MODEL, stream: false, max_tokens: opts.max ?? 2000, reasoning_effort: opts.effort ?? "low", messages }),
+    signal: AbortSignal.timeout(opts.timeout ?? 25_000),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(`Gemini ${res.status}: ${data?.error?.message ?? res.statusText}`);
@@ -60,6 +73,8 @@ async function askAI(history: Turn[], text: string): Promise<string> {
   if (!out) throw new Error("Gemini ตอบว่าง");
   return out;
 }
+
+// ---------- LINE ----------
 
 async function reply(replyToken: string, text: string) {
   const res = await fetch("https://api.line.me/v2/bot/message/reply", {
@@ -94,7 +109,7 @@ async function loadSession(user: string): Promise<{ history: Turn[]; handoff: bo
   return { history: data.history ?? [], handoff: data.handoff === true };
 }
 
-async function saveSession(user: string, turns: Turn[], handoff: boolean) {
+async function saveSession(user: string, turns: (Turn & { src?: string })[], handoff: boolean) {
   const { error } = await sb().rpc("prep_line_session_save", { p_user: user, p_turns: turns, p_handoff: handoff });
   if (error) console.error("prep_line_session_save:", error.message);
 }
@@ -111,27 +126,26 @@ async function handle(ev: LineEvent) {
   const session = await loadSession(user);
   if (session.handoff) return; // an admin has this chat
 
-  let out: string, handoff = false, said = text;
+  let out: string, src: string, handoff = false, said = text;
   if (kind === "image" || kind === "file") {
-    out = SLIP_TEXT; said = "[ส่งรูป/ไฟล์]";
+    out = SLIP_TEXT; src = "slip"; said = "[ส่งรูป/ไฟล์]";
   } else {
     const preset = matchPreset(text);
     if (preset) {
-      out = preset.text(await prices()); handoff = preset.id === "admin";
+      out = preset.text(await prices()); src = `preset:${preset.id}`; handoff = preset.id === "admin";
     } else if (!GEMINI_KEY) {
-      out = DEFAULT_TEXT;
+      out = DEFAULT_TEXT; src = "fallback";
     } else {
-      try { out = await askAI(session.history, text); }
-      catch (e) { console.error("AI:", (e as Error).message); out = DEFAULT_TEXT; }
+      try { out = await gemini(aiMessages(systemPrompt(await prices()), session.history, text)); src = "ai"; }
+      catch (e) { console.error("AI:", (e as Error).message); out = DEFAULT_TEXT; src = "fallback"; }
     }
   }
   await reply(ev.replyToken, out);
   if (!handoff) await markRead(user);
-  await saveSession(user, [{ role: "user", content: said }, { role: "assistant", content: out }], handoff);
+  await saveSession(user, [{ role: "user", content: said }, { role: "assistant", content: out, src }], handoff);
 }
 
-serve(async (req) => {
-  if (req.method !== "POST") return new Response("ok");
+async function lineWebhook(req: Request): Promise<Response> {
   if (!SECRET || !TOKEN) return new Response("LINE secrets not set", { status: 503 });
   const body = await req.text();
   if (!signatureOk(await hmacB64(body), req.headers.get("x-line-signature"))) return new Response("bad signature", { status: 401 });
@@ -148,4 +162,101 @@ serve(async (req) => {
     }
   }));
   return new Response("ok");
+}
+
+// ---------- in-app chat ----------
+
+// The customer's own data, read with their token (RLS / prep.uid() apply). A failed read just leaves that part out.
+async function appContext(auth: string, email: string | undefined): Promise<AppContext> {
+  const u = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: auth } } });
+  const get = async (fn: string) => { const { data, error } = await u.rpc(fn); if (error) console.error(fn, error.message); return error ? null : data; };
+  const [me, orders, readiness] = await Promise.all([get("prep_me"), get("prep_my_orders"), get("prep_readiness")]);
+  return { email, me, orders, readiness };
+}
+
+async function appChat(auth: string, body: { action: string; message?: unknown }): Promise<Response> {
+  const u = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: auth } } });
+  const { data: who, error: authErr } = await u.auth.getUser();
+  if (authErr || !who?.user) return json({ error: "กรุณาเข้าสู่ระบบ" }, 401);
+  const uid = who.user.id;
+  const { data: s, error } = await sb().rpc("prep_app_chat_session", { p_user: uid });
+  if (error) console.error("prep_app_chat_session:", error.message);
+  const history: Turn[] = s?.history ?? [];
+  if (body.action === "history") {
+    return json({ history: history.map(t => ({ role: t.role, content: t.content })), left: Math.max(0, APP_DAILY_LIMIT - (s?.used_today ?? 0)) });
+  }
+  const text = typeof body.message === "string" ? body.message.trim().slice(0, 2000) : "";
+  if (!text) return json({ error: "ข้อความว่าง" }, 400);
+
+  let out: string, src: string, handoff = false;
+  if ((s?.used_today ?? 0) >= APP_DAILY_LIMIT) {
+    out = APP_LIMIT_TEXT; src = "limit"; handoff = true;
+  } else if (matchPreset(text)?.id === "admin") {
+    out = APP_ADMIN_TEXT; src = "handoff"; handoff = true;
+  } else if (!GEMINI_KEY) {
+    out = DEFAULT_TEXT; src = "fallback";
+  } else {
+    try {
+      const [p, c] = await Promise.all([prices(), appContext(auth, who.user.email)]);
+      out = await gemini(aiMessages(appSystemPrompt(p, c), history, text), { timeout: 40_000 }); src = "ai";
+    } catch (e) { console.error("AI:", (e as Error).message); out = DEFAULT_TEXT; src = "fallback"; }
+  }
+  if (src === "fallback") handoff = true;
+  const { error: saveErr } = await sb().rpc("prep_app_chat_save", { p_user: uid, p_turns: [{ role: "user", content: text }, { role: "assistant", content: out, src }] });
+  if (saveErr) console.error("prep_app_chat_save:", saveErr.message);
+  return json({ reply: out, handoff, left: Math.max(0, APP_DAILY_LIMIT - (s?.used_today ?? 0) - 1) });
+}
+
+// ---------- daily summary ----------
+
+const bangkokYesterday = () => new Date(Date.now() + 7 * 3600_000 - 86400_000).toISOString().slice(0, 10);
+
+async function summarize(dayIn: unknown): Promise<Response> {
+  const day = typeof dayIn === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dayIn) ? dayIn : bangkokYesterday();
+  const { data, error } = await sb().rpc("prep_chat_day", { p_day: day });
+  if (error) return json({ error: "อ่านแชทไม่ได้: " + error.message }, 500);
+  const d = data as DayData;
+  let summary: string, model: string | null = null;
+  if (!d.conversations.length) summary = "ไม่มีแชทในวันนี้";
+  else if (!GEMINI_KEY) return json({ error: "ยังไม่ได้ตั้งค่า GEMINI_KEY" }, 503);
+  else {
+    try {
+      summary = await gemini([{ role: "user", content: summaryPrompt(day, d) }], { model: SUMMARY_MODEL, timeout: 100_000, effort: "medium", max: 8000 });
+      model = SUMMARY_MODEL;
+    } catch (e) { return json({ error: "AI สรุปไม่สำเร็จ: " + (e as Error).message }, 502); }
+  }
+  const { error: e2 } = await sb().rpc("prep_chat_summary_save", { p_day: day, p_summary: summary, p_stats: d.stats, p_model: model });
+  if (e2) return json({ error: "บันทึกสรุปไม่ได้: " + e2.message }, 500);
+  return json({ ok: true, day, summary, stats: d.stats });
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
+  if (req.method !== "POST") return new Response("ok");
+  if (req.headers.has("x-line-signature")) return lineWebhook(req);
+  try {
+    const body = await req.json().catch(() => ({}));
+    const action = String(body.action ?? "");
+    if (action === "summarize") {
+      const cron = req.headers.get("x-cron-secret");
+      if (cron) {
+        const { data } = await sb().rpc("prep_chat_secret_ok", { p_secret: cron });
+        if (data !== true) return json({ error: "forbidden" }, 403);
+      } else {
+        const auth = req.headers.get("Authorization") ?? "";
+        const u = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: auth } } });
+        const { data: isAdmin, error } = await u.rpc("prep_admin_check");
+        if (error || isAdmin !== true) return json({ error: "ไม่มีสิทธิ์แอดมิน" }, 403);
+      }
+      return await summarize(body.day);
+    }
+    if (action === "chat" || action === "history") {
+      const auth = req.headers.get("Authorization") ?? "";
+      if (!auth.startsWith("Bearer ")) return json({ error: "กรุณาเข้าสู่ระบบ" }, 401);
+      return await appChat(auth, body);
+    }
+    return new Response("bad signature", { status: 401 }); // not LINE (no signature) and no known action
+  } catch (e) {
+    return json({ error: "เกิดข้อผิดพลาด: " + ((e as Error).message ?? String(e)) }, 500);
+  }
 });

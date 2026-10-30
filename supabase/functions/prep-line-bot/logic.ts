@@ -210,3 +210,85 @@ export function cleanReply(s: unknown): string {
     .replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
   return t.slice(0, 4900);
 }
+
+// ---------- in-app chat (action "chat") ----------
+
+export const APP_DAILY_LIMIT = 40; // messages per user per Bangkok day; each AI answer costs money
+export const APP_LIMIT_TEXT = `วันนี้คุยครบ ${APP_DAILY_LIMIT} ข้อความแล้วครับ พรุ่งนี้คุยต่อได้ ถ้าเรื่องด่วน กดปุ่ม "คุยกับแอดมินทาง LINE" ได้เลย`;
+export const APP_ADMIN_TEXT = `ได้เลยครับ 🙋 กดปุ่ม "คุยกับแอดมินทาง LINE" ด้านล่าง แล้วพิมพ์อีเมลที่ใช้ล็อกอินกับรายละเอียดไว้ ทีมงานจะตอบโดยเร็วที่สุด`;
+
+export type AppContext = {
+  email?: string;
+  me?: { plan?: string; free_sets_used?: number; free_sets_limit?: number; packages?: { package: string; expires_at: string | null }[] } | null;
+  orders?: { package: string; term: string; amount: number; status: string; admin_note?: string | null; created_at: string; reviewed_at?: string | null; access_until?: string | null }[] | null;
+  readiness?: { overall: number | null; answered?: number; sections?: { section: string; pct: number }[]; focus?: { name: string; subject: string; pct: number }[] } | null;
+};
+
+const PKG: Record<string, string> = { A: "แพ็กภาค ก", B: "แพ็กภาค ข + วิชาเอก", ALL: "แพ็กครบทุกภาค" };
+const ORDER_STATUS: Record<string, string> = { pending: "รอตรวจสลิป", approved: "อนุมัติแล้ว", rejected: "ไม่ผ่าน" };
+const thDate = (s: string | null | undefined) => s ? new Date(s).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Bangkok" }) : "";
+
+// What the bot may know about the signed-in customer. Read with the customer's own token, so it is only their data.
+export function contextText(c: AppContext): string {
+  const out: string[] = [];
+  const pk = c.me?.packages ?? [];
+  out.push(`- แผน: ${c.me?.plan === "paid" ? "มีแพ็ก" : "ใช้ฟรี"}${pk.length ? " · " + pk.map(p => `${PKG[p.package] ?? p.package} (${p.expires_at ? "ถึง " + thDate(p.expires_at) : "ซื้อขาด"})`).join(", ") : ""}`);
+  if (c.me?.plan !== "paid" && c.me?.free_sets_limit != null) out.push(`- ชุดฟรีเหลือ ${Math.max(0, c.me.free_sets_limit - (c.me.free_sets_used ?? 0))} จาก ${c.me.free_sets_limit} ชุด`);
+  const orders = (c.orders ?? []).slice(0, 5);
+  out.push(orders.length
+    ? "- คำสั่งซื้อล่าสุด:\n" + orders.map(o => `  • ${thDate(o.created_at)} ${PKG[o.package] ?? o.package} ${o.term === "lifetime" ? "ซื้อขาด" : "รายรอบ"} ${o.amount} บาท: ${ORDER_STATUS[o.status] ?? o.status}${o.admin_note ? ` (หมายเหตุแอดมิน: ${o.admin_note})` : ""}`).join("\n")
+    : "- ยังไม่มีคำสั่งซื้อ");
+  const r = c.readiness;
+  if (r && r.overall != null) {
+    out.push(`- ความพร้อมสอบ ${r.overall}% จาก ${r.answered ?? 0} ข้อที่ทำ${r.sections?.length ? " (" + r.sections.map(s => `ภาค ${s.section === "A" ? "ก" : "ข"} ${s.pct}%`).join(", ") + ")" : ""}`);
+    if (r.focus?.length) out.push(`- หมวดที่ควรฝึกก่อน: ${r.focus.slice(0, 3).map(f => `${f.name} (${f.subject}, ${f.pct}%)`).join(", ")}`);
+  } else out.push("- ยังทำข้อสอบไม่พอจะประเมินความพร้อม");
+  return out.join("\n");
+}
+
+// The LINE prompt, adjusted for the in-app chat: the customer is signed in, a human is reached through LINE.
+export function appSystemPrompt(prices: Price[], c: AppContext): string {
+  return systemPrompt(prices)
+    .replace('คุณคือแอดมินตอบแชท LINE ของ "ซ้อมสอบ SOBPREP"', 'คุณคือผู้ช่วยแชทในแอป "ซ้อมสอบ SOBPREP"')
+    .replace('ให้บอกให้พิมพ์คำว่า "แอดมิน" แล้วทีมงานจะตอบในแชทนี้', 'ให้บอกให้กดปุ่ม "คุยกับแอดมินทาง LINE" ใต้แชทนี้')
+    .replace('(มี ?src=line-oa ทุกอัน)', '')
+    .replaceAll("?src=line-oa", "?src=app-chat")
+    .replace(/ถ้าแนบไม่ได้จริงให้พิมพ์ "แอดมิน"/, 'ถ้าแนบไม่ได้จริงให้กดปุ่ม "คุยกับแอดมินทาง LINE"')
+    + `
+
+ข้อมูลบัญชีของลูกค้าที่กำลังคุยอยู่ (ล็อกอินแล้ว ใช้ตอบเรื่องของลูกค้าคนนี้ได้ เช่น สถานะสลิป วันหมดอายุ หมวดที่ควรฝึก ห้ามเดาเกินจากนี้):
+${contextText(c)}
+- สถานะ "รอตรวจสลิป" ปกติไม่กี่นาที กลางคืนอาจช้ากว่า ถ้ารอนานผิดปกติหรือ "ไม่ผ่าน" ให้กดปุ่มคุยกับแอดมินทาง LINE`;
+}
+
+// ---------- daily summary (action "summarize") ----------
+
+export type DayTurn = { role: string; content: string; src?: string | null };
+export type DayData = { stats: Record<string, number>; conversations: { channel: string; turns: DayTurn[] }[] };
+
+// The day's chats as plain text for the model, capped so a busy day stays within one request.
+export function transcript(d: DayData, maxChars = 60_000): string {
+  let out = "";
+  d.conversations.forEach((c, i) => {
+    const block = `\n### แชท ${i + 1} (${c.channel === "app" ? "ในแอป" : "LINE"})\n` + c.turns.map(t =>
+      `${t.role === "user" ? "ลูกค้า" : `บอท${t.src && t.src !== "ai" ? ` [${t.src}]` : ""}`}: ${t.content.replace(/\s+/g, " ").slice(0, 400)}`).join("\n");
+    if (out.length + block.length <= maxChars) out += block;
+  });
+  return out.trim();
+}
+
+export function summaryPrompt(day: string, d: DayData): string {
+  const s = d.stats;
+  return `สรุปแชทลูกค้าของ "ซ้อมสอบ SOBPREP" วันที่ ${day} ให้แอดมินอ่าน (ภาษาไทย กระชับ เป็นข้อ ๆ ไม่ใช้ตาราง)
+สถิติ: ${s.conversations} แชท (LINE ${s.line_conversations}, ในแอป ${s.app_conversations}), ลูกค้าพิมพ์ ${s.messages} ข้อความ, AI ตอบ ${s.ai}, พรีเซต ${s.preset}, ขอคุยกับแอดมิน ${s.handoff}, ระบบขัดข้อง ${s.fallback}
+
+หัวข้อที่ต้องมี:
+1. ลูกค้าถามเรื่องอะไรบ้าง (จัดกลุ่ม เรียงจากมากไปน้อย พร้อมจำนวนโดยประมาณ)
+2. ต้องติดตาม: ลูกค้าที่ขอคุยกับแอดมิน มีปัญหาสลิป/สิทธิ์/ล็อกอิน หรือยังไม่ได้คำตอบ (บอกว่าแชทที่เท่าไหร่ และเรื่องอะไร)
+3. บอทตอบไม่ได้หรือตอบไม่ดี (ยกตัวอย่างคำถาม)
+4. ข้อเสนอแนะ: ข้อมูลที่ควรเพิ่มให้บอท หรือสิ่งที่ควรปรับในแอป/ราคา/ขั้นตอน
+ถ้าหัวข้อไหนไม่มี เขียนว่า "ไม่มี" ห้ามใส่อีเมลหรือข้อมูลส่วนตัวของลูกค้าในสรุป
+
+แชททั้งหมด:
+${transcript(d)}`;
+}

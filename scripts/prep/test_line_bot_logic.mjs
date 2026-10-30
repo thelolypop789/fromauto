@@ -37,5 +37,25 @@ t('aiMessages: non-array history ignored', L.aiMessages('S', { a: 1 }, 'q').leng
 t('slip text: in-app only, no chat activation', L.SLIP_TEXT.includes('หน้าซื้อเท่านั้น') && !L.SLIP_TEXT.includes('อีเมล'));
 t('buy text: in-app only', L.PRESETS.find(p => p.id === 'buy').text([]).includes('แนบสลิปในหน้าซื้อเท่านั้น'));
 t('prompt forbids chat slips', L.systemPrompt([]).includes('สลิปรับเฉพาะในหน้าซื้อเท่านั้น'));
+const ctx = { me: { plan: 'paid', packages: [{ package: 'A', expires_at: '2027-01-30T00:00:00Z' }, { package: 'B', expires_at: null }] },
+  orders: [{ package: 'ALL', term: 'round', amount: 99, status: 'pending', created_at: '2026-10-30T03:00:00Z', admin_note: null }],
+  readiness: { overall: 64, answered: 320, sections: [{ section: 'A', pct: 70 }], focus: [{ name: 'กฎหมาย', subject: 'ภาค ข', pct: 41 }] } };
+const ct = L.contextText(ctx);
+t('context: packages with expiry / lifetime', ct.includes('แพ็กภาค ก (ถึง') && ct.includes('แพ็กภาค ข + วิชาเอก (ซื้อขาด)'));
+t('context: order status in Thai', ct.includes('รอตรวจสลิป') && ct.includes('99 บาท'));
+t('context: readiness + focus', ct.includes('ความพร้อมสอบ 64%') && ct.includes('กฎหมาย (ภาค ข, 41%)'));
+const empty = L.contextText({ me: { plan: 'free', free_sets_used: 1, free_sets_limit: 3 }, orders: [], readiness: { overall: null } });
+t('context: free user, no orders, no readiness', empty.includes('ชุดฟรีเหลือ 2 จาก 3') && empty.includes('ยังไม่มีคำสั่งซื้อ') && empty.includes('ยังทำข้อสอบไม่พอ'));
+t('context: missing data does not throw', typeof L.contextText({}) === 'string');
+const ap = L.appSystemPrompt([], ctx);
+t('app prompt: in-app wording, LINE button, no line-oa links', ap.includes('ผู้ช่วยแชทในแอป') && ap.includes('คุยกับแอดมินทาง LINE') && !ap.includes('src=line-oa') && !ap.includes('พิมพ์คำว่า "แอดมิน"'));
+t('app prompt: has customer data', ap.includes('รอตรวจสลิป'));
+const day = { stats: { conversations: 2, line_conversations: 1, app_conversations: 1, messages: 3, ai: 2, preset: 1, handoff: 0, fallback: 0 },
+  conversations: [{ channel: 'line', turns: [{ role: 'user', content: 'ราคา' }, { role: 'assistant', content: 'x', src: 'preset:price' }] },
+    { channel: 'app', turns: [{ role: 'user', content: 'สลิปผ่านยัง' }, { role: 'assistant', content: 'รอตรวจ', src: 'ai' }] }] };
+const tr = L.transcript(day);
+t('transcript: both chats, preset tagged, ai untagged', tr.includes('แชท 1 (LINE)') && tr.includes('[preset:price]') && tr.includes('แชท 2 (ในแอป)') && !tr.includes('[ai]'));
+t('transcript: capped', L.transcript({ stats: {}, conversations: Array.from({ length: 500 }, () => ({ channel: 'app', turns: [{ role: 'user', content: 'ก'.repeat(400) }] })) }).length <= 60000);
+t('summary prompt: stats + no personal data rule', L.summaryPrompt('2026-10-30', day).includes('2 แชท (LINE 1, ในแอป 1)') && L.summaryPrompt('2026-10-30', day).includes('ห้ามใส่อีเมล'));
 console.log(bad ? `${bad}/${n} FAILED` : `all ${n} passed`);
 process.exit(bad ? 1 : 0);

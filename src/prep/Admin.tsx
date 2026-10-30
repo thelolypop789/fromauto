@@ -22,6 +22,7 @@ import { AdminTrackContext, type AdminTrack } from "./adminTrack";
 import AdminTimes from "./AdminTimes";
 import { AdminSummaries } from "./Summary";
 import AdminFeedback from "./AdminFeedback";
+import AdminChats from "./AdminChats";
 
 type Stats = { users: number; paid: number; answered_today: number; active_today: number;
   questions: Record<string, number> | null; open_reports: number; keys_unused: number };
@@ -36,11 +37,11 @@ type QItem = { id: number; topic: string; stem: string; choices: string[]; answe
 const LABELS = ["ก", "ข", "ค", "ง"];
 const fmt = (s: string | null) => (s ? new Date(s).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "");
 
-type Tab = "stats" | "learning" | "live" | "charts" | "users" | "majors" | "times" | "orders" | "keys" | "discounts" | "bank" | "reports" | "review" | "health" | "subtopics" | "import" | "facebook" | "calendar" | "summaries" | "feedback";
+type Tab = "stats" | "learning" | "live" | "charts" | "users" | "majors" | "times" | "orders" | "keys" | "discounts" | "bank" | "reports" | "review" | "health" | "subtopics" | "import" | "facebook" | "calendar" | "summaries" | "feedback" | "chats";
 // Screens in 5 groups: pick a group, then one of its few tabs.
 const GROUPS: { id: string; icon: string; label: string; tabs: [Tab, string][] }[] = [
   { id: "overview", icon: "📊", label: "ภาพรวม", tabs: [["stats", "สรุป"], ["learning", "การเรียนรู้"], ["live", "ตอนนี้"], ["charts", "เปรียบเทียบ"]] },
-  { id: "people", icon: "👥", label: "ผู้ใช้", tabs: [["users", "รายชื่อ"], ["feedback", "ข้อเสนอแนะ"], ["majors", "วิเคราะห์เอก"], ["times", "ช่วงเวลา"]] },
+  { id: "people", icon: "👥", label: "ผู้ใช้", tabs: [["users", "รายชื่อ"], ["feedback", "ข้อเสนอแนะ"], ["chats", "แชทลูกค้า"], ["majors", "วิเคราะห์เอก"], ["times", "ช่วงเวลา"]] },
   { id: "sales", icon: "💰", label: "ขาย", tabs: [["orders", "คำสั่งซื้อ"], ["discounts", "ส่วนลด"], ["keys", "คีย์"]] },
   { id: "content", icon: "📚", label: "ข้อสอบ", tabs: [["bank", "คลังข้อสอบ"], ["reports", "รายงาน+AI"], ["review", "ข้อสอบรอตรวจ"], ["health", "คุณภาพคลัง"], ["subtopics", "หมวดย่อยเอก"], ["import", "นำเข้า"], ["summaries", "สรุปแผนผัง"]] },
   { id: "page", icon: "📣", label: "เพจ·ปฏิทิน", tabs: [["facebook", "Facebook"], ["calendar", "ปฏิทินสอบ"]] },
@@ -118,6 +119,7 @@ export default function Admin() {
       {tab === "calendar" && <AdminCalendar />}
       {tab === "summaries" && <AdminSummaries onChanged={loadDrafts} />}
       {tab === "feedback" && <AdminFeedback onChanged={loadFb} />}
+      {tab === "chats" && <AdminChats />}
     </AdminTrackContext.Provider>
   );
 }

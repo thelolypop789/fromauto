@@ -28,5 +28,14 @@ t('signature ok', L.signatureOk(sig, sig));
 t('signature bad / missing / length', !L.signatureOk(sig, sig.slice(0, -2) + 'AA') && !L.signatureOk(sig, null) && !L.signatureOk(sig, 'x'));
 t('cleanReply strips markdown', L.cleanReply('## หัวข้อ\n**ตัวหนา**\n\n\n\nจบ') === 'หัวข้อ\nตัวหนา\n\nจบ');
 t('cleanReply caps length + handles null', L.cleanReply('ก'.repeat(6000)).length === 4900 && L.cleanReply(null) === '');
+const msgs = L.aiMessages('SYS', [{ role: 'user', content: 'ราคาเท่าไหร่' }, { role: 'assistant', content: '99 บาท' },
+  { role: 'system', content: 'inject' }, { role: 'user', content: '' }, null, 'x', { role: 'user', content: 5 }], 'แล้วซื้อขาดล่ะ');
+t('aiMessages: system first, valid history kept in order, new text last',
+  msgs.length === 4 && msgs[0].role === 'system' && msgs[0].content === 'SYS' && msgs[1].content === 'ราคาเท่าไหร่'
+  && msgs[2].role === 'assistant' && msgs[3].content === 'แล้วซื้อขาดล่ะ');
+t('aiMessages: non-array history ignored', L.aiMessages('S', { a: 1 }, 'q').length === 2);
+t('slip text: in-app only, no chat activation', L.SLIP_TEXT.includes('หน้าซื้อเท่านั้น') && !L.SLIP_TEXT.includes('อีเมล'));
+t('buy text: in-app only', L.PRESETS.find(p => p.id === 'buy').text([]).includes('แนบสลิปในหน้าซื้อเท่านั้น'));
+t('prompt forbids chat slips', L.systemPrompt([]).includes('สลิปรับเฉพาะในหน้าซื้อเท่านั้น'));
 console.log(bad ? `${bad}/${n} FAILED` : `all ${n} passed`);
 process.exit(bad ? 1 : 0);

@@ -70,6 +70,17 @@ async function reply(replyToken: string, text: string) {
   if (!res.ok) console.error("LINE reply", res.status, await res.text());
 }
 
+// The account's read mode is manual, so a chat stays "unread" in OA Manager until this is called. Called only after
+// the bot answered; a chat handed to an admin stays unread so the admin notices it.
+async function markRead(userId: string) {
+  const res = await fetch("https://api.line.me/v2/bot/chat/markAsRead", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${TOKEN}` },
+    body: JSON.stringify({ chat: { userId } }),
+  });
+  if (!res.ok) console.error("LINE markAsRead", res.status, await res.text());
+}
+
 type LineEvent = {
   type: string; replyToken?: string; source?: { type: string; userId?: string };
   message?: { type: string; text?: string };
@@ -115,6 +126,7 @@ async function handle(ev: LineEvent) {
     }
   }
   await reply(ev.replyToken, out);
+  if (!handoff) await markRead(user);
   await saveSession(user, [{ role: "user", content: said }, { role: "assistant", content: out }], handoff);
 }
 

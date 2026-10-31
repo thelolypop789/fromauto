@@ -13,6 +13,7 @@ export const FALLBACK_PRICES: Price[] = [
 const LINK = "https://sobprep.com/prep?src=line-oa";
 const BUY = "https://sobprep.com/prep/buy?src=line-oa";
 
+const PACK_NAME: Record<string, string> = { A: "แพ็กภาค ก", B: "แพ็กภาค ข + วิชาเอก", ALL: "แพ็กครบทุกภาค" };
 const amount = (prices: Price[], pkg: string, term: string) =>
   prices.find(p => p.package === pkg && p.term === term)?.amount ?? FALLBACK_PRICES.find(p => p.package === pkg && p.term === term)!.amount;
 
@@ -130,12 +131,60 @@ export const DEFAULT_TEXT = `ขอบคุณที่ทักมาครั
 
 🎁 ลองฟรี 3 ชุด: ${LINK}`;
 
-type Preset = { id: string; keywords: string[]; text: (p: Price[]) => string };
+// ---------- promo codes the bot may talk about ----------
+
+// Codes announced to customers (LINE broadcast, posts). Their live state comes from prep_bot_promos, so the bot stops
+// offering a code once it is used up, expired or switched off. Add a code here when announcing a new one.
+export const ANNOUNCED_PROMOS = ["SOB10"];
+export type PromoStatus = { code: string; kind: "amount" | "percent"; value: number; packages: string[] | null;
+  expires_at: string | null; active: boolean; left: number | null };
+
+const promoOff = (p: PromoStatus) => p.kind === "percent" ? `ลด ${p.value}%` : `ลด ${p.value} บาท`;
+const promoUntil = (p: PromoStatus) => p.expires_at
+  ? " ใช้ได้ถึง " + new Date(new Date(p.expires_at).getTime() - 1).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Bangkok" }) : "";
+const promoFor = (p: PromoStatus) => p.packages?.length ? " เฉพาะ" + p.packages.map(k => PACK_NAME[k] ?? k).join(", ") : " ทุกแพ็ก";
+
+// One line per code for the AI.
+export function promoLines(ps: PromoStatus[]): string {
+  if (!ps.length) return "- ตอนนี้ไม่มีโค้ดส่วนลด";
+  return ps.map(p => p.active
+    ? `- โค้ด ${p.code}: ${promoOff(p)}${promoFor(p)}${p.left != null ? ` เหลือ ${p.left} สิทธิ์` : ""}${promoUntil(p)} คนละ 1 ครั้ง กรอกที่ช่องโค้ดในหน้าซื้อ หรือกดลิงก์ ${BUY.replace("?", `?promo=${p.code}&`)}`
+    : `- โค้ด ${p.code}: หมดแล้ว (ครบจำนวนหรือหมดเวลา) ห้ามเสนอโค้ดนี้`).join("\n");
+}
+
+// The "โปร" preset: the live codes, with the price each package comes to.
+export function promoText(ps: PromoStatus[], prices: Price[]): string {
+  const live = ps.filter(p => p.active);
+  if (!live.length) return `ตอนนี้ยังไม่มีโค้ดส่วนลดครับ 🙏\nติดตามโปรใหม่ได้ในแชทนี้ หรือดูราคาแพ็กพิมพ์ "ราคา"\n🎁 ลองฟรี 3 ชุด: ${LINK}`;
+  return live.map(p => {
+    const after = (pkg: string, term: string) => {
+      const a = amount(prices, pkg, term);
+      return Math.max(1, p.kind === "percent" ? Math.round(a * (100 - p.value) / 100) : a - p.value);
+    };
+    const pk = (k: string) => !p.packages?.length || p.packages.includes(k);
+    const lines = [
+      pk("ALL") ? `⭐ แพ็กครบทุกภาค เหลือ ${after("ALL", "round")} บาท (จาก ${amount(prices, "ALL", "round")})` : "",
+      pk("A") ? `📘 ภาค ก เหลือ ${after("A", "round")} บาท` : "",
+      pk("B") ? `📗 ภาค ข + วิชาเอก เหลือ ${after("B", "round")} บาท` : "",
+    ].filter(Boolean);
+    return `🎉 โค้ด ${p.code} ${promoOff(p)}${p.left != null ? ` · เหลือ ${p.left} สิทธิ์` : ""}${promoUntil(p)}
+
+${lines.join("\n")}
+(ราคารายรอบ 3 เดือน ซื้อขาดก็ลดเท่ากัน คนละ 1 ครั้ง)
+
+👉 กดลิงก์นี้ โค้ดใส่ให้อัตโนมัติ
+${BUY.replace("?", `?promo=${p.code}&`)}`;
+  }).join("\n\n");
+}
+
+type Preset = { id: string; keywords: string[]; text: (p: Price[], promos?: PromoStatus[]) => string };
 export const PRESETS: Preset[] = [
   { id: "price", keywords: ["ราคา", "แพ็ก", "แพ็กเกจ", "กี่บาท", "ค่าใช้จ่าย"], text: priceText },
   { id: "buy", keywords: ["วิธีซื้อ", "ซื้อ", "โอน", "จ่ายเงิน", "ชำระ", "สมัคร"], text: () => HOW_TO_BUY },
   { id: "slip", keywords: ["สลิป", "โอนแล้ว", "จ่ายแล้ว", "ส่งสลิป"], text: () => SLIP_TEXT },
-  { id: "key", keywords: ["คีย์", "โค้ด", "เปิดใช้", "กรอกคีย์", "key"], text: () => KEY_TEXT },
+  // "โค้ด" alone is not a keyword: since the SOB10 broadcast it usually means a discount code, so the AI answers it.
+  { id: "key", keywords: ["คีย์", "เปิดใช้", "กรอกคีย์", "key"], text: () => KEY_TEXT },
+  { id: "promo", keywords: ["โปร", "โปรโมชัน", "โปรโมชั่น", "ส่วนลด", "โค้ดลด", "โค้ดส่วนลด", "sob10"], text: (p, ps) => promoText(ps ?? [], p) },
   { id: "login", keywords: ["ล็อกอิน", "เข้าไม่ได้", "login", "เข้าระบบ", "google"], text: () => LOGIN_TEXT },
   { id: "summary", keywords: ["สรุป", "แฟลชการ์ด", "แผนผัง", "ชีท"], text: () => SUMMARY_TEXT },
   { id: "mock", keywords: ["สอบจำลอง", "mock", "จับเวลา"], text: () => MOCK_TEXT },
@@ -155,7 +204,7 @@ export function matchPreset(message: string): Preset | null {
 }
 
 // The AI sees the same facts as the presets, so a free-form question gets an answer that agrees with them.
-export function systemPrompt(prices: Price[]): string {
+export function systemPrompt(prices: Price[], promos: PromoStatus[] = []): string {
   return `คุณคือแอดมินตอบแชท LINE ของ "ซ้อมสอบ SOBPREP" แอปซ้อมข้อสอบครูผู้ช่วย
 กติกา:
 - ตอบภาษาไทย สุภาพ เป็นกันเอง ใช้ "ครับ" สั้น กระชับ อ่านง่ายบนมือถือ ไม่ใช้ markdown (ห้ามใช้ ** หรือ #) ใช้อีโมจิได้เล็กน้อย
@@ -182,7 +231,10 @@ export function systemPrompt(prices: Price[]): string {
 - สลิปรับเฉพาะในหน้าซื้อเท่านั้น ห้ามรับสลิปหรือรับปากว่าจะเปิดสิทธิ์ทางแชท ถ้าลูกค้าโอนแล้วให้ไปแนบสลิปในหน้าซื้อ (เลือกแพ็กเดียวกับที่โอน ไม่ต้องโอนซ้ำ) ถ้าแนบไม่ได้จริงให้พิมพ์ "แอดมิน"
 - คีย์ (PREP-XXXX-XXXX-XXXX): ล็อกอิน > แท็บ "ฉัน" มุมขวาล่าง > การ์ด "มีคีย์แล้ว? เปิดใช้งาน" คีย์ใช้ได้ 1 บัญชี สิทธิ์ขึ้นทันที
 - แจ้งข้อสอบ/เฉลยผิด: กด "รายงานข้อนี้" ใต้เฉลยในแอป
-- ข้อสอบเป็นข้อสอบฝึกตามหัวข้อที่ออกสอบ ไม่ใช่ข้อสอบจริง ไม่รับประกันว่าจะออกสอบหรือผลสอบ`;
+- ข้อสอบเป็นข้อสอบฝึกตามหัวข้อที่ออกสอบ ไม่ใช่ข้อสอบจริง ไม่รับประกันว่าจะออกสอบหรือผลสอบ
+- "คีย์" (PREP-XXXX) คือรหัสเปิดสิทธิ์ ต่างจาก "โค้ดส่วนลด" ที่กรอกตอนซื้อ ถ้าลูกค้าพูดว่า "โค้ด" เฉย ๆ ให้ดูบริบทหรือถามกลับสั้น ๆ
+- โค้ดส่วนลดตอนนี้ (บอกเฉพาะที่ยังใช้ได้ ห้ามแต่งโค้ดอื่น):
+${promoLines(promos)}`;
 }
 
 export type Turn = { role: "user" | "assistant"; content: string };
@@ -247,12 +299,12 @@ export function contextText(c: AppContext): string {
 }
 
 // The LINE prompt, adjusted for the in-app chat: the customer is signed in, a human is reached through LINE.
-export function appSystemPrompt(prices: Price[], c: AppContext): string {
-  return systemPrompt(prices)
+export function appSystemPrompt(prices: Price[], c: AppContext, promos: PromoStatus[] = []): string {
+  return systemPrompt(prices, promos)
     .replace('คุณคือแอดมินตอบแชท LINE ของ "ซ้อมสอบ SOBPREP"', 'คุณคือผู้ช่วยแชทในแอป "ซ้อมสอบ SOBPREP"')
     .replace('ให้บอกให้พิมพ์คำว่า "แอดมิน" แล้วทีมงานจะตอบในแชทนี้', 'ให้บอกให้กดปุ่ม "คุยกับแอดมินทาง LINE" ใต้แชทนี้')
     .replace('(มี ?src=line-oa ทุกอัน)', '')
-    .replaceAll("?src=line-oa", "?src=app-chat")
+    .replaceAll("src=line-oa", "src=app-chat")
     .replace(/ถ้าแนบไม่ได้จริงให้พิมพ์ "แอดมิน"/, 'ถ้าแนบไม่ได้จริงให้กดปุ่ม "คุยกับแอดมินทาง LINE"')
     + `
 

@@ -16,9 +16,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
-  APP_ADMIN_TEXT, APP_DAILY_LIMIT, APP_LIMIT_TEXT, DEFAULT_TEXT, FALLBACK_PRICES, PRESETS, SLIP_TEXT, WELCOME_TEXT, aiMessages,
+  APP_ADMIN_TEXT, APP_DAILY_LIMIT, APP_LIMIT_TEXT, DEFAULT_TEXT, ANNOUNCED_PROMOS, FALLBACK_PRICES, PRESETS, SLIP_TEXT, WELCOME_TEXT, aiMessages,
   appSystemPrompt, cleanReply, matchPreset, planBurst, signatureOk, summaryPrompt, systemPrompt,
-  type AppContext, type DayData, type Pending, type Price, type Turn,
+  type AppContext, type DayData, type Pending, type Price, type PromoStatus, type Turn,
 } from "./logic.ts";
 
 const SECRET = (Deno.env.get("LINE_CHANNEL_SECRET") ?? "").trim(); // trim: a pasted secret often ends with a newline
@@ -26,6 +26,16 @@ const TOKEN = (Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN") ?? "").trim();
 const GEMINI_KEY = Deno.env.get("GEMINI_KEY") ?? "";
 const MODEL = Deno.env.get("PREP_LINE_MODEL") || "gemini-flash-latest";
 const SUMMARY_MODEL = Deno.env.get("PREP_SUMMARY_MODEL") || "gemini-pro-latest";
+// Live state of ANNOUNCED_PROMOS (prep_bot_promos), kept 1 minute so a used-up code disappears quickly.
+let promoCache: { at: number; promos: PromoStatus[] } | null = null;
+async function promos(): Promise<PromoStatus[]> {
+  if (promoCache && Date.now() - promoCache.at < 60_000) return promoCache.promos;
+  const { data, error } = await sb().rpc("prep_bot_promos", { p_codes: ANNOUNCED_PROMOS });
+  if (error) { console.error("prep_bot_promos:", error.message); return promoCache?.promos ?? []; }
+  promoCache = { at: Date.now(), promos: (data ?? []) as PromoStatus[] };
+  return promoCache.promos;
+}
+
 // LINE: wait this long after a message for the customer to finish typing; answer a burst at most BURST_MAX_S after its start.
 const DEBOUNCE_S = Math.min(20, Math.max(0, Number(Deno.env.get("PREP_LINE_DEBOUNCE_S") ?? 8) || 0));
 const BURST_MAX_S = 25;
@@ -153,10 +163,10 @@ async function answerBurst(user: string, id: number) {
 
   let out: string, src: string;
   if (plan.type === "slip") { out = SLIP_TEXT; src = "slip"; }
-  else if (plan.type === "preset") { out = PRESETS.find(p => p.id === plan.id)!.text(await prices()); src = `preset:${plan.id}`; }
+  else if (plan.type === "preset") { out = PRESETS.find(p => p.id === plan.id)!.text(await prices(), await promos()); src = `preset:${plan.id}`; }
   else if (!GEMINI_KEY) { out = DEFAULT_TEXT; src = "fallback"; }
   else {
-    try { out = await gemini(aiMessages(systemPrompt(await prices()), session.history, plan.question)); src = "ai"; }
+    try { out = await gemini(aiMessages(systemPrompt(await prices(), await promos()), session.history, plan.question)); src = "ai"; }
     catch (e) { console.error("AI:", (e as Error).message); out = DEFAULT_TEXT; src = "fallback"; }
   }
   const handoff = src === "preset:admin";
@@ -225,8 +235,8 @@ async function appChat(auth: string, body: { action: string; message?: unknown }
     out = DEFAULT_TEXT; src = "fallback";
   } else {
     try {
-      const [p, c] = await Promise.all([prices(), appContext(auth, who.user.email)]);
-      out = await gemini(aiMessages(appSystemPrompt(p, c), history, text), { timeout: 40_000 }); src = "ai";
+      const [p, c, ps] = await Promise.all([prices(), appContext(auth, who.user.email), promos()]);
+      out = await gemini(aiMessages(appSystemPrompt(p, c, ps), history, text), { timeout: 40_000 }); src = "ai";
     } catch (e) { console.error("AI:", (e as Error).message); out = DEFAULT_TEXT; src = "fallback"; }
   }
   if (src === "fallback") handoff = true;

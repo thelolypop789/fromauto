@@ -66,7 +66,7 @@ export default function MockPlayer({ payload, onDone, onExit }: Props) {
   };
 
   return (
-    <div className="pp-player pp-mock">
+    <div className="pp-app pp-player pp-mock">
       <header className="pp-top pp-player-top">
         <div className="pp-top-in">
           <button className="pp-btn pp-btn-ghost" onClick={onExit} aria-label="ออก (เวลายังเดิน)"><IconBack />ออก</button>

@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import story
-from lib import text_img, text_w, sprite, paste, prog, ease_out, back_out, sub_chunks, W, H
+from lib import text_img, text_w, sprite, paste, prog, ease_out, ease_in_out, back_out, sub_chunks, W, H
 
 # SOBPREP look: the app's cream page, maroon/gold header, and the summary-map tones (src/prep/summary.css t-*).
 NAVY = (0x2A, 0x14, 0x18)          # ink (--pp-ink); name kept for the shared helpers
@@ -142,8 +142,115 @@ def r_brand(it):
     im = Image.new("RGBA", (w, h), (0, 0, 0, 0)); ImageDraw.Draw(im).rounded_rectangle([0, 0, w - 1, h - 1], radius=h // 2, fill=MAROON, outline=GOLD_B, width=3)
     im.alpha_composite(t, (30, (h - t.height) // 2 - 3)); return im
 
+# ---------------------------------------------------------------- animated stage (kind "stage")
+# A scene card whose actors move with the voice: {"kind":"stage","h":540,"road":true,"cast":[actor, ...]}.
+# Actor: {"who", "at", "dt"?, "x", "y" (bottom-centre, card coords), "s"? scale, "from"? [x,y] slide in over "move" s,
+#         "go"? {"at","dt"?,"x","y","move"?}, "out"? sentence index (+"out_dt") fade, "shake"? [at, dt]}
+# who: kru villager (pose, flip) · van car pcar building money · emoji (e) · bubble (text, tail l/r) · pill (text, color)
+#      badge (ok) · burst (text) · arrow (x2, y2, color) · counter (n, suffix, color)
+import lib
+STAGE_COL = {"red": (0xD9, 0x30, 0x3E), "green": (0x1E, 0x8E, 0x4E), "maroon": MAROON, "gold": GOLD, "blue": (0x2F, 0x80, 0xED)}
+
+def _scaled(im, s): return im if abs(s - 1) < 0.01 else im.resize((max(1, int(im.width * s)), max(1, int(im.height * s))), Image.LANCZOS)
+
+def _pillimg(t, color, size=44):
+    fg = CREAM if color != "white" else NAVY; bg = STAGE_COL.get(color, (255, 255, 255))
+    ti = ink(t, size, 800, fg); w, h = ti.width + 50, ti.height + 16
+    im = Image.new("RGBA", (w, h), (0, 0, 0, 0)); ImageDraw.Draw(im).rounded_rectangle([0, 0, w - 1, h - 1], radius=h // 2, fill=bg, outline=CREAM, width=3)
+    im.alpha_composite(ti, (25, (h - ti.height) // 2 - 2)); return im
+
+@lru_cache(None)
+def gov_building():
+    """หน่วยงานของรัฐ in the SOBPREP palette (lib.building's cream roof vanishes on the cream stage)."""
+    w, h = 330, 330; im = Image.new("RGBA", (w, h), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+    d.polygon([(10, 110), (w // 2, 20), (w - 10, 110)], fill=MAROON); d.line([(10, 110), (w - 10, 110)], fill=GOLD_B, width=6)
+    d.rectangle([30, 116, w - 30, h - 40], fill=(0xF4, 0xE6, 0xD2), outline=(0xD9, 0xC6, 0xA6), width=3)
+    for x in (56, 126, 196, 266): d.rectangle([x - 14, 190, x + 14, h - 46], fill=(0xE2, 0xCF, 0xB2))
+    d.rectangle([12, h - 40, w - 12, h - 12], fill=(0xC9, 0xB2, 0x8E))
+    lab = _pillimg("หน่วยงานรัฐ", "maroon", 34); im.alpha_composite(lab, ((w - lab.width) // 2, 126))
+    return im
+
+@lru_cache(256)
+def actor_img(key):
+    a = json.loads(key); w = a["who"]; s = a.get("s", 1.0)
+    if w == "kru": return sprite(a.get("pose", "teacher-happy"), int(250 * s))
+    if w == "villager": return lib.villager(a.get("pose", "none-sad"), int(250 * s), a.get("flip", False))
+    if w == "building": return _scaled(gov_building(), s)
+    if w in ("van", "car", "pcar", "money"):
+        im = {"van": lib.van, "car": lib.car, "pcar": lib.suitcase_car, "money": lib.moneybag}[w]()
+        if a.get("flip"): im = im.transpose(Image.FLIP_LEFT_RIGHT)
+        return _scaled(im, s * {"van": .72, "car": .72, "pcar": .72, "building": .62, "money": .45}[w])
+    if w == "emoji": return emoji(a["e"], int(120 * s))
+    if w == "badge": return lib.icon_badge(a.get("ok", False), int(100 * s))
+    if w == "pill": return _pillimg(a["text"], a.get("color", "maroon"), int(44 * s))
+    if w == "burst":
+        r = int(120 * s); im = Image.new("RGBA", (2 * r + 10, 2 * r + 10), (0, 0, 0, 0))
+        lib.burst(im, r + 5, r + 5, r, (0xFF, 0xD4, 0x3B)); lib.burst(im, r + 5, r + 5, int(r * .7), (0xFF, 0xF4, 0xB0))
+        ti = ink(a.get("text", "ปัง!"), int(48 * s), 800, MAROON_D); im.alpha_composite(ti, (r + 5 - ti.width // 2, r + 5 - ti.height // 2 - 4))
+        return im
+    if w == "bubble":
+        body = lines_img(a["text"], int(40 * s)); bw, bh = body.width + 48, body.height + 34
+        im = Image.new("RGBA", (bw + 8, bh + 40), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+        tx = 40 if a.get("tail", "l") == "l" else bw - 60
+        d.polygon([(tx, bh - 4), (tx + 34, bh - 4), (tx + (0 if a.get("tail", "l") == "l" else 34), bh + 34)], fill=MAROON)
+        d.rounded_rectangle([0, 0, bw, bh], radius=26, fill=(255, 255, 255), outline=MAROON, width=4)
+        d.polygon([(tx + 5, bh - 6), (tx + 29, bh - 6), (tx + (5 if a.get("tail", "l") == "l" else 29), bh + 22)], fill=(255, 255, 255))
+        im.alpha_composite(body, (24, 14)); return im
+    raise KeyError(w)
+
+def put(canvas, img, cx, cy, scale=1.0, alpha=1.0):
+    """paste() that clips at the canvas edge (actors slide in from off-card)."""
+    if scale <= 0.01 or alpha <= 0.01: return
+    im = img if abs(scale - 1) < 0.01 else img.resize((max(1, int(img.width * scale)), max(1, int(img.height * scale))), Image.BILINEAR)
+    if alpha < 0.99: im = im.copy(); im.putalpha(im.getchannel("A").point(lambda v: int(v * alpha)))
+    x, y = int(cx - im.width / 2), int(cy - im.height / 2)
+    l, t = max(0, -x), max(0, -y); r, b = min(im.width, canvas.width - x), min(im.height, canvas.height - y)
+    if r > l and b > t: canvas.alpha_composite(im.crop((l, t, r, b)), (x + l, y + t))
+
+@lru_cache(8)
+def stage_bg(h, road):
+    im = sticker(CONTENT_W, h, (0xFF, 0xFD, 0xF8)); d = ImageDraw.Draw(im); o = 16
+    gy = o + h - 110
+    if road:
+        d.rectangle([o + 12, gy, o + CONTENT_W - 2, o + h - 22], fill=(0x9A, 0x93, 0x8E))
+        for x in range(o + 40, o + CONTENT_W - 40, 110): d.rectangle([x, gy + 40, x + 60, gy + 48], fill=(0xFF, 0xF4, 0xD0))
+    else:
+        d.rectangle([o + 12, gy, o + CONTENT_W - 2, o + h - 22], fill=(0xEE, 0xE2, 0xD3))
+    return im
+
+def stage_frame(it, t, P):
+    c = stage_bg(it.get("h", 540), bool(it.get("road"))).copy(); o = 16
+    for a in it["cast"]:
+        t_in = P(a["at"]) + a.get("dt", 0)
+        if t < t_in: continue
+        if "out" in a:
+            al = 1 - prog(t, P(a["out"]) + a.get("out_dt", 0), 0.25)
+            if al <= 0: continue
+        else: al = 1.0
+        x, y, sc = a.get("x", 0), a.get("y", 0), 1.0
+        if "from" in a:
+            k = ease_in_out(prog(t, t_in, a.get("move", 1.0))); x = a["from"][0] + (x - a["from"][0]) * k; y = a["from"][1] + (y - a["from"][1]) * k
+        else: sc = back_out(prog(t, t_in, 0.35))
+        if "go" in a:
+            g = a["go"]; k = ease_in_out(prog(t, P(g["at"]) + g.get("dt", 0), g.get("move", 0.8))); x += (g.get("x", x) - x) * k; y += (g.get("y", y) - y) * k
+        if "shake" in a:
+            p = prog(t, P(a["shake"][0]) + a["shake"][1], 0.6)
+            if 0 < p < 1: x += math.sin(t * 70) * 12 * (1 - p)
+        w = a["who"]
+        if w in ("kru", "villager"): y += math.sin(t * 3 + x / 90) * 5
+        if w == "arrow":
+            p = ease_out(prog(t, t_in, 0.45)); col = (*STAGE_COL.get(a.get("color", "maroon")), int(255 * al))
+            lib.arrow(c, (o + x, o + y), (o + a["x2"], o + a["y2"]), col, 14, p); continue
+        if w == "counter":
+            n = int(round(a["n"] * ease_out(prog(t, t_in, a.get("move", 1.2)))))
+            im = _pillimg(f"{a.get('prefix', '')}{n}{a.get('suffix', '')}", a.get("color", "maroon"), int(56 * a.get("s", 1)))
+            put(c, im, o + x, o + y - im.height / 2, back_out(prog(t, t_in, 0.35)), al); continue
+        im = actor_img(json.dumps({k: v for k, v in a.items() if k in ("who", "pose", "flip", "s", "e", "ok", "text", "color", "tail")}, sort_keys=True, ensure_ascii=False))
+        put(c, im, o + x, o + y - im.height * sc / 2, sc, al)
+    return c
+
 RENDER = {"card": r_card, "num": r_num, "no": lambda i: r_flag(i, False), "ok": lambda i: r_flag(i, True), "tags": r_tags,
-          "flow": r_flow, "row": r_row, "brand": r_brand}
+          "flow": r_flow, "row": r_row, "brand": r_brand, "stage": lambda i: stage_bg(i.get("h", 540), bool(i.get("road")))}
 
 def layout(page):
     """Images and y positions for every item, stacked from TOP; shrinks the gap if the page is tall."""
@@ -172,6 +279,7 @@ def draw_page(c, page, t, P):
         ta = P(it["at"]) + 0.12 * sum(1 for j in page["items"][:page["items"].index(it)] if j["at"] == it["at"])
         if t < ta: continue
         p = prog(t, ta, 0.28); k = 0.9 + 0.1 * back_out(p)
+        if it["kind"] == "stage": im = stage_frame(it, t, P)
         im2 = im if s >= 0.999 else im.resize((int(im.width * s), int(im.height * s)), Image.LANCZOS)
         x = MARGIN + im2.width / 2; yy = TOP + (y - TOP) * s + im2.height / 2 + (1 - ease_out(p)) * 24
         paste(c, im2, x, yy, k, min(1, p * 1.6))

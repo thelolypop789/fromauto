@@ -51,6 +51,7 @@ description: Make a SOBPREP summary video clip (vertical 1080×1920, Thai, AI vo
   - `flow` `{a: {text, emoji, color}, b: {...}}` — กล่องซ้าย ▶ กล่องขวา (เคสตัวอย่าง → ผล)
   - `row` `{label, color, text}` — ป้ายสีหน้า + ข้อความ (หน้าโทษ, หน้าจำง่าย ๆ)
   - `brand` `{text}` — ปุ่มแดง เช่น "ฝึกต่อ: sobprep.com/prep"
+  - `stage` `{h, road?, cast: [...]}` — ฉากอนิเมชันบนการ์ด (ใช้ในคลิปแบบจำลองสถานการณ์ ตัวอย่าง `a3-tort-anim.json`); ตัวละคร `{who, at, dt?, x, y(=เท้า), s?, from?/move?, go?, out?, shake?}`; who = `kru` `villager` (มาสคอตไฟสีฟ้า) `van` `car` `pcar` `building` `money` `emoji` `bubble` `pill` `badge` `burst` `arrow` `counter` (นับเลขขึ้น); ฉากกินที่มาก หน้านั้นวางไอเท็มอื่นได้อีกแค่ 1–2 ชิ้น (เช็กด้วย `note.layout(page)[2]` ต้อง ≈1.0 ไม่งั้นทั้งหน้าถูกย่อ)
 - สี: `yellow pink blue green lilac orange white` (โทนเดียวกับหน้าสรุปแผนผังในแอป)
 - หน้าหนึ่งไม่เกิน ~5 ไอเท็ม; ถ้ายาวระบบย่อเอง แต่อ่านยาก
 

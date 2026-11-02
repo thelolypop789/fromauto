@@ -1,5 +1,7 @@
 # FormAuto — CLAUDE.md
 
+> **เริ่มเซสซันใหม่: อ่าน `docs/PROJECT_NOTES.md` ก่อน** (สถานะล่าสุด งานค้าง ความชอบของเจ้าของ บันทึกเซสซัน) — เมื่อผู้ใช้สั่ง "อัปเดต notes" ให้แก้ไฟล์นั้นตามวิธีที่เขียนไว้ด้านบนไฟล์
+
 ## Project overview
 
 repo เดียว มี 2 แอปแยก bundle/session กัน (entry เลือกใน `src/main.tsx` ตาม pathname):

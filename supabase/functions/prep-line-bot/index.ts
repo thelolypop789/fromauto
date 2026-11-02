@@ -17,7 +17,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   APP_ADMIN_TEXT, APP_DAILY_LIMIT, APP_LIMIT_TEXT, DEFAULT_TEXT, ANNOUNCED_PROMOS, FALLBACK_PRICES, PRESETS, SLIP_TEXT, WELCOME_TEXT, aiMessages,
-  appSystemPrompt, cleanReply, matchPreset, planBurst, signatureOk, summaryPrompt, systemPrompt,
+  appSystemPrompt, cleanReply, type TopicCount, matchPreset, planBurst, signatureOk, summaryPrompt, systemPrompt,
   type AppContext, type DayData, type Pending, type Price, type PromoStatus, type Turn,
 } from "./logic.ts";
 
@@ -65,6 +65,16 @@ async function prices(): Promise<Price[]> {
     return priceCache?.prices ?? FALLBACK_PRICES;
   }
   return priceCache.prices;
+}
+
+// Questions per major (prep_topics) so the bot answers "วิชาเอกนี้มีกี่ข้อ" with real numbers; 10 minutes per instance.
+let topicCache: { at: number; topics: TopicCount[] } | null = null;
+async function topics(): Promise<TopicCount[]> {
+  if (topicCache && Date.now() - topicCache.at < 600_000) return topicCache.topics;
+  const { data, error } = await sb().rpc("prep_topics");
+  if (error || !Array.isArray(data)) { console.error("prep_topics:", error?.message); return topicCache?.topics ?? []; }
+  topicCache = { at: Date.now(), topics: data as TopicCount[] };
+  return topicCache.topics;
 }
 
 async function hmacB64(body: string): Promise<string> {
@@ -166,7 +176,7 @@ async function answerBurst(user: string, id: number) {
   else if (plan.type === "preset") { out = PRESETS.find(p => p.id === plan.id)!.text(await prices(), await promos()); src = `preset:${plan.id}`; }
   else if (!GEMINI_KEY) { out = DEFAULT_TEXT; src = "fallback"; }
   else {
-    try { out = await gemini(aiMessages(systemPrompt(await prices(), await promos()), session.history, plan.question)); src = "ai"; }
+    try { out = await gemini(aiMessages(systemPrompt(await prices(), await promos(), await topics()), session.history, plan.question)); src = "ai"; }
     catch (e) { console.error("AI:", (e as Error).message); out = DEFAULT_TEXT; src = "fallback"; }
   }
   const handoff = src === "preset:admin";
@@ -236,7 +246,7 @@ async function appChat(auth: string, body: { action: string; message?: unknown }
   } else {
     try {
       const [p, c, ps] = await Promise.all([prices(), appContext(auth, who.user.email), promos()]);
-      out = await gemini(aiMessages(appSystemPrompt(p, c, ps), history, text), { timeout: 40_000 }); src = "ai";
+      out = await gemini(aiMessages(appSystemPrompt(p, c, ps, await topics()), history, text), { timeout: 40_000 }); src = "ai";
     } catch (e) { console.error("AI:", (e as Error).message); out = DEFAULT_TEXT; src = "fallback"; }
   }
   if (src === "fallback") handoff = true;

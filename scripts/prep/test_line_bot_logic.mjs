@@ -80,5 +80,19 @@ t('prompt: live code listed, dead code forbidden', L.systemPrompt([], [live]).in
 t('prompt: no promos', L.systemPrompt([]).includes('ไม่มีโค้ดส่วนลด'));
 t('app prompt: promo link not line-oa', L.appSystemPrompt([], {}, [live]).includes('promo=SOB10&src=app-chat'));
 t('percent code with package limit', L.promoText([{ ...live, kind: 'percent', value: 20, packages: ['ALL'] }], []).includes('เหลือ 79 บาท') && !L.promoText([{ ...live, kind: 'percent', value: 20, packages: ['ALL'] }], []).includes('ภาค ก เหลือ'));
+
+// 2 พ.ย.: ข้อมูลจากสรุปแชท (โควตา ซื้อกลุ่ม แอป เปลี่ยนเอก) + ลิงก์ LINE เปิดเบราว์เซอร์นอก
+const topics = [{ code: 'B3-THAI', section: 'B', grp: 'B3', name: 'ภาษาไทย', available: 1203 }, { code: 'B3-CHN', section: 'B', grp: 'B3', name: 'ภาษาจีน', available: 100 },
+  { code: 'B3-X', section: 'B', grp: 'B3', name: 'ว่าง', available: 0 }, { code: 'A1-X', section: 'A', grp: 'A1', name: 'ภาค ก', available: 999 }];
+const lp = L.systemPrompt([], [live], topics), ap2 = L.appSystemPrompt([], {}, [live], topics);
+t('LINE links open the external browser', [L.WELCOME_TEXT, L.SLIP_TEXT, L.PRESETS.find(p => p.id === 'buy').text([])].every(x => x.includes('openExternalBrowser=1')) && lp.includes('openExternalBrowser=1'));
+t('promo link keeps external flag and promo', L.promoText([live], []).includes('promo=SOB10&src=line-oa&openExternalBrowser=1'));
+t('app prompt has no external flag', !ap2.includes("openExternalBrowser") && ap2.includes("src=app-chat"));
+t('major counts: B3 with questions only, biggest first', L.majorLines(topics) === 'ภาษาไทย 1,203, ภาษาจีน 100');
+t('prompt lists major counts', lp.includes('ภาษาไทย 1,203'));
+t('prompt: daily quota, never unlimited answers', lp.includes('1,000 ข้อ/วัน') && lp.includes('3,000 ข้อ/วัน') && lp.includes('ห้ามบอกว่าไม่จำกัด'));
+t('prompt: group buy, change major, web app, not-yet features', ['2 คน ลด 20%', 'เปลี่ยนวิชาเอก', 'ไม่มีใน App Store', 'ยังไม่มี: ลบชุด'].every(x => lp.includes(x)));
+t('presets: แอป → install, ซื้อกลุ่ม → group', id('โหลดแอปค่ะ') === 'install' && id('ซื้อกลุ่ม') === 'group' && id('ซื้อคู่ครับ') === 'group');
+t('slip reply: steps + Failed to fetch tip', L.SLIP_TEXT.includes('Failed to fetch') && L.SLIP_TEXT.includes('ไม่ต้องโอนซ้ำ'));
 console.log(bad ? `${bad}/${n} FAILED` : `all ${n} passed`);
 process.exit(bad ? 1 : 0);

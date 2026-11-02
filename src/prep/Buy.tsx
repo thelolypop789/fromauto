@@ -19,6 +19,9 @@ export default function Buy({ me, email, onChanged }: { me: Me; email: string; o
   const form = useRef<HTMLDivElement>(null);
   useEffect(() => { if (pick?.n === 1) window.setTimeout(() => form.current?.scrollIntoView({ block: "start" }), 300); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { rpc<Price[]>("prep_prices").then(setPrices).catch(() => { /* falls back to config */ }); }, []);
+  // Days to the next exam on the calendar: most buyers decide within hours of signing up, close to an exam date.
+  const [exam, setExam] = useState<{ exam_title: string | null; days_left: number | null } | null>(null);
+  useEffect(() => { rpc<typeof exam>("prep_plan").then(setExam).catch(() => { /* no countdown */ }); }, []);
   const priceOf = (k: PackageKey, t: Term, fallback: string) => {
     const x = prices.find(y => y.package === k && y.term === t);
     return x ? `${x.amount} บาท` : fallback;
@@ -56,6 +59,9 @@ export default function Buy({ me, email, onChanged }: { me: Me; email: string; o
   return (
     <div className="pp-card pp-upgrade">
       <h2><IconCrown size={22} /> {pkgs.length ? "ซื้อแพ็กเพิ่ม / ต่ออายุ" : "อัปเกรดเป็นสมาชิก"}</h2>
+      {exam?.days_left != null && exam.days_left >= 0 && exam.days_left <= 60 && (
+        <p className="pp-wall-count">{exam.days_left === 0 ? "วันนี้วันสอบ" : <>อีก <b>{exam.days_left}</b> วัน</>}{exam.exam_title ? ` ถึง${exam.exam_title}` : " ถึงวันสอบ"}</p>
+      )}
       <ul className="pp-perks">
         <li><IconCheck />สร้างชุดใหม่ได้ไม่จำกัดในหมวดของแพ็ก (ชุดละสูงสุด 200 ข้อ)</li>
         <li><IconCheck />ดึงข้อใหม่จากคลังทั้งหมด พร้อมเฉลยและคำอธิบายทุกข้อ</li>

@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, supabase, thaiError, track, type Order, type GroupQuote, type PackageKey, type PromoQuote, type Quote } from "./api";
 import { PACKAGES, SHOP } from "./config";
 import { IconCheck } from "./icons";
+import { ask } from "./dialog";
 
 const ORDER_STATUS: Record<Order["status"], [string, string]> = {
   pending: ["รอตรวจสอบ", "warn"], approved: ["อนุมัติแล้ว", "ok"], rejected: ["ไม่ผ่าน", "bad"],
@@ -83,8 +84,20 @@ export default function PayForm({ email, onApproved, initial = null }: {
   const price = amount ? `${amount} บาท` : "";
   const qr = amount ? SHOP.qrByAmount[amount] || SHOP.qrImage : "";
   const fixed = !!(amount && SHOP.qrByAmount[amount]);
+  // qr_view: the QR scrolled into sight. 7 in 10 who open the buy screen never send a slip, and the old steps could not
+  // say whether they even reached the QR (pkg_select only counts a package picked by hand).
+  const qrBox = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = qrBox.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { track("qr_view"); io.disconnect(); } }, { threshold: 0.5 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [qr]);
   const pending = orders.filter(o => o.status === "pending").length;
   const offers = (quotes ?? []).filter(x => x.kind === "upgrade" && !x.error && x.package === "ALL");
+  // Holders of ALL รายรอบ: the only upgrade left is ซื้อขาด for the difference.
+  const roundAll = offers.length > 0 && offers.every(o => o.term === "lifetime") && (quotes ?? []).some(x => x.package === "ALL" && x.term === "round" && x.kind === "renew");
 
   useEffect(() => {
     if (!promoKey) return;
@@ -104,6 +117,8 @@ export default function PayForm({ email, onApproved, initial = null }: {
 
   const send = async () => {
     if (!file || busy) return;
+    // Most rejected orders were a second slip for an order already waiting: ask before sending another.
+    if (pending > 0 && !(await ask({ title: "มีสลิปรอตรวจอยู่แล้ว", body: "ถ้าโอนไปครั้งเดียว ไม่ต้องส่งซ้ำ ทีมงานจะเปิดสิทธิ์ให้เมื่อตรวจเสร็จ ส่งสลิปนี้เพิ่มเฉพาะเมื่อเป็นการโอนอีกครั้ง", ok: "ส่งเพิ่ม", cancel: "ไม่ส่ง" }))) return;
     setBusy(true); setMsg(null);
     try {
       const { data } = await supabase.auth.getSession();
@@ -127,7 +142,7 @@ export default function PayForm({ email, onApproved, initial = null }: {
       <h3>ซื้อแพ็ก</h3>
       {offers.length > 0 && (
         <div className="pp-note pp-offer">
-          <b>มีแพ็กอยู่แล้ว? อัปเกรดเป็นครบทุกภาค จ่ายแค่ส่วนต่าง</b>
+          <b>{roundAll ? "อัปเกรดเป็นซื้อขาด ใช้ได้ทุกรอบสอบ จ่ายแค่ส่วนต่าง" : "มีแพ็กอยู่แล้ว? อัปเกรดเป็นครบทุกภาค จ่ายแค่ส่วนต่าง"}</b>
           <div className="pp-row">
             {offers.map(o => (
               <button key={o.term} className="pp-btn pp-btn-gold" onClick={() => setChoice({ pkg: "ALL", term: o.term })}>
@@ -205,7 +220,7 @@ export default function PayForm({ email, onApproved, initial = null }: {
         <p className="pp-muted small">สิทธิ์ที่ได้ {PACKAGE_LABEL[pkg]} {fmtUntil(q.expires_at)}</p>
       ) : null}
       {qr && (
-        <div className="pp-payqr">
+        <div className="pp-payqr" ref={qrBox}>
           <img key={qr} src={qr} alt={`QR ชำระเงิน ${price}`} width={337} height={438} />
           <div className="pp-payqr-t">
             <b>{PACKAGE_LABEL[pkg]} · {TERM_LABEL[term]}</b>

@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { rpc, supabase, thaiError, startPing, track, type Me, type MockPayload, type Profile, type Round, type SubmitResult } from "./api";
+import { REF_KEY, rpc, supabase, thaiError, startPing, track, type Me, type MockPayload, type Profile, type Round, type SubmitResult } from "./api";
 import Login from "./Login";
 import Home from "./Home";
 import CreateSet, { type Preset } from "./CreateSet";
@@ -100,6 +100,17 @@ function PrepShell() {
   const changeProfile = (p: Profile) => { setProfile(p); setReloadKey(k => k + 1); };
 
   useEffect(() => { if (session) { refreshMe(); track("visit"); } else setMe(null); }, [session, refreshMe]);
+  // Opened an invite link (?ref=): tie this account to the friend once. The server accepts it only for a new account
+  // and rewards both when this account finishes its first set; any answer means the code is spent.
+  useEffect(() => {
+    if (!session) return;
+    let code = "";
+    try { code = localStorage.getItem(REF_KEY) ?? ""; } catch { /* storage blocked */ }
+    if (!code) return;
+    rpc<string>("prep_claim_referral", { p_code: code })
+      .then(() => { try { localStorage.removeItem(REF_KEY); } catch { /* ignore */ } })
+      .catch(() => { /* older database or offline: try again next time */ });
+  }, [session]);
   // Back from sign-in: continue to the screen the visitor opened before signing in (Login.tsx remembers it).
   useEffect(() => {
     if (!session) return;

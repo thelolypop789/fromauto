@@ -330,12 +330,16 @@ export const TERM_LABEL = { round: "รายรอบ 3 เดือน", lifet
 // ---- Usage events: only three, one per user per day, no content. The link's ?src= (e.g. /prep?src=fb-post1) is kept so the
 // first visit after Google sign-in can still say where the user came from.
 const SRC_KEY = "pp-src";
+export const REF_KEY = "pp-ref";
 try {
   const q = new URLSearchParams(window.location.search).get("src");
   if (q) localStorage.setItem(SRC_KEY, q.slice(0, 40));
   // A campaign link can carry its discount code (?promo=KRU20): kept until the buy screen applies it.
   const promo = new URLSearchParams(window.location.search).get("promo");
   if (promo && /^[A-Za-z0-9_-]{3,30}$/.test(promo)) localStorage.setItem("pp-promo", promo.toUpperCase());
+  // Invite link (?ref=CODE): claimed once after sign-in (PrepApp), only by a brand-new account.
+  const ref = new URLSearchParams(window.location.search).get("ref");
+  if (ref && /^[A-Za-z0-9]{4,12}$/.test(ref)) localStorage.setItem(REF_KEY, ref.toUpperCase());
   // ?track=obec|vec (landing page buttons) preselects the exam on the first-visit screen.
   const trk = new URLSearchParams(window.location.search).get("track");
   if (trk === "obec" || trk === "vec") localStorage.setItem("pp-track", trk);
@@ -343,7 +347,9 @@ try {
 
 export type TrackName = "visit" | "buy_view" | "free_limit" | "level_view" | "readiness_view" | "subtopic_pick" | "promo_apply" | "scoredist_view" | "board_view" | "install_view" | "install_click" | "install_done" | "summary_view"
   // pay funnel: the free-limit button to the buy screen, then each step of paying (where buyers drop out)
-  | "paywall_click" | "pkg_select" | "qr_save" | "slip_pick" | "slip_fail";
+  | "paywall_click" | "pkg_select" | "qr_view" | "qr_save" | "slip_pick" | "slip_fail"
+  // invite: the share button on the invite card
+  | "ref_share";
 export function track(name: TrackName) {
   if (viewAs) return;   // an admin looking at someone's page is not a usage event
   try {

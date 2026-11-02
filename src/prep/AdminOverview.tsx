@@ -58,7 +58,7 @@ function Kpi({ label, value, cur, prev, spark, note }: { label: string; value: s
 }
 
 const PAY_STEPS: [string, string][] = [
-  ["buy_view", "เปิดหน้าซื้อ"], ["pkg_select", "เลือกแพ็กเอง"], ["qr_save", "บันทึกรูป QR"], ["slip_pick", "แนบสลิป"],
+  ["buy_view", "เปิดหน้าซื้อ"], ["pkg_select", "เลือกแพ็กเอง"], ["qr_view", "เลื่อนถึง QR"], ["qr_save", "บันทึกรูป QR"], ["slip_pick", "แนบสลิป"],
   ["submitted", "ส่งสลิปสำเร็จ"], ["approved", "อนุมัติแล้ว"],
 ];
 

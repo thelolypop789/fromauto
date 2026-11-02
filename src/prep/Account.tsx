@@ -5,6 +5,7 @@ import { IconCrown, IconLogout } from "./icons";
 import InstallBanner from "./InstallBanner";
 import MyReports from "./MyReports";
 import Notifications from "./Notifications";
+import Invite from "./Invite";
 import Feedback from "./Feedback";
 import GroupKeys from "./GroupKeys";
 import { ask as confirmDialog } from "./dialog";
@@ -72,6 +73,7 @@ export default function Account({ me, email, profile, onMajor, onProfile, onChan
       <ThemePicker />
       <InstallBanner always />
       <Notifications onRead={onNotifRead ?? noop} />
+      <Invite paid={me.plan === "paid"} />
       <MyReports />
 
       {pkgs.length > 0 && (

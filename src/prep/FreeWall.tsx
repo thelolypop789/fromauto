@@ -31,7 +31,7 @@ export default function FreeWall() {
   return (
     <div className="pp-card pp-wall">
       <div className="pp-empty-ico"><IconCrown size={30} /></div>
-      <h3>ใช้ชุดฟรีครบ 3 ชุดแล้ว</h3>
+      <h3>ใช้ชุดฟรีครบแล้ว</h3>
       {days != null && days >= 0 && (
         <p className="pp-wall-count">{days === 0 ? "วันนี้วันสอบ" : <>อีก <b>{days}</b> วัน</>}{plan?.exam_title ? ` ถึง${plan.exam_title}` : " ถึงวันสอบ"}</p>
       )}

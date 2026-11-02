@@ -13,6 +13,8 @@ import Mascot from "./Mascot";
 import LevelCard from "./LevelCard";
 import Readiness from "./Readiness";
 import Skeleton from "./Skeleton";
+import ExamFollowup from "./ExamFollowup";
+import PromoNotice from "./PromoNotice";
 
 type Props = {
   me: Me;
@@ -66,6 +68,8 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
       <InstallBanner />
       {installSheet.open && <InstallSheet onClose={() => installSheet.setOpen(false)} />}
       <Announcement track={profile.track} joined={joined} />
+      <ExamFollowup me={me} />
+      {me.plan !== "paid" && <PromoNotice onUpgrade={onUpgrade} />}
 
       {/* Order: what to do today first, then where you stand, then everything else. On a wide screen the side column
           (readiness, level, study plan) sits next to the main one; on a phone both columns flow into one (prep.css). */}

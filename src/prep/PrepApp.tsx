@@ -254,7 +254,7 @@ function PrepShell() {
         {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onProfile={changeProfile} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onPast={() => go("past")} onCalendar={() => go("calendar")} onUpgrade={() => go("buy")} onStats={() => go("stats")} onBoard={() => go("board")} joined={session.user.created_at} />}
         {view.name === "create" && <CreateSet me={me} major={profile.major} preset={held.preset} onCancel={() => go("home")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} onUpgrade={() => go("buy")} />}
-        {view.name === "result" && held.result && <RoundResult result={held.result} title={held.title ?? ""} me={me} onStart={startRound}
+        {view.name === "result" && held.result && <RoundResult result={held.result} title={held.title ?? ""} me={me} majorName={profile.major_name} onStart={startRound}
           onHome={() => go("home")} onUpgrade={() => go("buy")} />}
         {view.name === "daily" && <DailyQuiz onBack={() => back("home")} />}
         {view.name === "board" && <Leaderboard onBack={() => back("home")} isAdmin={me.is_admin} />}

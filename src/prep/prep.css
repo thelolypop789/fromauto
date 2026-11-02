@@ -389,6 +389,7 @@ body { background: var(--pp-bg); }
 .pp-score { font-size: 42px; font-weight: 800; color: var(--pp-brand-ink-2); line-height: 1; }
 .pp-score small { font-size: 20px; color: var(--pp-muted); }
 .pp-trophy { width: 96px; height: 96px; margin: 14px auto 6px; border-radius: 50%; display: grid; place-items: center; color: var(--pp-on-gold); background: linear-gradient(180deg, #F6DE8D, #D4AF37 60%, #B8860B); box-shadow: 0 0 0 4px var(--pp-card), 0 0 0 6px var(--pp-primary), 0 18px 30px -12px rgba(140, 106, 18, .8); }
+.pp-upsell-list { margin: 4px 0 12px; padding-left: 20px; text-align: left; line-height: 1.7; }
 .pp-upsell { margin-top: 20px; padding: 16px; border-radius: 16px; background: var(--pp-gold-soft); border: 1px solid #EED9A0; }
 
 /* ---------- stats ---------- */

@@ -3,7 +3,7 @@ import { GROUPS, PACKAGE_LABEL, SECTIONS, covers, rpc, thaiError, track, type Me
 import FreeWall from "./FreeWall";
 import Skeleton from "./Skeleton";
 
-export type Preset = { section?: "A" | "B"; topics?: string[]; subtopics?: string[]; mode?: "new" | "weak" | "mixed" };
+export type Preset = { section?: "A" | "B"; topics?: string[]; subtopics?: string[]; mode?: "new" | "weak" | "mixed"; size?: number };
 type Props = { me: Me; major?: string | null; preset?: Preset; onCancel: () => void; onCreated: (setId: string) => void; onUpgrade: () => void };
 
 const MODES = [
@@ -16,7 +16,7 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
   const [topics, setTopics] = useState<Topic[] | null>(null);
   const [picked, setPicked] = useState<Set<string>>(() => new Set(preset?.topics ?? []));
   const [section, setSection] = useState<"A" | "B">(preset?.section ?? "A");
-  const [size, setSize] = useState(Math.min(20, me.max_set_size));
+  const [size, setSize] = useState(Math.min(preset?.size ?? 20, me.max_set_size));
   const [mode, setMode] = useState<"new" | "weak" | "mixed">(preset?.mode ?? "new");
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);

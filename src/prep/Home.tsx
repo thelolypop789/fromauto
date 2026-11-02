@@ -51,6 +51,7 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
   const canCreate = me.plan === "paid" || me.free_sets_used < me.free_sets_limit;
 
   const freeLeft = Math.max(0, me.free_sets_limit - me.free_sets_used);
+  const majorAvail = (profile.major && dash?.topics.find(t => t.code === profile.major)?.available) || 0;
   const cleared = sets?.filter(s => s.cleared_at).length ?? 0;
   const resume = sets?.find(s => s.open_round);   // the list comes newest first
   const streak = dash?.streak ?? 0;
@@ -176,8 +177,22 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
         <div className="pp-card pp-empty">
           <Mascot mood="wave" size={104} className="pp-empty-mascot" />
           <h3>เริ่มชุดแรกกันเลย</h3>
-          <p className="pp-muted">เลือกหมวดที่อยากซ้อม ระบบจะจัดข้อสอบให้ ทำซ้ำได้ไม่จำกัดจนกว่าจะถูกครบ</p>
-          <button className="pp-btn pp-btn-primary" onClick={() => onCreate()}><IconPlus />สร้างชุดแรก</button>
+          {/* ข้อมูล 2 พ.ย. 69: คนที่ทำชุดแรกแล้วหายส่วนใหญ่เริ่มจากภาค ก (หาฝึกฟรีที่อื่นได้) และ 4 ใน 10 ทำชุดแรกไม่จบ
+              ส่วนเอกที่ขายได้ดีคือเอกที่คนเริ่มจากวิชาเอกของตัวเอง → ชุดแรกเสนอวิชาเอก 10 ข้อ ทำจบเร็ว แล้วเห็นหน้าผล */}
+          {majorAvail > 0 ? (
+            <>
+              <p className="pp-muted">ลองวิชาเอก{profile.major_name}ก่อน 10 ข้อ ใช้เวลาไม่ถึง 10 นาที เฉลยพร้อมคำอธิบายทุกข้อ</p>
+              <button className="pp-btn pp-btn-primary" onClick={() => onCreate({ section: "B", topics: [profile.major!], size: 10 })}>
+                <IconPlus />เริ่มวิชาเอก{profile.major_name} 10 ข้อ
+              </button>
+              <button className="pp-link" onClick={() => onCreate({ size: 10 })}>หรือเลือกหมวดเอง</button>
+            </>
+          ) : (
+            <>
+              <p className="pp-muted">เลือกหมวดที่อยากซ้อม ระบบจะจัดข้อสอบให้ ทำซ้ำได้ไม่จำกัดจนกว่าจะถูกครบ</p>
+              <button className="pp-btn pp-btn-primary" onClick={() => onCreate({ size: 10 })}><IconPlus />สร้างชุดแรก</button>
+            </>
+          )}
         </div>
       )}
 

@@ -14,6 +14,7 @@ export type Me = {
   free_sets_limit: number;
   max_set_size: number;
   is_admin: boolean;
+  reviewer?: boolean;   // may review mind-map summaries (prep.reviewers)
   packages?: { package: PackageKey; expires_at: string | null }[];
   answered_today: number;
   daily_cap: number;
@@ -82,6 +83,7 @@ const ERRORS: Record<string, string> = {
   round_closed: "รอบนี้ส่งไปแล้ว",
   daily_cap: "วันนี้ทำครบโควตาแล้ว พักสายตาก่อนนะ แล้วมาต่อพรุ่งนี้",
   not_found: "ไม่พบข้อมูล",
+  user_not_found: "ไม่พบบัญชีอีเมลนี้ ให้ผู้ตรวจล็อกอินแอปด้วยอีเมลนี้ก่อน 1 ครั้ง",
   needs_human_review: "ข้อนี้ AI ไม่แน่ใจ ต้องแก้หรือตอบเองในรายการด้านล่าง",
   already_done: "รายการนี้ถูกจัดการไปแล้ว",
   invalid_fix: "วิธีแก้ที่ AI เสนอใช้ไม่ได้",

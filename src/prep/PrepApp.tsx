@@ -212,7 +212,7 @@ function PrepShell() {
   // Five tabs at most for users (a sixth for admins). Feedback lives on the "ฉัน" page, buying behind the header button.
   const tabs: { key: ViewName; label: string; icon: ReactNode }[] = [
     { key: "home", label: "ทำข้อสอบ", icon: <IconHome /> },
-    ...(me.is_admin || summaries > 0 ? [{ key: "summary" as const, label: "สรุป", icon: <IconMap /> }] : []),
+    ...(me.is_admin || me.reviewer || summaries > 0 ? [{ key: "summary" as const, label: "สรุป", icon: <IconMap /> }] : []),
     { key: "stats", label: "วิเคราะห์", icon: <IconChart /> },
     { key: "calendar", label: "ปฏิทิน", icon: <IconCalendar /> },
     { key: "account", label: "ฉัน", icon: <IconUser /> },
@@ -265,7 +265,7 @@ function PrepShell() {
         {view.name === "feedback" && <Feedback page="tab" />}
         {view.name === "past" && <PastExams onBack={() => back("home")} onUpgrade={() => go("buy")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} />}
-        {view.name === "summary" && <Summary isAdmin={me.is_admin} onPractice={practice} onUpgrade={() => go("buy")}
+        {view.name === "summary" && <Summary isAdmin={me.is_admin} isReviewer={!!me.reviewer} onPractice={practice} onUpgrade={() => go("buy")}
           onPastSet={async id => { await refreshMe(); startRound(id, "full"); }} />}
         {view.name === "stats" && <Stats me={me} profile={profile} onPractice={practice} />}
         {view.name === "account" && <Account me={me} email={session.user.email ?? ""} profile={profile} onMajor={setMajor} onProfile={changeProfile} onChanged={refreshMe} onNotifRead={clearUnread} onBuy={() => go("buy")} />}

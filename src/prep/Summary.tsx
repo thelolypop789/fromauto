@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { rpc, thaiError, track } from "./api";
+import { rpc, thaiError, track, type Topic } from "./api";
 import type { Preset } from "./CreateSet";
 import { IconCrown } from "./icons";
 import Mascot from "./Mascot";
@@ -10,6 +10,7 @@ import { GROUPS, type Block, type Branch, type MindMap } from "./summaries/types
 import "./summary.css";
 import { notify } from "./dialog";
 import Skeleton from "./Skeleton";
+import { ReviewPanel, Reviewers } from "./SummaryReview";
 
 // "สรุปแบบแผนผัง": list of maps → one map (mascot hub + branches) → one branch's detail. Recall mode hides the value to
 // remember on each branch: tap once to reveal, tap again to mark it remembered. The server decides what each user gets
@@ -29,7 +30,8 @@ const TABS: { key: Tab; label: string; groups: MindMap["group"][] }[] = [
   { key: "B", label: "ภาค ข", groups: ["B1", "B2"] },
   { key: "M", label: "วิชาเอก", groups: ["B3"] },
 ];
-type Card = { id: string; group: MindMap["group"]; free: boolean; title: string; icon: string; branches: number; tone: string; approved: boolean; locked: boolean };
+type Card = { id: string; group: MindMap["group"]; free: boolean; title: string; icon: string; branches: number; tone: string; approved: boolean; locked: boolean;
+  topics?: string[]; review?: boolean; comments_open?: number };
 
 // Loads the list, and one map on demand. `approve` flips a map's approval and updates the list in place.
 function useSummaries() {
@@ -56,8 +58,8 @@ function useSummaries() {
   return { cards, error, map, busy, load, approve };
 }
 
-export default function Summary({ isAdmin, onPractice, onPastSet, onUpgrade }: {
-  isAdmin: boolean; onPractice: (p: Preset) => void; onPastSet: (setId: string) => void; onUpgrade: () => void;
+export default function Summary({ isAdmin, isReviewer = false, onPractice, onPastSet, onUpgrade }: {
+  isAdmin: boolean; isReviewer?: boolean; onPractice: (p: Preset) => void; onPastSet: (setId: string) => void; onUpgrade: () => void;
 }) {
   const { cards, error, map, busy, load, approve } = useSummaries();
   // /prep/summary/<map>[/flash | /b/<branch>]: a map, its flashcards and each branch have their own URL.
@@ -74,7 +76,8 @@ export default function Summary({ isAdmin, onPractice, onPastSet, onUpgrade }: {
     const ok = cards.find(c => c.id === map.id)?.approved ?? false;
     const base = `/prep/summary/${map.id}`;
     const sub: Sub = part === "flash" ? { kind: "flash" } : part === "b" && partId ? { kind: "branch", id: partId } : { kind: "map" };
-    return <MapView key={map.id} map={map} isAdmin={isAdmin} ok={ok} onSetOk={v => approve(map.id, v)} sub={sub}
+    const review = isAdmin || !!cards.find(c => c.id === map.id)?.review;
+    return <MapView key={map.id} map={map} isAdmin={isAdmin} review={review} ok={ok} onSetOk={v => approve(map.id, v)} sub={sub}
       onSub={v => navigate(v.kind === "flash" ? `${base}/flash` : v.kind === "branch" ? `${base}/b/${v.id}` : base)}
       onSubBack={() => goBack(base)}
       onBack={() => goBack("/prep/summary")} onPractice={() => onPractice(map.subtopics?.length ? { topics: map.topics, subtopics: map.subtopics } : { topics: map.topics })}
@@ -94,6 +97,9 @@ export default function Summary({ isAdmin, onPractice, onPastSet, onUpgrade }: {
         <Mascot mood="happy" costume="teacher" size={84} motion="idle" />
         <div><h2>สรุปแบบแผนผัง</h2><p>อ่านภาพเดียวจบหมวด แล้วลองโหมดท่องจำ จำได้แล้วค่อยไปฝึกข้อสอบ</p></div>
       </div>
+      {isReviewer && !isAdmin && (
+        <p className="pp-note small">คุณเป็นผู้ตรวจ: แผนผังที่มีป้าย "ร่าง" ผู้ใช้ยังไม่เห็น รอตรวจ {cards.filter(c => c.review && !c.approved).length} แผนผัง · เปิดแผนผังแล้วเลื่อนลงล่างสุดเพื่อกด ผ่าน หรือเขียนคอมเมนต์</p>
+      )}
       {isAdmin && <p className="pp-note small">แอดมินเห็นทุกแผนผัง ผู้ใช้เห็นเฉพาะแผนผังที่ตรวจแล้ว ({cards.filter(c => c.approved).length}/{cards.length}) · ตรวจได้ที่ แอดมิน → ข้อสอบ → สรุปแผนผัง</p>}
       {sample && (
         <div className={`mm-upsell ${locked ? "on" : ""}`}>
@@ -128,7 +134,7 @@ export default function Summary({ isAdmin, onPractice, onPastSet, onUpgrade }: {
                   <span className="ic">{m.icon}</span>
                   {sample && (m.free ? <span className="tag free">ฟรี</span> : m.locked && <span className="tag crown" aria-label="ปลดล็อกด้วยแพ็ก"><IconCrown size={13} /></span>)}
                   <b>{m.title}</b>
-                  <small>{m.branches} กิ่ง{isAdmin && !m.approved ? " · ร่าง" : ""}</small>
+                  <small>{m.branches} กิ่ง{(isAdmin || m.review) && !m.approved ? " · ร่าง" : ""}{(isAdmin || m.review) && m.comments_open ? ` · 💬 ${m.comments_open}` : ""}</small>
                 </button>
               ))}
             </div>
@@ -144,12 +150,19 @@ export function AdminSummaries({ onChanged }: { onChanged?: () => void }) {
   const { cards, error, map, busy, load, approve } = useSummaries();
   const [sub, setSub] = useState<Sub>({ kind: "map" });
   const set = async (id: string, ok: boolean) => { if (await approve(id, ok)) onChanged?.(); };
+  const [topics, setTopics] = useState<Topic[]>([]);
+  useEffect(() => { rpc<Topic[]>("prep_topics").then(setTopics).catch(() => setTopics([])); }, []);
+  // Majors that have maps: the reviewer scope choices besides the ภาค ก / ข groups.
+  const majors = [...new Set((cards ?? []).filter(c => c.group === "B3").flatMap(c => c.topics ?? []))]
+    .map(code => ({ code, name: topics.find(t => t.code === code)?.name ?? code }));
   if (error) return <div className="pp-card"><div className="pp-error">{error}</div></div>;
   if (!cards || busy) return <div className="pp-spinner" />;
-  if (map) return <MapView key={map.id} map={map} isAdmin ok={cards.find(c => c.id === map.id)?.approved ?? false} onSetOk={ok => set(map.id, ok)}
+  if (map) return <MapView key={map.id} map={map} isAdmin review ok={cards.find(c => c.id === map.id)?.approved ?? false} onSetOk={ok => set(map.id, ok)}
     sub={sub} onSub={setSub} onSubBack={() => setSub({ kind: "map" })} onBack={() => { setSub({ kind: "map" }); load(null); }} onPractice={() => { /* preview only */ }} past={[]} onPastSet={() => { /* preview only */ }} />;
   const drafts = cards.filter(c => !c.approved).length;
   return (
+    <>
+    <Reviewers majors={majors} />
     <div className="pp-card mm-admin-list">
       <h3>สรุปแผนผัง · รอตรวจ {drafts} จาก {cards.length}</h3>
       <p className="pp-muted small">เปิดอ่านทุกกิ่ง เทียบกับตัวบทกฎหมายหรือหลักสูตร แล้วกด "ตรวจแล้ว" ผู้ใช้จะเห็นเฉพาะแผนผังที่ตรวจแล้ว · หมวดที่มีป้าย ฟรี ผู้ใช้ฟรีเปิดได้ ควรตรวจก่อน</p>
@@ -161,6 +174,7 @@ export function AdminSummaries({ onChanged }: { onChanged?: () => void }) {
               <span className="ic">{m.icon}</span>
               <button className="pp-link" onClick={() => load(m.id)}>{m.title}</button>
               {m.free && <span className="pp-badge ok">ฟรี</span>}
+              {!!m.comments_open && <span className="pp-badge bad">💬 {m.comments_open}</span>}
               <span className={`pp-badge ${m.approved ? "ok" : "warn"}`}>{m.approved ? "เปิดแล้ว" : "ร่าง"}</span>
               <button className="pp-btn pp-btn-ghost sm" onClick={() => set(m.id, !m.approved)}>{m.approved ? "ซ่อน" : "ตรวจแล้ว"}</button>
             </div>
@@ -168,14 +182,15 @@ export function AdminSummaries({ onChanged }: { onChanged?: () => void }) {
         </div>
       ))}
     </div>
+    </>
   );
 }
 
 // Which part of a map is open. The user page keeps it in the URL; the admin preview keeps it in state.
 type Sub = { kind: "map" } | { kind: "flash" } | { kind: "branch"; id: string };
 
-function MapView({ map, isAdmin, ok, onSetOk, sub, onSub, onSubBack, onBack, onPractice, past, onPastSet }: {
-  map: MindMap; isAdmin: boolean; ok: boolean; onSetOk: (ok: boolean) => void; sub: Sub; onSub: (s: Sub) => void; onSubBack: () => void;
+function MapView({ map, isAdmin, review = false, ok, onSetOk, sub, onSub, onSubBack, onBack, onPractice, past, onPastSet }: {
+  map: MindMap; isAdmin: boolean; review?: boolean; ok: boolean; onSetOk: (ok: boolean) => void; sub: Sub; onSub: (s: Sub) => void; onSubBack: () => void;
   onBack: () => void; onPractice: () => void; past: PastTag[]; onPastSet: (setId: string) => void;
 }) {
   const [recall, setRecall] = useState(false);
@@ -232,6 +247,7 @@ function MapView({ map, isAdmin, ok, onSetOk, sub, onSub, onSubBack, onBack, onP
       )}
       {recall && !done && <button className="pp-link small mm-exit" onClick={() => { setRecall(false); restart(); }}>ออกจากโหมดท่องจำ</button>}
       {!recall && past.length > 0 && <PastSets map={map} past={past} onPastSet={onPastSet} />}
+      {!recall && review && <ReviewPanel map={map} isAdmin={isAdmin} />}
     </div>
   );
 }

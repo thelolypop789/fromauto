@@ -219,3 +219,11 @@
 :root[data-theme="dark"] .t-lem  { --c: #F0C24A; --bg: #302812; --sh: #44391A; }
 :root[data-theme="dark"] .t-lil  { --c: #B59DFF; --bg: #251E3A; --sh: #33294F; }
 :root[data-theme="dark"] .t-pea  { --c: #FFA25C; --bg: #33231A; --sh: #4A3222; }
+
+/* Review panel (admins and reviewers): branch chips, comment list. */
+.mm-review { margin-top: 16px; display: grid; gap: 8px; text-align: left; }
+.mm-review-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
+.mm-review-chips .pp-badge { border: 0; cursor: pointer; font: inherit; font-size: 13px; }
+.mm-review-list { display: grid; gap: 8px; margin-top: 6px; }
+.mm-review-list .pp-myrep.done { opacity: .55; }
+.mm-review textarea.pp-input { resize: vertical; min-height: 72px; }

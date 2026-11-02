@@ -2,7 +2,7 @@
   "size": { "width": 2500, "height": 1686 },
   "selected": true,
   "name": "SOBPREP main 2026-11",
-  "chatBarText": "เมนู ซื้อ · แนบสลิป · แอป",
+  "chatBarText": "เมนู SOBPREP",
   "areas": [
     { "bounds": { "x": 0, "y": 0, "width": 833, "height": 843 },
       "action": { "type": "uri", "label": "ซื้อแพ็ก", "uri": "https://sobprep.com/prep/buy?src=line-rich&openExternalBrowser=1" } },

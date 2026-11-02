@@ -261,7 +261,7 @@ function ReviewTab() {
             <label key={i} className={`pp-review-choice ${q.answer === i ? "right" : ""}`}>
               <input type="radio" name={`a${q.id}`} checked={q.answer === i} onChange={() => edit(q.id, { answer: i })} />
               <span>{LABELS[i]}</span>
-              <input className="pp-input" value={c} onChange={e => edit(q.id, { choices: q.choices.map((x, k) => (k === i ? e.target.value : x)) })} />
+              <textarea className="pp-input pp-choice-edit" rows={Math.max(1, c.split("\n").length)} value={c} onChange={e => edit(q.id, { choices: q.choices.map((x, k) => (k === i ? e.target.value : x)) })} />
             </label>
           ))}
           <textarea className="pp-input" rows={3} value={q.explanation} onChange={e => edit(q.id, { explanation: e.target.value })} />

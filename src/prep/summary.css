@@ -227,3 +227,4 @@
 .mm-review-list { display: grid; gap: 8px; margin-top: 6px; }
 .mm-review-list .pp-myrep.done { opacity: .55; }
 .mm-review textarea.pp-input { resize: vertical; min-height: 72px; }
+.mm-past .q, .mm-past ol li { white-space: pre-wrap; }

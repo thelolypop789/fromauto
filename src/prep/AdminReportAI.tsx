@@ -45,7 +45,7 @@ function FixForm({ id, d, onChange }: { id: number; d: Draft; onChange: (d: Draf
         <div key={i} className="pp-ai-edit-ch">
           <input type="radio" name={`ans-${id}`} checked={d.answer === i} onChange={() => onChange({ ...d, answer: i })} aria-label={`ข้อ ${L[i]} คือเฉลย`} />
           <span>{L[i]}.</span>
-          <input className="pp-input" value={c} onChange={e => onChange({ ...d, choices: d.choices.map((x, k) => (k === i ? e.target.value : x)) })} />
+          <textarea className="pp-input pp-choice-edit" rows={Math.max(1, c.split("\n").length)} value={c} onChange={e => onChange({ ...d, choices: d.choices.map((x, k) => (k === i ? e.target.value : x)) })} />
         </div>
       ))}
       <label><span className="pp-muted small">คำอธิบาย</span>

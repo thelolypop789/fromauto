@@ -5,6 +5,7 @@ import { useSinceShown } from "./timing";
 import { ask } from "./dialog";
 import { useTopicNames } from "./topicNames";
 import TextSize from "./TextSize";
+import VerseText from "./VerseText";
 
 const LABELS = ["ก", "ข", "ค", "ง"];
 const mmss = (s: number) => `${Math.floor(s / 3600) ? Math.floor(s / 3600) + ":" : ""}${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
@@ -93,12 +94,12 @@ export default function MockPlayer({ payload, onDone, onExit }: Props) {
             <TextSize />
             <button className={`pp-report-btn ${flags.has(pos) ? "done" : ""}`} onClick={flag}><IconFlag size={14} />{flags.has(pos) ? "ทำเครื่องหมายแล้ว" : "กลับมาดูทีหลัง"}</button>
           </div>
-          <div className="pp-q-stem"><span className="pp-q-no">{pos + 1}.</span> {item.stem}</div>
+          <div className="pp-q-stem"><span className="pp-q-no">{pos + 1}.</span> <VerseText stem text={item.stem} /></div>
           <div className="pp-choices">
             {item.choices.map((text, c) => (
               <button key={c} className={`pp-choice ${picks[pos] === c ? "picked" : ""}`} disabled={busy} onClick={() => pick(picks[pos] === c ? null : c)}>
                 <span className="pp-choice-l">{LABELS[c]}</span>
-                <span className="pp-choice-t">{text}</span>
+                <span className="pp-choice-t"><VerseText text={text} /></span>
               </button>
             ))}
           </div>

@@ -7,6 +7,7 @@ import { useSinceShown } from "./timing";
 import { ask } from "./dialog";
 import { useTopicNames } from "./topicNames";
 import TextSize from "./TextSize";
+import VerseText from "./VerseText";
 
 // A short line from the mascot under the verdict. Picked by question id so it does not change on re-render.
 const CHEER_OK = ["เก่งมาก! ไฟลุกแล้ว 🔥", "แม่นมาก ไปต่อเลย", "ถูกต้อง จำแบบนี้ไว้นะ", "เยี่ยม! อีกข้อก็ได้แน่"];
@@ -154,7 +155,7 @@ export default function Player({ round, onExit, onSubmitted }: Props) {
               ? <span className="pp-report-btn done"><IconCheck size={14} />รายงานแล้ว</span>
               : <button className="pp-report-btn" onClick={() => setReporting(true)}><IconFlag size={14} />รายงานข้อนี้</button>}
           </div>
-          <div className="pp-q-stem"><span className="pp-q-no">{pos + 1}.</span> {item.stem}</div>
+          <div className="pp-q-stem"><span className="pp-q-no">{pos + 1}.</span> <VerseText stem text={item.stem} /></div>
           <div className="pp-choices">
             {order.map((orig, d) => {
               const state = item.picked == null ? ""
@@ -163,7 +164,7 @@ export default function Player({ round, onExit, onSubmitted }: Props) {
               return (
                 <button key={orig} className={`pp-choice ${state}`} disabled={busy || item.picked != null} onClick={() => pick(orig)}>
                   <span className="pp-choice-l">{LABELS[d]}</span>
-                  <span className="pp-choice-t">{item.choices[orig]}</span>
+                  <span className="pp-choice-t"><VerseText text={item.choices[orig]} /></span>
                   <span className="pp-choice-ico">{state === "right" ? <IconCheck size={22} /> : state === "wrong" ? <IconX size={22} /> : null}</span>
                 </button>
               );

@@ -356,7 +356,7 @@ body { background: var(--pp-bg); }
 .pp-choice:active:not(:disabled) { transform: scale(.99); }
 .pp-choice:disabled { cursor: default; }
 .pp-choice-l { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--pp-primary-soft); color: var(--pp-brand-ink); font-weight: 700; font-size: 15px; border: 1.5px solid #E9CBD1; }
-.pp-choice-t { flex: 1; font-family: var(--pp-font-read); font-size: calc(17.5px * var(--pp-read-scale)); line-height: 1.55; }
+.pp-choice-t { flex: 1; white-space: pre-wrap; font-family: var(--pp-font-read); font-size: calc(17.5px * var(--pp-read-scale)); line-height: 1.55; }
 .pp-choice-ico { flex: none; display: none; }
 .pp-choice.right { border-color: var(--pp-ok); background: var(--pp-ok-soft); }
 .pp-choice.right .pp-choice-l { background: var(--pp-ok); color: #fff; border-color: var(--pp-ok); }
@@ -828,7 +828,7 @@ div.pp-todo-item { cursor: default; }
 .pp-ai-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 .pp-ai-q { font-weight: 600; line-height: 1.55; margin-bottom: 6px; white-space: pre-line; }
 .pp-ai-ch { list-style: none; padding: 0; margin: 0 0 8px; display: grid; gap: 4px; }
-.pp-ai-ch li { padding: 5px 10px; border-radius: 8px; background: var(--pp-surface-2); font-size: 14px; }
+.pp-ai-ch li { white-space: pre-wrap; padding: 5px 10px; border-radius: 8px; background: var(--pp-surface-2); font-size: 14px; }
 .pp-ai-ch li.key { background: var(--pp-ok-soft); color: var(--pp-ok); font-weight: 600; }
 .pp-ai-rep { background: var(--pp-bad-soft); border-radius: 8px; padding: 8px 10px; font-size: 14px; margin-bottom: 6px; }
 .pp-ai-an { background: var(--pp-primary-soft); border-radius: 8px; padding: 8px 10px; font-size: 14px; margin-bottom: 8px; }
@@ -1599,3 +1599,10 @@ div.pp-todo-item { cursor: default; }
 .pp-chatsum-conv .pp-chat-msg { max-width: 92%; font-size: 14px; }
 .pp-chatsum-turns { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
 .pp-chat-msg.me .pp-muted { color: rgba(255, 255, 255, .75); }
+
+/* ตัวเลือกที่เป็นคำประพันธ์ขึ้นบรรทัดตามวรรค: ช่องแก้ไขต้องเก็บการขึ้นบรรทัดไว้ */
+.pp-choice-edit { resize: vertical; min-height: 0; line-height: 1.5; }
+.pp-draft-choice { white-space: pre-wrap; }
+.pp-varak { display: inline-block; max-width: 100%; }
+.pp-verse { font-size: .9em; }
+.pp-varak.in { padding-left: 1em; box-sizing: border-box; }

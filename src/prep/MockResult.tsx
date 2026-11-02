@@ -6,6 +6,7 @@ import Confetti from "./Confetti";
 import { scoreMood } from "./mascotUtil";
 import ScoreDist from "./ScoreDist";
 import { useTopicNames } from "./topicNames";
+import VerseText from "./VerseText";
 
 const LABELS = ["ก", "ข", "ค", "ง"];
 const fmtTime = (s: number) => `${Math.floor(s / 60)} นาที ${s % 60} วินาที`;
@@ -64,13 +65,13 @@ export default function MockResult({ payload, onBack, onReview }: Props) {
         {list.map(i => (
           <div key={i.idx} className={`pp-mock-review ${i.picked === i.answer ? "ok" : "bad"}`}>
             {topics[i.topic] && <div className="pp-q-topic">{topics[i.topic]}</div>}
-            <div className="pp-q-stem"><span className="pp-q-no">{i.idx + 1}.</span> {i.stem}</div>
+            <div className="pp-q-stem"><span className="pp-q-no">{i.idx + 1}.</span> <VerseText stem text={i.stem} /></div>
             <div className="pp-choices">
               {i.choices.map((text, c) => {
                 const state = c === i.answer ? "right" : c === i.picked ? "wrong" : "dim";
                 return (
                   <div key={c} className={`pp-choice ${state}`}>
-                    <span className="pp-choice-l">{LABELS[c]}</span><span className="pp-choice-t">{text}</span>
+                    <span className="pp-choice-l">{LABELS[c]}</span><span className="pp-choice-t"><VerseText text={text} /></span>
                     <span className="pp-choice-ico">{state === "right" ? <IconCheck size={20} /> : state === "wrong" ? <IconX size={20} /> : null}</span>
                   </div>
                 );

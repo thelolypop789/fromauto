@@ -301,7 +301,7 @@ function QuestionCard({ q, topics, open, onToggle, onSaved, onResolved }: {
             <label key={i} className={`pp-review-choice ${edit.answer === i ? "right" : ""}`}>
               <input type="radio" name={`e${q.id}`} checked={edit.answer === i} onChange={() => setEdit({ ...edit, answer: i })} />
               <span>{LABELS[i]}</span>
-              <input className="pp-input" value={c} onChange={e => setEdit({ ...edit, choices: edit.choices.map((x, k) => (k === i ? e.target.value : x)) })} />
+              <textarea className="pp-input pp-choice-edit" rows={Math.max(1, c.split("\n").length)} value={c} onChange={e => setEdit({ ...edit, choices: edit.choices.map((x, k) => (k === i ? e.target.value : x)) })} />
             </label>
           ))}
           <label className="small">คำอธิบาย</label>

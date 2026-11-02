@@ -4,7 +4,8 @@
 -- 3) ชุดฟรีโบนัส (profiles.free_sets_bonus) + ระบบชวนเพื่อน: เพื่อนสมัครผ่านลิงก์แล้วทำชุดแรกเสร็จ ได้ +1 ชุดทั้งคู่
 -- 4) ถามผลสอบหลังวันสอบ (prep.exam_outcomes) เพื่อเสนอแพ็กซื้อขาดให้คนสอบรอบหน้า / ขอรีวิวคนที่ผ่าน
 -- 5) ข้อความดึงกลับ (win-back) ถึงคนที่ใช้ชุดฟรีหมด ยังไม่ซื้อ และยังเข้าแอปช่วง 3 วันหลัง
--- ฟังก์ชันที่ redefine (quote, prep_me, prep_create_set, prep_track, prep_admin_pay_funnel) ยกมาจาก definition จริงบน DB ณ 2 พ.ย.
+-- 6) prep_insights: days มี n / first_correct (ความแม่นยำครั้งแรกรายวัน) สำหรับกราฟแนวโน้มรายวัน
+-- ฟังก์ชันที่ redefine (quote, prep_insights, prep_me, prep_create_set, prep_track, prep_admin_pay_funnel) ยกมาจาก definition จริงบน DB ณ 2 พ.ย.
 
 alter table prep.profiles add column if not exists free_sets_bonus int not null default 0;
 alter table prep.profiles add column if not exists ref_code text unique;
@@ -434,4 +435,131 @@ begin
   end loop;
   revoke execute on function prep.referral_reward() from public, anon, authenticated;
   revoke execute on function prep.winback_targets() from public, anon, authenticated;
+end $$;
+
+CREATE OR REPLACE FUNCTION public.prep_insights()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $$
+declare
+  u     uuid := prep.uid();
+  today date := prep.today();
+  res   jsonb;
+begin
+  with answered as (
+         select a.started_at, a.submitted_at, x.qid, x.ok, x.ord
+           from prep.attempts a,
+                unnest(a.question_ids, a.correct, a.answers) with ordinality as x(qid, ok, ans, ord)
+          where a.user_id = u and x.ans is not null),
+       first_try as (
+         select distinct on (qid) qid, coalesce(ok, false) as ok, started_at
+           from answered order by qid, started_at, ord),
+       ft as (
+         select f.*, q.level, q.topic, t.grp, t.section,
+                case when s.n >= 5 then s.correct::numeric / s.n end as global_p
+           from first_try f
+           join prep.questions q on q.id = f.qid
+           join prep.topics t on t.code = q.topic
+           left join prep.question_stats s on s.question_id = f.qid),
+       uqs as (
+         select s.*, t.section
+           from prep.user_question_state s
+           join prep.questions q on q.id = s.question_id
+           join prep.topics t on t.code = q.topic
+          where s.user_id = u),
+       bank as (
+         select t.section, t.grp, count(*) as available
+           from prep.questions q join prep.topics t on t.code = q.topic
+          where q.status = 'approved' group by t.section, t.grp),
+       rounds as (
+         select a.submitted_at, a.mode, a.round_no, st.title,
+                cardinality(a.question_ids) as total,
+                (select count(*) from unnest(a.correct) c where c) as right_n
+           from prep.attempts a join prep.sets st on st.id = a.set_id
+          where a.user_id = u and a.submitted_at is not null)
+  select jsonb_build_object(
+    'sections', coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'section', b.section,
+               'available', b.available,
+               'n', (select count(*) from ft where ft.section = b.section),
+               'correct', (select count(*) from ft where ft.section = b.section and ft.ok),
+               'seen', (select count(*) from uqs where uqs.section = b.section),
+               'mastered', (select count(*) from uqs where uqs.section = b.section and uqs.last_correct and uqs.wrong = 0),
+               'still_wrong', (select count(*) from uqs where uqs.section = b.section and uqs.last_correct = false))
+             order by b.section)
+        from (select section, sum(available)::int as available from bank group by section) b), '[]'::jsonb),
+    'groups', coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'grp', b.grp, 'section', b.section, 'available', b.available,
+               'n', (select count(*) from ft where ft.grp = b.grp),
+               'correct', (select count(*) from ft where ft.grp = b.grp and ft.ok))
+             order by b.grp)
+        from bank b), '[]'::jsonb),
+    'levels', coalesce((
+      select jsonb_agg(jsonb_build_object('level', level, 'n', n, 'correct', c) order by
+               array_position(array['remember','understand','apply','analyze'], level))
+        from (select level, count(*) n, count(*) filter (where ok) c from ft group by level) x), '[]'::jsonb),
+    'difficulty', coalesce((
+      select jsonb_agg(jsonb_build_object('band', band, 'n', n, 'correct', c) order by
+               array_position(array['easy','medium','hard','new'], band))
+        from (select case when global_p is null then 'new' when global_p >= .7 then 'easy'
+                          when global_p >= .4 then 'medium' else 'hard' end as band,
+                     count(*) n, count(*) filter (where ok) c
+                from ft group by 1) x), '[]'::jsonb),
+    'mastery', jsonb_build_object(
+      'seen',        (select count(*) from uqs),
+      'mastered',    (select count(*) from uqs where last_correct and wrong = 0),
+      'recovered',   (select count(*) from uqs where last_correct and wrong > 0),
+      'still_wrong', (select count(*) from uqs where last_correct = false),
+      'stubborn',    (select count(*) from uqs where wrong >= 2)),
+    'weeks', coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'week', w::date,
+               'answered', coalesce((select sum(answered) from prep.daily_activity d
+                                      where d.user_id = u and d.day >= w::date and d.day < w::date + 7), 0),
+               'n', (select count(*) from ft where (ft.started_at at time zone 'Asia/Bangkok')::date >= w::date
+                                                 and (ft.started_at at time zone 'Asia/Bangkok')::date < w::date + 7),
+               'correct', (select count(*) from ft where ft.ok
+                                                 and (ft.started_at at time zone 'Asia/Bangkok')::date >= w::date
+                                                 and (ft.started_at at time zone 'Asia/Bangkok')::date < w::date + 7))
+             order by w)
+        from generate_series(date_trunc('week', today::timestamp) - interval '7 weeks',
+                             date_trunc('week', today::timestamp), interval '1 week') w), '[]'::jsonb),
+    'days', coalesce((
+      select jsonb_agg(jsonb_build_object('day', g::date,
+               'answered', coalesce(d.answered, 0), 'correct', coalesce(d.correct, 0),
+               -- ความแม่นยำครั้งแรกรายวัน (กราฟแนวโน้มเปลี่ยนจากรายสัปดาห์เป็นรายวัน)
+               'n', (select count(*) from ft where (ft.started_at at time zone 'Asia/Bangkok')::date = g::date),
+               'first_correct', (select count(*) from ft where ft.ok and (ft.started_at at time zone 'Asia/Bangkok')::date = g::date)) order by g)
+        from generate_series(today - 29, today, interval '1 day') g
+        left join prep.daily_activity d on d.user_id = u and d.day = g::date), '[]'::jsonb),
+    'weekdays', coalesce((
+      select jsonb_agg(jsonb_build_object('dow', dow, 'answered', a, 'correct', c) order by dow)
+        from (select extract(isodow from day)::int as dow, sum(answered)::int a, sum(correct)::int c
+                from prep.daily_activity where user_id = u group by 1) x), '[]'::jsonb),
+    'hours', coalesce((
+      select jsonb_agg(jsonb_build_object('hour', h, 'n', n, 'correct', c) order by h)
+        from (select extract(hour from started_at at time zone 'Asia/Bangkok')::int as h,
+                     count(*) n, count(*) filter (where ok) c
+                from answered group by 1) x), '[]'::jsonb),
+    'rounds', coalesce((
+      select jsonb_agg(jsonb_build_object('at', submitted_at, 'mode', mode, 'round_no', round_no,
+               'title', title, 'total', total, 'correct', right_n) order by submitted_at)
+        from (select * from rounds order by submitted_at desc limit 30) r), '[]'::jsonb),
+    'round_totals', jsonb_build_object(
+      'all',  (select count(*) from rounds),
+      'full', (select count(*) from rounds where mode = 'full'),
+      'wrong',(select count(*) from rounds where mode = 'wrong')),
+    'stubborn_list', coalesce((
+      select jsonb_agg(jsonb_build_object('id', q.id, 'topic', t.name, 'stem', left(q.stem, 160),
+               'wrong', s.wrong, 'seen', s.seen, 'last_correct', s.last_correct) order by s.wrong desc, s.last_at desc)
+        from (select * from prep.user_question_state where user_id = u and wrong >= 1
+               order by wrong desc, last_at desc limit 10) s
+        join prep.questions q on q.id = s.question_id
+        join prep.topics t on t.code = q.topic), '[]'::jsonb)
+  ) into res;
+  return res;
 end $$;

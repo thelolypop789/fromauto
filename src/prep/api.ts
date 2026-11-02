@@ -201,7 +201,7 @@ export type Insights = {
   difficulty: { band: "easy" | "medium" | "hard" | "new"; n: number; correct: number }[];
   mastery: { seen: number; mastered: number; recovered: number; still_wrong: number; stubborn: number };
   weeks: { week: string; answered: number; n: number; correct: number }[];
-  days: { day: string; answered: number; correct: number }[];
+  days: { day: string; answered: number; correct: number; n?: number; first_correct?: number }[];
   weekdays: { dow: number; answered: number; correct: number }[];
   hours: { hour: number; n: number; correct: number }[];
   rounds: { at: string; mode: "full" | "wrong"; round_no: number; title: string; total: number; correct: number }[];

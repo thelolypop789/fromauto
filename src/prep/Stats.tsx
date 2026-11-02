@@ -50,7 +50,7 @@ function Bars({ data, height = 130, every = 1 }: { data: Bar[]; height?: number;
 }
 
 // Accuracy over time (single series, 0–100%) with the pass line.
-function Line({ points }: { points: { label: string; value: number | null; tip: string }[] }) {
+function Line({ points, every = 1, title = "ความแม่นยำ" }: { points: { label: string; value: number | null; tip: string }[]; every?: number; title?: string }) {
   const [hi, setHi] = useState<number | null>(null);
   const W = typeof window !== "undefined" && window.innerWidth < 700 ? 340 : 640, H = 200, P = 10;
   const x = (i: number) => P + (i * (W - 2 * P)) / Math.max(1, points.length - 1);
@@ -65,7 +65,7 @@ function Line({ points }: { points: { label: string; value: number | null; tip: 
   return (
     <div className="pp-chart" onMouseLeave={() => setHi(null)}>
       <div className="pp-tip" aria-live="polite">{hi != null ? points[hi].tip : " "}</div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="pp-line" role="img" aria-label="ความแม่นยำรายสัปดาห์">
+      <svg viewBox={`0 0 ${W} ${H}`} className="pp-line" role="img" aria-label={title}>
         {[0, 50, 100].map(v => <line key={v} x1={P} x2={W - P} y1={y(v)} y2={y(v)} className="pp-grid-l" />)}
         <line x1={P} x2={W - P} y1={y(PASS_PCT)} y2={y(PASS_PCT)} className="pp-pass-l" />
         <text x={P + 2} y={y(PASS_PCT) - 5} className="pp-pass-t">เกณฑ์ผ่าน {PASS_PCT}%</text>
@@ -79,7 +79,7 @@ function Line({ points }: { points: { label: string; value: number | null; tip: 
             fill="transparent" onMouseEnter={() => setHi(i)} onClick={() => setHi(i)} />
         ))}
       </svg>
-      <div className="pp-line-x">{points.map((p, i) => <span key={i}>{p.label}</span>)}</div>
+      <div className="pp-line-x">{points.map((p, i) => <span key={i}>{i % every === 0 || i === points.length - 1 ? p.label : ""}</span>)}</div>
     </div>
   );
 }
@@ -266,25 +266,23 @@ export default function Stats({ me, profile, onPractice }: Props) {
       {tab === "trend" && (
         <>
           <div className="pp-card">
-            <h3>ความแม่นยำรายสัปดาห์ (8 สัปดาห์)</h3>
-            <Line points={ins.weeks.map(w => ({
-              label: fmtDay(w.week), value: w.n ? pct(w.correct, w.n) : null,
-              tip: w.n ? `สัปดาห์ ${fmtDay(w.week)}: ถูกครั้งแรก ${w.correct}/${w.n} = ${pct(w.correct, w.n)}%` : `สัปดาห์ ${fmtDay(w.week)}: ไม่มีข้อใหม่`,
-            }))} />
+            <h3>ความแม่นยำรายวัน (30 วัน)</h3>
+            <Line title="ความแม่นยำรายวัน" every={5} points={ins.days.map(d => {
+              const n = d.n ?? 0, c = d.first_correct ?? 0;
+              return {
+                label: fmtDay(d.day), value: n ? pct(c, n) : null,
+                tip: n ? `${fmtDay(d.day)}: ถูกครั้งแรก ${c}/${n} = ${pct(c, n)}%` : `${fmtDay(d.day)}: ไม่มีข้อใหม่`,
+              };
+            })} />
+            <p className="pp-muted small">นับเฉพาะข้อที่ทำครั้งแรก · วันที่ไม่มีข้อใหม่จะเว้นเส้นไว้</p>
           </div>
-          <div className="pp-two">
-            <div className="pp-card">
-              <h3>จำนวนข้อรายสัปดาห์</h3>
-              <Bars height={110} data={ins.weeks.map(w => ({ key: w.week, label: fmtDay(w.week), value: w.answered, tip: `สัปดาห์ ${fmtDay(w.week)}: ${w.answered} ข้อ` }))} every={2} />
-            </div>
-            <div className="pp-card">
-              <h3>30 วันล่าสุด</h3>
-              <Bars height={110} every={5} data={ins.days.map(x => ({
-                key: x.day, label: String(Number(x.day.slice(8))), value: x.answered, inner: x.correct,
-                tip: `${fmtDay(x.day)}: ${x.answered} ข้อ · ถูก ${x.correct}`,
-              }))} />
-              <p className="pp-muted small">ส่วนสีเข้ม = ตอบถูก (รวมทำซ้ำ)</p>
-            </div>
+          <div className="pp-card">
+            <h3>จำนวนข้อรายวัน (30 วัน)</h3>
+            <Bars height={110} every={5} data={ins.days.map(x => ({
+              key: x.day, label: String(Number(x.day.slice(8))), value: x.answered, inner: x.correct,
+              tip: `${fmtDay(x.day)}: ${x.answered} ข้อ · ถูก ${x.correct}`,
+            }))} />
+            <p className="pp-muted small">ส่วนสีเข้ม = ตอบถูก (รวมทำซ้ำ)</p>
           </div>
           <div className="pp-two">
             <div className="pp-card">

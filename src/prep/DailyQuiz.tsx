@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { rpc, thaiError, type Daily } from "./api";
+import { rpc, thaiError, type Daily, type DailyTopic } from "./api";
 import { IconBack, IconCheck, IconNext, IconX } from "./icons";
 import ScoreDist from "./ScoreDist";
 import { useSinceShown } from "./timing";
@@ -8,8 +8,9 @@ import Skeleton from "./Skeleton";
 import VerseText from "./VerseText";
 
 const LABELS = ["ก", "ข", "ค", "ง"];
+const topicLabel = (t: DailyTopic) => `ภาค ${t.section === "A" ? "ก" : "ข"} · ${t.name}`;
 
-// Ten questions a day, the same for everybody, free for every signed-in user.
+// Ten questions a day on one topic (ภาค ก / ภาค ข สลับวัน), the same for everybody, free for every signed-in user.
 export default function DailyQuiz({ onBack }: { onBack: () => void }) {
   const [data, setData] = useState<Daily | null>(null);
   const [pos, setPos] = useState<number | null>(null);
@@ -45,6 +46,7 @@ export default function DailyQuiz({ onBack }: { onBack: () => void }) {
         <div>
           <b>ข้อสอบประจำวัน</b>
           <span className="pp-muted small"> · ทำแล้ว {answered}/{data.total} · ฟรีทุกบัญชี</span>
+          {data.topic && <div className="small">วันนี้เรื่อง <b>{topicLabel(data.topic)}</b></div>}
         </div>
         <span className="pp-daily-streak" title="วันที่ทำครบ 10 ข้อติดต่อกัน">🔥 {data.streak} วัน</span>
       </div>
@@ -52,7 +54,7 @@ export default function DailyQuiz({ onBack }: { onBack: () => void }) {
       {data.done && (
         <div className="pp-card pp-daily-done">
           <h3>วันนี้ได้ {data.score}/{data.total} ข้อ</h3>
-          <p className="pp-muted">ทำครบต่อเนื่อง {data.streak} วัน · วันนี้มีคนทำแล้ว {data.players.toLocaleString()} คน · พรุ่งนี้มีชุดใหม่ 10 ข้อ</p>
+          <p className="pp-muted">ทำครบต่อเนื่อง {data.streak} วัน · วันนี้มีคนทำแล้ว {data.players.toLocaleString()} คน · {data.next_topic ? <>พรุ่งนี้เรื่อง <b>{topicLabel(data.next_topic)}</b></> : "พรุ่งนี้มีชุดใหม่ 10 ข้อ"}</p>
           <button className="pp-btn pp-btn-primary" onClick={onBack}><IconBack />กลับหน้าแรก</button>
         </div>
       )}

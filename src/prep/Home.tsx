@@ -98,7 +98,7 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
             <b>ทบทวนวันนี้{counts ? ` · ${counts.due}` : ""}</b>
             <small>{counts && counts.due === 0 ? "ยังไม่มีข้อถึงรอบ" : counts && counts.due > 30 ? "ข้อที่ผิดมา ถึงรอบทวน · รอบละ 30 ข้อ" : "ข้อที่ผิดมา ถึงรอบทวน ช่วยให้จำได้นาน"}</small>
           </button>
-          <button onClick={onDaily}><b>ข้อสอบประจำวัน</b><small>10 ข้อ · ฟรี</small></button>
+          <button onClick={onDaily}><b>ข้อสอบประจำวัน</b><small>วันละเรื่อง 10 ข้อ · ฟรี</small></button>
         </div>
         <div className="pp-hero-stats">
           <div><b>{sets?.length ?? "–"}</b><span>ชุดที่ทำ</span></div>

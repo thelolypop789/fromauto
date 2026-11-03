@@ -266,7 +266,11 @@ export type DailyItem = {
   idx: number; stem: string; choices: string[]; picked: number | null;
   correct?: boolean; answer?: number; explanation?: string; pct_correct?: number | null;
 };
-export type Daily = { day: string; items: DailyItem[]; done: boolean; score: number; total: number; streak: number; players: number };
+export type DailyTopic = { code: string; name: string; section: "A" | "B" };
+export type Daily = {
+  day: string; items: DailyItem[]; done: boolean; score: number; total: number; streak: number; players: number;
+  topic?: DailyTopic | null; next_topic?: DailyTopic | null; // เรื่องของวันนี้/พรุ่งนี้ (ชุดแบบเก่าไม่มี topic)
+};
 export type ScoreDistData = {
   kind: "daily" | "mock"; total: number; mine: number; players: number; rank: number | null; avg: number | null;
   best: number | null; buckets: number[] | null; history: { label: string; value: number; current: boolean }[];

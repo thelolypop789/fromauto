@@ -16,6 +16,8 @@ import Skeleton from "./Skeleton";
 import ExamFollowup from "./ExamFollowup";
 import PromoNotice from "./PromoNotice";
 
+const SHOW_SETS = 4;   // ชุดล่าสุดที่โชว์ก่อนกด "ดูทั้งหมด" (รายการเรียงใหม่สุดก่อน)
+
 type Props = {
   me: Me;
   profile: Profile;
@@ -36,6 +38,7 @@ type Props = {
 
 export default function Home({ me, profile, onMajor, onProfile, onCreate, onStart, onReview, onDaily, onMock, onPast, onCalendar, onUpgrade, onStats, onBoard, joined }: Props) {
   const [picking, setPicking] = useState(false);
+  const [allSets, setAllSets] = useState(false);
   const [sets, setSets] = useState<SetSummary[] | null>(null);
   const [error, setError] = useState("");
   const [dash, setDash] = useState<Dashboard | null>(null);
@@ -170,6 +173,29 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
       {picking && <MajorPicker current={profile.major} track={profile.track} onTrack={onProfile} onClose={() => setPicking(false)} onSaved={onMajor} />}
       {!canCreate && <p className="pp-note">ใช้ชุดฟรีครบแล้ว — ทำซ้ำชุดเดิมด้านล่างได้ไม่จำกัด หรืออัปเกรดเพื่อสร้างชุดใหม่</p>}
 
+      {/* โหมดฝึกอยู่เหนือรายการชุด: คนที่มีหลายชุดเคยต้องเลื่อนผ่านทุกชุดก่อนจะเห็น */}
+      <div className="pp-h"><h2>โหมดฝึก</h2><span className="pp-muted small">เลือกแบบที่อยากซ้อม</span></div>
+      <div className="pp-quick">
+        <button className="pp-quick-tile hot" disabled={!canCreate} onClick={() => onCreate({ mode: "hard" })}>
+          <span className="pp-quick-ico" aria-hidden>🔥</span>
+          <span className="pp-quick-t"><b>โหมดท้าทาย</b><small>โจทย์สถานการณ์ กฎหมาย วิชาครู และข้อที่คนส่วนใหญ่ตอบผิด</small></span>
+          <span className="pp-quick-badge">ใหม่</span>
+        </button>
+        <button className="pp-quick-tile" onClick={onMock}>
+          <span className="pp-quick-ico" aria-hidden>⏱️</span>
+          <span className="pp-quick-t"><b>สอบจำลองจับเวลา</b><small>จำนวนข้อและเวลาเท่าสนามสอบ ไม่เฉลยจนกว่าจะส่ง</small></span>
+        </button>
+        <button className="pp-quick-tile" onClick={onPast}>
+          <span className="pp-quick-ico" aria-hidden>📚</span>
+          <span className="pp-quick-t"><b>แนวข้อสอบตามปี</b><small>แยกตามสนามสอบและปี กดครั้งเดียวได้ชุดพร้อมทำ</small></span>
+        </button>
+        <button className="pp-quick-tile" disabled={!counts || counts.wrong === 0} onClick={() => onReview("wrong")}>
+          <span className="pp-quick-ico" aria-hidden>🔁</span>
+          <span className="pp-quick-t"><b>ทวนข้อผิดทั้งหมด</b><small>{counts && counts.wrong === 0 ? "ไม่มีข้อที่ยังผิดอยู่" : "รวมข้อที่ยังตอบผิดจากทุกชุด"}</small></span>
+          {counts && counts.wrong > 0 && <span className="pp-quick-badge count">{counts.wrong.toLocaleString()}</span>}
+        </button>
+      </div>
+
       {error && <div className="pp-error">{error}</div>}
       {sets === null && !error && <Skeleton kind="grid" n={2} />}
 
@@ -198,7 +224,7 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
 
       {sets && sets.length > 0 && <div className="pp-h"><h2>ชุดฝึกของฉัน</h2><span className="pp-muted small">{sets.length} ชุด</span></div>}
       <div className="pp-sets">
-      {sets?.map(s => {
+      {sets?.slice(0, allSets ? undefined : SHOW_SETS).map(s => {
         const done = !!s.cleared_at;
         const played = s.rounds > 0;
         return (
@@ -235,21 +261,11 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
         );
       })}
       </div>
-
-      <div className="pp-h"><h2>ฝึกแบบอื่น</h2></div>
-      <div className="pp-modes pp-modes-home">
-        <button onClick={onMock}>
-          <b>จำลองสอบจริง</b><span>จำนวนข้อและเวลาเท่าสนามจริง ไม่เฉลยจนส่ง</span>
+      {sets && sets.length > SHOW_SETS && (
+        <button className="pp-btn pp-btn-ghost pp-sets-more" onClick={() => setAllSets(v => !v)}>
+          {allSets ? "ย่อรายการ" : `ดูชุดทั้งหมด (${sets.length})`}
         </button>
-        <button onClick={onPast}>
-          <b>แนวข้อสอบเก่า</b><span>ฝึกจากประเด็นที่เคยออกสอบ แยกตามสนามและปี</span>
-        </button>
-        <button disabled={!counts || counts.wrong === 0} onClick={() => onReview("wrong")}>
-          <b>ทวนข้อผิดทั้งหมด{counts ? ` (${counts.wrong})` : ""}</b>
-          <span>{counts && counts.wrong === 0 ? "ไม่มีข้อที่ยังผิดอยู่" : "รวมข้อที่ยังตอบผิด จากทุกชุด"}</span>
-        </button>
-      </div>
-
+      )}
 
       </div>
       <aside className="pp-home-side">

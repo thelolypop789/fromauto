@@ -37,7 +37,7 @@ export default function MockHome({ onBack, onUpgrade, onOpen, onAccount }: Props
   return (
     <>
       <div className="pp-card">
-        <h2>จำลองสอบจริง</h2>
+        <h2>สอบจำลองจับเวลา</h2>
         <p className="pp-muted">จำนวนข้อและเวลาเท่าสนามจริง แบ่งตามวิชา จับเวลาที่เซิร์ฟเวอร์ ไม่เฉลยระหว่างทำ ส่งแล้วดูคะแนนรายหมวด เปรียบเทียบกับผู้สอบคนอื่น และข้อที่ผิดจะไปอยู่ในรายการทวน</p>
         {ov.major_name && <p className="pp-muted small">วิชาเอกของคุณ: <b>{ov.major_name}</b></p>}
         {error && <div className="pp-error">{error}</div>}

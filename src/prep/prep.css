@@ -715,6 +715,27 @@ select.pp-input { appearance: none; background-image: linear-gradient(45deg, tra
 .pp-admin-guide h4 { margin: 14px 0 4px; }
 .pp-modes-home { display: grid; gap: 8px; margin-bottom: 8px; }
 .pp-modes-home button:disabled { opacity: .55; cursor: default; }
+.pp-quick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 8px; }
+@media (min-width: 900px) { .pp-quick { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.pp-quick-tile { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; text-align: left;
+  padding: 14px; border-radius: var(--pp-radius); border: 1.5px solid var(--pp-line); background: var(--pp-card); color: var(--pp-ink);
+  font: inherit; cursor: pointer; box-shadow: 0 10px 24px -20px rgba(74, 11, 22, .55); transition: transform .12s, border-color .12s, box-shadow .12s; }
+.pp-quick-tile:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--pp-primary); box-shadow: 0 14px 28px -18px rgba(74, 11, 22, .6); }
+.pp-quick-tile:disabled { opacity: .55; cursor: default; }
+.pp-quick-ico { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-size: 22px;
+  background: var(--pp-primary-soft); }
+.pp-quick-t { display: flex; flex-direction: column; gap: 3px; }
+.pp-quick-t b { font-size: var(--pp-fs-md); }
+.pp-quick-t small { font-size: 13px; color: var(--pp-muted); line-height: 1.45; }
+.pp-quick-badge { position: absolute; top: 12px; right: 12px; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+  background: var(--pp-gold-bright); color: var(--pp-on-gold); }
+.pp-quick-badge.count { background: var(--pp-bad-soft); color: var(--pp-bad-ink); }
+.pp-quick-tile.hot { border-color: transparent; color: #fff;
+  background: linear-gradient(135deg, var(--pp-primary) 0%, var(--pp-primary-deep) 100%); }
+.pp-quick-tile.hot .pp-quick-ico { background: rgba(255, 255, 255, .16); }
+.pp-quick-tile.hot .pp-quick-t small { color: rgba(255, 255, 255, .82); }
+.pp-quick-tile.hot:hover:not(:disabled) { border-color: var(--pp-gold-bright); }
+.pp-sets-more { width: 100%; margin: 4px 0 12px; }
 .pp-daily-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .pp-daily-streak { font-weight: 700; color: var(--pp-brand-ink-2); white-space: nowrap; }
 .pp-daily-done h3 { margin: 0 0 4px; }

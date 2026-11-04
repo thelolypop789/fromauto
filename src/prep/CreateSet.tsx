@@ -3,13 +3,15 @@ import { GROUPS, PACKAGE_LABEL, SECTIONS, covers, rpc, thaiError, track, type Me
 import FreeWall from "./FreeWall";
 import Skeleton from "./Skeleton";
 
-export type Preset = { section?: "A" | "B"; topics?: string[]; subtopics?: string[]; mode?: "new" | "weak" | "mixed"; size?: number };
+export type Preset = { section?: "A" | "B"; topics?: string[]; subtopics?: string[]; mode?: Mode; size?: number };
 type Props = { me: Me; major?: string | null; preset?: Preset; onCancel: () => void; onCreated: (setId: string) => void; onUpgrade: () => void };
 
+type Mode = "new" | "weak" | "mixed" | "hard";
 const MODES = [
   { key: "new", label: "ข้อใหม่ก่อน", hint: "ดึงข้อที่ยังไม่เคยทำก่อน" },
   { key: "weak", label: "เน้นจุดอ่อน", hint: "ข้อที่เคยตอบผิดมาก่อน" },
   { key: "mixed", label: "สุ่มทั้งหมด", hint: "ผสมทุกข้อในหมวดที่เลือก" },
+  { key: "hard", label: "โหมดท้าทาย 🔥", hint: "โจทย์สถานการณ์ คิดวิเคราะห์ และข้อที่คนส่วนใหญ่ตอบผิด" },
 ] as const;
 
 export default function CreateSet({ me, major = null, preset, onCancel, onCreated, onUpgrade }: Props) {
@@ -17,7 +19,7 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
   const [picked, setPicked] = useState<Set<string>>(() => new Set(preset?.topics ?? []));
   const [section, setSection] = useState<"A" | "B">(preset?.section ?? "A");
   const [size, setSize] = useState(Math.min(preset?.size ?? 20, me.max_set_size));
-  const [mode, setMode] = useState<"new" | "weak" | "mixed">(preset?.mode ?? "new");
+  const [mode, setMode] = useState<Mode>(preset?.mode ?? "new");
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -174,6 +176,7 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
           <button key={n} className={finalSize === n ? "on" : ""} onClick={() => setSize(n)}>{n}</button>
         ))}
       </div>
+      {mode === "hard" && <p className="pp-note">โหมดท้าทายดึงเฉพาะข้อยาก จำนวนข้ออาจน้อยกว่าที่เลือก ถ้าหมวดนั้นมีข้อยากไม่พอ</p>}
       {picked.size > 0 && available < finalSize && <p className="pp-note">หมวดที่เลือกมี {available} ข้อ ชุดนี้จะได้ {available} ข้อ</p>}
       {blocked && (
         <div className="pp-error">หมวดที่เลือกอยู่นอกแพ็กของคุณ และใช้สิทธิ์ฟรีครบแล้ว — เลือกเฉพาะหมวดในแพ็ก หรือ {offer && <b>{offer} · </b>}<button className="pp-link" onClick={onUpgrade}>ซื้อแพ็กเพิ่ม</button></div>

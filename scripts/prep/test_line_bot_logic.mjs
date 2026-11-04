@@ -89,6 +89,7 @@ t('LINE links open the external browser', [L.WELCOME_TEXT, L.SLIP_TEXT, L.PRESET
 t('promo link keeps external flag and promo', L.promoText([live], []).includes('promo=SOB10&src=line-oa&openExternalBrowser=1'));
 t('app prompt has no external flag', !ap2.includes("openExternalBrowser") && ap2.includes("src=app-chat"));
 t('major counts: B3 with questions only, biggest first', L.majorLines(topics) === 'ภาษาไทย 1,203, ภาษาจีน 100');
+t('major counts: vocational majors are labelled', L.majorLines([{ code: 'B3-V-ELEC', section: 'B', grp: 'B3', name: 'ช่างไฟฟ้ากำลัง', available: 205, track: 'vec' }]) === 'ช่างไฟฟ้ากำลัง (สอศ.) 205');
 t('prompt lists major counts', lp.includes('ภาษาไทย 1,203'));
 t('prompt: daily quota, never unlimited answers', lp.includes('1,000 ข้อ/วัน') && lp.includes('3,000 ข้อ/วัน') && lp.includes('ห้ามบอกว่าไม่จำกัด'));
 t('prompt: group buy, change major, web app, not-yet features', ['2 คน ลด 20%', 'เปลี่ยนวิชาเอก', 'ไม่มีใน App Store', 'ยังไม่มี: ลบชุด'].every(x => lp.includes(x)));

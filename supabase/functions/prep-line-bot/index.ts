@@ -67,12 +67,12 @@ async function prices(): Promise<Price[]> {
   return priceCache.prices;
 }
 
-// Questions per major (prep_topics) so the bot answers "วิชาเอกนี้มีกี่ข้อ" with real numbers; 10 minutes per instance.
+// Questions per major (prep_bot_topics) so the bot answers "วิชาเอกนี้มีกี่ข้อ" with real numbers; 10 minutes per instance.
 let topicCache: { at: number; topics: TopicCount[] } | null = null;
 async function topics(): Promise<TopicCount[]> {
   if (topicCache && Date.now() - topicCache.at < 600_000) return topicCache.topics;
-  const { data, error } = await sb().rpc("prep_topics");
-  if (error || !Array.isArray(data)) { console.error("prep_topics:", error?.message); return topicCache?.topics ?? []; }
+  const { data, error } = await sb().rpc("prep_bot_topics"); // prep_topics needs a signed-in user
+  if (error || !Array.isArray(data)) { console.error("prep_bot_topics:", error?.message); return topicCache?.topics ?? []; }
   topicCache = { at: Date.now(), topics: data as TopicCount[] };
   return topicCache.topics;
 }

@@ -7,7 +7,7 @@ import { nf, shortDay } from "./chartFormat";
 // แอดมิน → ภาพรวม → การเรียนรู้: is the product making people exam-ready? Readiness comes from a nightly snapshot of
 // everyone who practised in the last 14 days (prep.readiness_daily), so it starts filling from the day it shipped.
 type Learning = {
-  ready: { n: number; pass: number; buckets: number[] };
+  ready: { n: number; pass: number; pass_a?: number; pass_b?: number; buckets: number[] }; // pass = ภาค ก และ ภาค ข ≥ 60 ทั้งคู่
   ready_weeks: { w: string; n: number; pass: number }[];
   mock: { n: number; pass: number; buckets: number[] };
   curve: { b: number; users: number; acc: number }[];
@@ -68,11 +68,11 @@ export default function AdminLearning() {
         <>
           <p className="pp-headline">
             {d.ready.n
-              ? `ผู้เรียนที่ฝึกอยู่ ${nf(d.ready.n)} คน มีความพร้อมผ่านเกณฑ์ ${PASS_PCT}% แล้ว ${pct(d.ready.pass, d.ready.n)}% · สอบจำลองผ่าน ${pct(d.mock.pass, d.mock.n)}% จาก ${nf(d.mock.n)} ครั้ง`
+              ? `ผู้เรียนที่ฝึกอยู่ ${nf(d.ready.n)} คน มีความพร้อมผ่านเกณฑ์ ${PASS_PCT}% ทั้ง 2 ภาคแล้ว ${pct(d.ready.pass, d.ready.n)}% · สอบจำลองผ่าน ${pct(d.mock.pass, d.mock.n)}% จาก ${nf(d.mock.n)} ครั้ง`
               : "เริ่มเก็บคะแนนความพร้อมรายวันแล้ว ตัวเลขจะขึ้นหลังรอบเก็บคืนนี้ (23:45 น.)"}
           </p>
           <div className="pp-okpis">
-            <div className="pp-okpi"><span className="pp-okpi-l">พร้อมสอบ (≥ {PASS_PCT})</span><b>{d.ready.n ? `${pct(d.ready.pass, d.ready.n)}%` : "–"}</b><span className="pp-muted small">{nf(d.ready.pass)} จาก {nf(d.ready.n)} คนที่ฝึกใน 14 วัน</span></div>
+            <div className="pp-okpi"><span className="pp-okpi-l">พร้อมสอบทั้ง 2 ภาค (≥ {PASS_PCT})</span><b>{d.ready.n ? `${pct(d.ready.pass, d.ready.n)}%` : "–"}</b><span className="pp-muted small">{nf(d.ready.pass)} จาก {nf(d.ready.n)} คนที่ฝึกใน 14 วัน{d.ready.pass_a != null && d.ready.pass_b != null ? ` · ภาค ก ${pct(d.ready.pass_a, d.ready.n)}% · ภาค ข ${pct(d.ready.pass_b, d.ready.n)}%` : ""}</span></div>
             <div className="pp-okpi"><span className="pp-okpi-l">สอบจำลองผ่าน</span><b>{d.mock.n ? `${pct(d.mock.pass, d.mock.n)}%` : "–"}</b><span className="pp-muted small">{nf(d.mock.n)} ครั้งที่ส่งในช่วงนี้</span></div>
             <div className="pp-okpi"><span className="pp-okpi-l">ทำทบทวนตามรอบ</span><b>{nf(d.review.users_reviewed)} คน</b><span className="pp-muted small">จาก {nf(d.review.users_due)} คนที่มีข้อถึงรอบ</span></div>
             <div className="pp-okpi"><span className="pp-okpi-l">ข้อทบทวนค้าง</span><b>{nf(d.review.due)}</b><span className="pp-muted small">ในนั้นเลย 7 วัน {nf(d.review.overdue7)} ข้อ</span></div>

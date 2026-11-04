@@ -239,12 +239,12 @@ export function matchPreset(message: string): Preset | null {
 }
 
 // The AI sees the same facts as the presets, so a free-form question gets an answer that agrees with them.
-export type TopicCount = { code: string; section: string; grp: string; name: string; available: number };
+export type TopicCount = { code: string; section: string; grp: string; name: string; available: number; track?: string | null };
 
 // Questions per major right now, from prep_topics (the bot used to guess these).
 export function majorLines(topics: TopicCount[]): string {
   const m = topics.filter(t => t.grp === "B3" && t.available > 0).sort((a, b) => b.available - a.available);
-  return m.length ? m.map(t => `${t.name} ${t.available.toLocaleString("en-US")}`).join(", ") : "ไม่มีข้อมูลตอนนี้ (ให้บอกว่าดูจำนวนได้ในแอปหน้าสร้างชุด)";
+  return m.length ? m.map(t => `${t.name}${t.track === "vec" ? " (สอศ.)" : ""} ${t.available.toLocaleString("en-US")}`).join(", ") : "ไม่มีข้อมูลตอนนี้ (ให้บอกว่าดูจำนวนได้ในแอปหน้าสร้างชุด)";
 }
 
 export function systemPrompt(prices: Price[], promos: PromoStatus[] = [], topics: TopicCount[] = []): string {

@@ -1,4 +1,4 @@
--- โหมดท้าทาย (p_mode = 'hard') ในการสร้างชุด: เฉพาะโจทย์สถานการณ์ (origin claude-scenario-2026-11), ระดับ analyze,
+-- โหมดท้าทาย (p_mode = 'hard') ในการสร้างชุด: เฉพาะโจทย์สถานการณ์ (ref = 'claude-scenario-2026-11'), ระดับ analyze,
 -- หรือข้อที่ตอบมาแล้ว >= 20 ครั้งและถูกไม่ถึง 50% โดยตัดข้อที่ prep.item_suspect ชี้ว่าเฉลยอาจผิดออกเสมอ; ข้อที่ยังไม่เคยทำมาก่อน
 -- ฟังก์ชันคัดจากเวอร์ชันที่รันอยู่จริง เปลี่ยนเฉพาะส่วนของโหมดนี้
 
@@ -50,7 +50,7 @@ begin
       and (p_tag is null or q.exam_tag like p_tag || '%')
       -- โหมดท้าทาย: โจทย์สถานการณ์ / ระดับวิเคราะห์ / ข้อที่คนตอบถูกไม่ถึงครึ่ง และไม่ใช่ข้อที่ระบบสงสัยว่าเฉลยผิด
       and (p_mode <> 'hard' or (
-            (q.level = 'analyze' or q.origin = 'claude-scenario-2026-11' or (st.n >= 20 and st.correct::numeric / st.n < 0.5))
+            (q.level = 'analyze' or q.ref = 'claude-scenario-2026-11' or (st.n >= 20 and st.correct::numeric / st.n < 0.5))
             and prep.item_suspect(q.id, q.status, q.answer, coalesce(st.n, 0), coalesce(st.correct, 0), st.choice_counts) is null))
     order by
       case p_mode

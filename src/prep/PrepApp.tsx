@@ -36,7 +36,7 @@ import Skeleton from "./Skeleton";
 // Loaded on first open: the admin screens are for staff only, and the summaries bring their own font and styles.
 const Admin = lazy(() => import("./Admin"));
 const Summary = lazy(() => import("./Summary"));
-const Tarot = lazy(() => import("./Tarot"));
+const Tarot = lazy(() => import("./Tarot"));   // fortune page: its card pictures load only when opened
 
 setupPwa();
 applyReadScale();
@@ -47,6 +47,7 @@ const PATHS = {
   home: "/prep", create: "/prep/create", play: "/prep/play", result: "/prep/result", stats: "/prep/stats", daily: "/prep/daily",
   board: "/prep/board", mock: "/prep/mock", mockplay: "/prep/mock/play", mockresult: "/prep/mock/result", calendar: "/prep/calendar",
   feedback: "/prep/feedback", account: "/prep/me", buy: "/prep/buy", summary: "/prep/summary", past: "/prep/past", admin: "/prep/admin",
+  tarot: "/prep/tarot",
 } as const;
 type ViewName = keyof typeof PATHS;
 function viewFromPath(path: string): ViewName {
@@ -252,7 +253,7 @@ function PrepShell() {
       </header>
       <main className="pp-main" key={reloadKey}>
         <Suspense fallback={<Skeleton kind="cards" n={2} />}>
-        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onProfile={changeProfile} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onPast={() => go("past")} onCalendar={() => go("calendar")} onUpgrade={() => go("buy")} onStats={() => go("stats")} onBoard={() => go("board")} joined={session.user.created_at} />}
+        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onProfile={changeProfile} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onPast={() => go("past")} onCalendar={() => go("calendar")} onUpgrade={() => go("buy")} onStats={() => go("stats")} onBoard={() => go("board")} onTarot={() => go("tarot")} joined={session.user.created_at} />}
         {view.name === "create" && <CreateSet me={me} major={profile.major} preset={held.preset} onCancel={() => go("home")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} onUpgrade={() => go("buy")} />}
         {view.name === "result" && held.result && <RoundResult result={held.result} title={held.title ?? ""} me={me} majorName={profile.major_name} onStart={startRound}
@@ -263,6 +264,7 @@ function PrepShell() {
           onOpen={payload => { setHeld({ mock: payload }); navigate(payload.submitted ? PATHS.mockresult : PATHS.mockplay); }} />}
         {view.name === "mockresult" && held.mock && <MockResult payload={held.mock} onBack={() => back("mock")} onReview={() => startReview("wrong")} />}
         {view.name === "calendar" && <Calendar onBack={() => back("home")} />}
+        {view.name === "tarot" && <Tarot onBack={() => back("home")} onPractice={() => go("create")} />}
         {view.name === "feedback" && <Feedback page="tab" />}
         {view.name === "past" && <PastExams onBack={() => back("home")} onUpgrade={() => go("buy")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} />}
@@ -286,14 +288,13 @@ function PrepShell() {
   );
 }
 
-// The guide, the privacy page and the tarot page are public: they must open without signing in, so they are chosen before any auth work starts.
+// The guide and the privacy page are public: they must open without signing in, so they are chosen before any auth work starts.
 const MAX_MAJOR_SKIPS = 2;
 const readSkips = () => { try { return Number(localStorage.getItem("pp-major-skips")) || 0; } catch { return 0; } };
 const writeSkips = (n: number) => { try { localStorage.setItem("pp-major-skips", String(n)); } catch { /* storage blocked: the session flag still applies */ } };
 
 export default function PrepApp() {
   const path = window.location.pathname;
-  const page = /^\/prep\/guide\/?$/.test(path) ? <Guide /> : /^\/prep\/privacy\/?$/.test(path) ? <Privacy />
-    : /^\/prep\/tarot\/?$/.test(path) ? <Suspense fallback={<Waiting />}><Tarot /></Suspense> : <PrepShell />;
+  const page = /^\/prep\/guide\/?$/.test(path) ? <Guide /> : /^\/prep\/privacy\/?$/.test(path) ? <Privacy /> : <PrepShell />;
   return <><MovedBanner />{page}<DialogHost /></>;
 }

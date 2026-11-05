@@ -33,10 +33,11 @@ type Props = {
   onUpgrade: () => void;
   onStats: () => void;
   onBoard: () => void;
+  onTarot: () => void;
   joined?: string;   // account creation time: notices about past problems skip newer accounts
 };
 
-export default function Home({ me, profile, onMajor, onProfile, onCreate, onStart, onReview, onDaily, onMock, onPast, onCalendar, onUpgrade, onStats, onBoard, joined }: Props) {
+export default function Home({ me, profile, onMajor, onProfile, onCreate, onStart, onReview, onDaily, onMock, onPast, onCalendar, onUpgrade, onStats, onBoard, onTarot, joined }: Props) {
   const [picking, setPicking] = useState(false);
   const [allSets, setAllSets] = useState(false);
   const [sets, setSets] = useState<SetSummary[] | null>(null);
@@ -196,9 +197,9 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
         </button>
       </div>
 
-      <a className="pp-tarot-link" href="/prep/tarot">
-        <span aria-hidden>🔮</span><span><b>เปิดไพ่ดวงสอบ</b> ไพ่ยิปซี 3 ใบ อดีต ปัจจุบัน วันสอบ</span><span aria-hidden>›</span>
-      </a>
+      <button className="pp-tarot-link" onClick={onTarot}>
+        <span aria-hidden>🔮</span><span><b>เปิดไพ่ดวงสอบ</b> ไพ่ยิปซี 3 ใบ อดีต ปัจจุบัน อนาคต</span><span aria-hidden>›</span>
+      </button>
 
       {error && <div className="pp-error">{error}</div>}
       {sets === null && !error && <Skeleton kind="grid" n={2} />}

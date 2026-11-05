@@ -1,11 +1,9 @@
 /* /prep/tarot: a night-sky page in the app's maroon and gold, the same in light and dark themes. */
-.tt-page { min-height: 100vh; color: #fff; background: radial-gradient(120% 80% at 50% 0%, #3A1250 0%, #1B0B2E 45%, #2A0712 100%) fixed; }
-.tt-top { display: flex; align-items: center; justify-content: space-between; max-width: 760px; margin: 0 auto; padding: 14px 16px; }
-.tt-brand { color: #F3D98A; text-decoration: none; font-size: 15px; }
-.tt-brand b { color: #fff; }
-.tt-days { font-size: 13px; padding: 4px 12px; border-radius: 999px; background: rgba(212, 175, 55, .18); color: #F3D98A; }
-.tt-main { max-width: 760px; margin: 0 auto; padding: 4px 16px 48px; text-align: center; }
-.tt-main h1 { font-size: 26px; margin: 8px 0 4px; color: #F3D98A; }
+.tt-page { position: relative; margin: -4px 0 0; padding: 18px 16px 28px; border-radius: var(--pp-radius-lg, 26px); color: #fff; text-align: center;
+  background: radial-gradient(120% 80% at 50% 0%, #3A1250 0%, #1B0B2E 45%, #2A0712 100%); box-shadow: 0 20px 40px -28px rgba(27, 11, 46, .9); }
+.tt-backlink { position: absolute; top: 14px; left: 14px; border: 0; background: none; color: #F3D98A; font: inherit; font-size: 14px; cursor: pointer; }
+.tt-err { color: #FFB4B4; }
+.tt-page h1 { font-size: 26px; margin: 8px 0 4px; color: #F3D98A; }
 .tt-sub { margin: 0 0 22px; color: rgba(255, 255, 255, .75); }
 .tt-intro p { line-height: 1.8; color: rgba(255, 255, 255, .9); }
 .tt-note { display: block; margin-top: 12px; font-size: 12px; color: rgba(255, 255, 255, .6); }
@@ -19,13 +17,15 @@
 .tt-back, .tt-face { position: absolute; inset: 0; border-radius: 12px; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
 .tt-back { display: grid; place-items: center; border: 2px solid #D4AF37; font-size: 26px;
   background: repeating-linear-gradient(45deg, #4A0B16 0 8px, #5E1222 8px 16px); box-shadow: inset 0 0 0 4px #2A0712, inset 0 0 0 5px #D4AF37; }
-.tt-face { transform: rotateY(180deg); display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 10px 6px;
+.tt-face { transform: rotateY(180deg); display: flex; flex-direction: column; overflow: hidden;
   border: 2px solid #D4AF37; background: linear-gradient(180deg, hsl(var(--h) 70% 32%), hsl(var(--h) 60% 15%)); }
-.tt-face.rev > * { transform: rotate(180deg); }
-.tt-num { font-size: 13px; color: #F3D98A; font-weight: 600; }
+.tt-art { flex: 1; min-height: 0; display: grid; place-items: center; }
+.tt-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tt-face.rev .tt-art { transform: rotate(180deg); }
 .tt-sym { font-size: 46px; line-height: 1; }
-.tt-name { font-size: 14px; font-weight: 700; line-height: 1.25; }
-.tt-name small { display: block; font-weight: 400; font-size: 10px; color: rgba(255, 255, 255, .7); }
+.tt-name { padding: 4px 4px 6px; font-size: 11px; font-weight: 700; line-height: 1.2; background: rgba(27, 11, 46, .9); }
+.tt-name small { display: block; font-size: 9px; color: #F3D98A; font-weight: 600; }
+.tt-name em { display: block; font-style: normal; font-weight: 400; font-size: 10px; color: rgba(255, 255, 255, .75); }
 
 /* intro stack + shuffle */
 .tt-stack { position: relative; width: 120px; height: 190px; margin: 6px auto 20px; }
@@ -54,8 +54,8 @@
 /* reveal */
 .tt-spread { display: flex; justify-content: center; gap: 14px; margin: 6px 0 22px; }
 .tt-spot { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.tt-card { width: 104px; height: 164px; perspective: 900px; }
-@media (min-width: 640px) { .tt-card { width: 150px; height: 236px; } .tt-sym { font-size: 64px; } .tt-name { font-size: 17px; } }
+.tt-card { width: 104px; height: 172px; perspective: 900px; }
+@media (min-width: 640px) { .tt-card { width: 170px; height: 280px; } .tt-sym { font-size: 64px; } .tt-name { font-size: 14px; } .tt-name em { font-size: 12px; } }
 .tt-in { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.3, .7, .3, 1); }
 .tt-card.flip .tt-in { transform: rotateY(180deg); }
 .tt-pos { font-size: 13px; color: #F3D98A; }

@@ -2,6 +2,8 @@
 // Callers: an admin (JWT) or the clip builder with x-media-secret (vault secret media_secret, checked in the database).
 //   {action:"models"}                         → TTS-capable model names
 //   {action:"tts", text, voice?, style? (system instruction), model?} → {pcm: base64 s16le mono, rate}
+//   {action:"image", prompt, images?: [{mime, data: base64}] (reference pictures), aspect? ("2:3"), model?} → {image: base64, mime}
+//     used by scripts/prep/tarot to draw the tarot cards with the mascot (default model gemini-2.5-flash-image)
 // Optional secret PREP_TTS_MODEL (default gemini-2.5-flash-preview-tts).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -54,6 +56,26 @@ serve(async (req) => {
     }
     const mime: string = part.inlineData.mimeType ?? "";
     return json({ pcm: part.inlineData.data, rate: Number(/rate=(\d+)/.exec(mime)?.[1] ?? 24000), mime });
+  }
+  if (body.action === "image") {
+    const prompt = String(body.prompt ?? "").slice(0, 6000);
+    if (!prompt) return json({ error: "empty prompt" }, 400);
+    const refs = (Array.isArray(body.images) ? body.images : []).slice(0, 4)
+      .map((i: { mime?: string; data?: string }) => ({ inlineData: { mimeType: String(i.mime || "image/png"), data: String(i.data || "") } }));
+    const r = await fetch(`${API}/models/${body.model || "gemini-2.5-flash-image"}:generateContent?key=${KEY}`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ parts: [...refs, { text: prompt }] }], generationConfig: { responseModalities: ["IMAGE", "TEXT"], ...(body.aspect ? { imageConfig: { aspectRatio: String(body.aspect) } } : {}) } }),
+      signal: AbortSignal.timeout(140_000),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) return json({ error: d?.error?.message ?? r.statusText }, r.status);
+    const part = d?.candidates?.[0]?.content?.parts?.find((p: { inlineData?: unknown }) => p.inlineData);
+    if (!part) {
+      const c = d?.candidates?.[0];
+      return json({ error: "no image in reply", finish: c?.finishReason ?? d?.promptFeedback?.blockReason ?? null,
+                    text: c?.content?.parts?.map((p: { text?: string }) => p.text).join("").slice(0, 300) ?? null }, 502);
+    }
+    return json({ image: part.inlineData.data, mime: part.inlineData.mimeType ?? "image/png" });
   }
   return json({ error: "bad action" }, 400);
 });

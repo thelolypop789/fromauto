@@ -66,6 +66,9 @@ function buildFix(q: Review["question"], d: Draft): { fix?: Fix; error?: string 
     fix.choices = choices; fix.answer = d.answer;
   }
   if (!fix.stem && !fix.explanation && !fix.choices) return { error: "ยังไม่ได้แก้อะไรเลย" };
+  // A new key with the old explanation leaves the two contradicting each other (Q#5682, Q#3675).
+  if (d.answer !== q.answer && (q.explanation ?? "").trim() && !fix.explanation)
+    return { error: "เปลี่ยนเฉลยแล้ว ต้องแก้คำอธิบายให้ตรงกับเฉลยใหม่ด้วย (ช่องคำอธิบายด้านล่าง)" };
   if (fix.stem === "") return { error: "โจทย์ต้องไม่ว่าง" };
   return { fix };
 }

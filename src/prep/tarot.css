@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Charm:wght@700&display=swap");
 /* /prep/tarot: a night-sky page in the app's maroon and gold, the same in light and dark themes. */
 .tt-page { position: relative; margin: -4px 0 0; padding: 18px 16px 28px; border-radius: var(--pp-radius-lg, 26px); color: #fff; text-align: center;
   background: radial-gradient(120% 80% at 50% 0%, #3A1250 0%, #1B0B2E 45%, #2A0712 100%); box-shadow: 0 20px 40px -28px rgba(27, 11, 46, .9); }
@@ -18,15 +19,22 @@
 .tt-back { display: grid; place-items: center; overflow: hidden; border: 2px solid #D4AF37; font-size: 26px;
   background: repeating-linear-gradient(45deg, #4A0B16 0 8px, #5E1222 8px 16px); box-shadow: inset 0 0 0 4px #2A0712, inset 0 0 0 5px #D4AF37; }
 .tt-back img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
-.tt-face { transform: rotateY(180deg); display: flex; flex-direction: column; overflow: hidden;
+.tt-face { transform: rotateY(180deg); overflow: hidden;
   border: 2px solid #D4AF37; background: linear-gradient(180deg, hsl(var(--h) 70% 32%), hsl(var(--h) 60% 15%)); }
-.tt-art { flex: 1; min-height: 0; display: grid; place-items: center; }
+.tt-face { container-type: inline-size; }
+.tt-rot { position: absolute; inset: 0; }
+.tt-face.rev .tt-rot { transform: rotate(180deg); }
+.tt-art { position: absolute; inset: 0; display: grid; place-items: center; }
 .tt-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.tt-face.rev .tt-art { transform: rotate(180deg); }
+/* name plates: sizes follow the card width (cqw), so they read the same on a small and a large card */
+.tt-plate { position: absolute; left: 50%; transform: translateX(-50%); text-align: center; white-space: nowrap; color: #4A0B16;
+  background: linear-gradient(180deg, #F7E7A8, #D4AF37 55%, #B8860B); border: 1px solid #7A5A00; border-radius: 3cqw;
+  box-shadow: 0 1cqw 3cqw rgba(0, 0, 0, .45), inset 0 0 0 0.6cqw rgba(255, 255, 255, .35); }
+.tt-plate-n { top: 4.5cqw; padding: 0.6cqw 5cqw; font: 700 8cqw/1.15 Cinzel, serif; letter-spacing: .06em; }
+.tt-plate-name { bottom: 4.5cqw; width: 84%; padding: 1.6cqw 2cqw 1.8cqw; display: flex; flex-direction: column; gap: 0; }
+.tt-plate-name b { font: 700 var(--fs, 8.6cqw)/1.1 Cinzel, serif; letter-spacing: .02em; }
+.tt-plate-name em { font: 700 6.6cqw/1.45 Charm, "Prompt", serif; font-style: normal; color: #6E1423; }
 .tt-sym { font-size: 46px; line-height: 1; }
-.tt-name { padding: 4px 4px 6px; font-size: 11px; font-weight: 700; line-height: 1.2; background: rgba(27, 11, 46, .9); }
-.tt-name small { display: block; font-size: 9px; color: #F3D98A; font-weight: 600; }
-.tt-name em { display: block; font-style: normal; font-weight: 400; font-size: 10px; color: rgba(255, 255, 255, .75); }
 
 /* intro stack + shuffle */
 .tt-stack { position: relative; width: 120px; height: 190px; margin: 6px auto 20px; }
@@ -56,7 +64,7 @@
 .tt-spread { display: flex; justify-content: center; gap: 14px; margin: 6px 0 22px; }
 .tt-spot { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .tt-card { width: 104px; height: 172px; perspective: 900px; }
-@media (min-width: 640px) { .tt-card { width: 170px; height: 280px; } .tt-sym { font-size: 64px; } .tt-name { font-size: 14px; } .tt-name em { font-size: 12px; } }
+@media (min-width: 640px) { .tt-card { width: 170px; height: 280px; } .tt-sym { font-size: 64px; } }
 .tt-in { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.3, .7, .3, 1); }
 .tt-card.flip .tt-in { transform: rotateY(180deg); }
 .tt-pos { font-size: 13px; color: #F3D98A; }

@@ -25,12 +25,17 @@ function shuffled(): Pick[] {
   return d;
 }
 
+// Card face: the picture fills the card; the Roman numeral sits on a gold plate at the top and the name on one at the
+// bottom, like a printed tarot card. A reversed card turns the whole face, picture and names, upside down.
 function Face({ card, idx, rev }: { card: TarotCard; idx: number; rev: boolean }) {
   const src = pic(idx);
   return (
     <div className={`tt-face ${rev ? "rev" : ""}`} style={{ ["--h" as string]: card.hue }}>
-      <div className="tt-art">{src ? <img src={src} alt="" draggable={false} /> : <span className="tt-sym" aria-hidden>{card.sym}</span>}</div>
-      <span className="tt-name"><small>{card.n}</small>{card.en}<em>{card.th}</em></span>
+      <div className="tt-rot">
+        <div className="tt-art">{src ? <img src={src} alt="" draggable={false} /> : <span className="tt-sym" aria-hidden>{card.sym}</span>}</div>
+        <span className="tt-plate tt-plate-n">{card.n}</span>
+        <span className="tt-plate tt-plate-name" style={{ ["--fs" as string]: `${Math.min(8.6, 118 / card.en.length)}cqw` }}><b>{card.en}</b><em>{card.th}</em></span>
+      </div>
     </div>
   );
 }
@@ -47,10 +52,28 @@ function wrap(g: CanvasRenderingContext2D, text: string, width: number): string[
   if (line.trim()) lines.push(line.trimEnd());
   return lines;
 }
+// The gold name plates of the card face (same layout as .tt-plate), drawn around the card centre.
+function plate(g: CanvasRenderingContext2D, card: TarotCard, cw: number, ch: number) {
+  const gold = (x: number, y: number, w: number, h: number) => {
+    const gr = g.createLinearGradient(0, y, 0, y + h); gr.addColorStop(0, "#F7E7A8"); gr.addColorStop(.55, "#D4AF37"); gr.addColorStop(1, "#B8860B");
+    g.fillStyle = gr; g.beginPath(); g.roundRect(x, y, w, h, cw * .03); g.fill();
+    g.strokeStyle = "#7A5A00"; g.lineWidth = 1.5; g.stroke();
+  };
+  g.textAlign = "center"; g.textBaseline = "middle";
+  g.font = `700 ${cw * .08}px Cinzel, serif`;
+  const nw = g.measureText(card.n).width + cw * .1;
+  gold(-nw / 2, -ch / 2 + cw * .045, nw, cw * .1);
+  g.fillStyle = "#4A0B16"; g.fillText(card.n, 0, -ch / 2 + cw * .095);
+  const pw = cw * .84, ph = cw * .2, py = ch / 2 - cw * .045 - ph;
+  gold(-pw / 2, py, pw, ph);
+  g.fillStyle = "#4A0B16"; g.font = `700 ${cw * Math.min(.086, 1.18 / card.en.length)}px Cinzel, serif`; g.fillText(card.en, 0, py + ph * .36);
+  g.fillStyle = "#6E1423"; g.font = `700 ${cw * .066}px Charm, Prompt, serif`; g.fillText(card.th, 0, py + ph * .74);
+  g.textBaseline = "alphabetic";
+}
 const loadImg = (src: string) => new Promise<HTMLImageElement | null>(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
 
 async function shareImage(picks: Pick[], verdict: { t: string; d: string }) {
-  await document.fonts?.ready;
+  await Promise.all(["700 40px Cinzel", "700 30px Charm", "700 30px Prompt", "400 30px Prompt"].map(f => document.fonts?.load(f).catch(() => null)));
   const W = 1080, H = 1920, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
   const g = cv.getContext("2d")!;
   const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, "#1B0B2E"); bg.addColorStop(1, "#4A0B16");
@@ -59,35 +82,47 @@ async function shareImage(picks: Pick[], verdict: { t: string; d: string }) {
   g.fillStyle = "#F3D98A"; g.font = "700 58px Prompt, sans-serif"; g.fillText("🔮 ไพ่ดวงสอบครูผู้ช่วย", W / 2, 110);
   g.fillStyle = "rgba(255,255,255,.8)"; g.font = "400 32px Prompt, sans-serif"; g.fillText(`เหลืออีก ${daysLeft()} วันถึงวันสอบ ภาค ก`, W / 2, 165);
   const imgs = await Promise.all(picks.map(p => (pic(p.c) ? loadImg(pic(p.c)!) : Promise.resolve(null))));
-  const cw = 300, ch = 450, top = 210;
+  const cw = 320, ch = 480, top = 210, gap = 20, left = (W - 3 * cw - 2 * gap) / 2;
   picks.forEach((p, i) => {
-    const card = CARDS[p.c], x = 45 + i * (cw + 30);
+    const card = CARDS[p.c], x = left + i * (cw + gap);
     g.save(); g.beginPath(); g.roundRect(x, top, cw, ch, 22); g.clip();
     g.fillStyle = `hsl(${card.hue} 60% 22%)`; g.fillRect(x, top, cw, ch);
     const im = imgs[i];
     g.translate(x + cw / 2, top + ch / 2); if (p.r) g.rotate(Math.PI);
     if (im) g.drawImage(im, -cw / 2, -ch / 2, cw, ch);
     else { g.fillStyle = "#fff"; g.font = "140px sans-serif"; g.fillText(card.sym, 0, 50); }
+    plate(g, card, cw, ch);
     g.restore();
     g.strokeStyle = "#D4AF37"; g.lineWidth = 5; g.beginPath(); g.roundRect(x, top, cw, ch, 22); g.stroke();
-    g.fillStyle = "#F3D98A"; g.font = "600 28px Prompt, sans-serif"; g.fillText(POSITIONS[i].s, x + cw / 2, top + ch + 42);
-    g.fillStyle = "#fff"; g.font = "700 30px Prompt, sans-serif"; g.fillText(card.en, x + cw / 2, top + ch + 82);
-    g.fillStyle = "rgba(255,255,255,.75)"; g.font = "400 24px Prompt, sans-serif"; g.fillText(card.th + (p.r ? " (กลับหัว)" : ""), x + cw / 2, top + ch + 114);
+    g.textAlign = "center";
+    g.fillStyle = "#F3D98A"; g.font = "700 32px Prompt, sans-serif"; g.fillText(POSITIONS[i].s + (p.r ? " · กลับหัว" : ""), x + cw / 2, top + ch + 48);
   });
-  let y = top + ch + 175;
+
+  // Readings and verdict: the biggest text size that still leaves room for the button at the bottom.
+  const bottom = H - 190;
+  let fs = 36, blocks: string[][] = [], vlines: string[] = [];
+  const height = (n: number) => blocks.reduce((h, b) => h + n * 1.25 + b.length * n * 1.45 + n * 1.2, 0) + 70 + n * 1.5 + vlines.length * n * 1.4 + 60;
+  for (; fs >= 26; fs -= 2) {
+    g.font = `400 ${fs}px Prompt, sans-serif`;
+    blocks = picks.map((p, i) => wrap(g, reading(p, i), W - 140));
+    vlines = wrap(g, fill(verdict.d), W - 180);
+    if (top + ch + 110 + height(fs) <= bottom) break;
+  }
+  let y = top + ch + 120;
   g.textAlign = "left";
   picks.forEach((p, i) => {
-    g.fillStyle = "#F3D98A"; g.font = "700 30px Prompt, sans-serif"; g.fillText(`${POSITIONS[i].s} · ${CARDS[p.c].en}`, 70, y);
-    g.fillStyle = "#fff"; g.font = "400 29px Prompt, sans-serif";
-    for (const l of wrap(g, reading(p, i), W - 140).slice(0, 3)) { y += 42; g.fillText(l, 70, y); }
-    y += 58;
+    g.fillStyle = "#F3D98A"; g.font = `700 ${fs}px Prompt, sans-serif`; g.fillText(`${POSITIONS[i].s} · ${CARDS[p.c].en} · ${CARDS[p.c].th}`, 70, y);
+    g.fillStyle = "#fff"; g.font = `400 ${fs}px Prompt, sans-serif`;
+    for (const l of blocks[i]) { y += fs * 1.45; g.fillText(l, 70, y); }
+    y += fs * 1.2 + fs * 1.25;
   });
   g.textAlign = "center";
-  g.fillStyle = "rgba(212,175,55,.18)"; g.beginPath(); g.roundRect(50, y - 20, W - 100, 230, 28); g.fill();
-  g.fillStyle = "#F3D98A"; g.font = "700 44px Prompt, sans-serif"; g.fillText(verdict.t, W / 2, y + 40);
-  g.fillStyle = "#fff"; g.font = "400 28px Prompt, sans-serif";
-  let vy = y + 88;
-  for (const l of wrap(g, fill(verdict.d), W - 160).slice(0, 3)) { g.fillText(l, W / 2, vy); vy += 40; }
+  const boxH = 70 + fs * 1.5 + vlines.length * fs * 1.4;
+  g.fillStyle = "rgba(212,175,55,.18)"; g.beginPath(); g.roundRect(50, y - fs * 1.25, W - 100, boxH, 28); g.fill();
+  g.fillStyle = "#F3D98A"; g.font = `700 ${fs + 12}px Prompt, sans-serif`; g.fillText(verdict.t, W / 2, y + 30);
+  g.fillStyle = "#fff"; g.font = `400 ${fs}px Prompt, sans-serif`;
+  let vy = y + 30 + fs * 1.6;
+  for (const l of vlines) { g.fillText(l, W / 2, vy); vy += fs * 1.4; }
   g.fillStyle = "#D4AF37"; g.beginPath(); g.roundRect(170, H - 150, 740, 96, 48); g.fill();
   g.fillStyle = "#4A0B16"; g.font = "700 36px Prompt, sans-serif"; g.fillText("เปิดไพ่ของคุณที่ " + SITE, W / 2, H - 90);
 

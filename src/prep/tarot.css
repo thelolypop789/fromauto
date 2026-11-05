@@ -71,7 +71,7 @@
 
 /* reading */
 .tt-reading { text-align: left; animation: tt-deal .5s ease-out both; }
-.tt-read, .tt-sum, .tt-cta { border-radius: 18px; padding: 16px 18px; margin-bottom: 12px; background: rgba(255, 255, 255, .07);
+.tt-read, .tt-story, .tt-keys, .tt-sum, .tt-cta { border-radius: 18px; padding: 16px 18px; margin-bottom: 12px; background: rgba(255, 255, 255, .07);
   border: 1px solid rgba(243, 217, 138, .25); }
 .tt-read h3 { margin: 0 0 4px; font-size: 18px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
 .tt-read h3 span { width: 100%; font-size: 13px; font-weight: 500; color: #F3D98A; }
@@ -91,3 +91,13 @@
 .tt-cta p { margin: 0 0 6px; line-height: 1.7; color: rgba(255, 255, 255, .88); }
 .tt-reading > .tt-note { text-align: center; }
 @media (prefers-reduced-motion: reduce) { .tt-in, .tt-pick, .tt-reading { transition: none; animation: none; } .tt-stack.shuffling .tt-back { animation: none; } }
+
+/* merged reading */
+.tt-story h2, .tt-keys h3 { margin: 0 0 8px; color: #F3D98A; font-size: 19px; }
+.tt-story p { margin: 0 0 12px; line-height: 1.85; color: rgba(255, 255, 255, .94); }
+.tt-story p:last-child { margin-bottom: 0; }
+.tt-pair { padding: 10px 12px; border-radius: 12px; background: rgba(212, 175, 55, .14); border: 1px solid rgba(243, 217, 138, .35); }
+.tt-sum h3 { margin: 0 0 4px; font-size: 16px; color: #fff; }
+.tt-keys p { margin: 0 0 8px; font-size: 14px; line-height: 1.6; color: rgba(255, 255, 255, .85); }
+.tt-keys b { color: #F3D98A; }
+.tt-keys em { font-style: normal; font-size: 11px; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: rgba(198, 40, 40, .35); }

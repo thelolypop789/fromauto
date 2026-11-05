@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { rpc, thaiError } from "./api";
-import { CARDS, EXAM_DAYS, POSITIONS, cardScore, overall, type TarotCard } from "./tarotCards";
+import { CARDS, EXAM_DAYS, POSITIONS, type TarotCard } from "./tarotCards";
+import { readCards, type Pick, type Reading } from "./tarotRead";
 import "./tarot.css";
 
 // /prep/tarot (signed in): pick 3 of the 22 Major Arcana face down, flip them, read past / present / future.
 // One reading a day per account: the draw is random in the browser, prep_tarot_draw stores it, and a second draw the
 // same day (another tab or device) gets the stored one back. Card pictures: src/prep/tarot/NN.webp (scripts/prep/tarot).
-type Pick = { c: number; r: boolean };
 
 const EXAM = "2026-11-14";
 const SITE = "sobprep.com/prep";
@@ -17,7 +17,6 @@ const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" 
 const daysLeft = () => Math.max(0, Math.round((Date.parse(EXAM) - Date.parse(today())) / 86400000));
 const fill = (s: string) => s.replace(/\{d\}/g, String(daysLeft()));
 const rand = (n: number) => { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n; };
-const reading = (p: Pick, i: number) => fill((p.r ? CARDS[p.c].rev : CARDS[p.c].up)[i]);
 
 function shuffled(): Pick[] {
   const d = CARDS.map((_, c) => ({ c, r: rand(100) < 30 }));
@@ -42,7 +41,7 @@ function Face({ card, idx, rev }: { card: TarotCard; idx: number; rev: boolean }
 const BACK = PICS["./tarot/back.webp"];
 const Back = () => <div className="tt-back">{BACK ? <img src={BACK} alt="" draggable={false} /> : <span aria-hidden>🔮</span>}</div>;
 
-// ---------- share picture (1080×1920): the three cards, each reading, the overall verdict ----------
+// ---------- share picture (1080×1920): the three cards, each card's meaning, the merged verdict ----------
 function wrap(g: CanvasRenderingContext2D, text: string, width: number): string[] {
   const seg = typeof Intl.Segmenter === "function" ? [...new Intl.Segmenter("th", { granularity: "word" }).segment(text)].map(s => s.segment) : text.split(/(?<=\s)/);
   const lines: string[] = []; let line = "";
@@ -72,7 +71,7 @@ function plate(g: CanvasRenderingContext2D, card: TarotCard, cw: number, ch: num
 }
 const loadImg = (src: string) => new Promise<HTMLImageElement | null>(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
 
-async function shareImage(picks: Pick[], verdict: { t: string; d: string }) {
+async function shareImage(picks: Pick[], rd: Reading) {
   await Promise.all(["700 40px Cinzel", "700 30px Charm", "700 30px Prompt", "400 30px Prompt"].map(f => document.fonts?.load(f).catch(() => null)));
   const W = 1080, H = 1920, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
   const g = cv.getContext("2d")!;
@@ -98,14 +97,16 @@ async function shareImage(picks: Pick[], verdict: { t: string; d: string }) {
     g.fillStyle = "#F3D98A"; g.font = "700 32px Prompt, sans-serif"; g.fillText(POSITIONS[i].s + (p.r ? " · กลับหัว" : ""), x + cw / 2, top + ch + 48);
   });
 
-  // Readings and verdict: the biggest text size that still leaves room for the button at the bottom.
+  // Each card's meaning, then the merged reading (verdict, the journey, its advice): the biggest text size that still
+  // leaves room for the button at the bottom.
   const bottom = H - 190;
-  let fs = 36, blocks: string[][] = [], vlines: string[] = [];
-  const height = (n: number) => blocks.reduce((h, b) => h + n * 1.25 + b.length * n * 1.45 + n * 1.2, 0) + 70 + n * 1.5 + vlines.length * n * 1.4 + 60;
+  let fs = 36, keys: string[][] = [], tlines: string[] = [], plines: string[] = [];
+  const height = (n: number) => keys.reduce((h, k) => h + n * 1.3 + k.length * n * 1.4 + n * 0.9, 0) + n * 1.6 + n * 1.5 + tlines.length * n * 1.4 + (plines.length ? plines.length * n * 1.35 + n : 0) + 90;
   for (; fs >= 26; fs -= 2) {
     g.font = `400 ${fs}px Prompt, sans-serif`;
-    blocks = picks.map((p, i) => wrap(g, reading(p, i), W - 140));
-    vlines = wrap(g, fill(verdict.d), W - 180);
+    keys = picks.map(p => wrap(g, p.r ? CARDS[p.c].rkey : CARDS[p.c].key, W - 140));
+    tlines = wrap(g, fill(rd.trend.d), W - 180);
+    plines = rd.pair ? wrap(g, "✨ " + fill(rd.pair), W - 180) : [];
     if (top + ch + 110 + height(fs) <= bottom) break;
   }
   let y = top + ch + 120;
@@ -113,16 +114,21 @@ async function shareImage(picks: Pick[], verdict: { t: string; d: string }) {
   picks.forEach((p, i) => {
     g.fillStyle = "#F3D98A"; g.font = `700 ${fs}px Prompt, sans-serif`; g.fillText(`${POSITIONS[i].s} · ${CARDS[p.c].en} · ${CARDS[p.c].th}`, 70, y);
     g.fillStyle = "#fff"; g.font = `400 ${fs}px Prompt, sans-serif`;
-    for (const l of blocks[i]) { y += fs * 1.45; g.fillText(l, 70, y); }
-    y += fs * 1.2 + fs * 1.25;
+    for (const l of keys[i]) { y += fs * 1.4; g.fillText(l, 70, y); }
+    y += fs * 0.9 + fs * 1.3;
   });
   g.textAlign = "center";
-  const boxH = 70 + fs * 1.5 + vlines.length * fs * 1.4;
-  g.fillStyle = "rgba(212,175,55,.18)"; g.beginPath(); g.roundRect(50, y - fs * 1.25, W - 100, boxH, 28); g.fill();
-  g.fillStyle = "#F3D98A"; g.font = `700 ${fs + 12}px Prompt, sans-serif`; g.fillText(verdict.t, W / 2, y + 30);
-  g.fillStyle = "#fff"; g.font = `400 ${fs}px Prompt, sans-serif`;
-  let vy = y + 30 + fs * 1.6;
-  for (const l of vlines) { g.fillText(l, W / 2, vy); vy += fs * 1.4; }
+  const boxH = 90 + fs * 1.6 + fs * 1.5 + tlines.length * fs * 1.4 + (plines.length ? plines.length * fs * 1.35 + fs : 0);
+  g.fillStyle = "rgba(212,175,55,.18)"; g.beginPath(); g.roundRect(50, y - fs * 1.3, W - 100, boxH, 28); g.fill();
+  g.fillStyle = "#F3D98A"; g.font = `700 ${fs + 12}px Prompt, sans-serif`; g.fillText(rd.verdict.t, W / 2, y + 30);
+  g.fillStyle = "#fff"; g.font = `700 ${fs}px Prompt, sans-serif`; g.fillText(rd.trend.t, W / 2, y + 30 + fs * 1.6);
+  g.font = `400 ${fs}px Prompt, sans-serif`; g.fillStyle = "rgba(255,255,255,.92)";
+  let vy = y + 30 + fs * 3.1;
+  for (const l of tlines) { g.fillText(l, W / 2, vy); vy += fs * 1.4; }
+  if (plines.length) {
+    vy += fs * 0.6; g.fillStyle = "#F3D98A";
+    for (const l of plines) { g.fillText(l, W / 2, vy); vy += fs * 1.35; }
+  }
   g.fillStyle = "#D4AF37"; g.beginPath(); g.roundRect(170, H - 150, 740, 96, 48); g.fill();
   g.fillStyle = "#4A0B16"; g.font = "700 36px Prompt, sans-serif"; g.fillText("เปิดไพ่ของคุณที่ " + SITE, W / 2, H - 90);
 
@@ -166,9 +172,9 @@ export default function Tarot({ onBack, onPractice }: { onBack: () => void; onPr
     window.setTimeout(() => { setPhase("read"); [1, 2, 3].forEach(k => window.setTimeout(() => setShown(k), k * 750)); }, 450);
   };
 
-  const verdict = overall(cardScore(picks));
+  const rd = picks.length === 3 ? readCards(picks) : null;
   const lucky = picks.length === 3 ? String((picks[0].c * 7 + picks[1].c * 3 + picks[2].c * 11 + 13) % 90 + 10) : "";
-  const done = phase === "read" && shown >= 3;
+  const done = phase === "read" && shown >= 3 && rd;
 
   return (
     <div className="tt-page">
@@ -223,31 +229,34 @@ export default function Tarot({ onBack, onPractice }: { onBack: () => void; onPr
 
           {done && (
             <div className="tt-reading">
-              {picks.map((p, i) => {
-                const c = CARDS[p.c];
-                return (
-                  <article key={i} className="tt-read">
-                    <h3><span>{POSITIONS[i].t}</span>{c.en} · {c.th}{p.r && <em>กลับหัว</em>}</h3>
-                    <p className="tt-key">{p.r ? c.rkey : c.key}</p>
-                    <p>{reading(p, i)}</p>
-                  </article>
-                );
-              })}
+              <article className="tt-story">
+                <h2>คำทำนาย</h2>
+                {rd.paras.map((t, i) => <p key={i}>{fill(t)}</p>)}
+                {rd.pair && <p className="tt-pair">✨ {fill(rd.pair)}</p>}
+              </article>
 
               <article className="tt-sum">
-                <h2>{verdict.t}</h2>
-                <p>{fill(verdict.d)}</p>
+                <h2>{rd.verdict.t}</h2>
+                <h3>{rd.trend.t}</h3>
+                <p>{fill(rd.trend.d)}</p>
                 <div className="tt-lucky">
                   <div><small>เลขนำโชค</small><b>{lucky}</b></div>
                   {EXAM_DAYS.map(d => <div key={d.day}><small>สีมงคล {d.day}</small><b><i style={{ background: d.hex }} />{d.color}</b></div>)}
                 </div>
               </article>
 
+              <article className="tt-keys">
+                <h3>ความหมายของไพ่แต่ละใบ</h3>
+                {picks.map((p, i) => (
+                  <p key={i}><b>{POSITIONS[i].s} · {CARDS[p.c].en}</b> {CARDS[p.c].th}{p.r && <em>กลับหัว</em>}<br />{p.r ? CARDS[p.c].rkey : CARDS[p.c].key}</p>
+                ))}
+              </article>
+
               <article className="tt-cta">
                 <h3>เสริมดวงด้วยการซ้อม 💪</h3>
                 <p>ไพ่บอกทาง แต่คะแนนมาจากการฝึก ทำข้อสอบสักชุด แล้วดูว่าหมวดไหนควรทวนก่อนวันสอบ</p>
                 <button className="tt-btn" onClick={onPractice}>ทำข้อสอบเลย</button>
-                <button className="tt-btn ghost" disabled={busy} onClick={async () => { setBusy(true); try { await shareImage(picks, verdict); } finally { setBusy(false); } }}>
+                <button className="tt-btn ghost" disabled={busy} onClick={async () => { setBusy(true); try { await shareImage(picks, rd); } finally { setBusy(false); } }}>
                   {busy ? "กำลังสร้างรูป…" : "แชร์ไพ่และคำทำนาย"}
                 </button>
               </article>

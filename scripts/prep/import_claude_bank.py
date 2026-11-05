@@ -20,7 +20,9 @@ import sys
 
 # ไม่ระบุไฟล์ = ชุดแรก (สถานการณ์ + ข่าว) · ระบุชื่อไฟล์ใน content/prep เพื่อนำเข้าเฉพาะรอบใหม่ เช่น bank-pisa-2026.json
 FILES = {"bank-scenario-2026.json": "claude-scenario-2026-11", "bank-news-2026.json": "claude-news-2026-11",
-         "bank-pisa-2026.json": "claude-scenario-2026-11", "bank-pisa2-2026.json": "claude-scenario-2026-11"}
+         "bank-pisa-2026.json": "claude-scenario-2026-11", "bank-pisa2-2026.json": "claude-scenario-2026-11",
+         "bank-round3-2026.json": "claude-scenario-2026-11", "bank-news2-2026.json": "claude-news-2026-11",
+         "bank-round4-2026.json": "claude-scenario-2026-11", "bank-round5-2026.json": "claude-scenario-2026-11"}
 picked = sys.argv[1:] or ["bank-scenario-2026.json", "bank-news-2026.json"]
 rows = []
 for name, tag in ((n, FILES[n]) for n in picked):

@@ -198,7 +198,9 @@ export default function CreateSet({ me, major = null, preset, onCancel, onCreate
       <div className="pp-sticky">
         <div className="pp-sticky-sum">
           {picked.size === 0 ? <span className="pp-muted">เลือกอย่างน้อย 1 หมวด</span>
-            : <><b>{Math.min(finalSize, available)} ข้อ</b> <span className="pp-muted">· {picked.size} หมวด{pickedIn("A") && pickedIn("B") ? " (ภาค ก+ข)" : ""}</span></>}
+            : <><b>{Math.min(finalSize, available)} ข้อ</b> <span className="pp-muted">· {picked.size} หมวด{pickedIn("A") && pickedIn("B") ? " (ภาค ก+ข)" : ""}</span>
+                {/* ชุดนอกแพ็กใช้สิทธิ์ชุดฟรี: บอกตรงปุ่มที่กด ไม่ใช่แค่ด้านบนของหน้า */}
+                {!covered && quotaLeft > 0 && <span className="pp-sticky-quota">ใช้ 1 ชุดฟรี (เหลือ {quotaLeft - 1} หลังสร้าง)</span>}</>}
         </div>
         <button className="pp-btn pp-btn-ghost" onClick={onCancel}>ยกเลิก</button>
         <button className="pp-btn pp-btn-primary" disabled={busy || picked.size === 0 || available < 5 || blocked} onClick={create}>

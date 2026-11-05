@@ -75,6 +75,8 @@ const ERRORS: Record<string, string> = {
   invalid_duration: "ระยะเวลาไม่ถูกต้อง",
   duplicate_question: "มีข้อสอบที่โจทย์และตัวเลือกเหมือนกันอยู่แล้ว",
   explanation_required: "เปลี่ยนเฉลยแล้ว ต้องแก้คำอธิบายให้ตรงกับเฉลยใหม่ด้วย",
+  bad_picks: "ข้อมูลไพ่ไม่ถูกต้อง ลองเปิดหน้าใหม่แล้วสับไพ่อีกครั้ง",
+  not_signed_in: "กรุณาเข้าสู่ระบบก่อน",
   invalid_choices: "ต้องมี 4 ตัวเลือก",
   invalid_stem: "กรุณากรอกโจทย์",
   invalid_topic: "หมวดไม่ถูกต้อง",

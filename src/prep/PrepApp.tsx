@@ -36,6 +36,7 @@ import Skeleton from "./Skeleton";
 // Loaded on first open: the admin screens are for staff only, and the summaries bring their own font and styles.
 const Admin = lazy(() => import("./Admin"));
 const Summary = lazy(() => import("./Summary"));
+const Tarot = lazy(() => import("./Tarot"));
 
 setupPwa();
 applyReadScale();
@@ -285,13 +286,14 @@ function PrepShell() {
   );
 }
 
-// The guide and the privacy page are public: they must open without signing in, so they are chosen before any auth work starts.
+// The guide, the privacy page and the tarot page are public: they must open without signing in, so they are chosen before any auth work starts.
 const MAX_MAJOR_SKIPS = 2;
 const readSkips = () => { try { return Number(localStorage.getItem("pp-major-skips")) || 0; } catch { return 0; } };
 const writeSkips = (n: number) => { try { localStorage.setItem("pp-major-skips", String(n)); } catch { /* storage blocked: the session flag still applies */ } };
 
 export default function PrepApp() {
   const path = window.location.pathname;
-  const page = /^\/prep\/guide\/?$/.test(path) ? <Guide /> : /^\/prep\/privacy\/?$/.test(path) ? <Privacy /> : <PrepShell />;
+  const page = /^\/prep\/guide\/?$/.test(path) ? <Guide /> : /^\/prep\/privacy\/?$/.test(path) ? <Privacy />
+    : /^\/prep\/tarot\/?$/.test(path) ? <Suspense fallback={<Waiting />}><Tarot /></Suspense> : <PrepShell />;
   return <><MovedBanner />{page}<DialogHost /></>;
 }

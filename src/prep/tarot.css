@@ -1,0 +1,84 @@
+/* /prep/tarot: a night-sky page in the app's maroon and gold, the same in light and dark themes. */
+.tt-page { min-height: 100vh; color: #fff; background: radial-gradient(120% 80% at 50% 0%, #3A1250 0%, #1B0B2E 45%, #2A0712 100%) fixed; }
+.tt-top { display: flex; align-items: center; justify-content: space-between; max-width: 760px; margin: 0 auto; padding: 14px 16px; }
+.tt-brand { color: #F3D98A; text-decoration: none; font-size: 15px; }
+.tt-brand b { color: #fff; }
+.tt-days { font-size: 13px; padding: 4px 12px; border-radius: 999px; background: rgba(212, 175, 55, .18); color: #F3D98A; }
+.tt-main { max-width: 760px; margin: 0 auto; padding: 4px 16px 48px; text-align: center; }
+.tt-main h1 { font-size: 26px; margin: 8px 0 4px; color: #F3D98A; }
+.tt-sub { margin: 0 0 22px; color: rgba(255, 255, 255, .75); }
+.tt-intro p { line-height: 1.8; color: rgba(255, 255, 255, .9); }
+.tt-note { display: block; margin-top: 12px; font-size: 12px; color: rgba(255, 255, 255, .6); }
+.tt-hint { margin: 0 0 12px; }
+.tt-btn { display: inline-block; margin: 8px 6px 0; padding: 12px 28px; border-radius: 999px; border: 0; font: inherit; font-weight: 700; font-size: 16px;
+  cursor: pointer; text-decoration: none; color: #4A0B16; background: linear-gradient(90deg, #B8860B, #F3D98A 50%, #C9A227); box-shadow: 0 10px 30px -12px #D4AF37; }
+.tt-btn.ghost { color: #F3D98A; background: transparent; border: 1.5px solid #D4AF37; box-shadow: none; }
+.tt-btn:disabled { opacity: .6; }
+
+/* card back and face */
+.tt-back, .tt-face { position: absolute; inset: 0; border-radius: 12px; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.tt-back { display: grid; place-items: center; border: 2px solid #D4AF37; font-size: 26px;
+  background: repeating-linear-gradient(45deg, #4A0B16 0 8px, #5E1222 8px 16px); box-shadow: inset 0 0 0 4px #2A0712, inset 0 0 0 5px #D4AF37; }
+.tt-face { transform: rotateY(180deg); display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 10px 6px;
+  border: 2px solid #D4AF37; background: linear-gradient(180deg, hsl(var(--h) 70% 32%), hsl(var(--h) 60% 15%)); }
+.tt-face.rev > * { transform: rotate(180deg); }
+.tt-num { font-size: 13px; color: #F3D98A; font-weight: 600; }
+.tt-sym { font-size: 46px; line-height: 1; }
+.tt-name { font-size: 14px; font-weight: 700; line-height: 1.25; }
+.tt-name small { display: block; font-weight: 400; font-size: 10px; color: rgba(255, 255, 255, .7); }
+
+/* intro stack + shuffle */
+.tt-stack { position: relative; width: 120px; height: 190px; margin: 6px auto 20px; }
+.tt-stack .tt-back:nth-child(1) { transform: rotate(-8deg) translateX(-14px); }
+.tt-stack .tt-back:nth-child(3) { transform: rotate(8deg) translateX(14px); }
+.tt-stack.shuffling .tt-back { animation: tt-shuffle .5s ease-in-out infinite alternate; }
+.tt-stack.shuffling .tt-back:nth-child(2) { animation-delay: .12s; }
+.tt-stack.shuffling .tt-back:nth-child(3) { animation-delay: .24s; }
+.tt-stack.shuffling .tt-back:nth-child(4) { animation-delay: .36s; }
+@keyframes tt-shuffle { from { transform: translateX(-46px) rotate(-12deg); } to { transform: translateX(46px) rotate(12deg); } }
+
+/* pick */
+.tt-slots { display: flex; justify-content: center; gap: 12px; margin-bottom: 18px; }
+.tt-slot { position: relative; width: 72px; height: 112px; border-radius: 12px; border: 1.5px dashed rgba(243, 217, 138, .55);
+  display: grid; place-items: center; font-size: 12px; color: rgba(243, 217, 138, .8); }
+.tt-slot.on { border-style: solid; }
+.tt-deck { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; max-width: 520px; margin: 0 auto; }
+@media (min-width: 640px) { .tt-deck { grid-template-columns: repeat(11, minmax(0, 1fr)); max-width: 720px; } }
+.tt-pick { position: relative; aspect-ratio: 2 / 3.1; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 12px;
+  animation: tt-deal .4s ease-out both; transition: transform .15s; }
+.tt-pick:hover:not(.taken) { transform: translateY(-6px); }
+.tt-pick.taken { opacity: .15; transform: scale(.9); cursor: default; }
+.tt-pick .tt-back { font-size: 16px; }
+@keyframes tt-deal { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+/* reveal */
+.tt-spread { display: flex; justify-content: center; gap: 14px; margin: 6px 0 22px; }
+.tt-spot { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.tt-card { width: 104px; height: 164px; perspective: 900px; }
+@media (min-width: 640px) { .tt-card { width: 150px; height: 236px; } .tt-sym { font-size: 64px; } .tt-name { font-size: 17px; } }
+.tt-in { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.3, .7, .3, 1); }
+.tt-card.flip .tt-in { transform: rotateY(180deg); }
+.tt-pos { font-size: 13px; color: #F3D98A; }
+
+/* reading */
+.tt-reading { text-align: left; animation: tt-deal .5s ease-out both; }
+.tt-read, .tt-sum, .tt-cta { border-radius: 18px; padding: 16px 18px; margin-bottom: 12px; background: rgba(255, 255, 255, .07);
+  border: 1px solid rgba(243, 217, 138, .25); }
+.tt-read h3 { margin: 0 0 4px; font-size: 18px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+.tt-read h3 span { width: 100%; font-size: 13px; font-weight: 500; color: #F3D98A; }
+.tt-read h3 em { font-style: normal; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: rgba(198, 40, 40, .35); }
+.tt-key { margin: 0 0 6px; font-size: 13px; color: rgba(243, 217, 138, .9); }
+.tt-read p:last-child { margin: 0; line-height: 1.75; color: rgba(255, 255, 255, .92); }
+.tt-sum { text-align: center; background: linear-gradient(135deg, rgba(184, 134, 11, .28), rgba(142, 27, 46, .4)); }
+.tt-sum h2 { margin: 2px 0 6px; font-size: 22px; color: #F3D98A; }
+.tt-sum p { margin: 0 0 12px; line-height: 1.75; }
+.tt-lucky { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tt-lucky div { padding: 10px 6px; border-radius: 12px; background: rgba(0, 0, 0, .22); }
+.tt-lucky small { display: block; font-size: 11px; color: rgba(255, 255, 255, .7); line-height: 1.35; }
+.tt-lucky b { font-size: 20px; color: #fff; display: inline-flex; align-items: center; gap: 6px; }
+.tt-lucky i { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid #fff; }
+.tt-cta { text-align: center; }
+.tt-cta h3 { margin: 0 0 4px; color: #F3D98A; }
+.tt-cta p { margin: 0 0 6px; line-height: 1.7; color: rgba(255, 255, 255, .88); }
+.tt-reading > .tt-note { text-align: center; }
+@media (prefers-reduced-motion: reduce) { .tt-in, .tt-pick, .tt-reading { transition: none; animation: none; } .tt-stack.shuffling .tt-back { animation: none; } }

@@ -196,6 +196,10 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
         </button>
       </div>
 
+      <a className="pp-tarot-link" href="/prep/tarot">
+        <span aria-hidden>🔮</span><span><b>เปิดไพ่ดวงสอบ</b> ไพ่ยิปซี 3 ใบ อดีต ปัจจุบัน วันสอบ</span><span aria-hidden>›</span>
+      </a>
+
       {error && <div className="pp-error">{error}</div>}
       {sets === null && !error && <Skeleton kind="grid" n={2} />}
 

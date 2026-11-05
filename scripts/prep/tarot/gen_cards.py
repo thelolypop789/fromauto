@@ -8,7 +8,8 @@
 Run (ต้องมี .cache/media_secret จาก scripts/prep/video/setup.sh):
   python3 scripts/prep/tarot/gen_cards.py            # วาดใบที่ยังไม่มี
   python3 scripts/prep/tarot/gen_cards.py 13 16      # วาดใหม่เฉพาะใบที่ระบุ
-→ src/prep/tarot/<เลข 2 หลัก>.webp (640×960)
+  python3 scripts/prep/tarot/gen_cards.py back       # วาดหลังไพ่ใหม่
+→ src/prep/tarot/<เลข 2 หลัก>.webp และ back.webp (640×960)
 """
 import base64
 import io
@@ -62,6 +63,15 @@ SCENES = [
 ]
 
 
+BACK_PROMPT = (
+    "Design the BACK of a tarot card, vertical 2:3. Deep maroon and night-purple background with an ornate gold frame. "
+    "In the centre, a small round gold medallion containing a simple golden flame emblem shaped like the attached cute flame mascot's silhouette (no face details needed). "
+    "Around it a symmetric gold mandala with stars, crescent moons and moon phases. The whole design MUST be rotationally symmetric "
+    "(looks identical when turned upside down), like a real tarot card back. Elegant, mystical, flat-ish illustration with soft glow. "
+    "No text, no letters, no numbers."
+)
+
+
 def ref_parts():
     parts = []
     for p in REFS:
@@ -71,8 +81,9 @@ def ref_parts():
     return parts
 
 
-def draw(i: int, refs, secret: str):
-    body = json.dumps({"action": "image", "prompt": STYLE + "\n\nCARD: " + SCENES[i], "images": refs, "aspect": "2:3"}).encode()
+def draw(i, refs, secret: str):
+    prompt = BACK_PROMPT if i == "back" else STYLE + "\n\nCARD: " + SCENES[i]
+    body = json.dumps({"action": "image", "prompt": prompt, "images": refs[:1] if i == "back" else refs, "aspect": "2:3"}).encode()
     req = urllib.request.Request(FN, data=body, headers={"x-media-secret": secret, "Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=180) as r:
         d = json.load(r)
@@ -82,14 +93,15 @@ def draw(i: int, refs, secret: str):
     tw = min(w, int(h * 2 / 3)); th = int(tw * 3 / 2)
     img = img.crop(((w - tw) // 2, (h - th) // 2, (w - tw) // 2 + tw, (h - th) // 2 + th)).resize((640, 960), Image.LANCZOS)
     OUT.mkdir(parents=True, exist_ok=True)
-    img.save(OUT / f"{i:02d}.webp", "WEBP", quality=82)
-    print(f"{i:02d} ok", flush=True)
+    name = "back" if i == "back" else f"{i:02d}"
+    img.save(OUT / f"{name}.webp", "WEBP", quality=82)
+    print(f"{name} ok", flush=True)
 
 
 def main():
     assert len(SCENES) == 22
     secret = SECRET.read_text().strip()
-    only = [int(a) for a in sys.argv[1:]]
+    only = [a if a == "back" else int(a) for a in sys.argv[1:]]
     todo = only or [i for i in range(22) if not (OUT / f"{i:02d}.webp").exists()]
     refs = ref_parts()
     for i in todo:
@@ -98,7 +110,7 @@ def main():
                 draw(i, refs, secret)
                 break
             except Exception as e:  # noqa: BLE001
-                print(f"{i:02d} attempt {attempt + 1} failed: {e}", flush=True)
+                print(f"{i} attempt {attempt + 1} failed: {e}", flush=True)
 
 
 if __name__ == "__main__":

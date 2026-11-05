@@ -34,7 +34,8 @@ function Face({ card, idx, rev }: { card: TarotCard; idx: number; rev: boolean }
     </div>
   );
 }
-const Back = () => <div className="tt-back"><span aria-hidden>🔮</span></div>;
+const BACK = PICS["./tarot/back.webp"];
+const Back = () => <div className="tt-back">{BACK ? <img src={BACK} alt="" draggable={false} /> : <span aria-hidden>🔮</span>}</div>;
 
 // ---------- share picture (1080×1920): the three cards, each reading, the overall verdict ----------
 function wrap(g: CanvasRenderingContext2D, text: string, width: number): string[] {

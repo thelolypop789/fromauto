@@ -40,4 +40,15 @@ r=L.finalize(ctx,{answer:1,confident:false,ambiguous:true,working:''},{verdict:'
 t('parseJson fenced',L.parseJson('```json\n{"a":1}\n```').a===1);
 t('normalizeBlind out of range',L.normalizeBlind({answer:9,confident:true}).answer===null);
 t('prompts mention reports',L.judgePrompt(ctx,blind(1)).includes('ควรเป็น 5')&&!L.blindPrompt(ctx).includes('เฉลยในระบบ'));
+// Q#13658: outdated fact, AI rewrites the key choice; the blind pass answered the OLD question -> human, but the edit is kept as a draft
+const ctx3={...ctx,question:{...ctx.question,choices:['a','b','c','ไม่เกิน 200,000 บาท'],answer:3}};
+r=L.finalize(ctx3,blind(3),{verdict:'fix',confidence:100,analysis:'ควรแก้',user_message:'m',fix:{choices:['a','b','c','ไม่เกิน 5,000,000 บาท'],answer:3,explanation:'ใหม่'}});
+t('rewritten key -> human with draft',r.verdict==='human'&&r.fix===null&&r.suggestion&&r.suggestion.choices[3].includes('5,000,000')&&r.user_message===L.DEFAULT_MESSAGE.human);
+t('downgrade note explains choices',r.analysis.includes('ทำจากข้อเดิม'));
+// low confidence fix keeps draft; invalid fix gives no draft; ok/hide never carry a draft
+r=L.finalize(ctx,blind(2),{verdict:'fix',confidence:50,analysis:'a',user_message:'m',fix:{answer:2,explanation:'x'}}); t('low conf fix -> draft',r.verdict==='human'&&r.suggestion?.answer===2);
+r=L.finalize(ctx,blind(1),{verdict:'fix',confidence:90,analysis:'a',user_message:'m',fix:{answer:9}}); t('invalid fix -> no draft',r.verdict==='human'&&r.suggestion===null);
+r=L.finalize(ctx,blind(2),{verdict:'ok',confidence:95,analysis:'a',user_message:'m',fix:{answer:2}}); t('ok downgraded -> no draft',r.verdict==='human'&&r.suggestion===null);
+r=L.finalize(ctx,blind(2),{verdict:'fix',confidence:90,analysis:'a',user_message:'m',fix:{answer:2}}); t('accepted fix has no draft',r.verdict==='fix'&&r.suggestion===null);
+t('judge prompt asks for proposal wording',L.judgePrompt(ctx,blind(1)).includes('ห้ามเขียนว่าแก้แล้ว'));
 console.log(`${n-bad}/${n} passed`);

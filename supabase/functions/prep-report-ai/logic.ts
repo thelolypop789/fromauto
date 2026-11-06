@@ -11,6 +11,8 @@ export type Fix = { stem?: string; choices?: string[]; answer?: number; explanat
 export type Verdict = "fix" | "hide" | "ok" | "human";
 export type Review = {
   verdict: Verdict; confidence: number; analysis: string; fix: Fix | null; user_message: string; blind_answer: number | null; notes: string[];
+  /** verdict "human" only: the AI's proposed edit that did not pass the guards — shown to the admin as a draft, never applied by itself */
+  suggestion: Fix | null;
 };
 
 export const MIN_CONFIDENCE = 70;
@@ -85,7 +87,7 @@ export function judgePrompt(ctx: Ctx, blind: Blind): string {
     "",
     "ข้อห้าม: อย่าเปลี่ยนเฉลยถ้าไม่แน่ใจ 100% และผลของผู้ตรวจที่ไม่เห็นเฉลยไม่สนับสนุน อย่าเขียนข้อเท็จจริงที่ไม่แน่ใจ ถ้าต้องคำนวณให้คำนวณใหม่ทุกครั้ง",
     "",
-    "analysis = สรุปสั้นๆ ภาษาไทย 1-3 ประโยค สำหรับแอดมิน (บอกว่าตรวจอะไร พบอะไร)",
+    "analysis = สรุปสั้นๆ ภาษาไทย 1-3 ประโยค สำหรับแอดมิน (บอกว่าตรวจอะไร พบอะไร และเสนอให้ทำอะไร) เขียนเป็นข้อเสนอ เช่น \"ควรแก้...\" ห้ามเขียนว่าแก้แล้วหรือทีมงานปรับแก้แล้ว เพราะแอดมินยังไม่ได้ยืนยัน",
     "user_message = ข้อความถึงผู้รายงาน ภาษาไทยง่ายๆ เหมือนพี่ครูพูดกับผู้เรียน ไม่เกิน 3 ประโยคสั้นๆ ขึ้นต้นด้วยขอบคุณ",
     "  บอกผลให้ชัดว่าแก้อะไร หรือทำไมข้อนี้ถูกอยู่แล้ว (อธิบายเหตุผลสั้นๆ แบบเป็นมิตร) ไม่ตำหนิ ไม่ใช้ศัพท์ยาก ไม่พูดถึง AI หรือระบบตรวจอัตโนมัติ ใช้คำว่า ทีมงาน",
     "confidence = ความมั่นใจ 0-100 ในผลที่เลือก",
@@ -157,6 +159,8 @@ export function finalize(ctx: Ctx, blind: Blind, judgeRaw: Record<string, unknow
   let analysis = typeof judgeRaw.analysis === "string" ? judgeRaw.analysis.trim().slice(0, 1200) : "";
   let message = typeof judgeRaw.user_message === "string" ? judgeRaw.user_message.trim().slice(0, 500) : "";
   let fix: Fix | null = null;
+  // the AI's own edit, kept as a draft for the admin if the review ends up "human"
+  const proposed = judgeRaw.verdict === "fix" || judgeRaw.verdict === "human" ? cleanFix(judgeRaw.fix) : null;
 
   const downgrade = (why: string) => { notes.push(why); verdict = "human"; };
 
@@ -174,17 +178,24 @@ export function finalize(ctx: Ctx, blind: Blind, judgeRaw: Record<string, unknow
     else {
       const newChoices = fix.choices ?? ctx.question.choices;
       const newKey = String(newChoices[fix.answer ?? ctx.question.answer] ?? "");
-      if (!blindOk || q(blindText) !== q(newKey)) { fix = null; downgrade("เฉลยใหม่ที่เสนอ ผู้ตรวจที่ไม่เห็นเฉลยไม่ยืนยัน ให้คนตรวจ"); }
+      if (!blindOk || q(blindText) !== q(newKey)) {
+        downgrade(fix.choices || fix.stem
+          ? "ข้อเสนอแก้ตัวเลือก/โจทย์ด้วย แต่ผู้ตรวจที่ไม่เห็นเฉลยทำจากข้อเดิม จึงยืนยันไม่ได้ ให้คนตรวจข้อเสนอนี้"
+          : "เฉลยใหม่ที่เสนอ ผู้ตรวจที่ไม่เห็นเฉลยไม่ยืนยัน ให้คนตรวจ");
+        fix = null;
+      }
     }
   }
 
+  let suggestion: Fix | null = null;
   if (verdict === "human") {
     fix = null;
+    suggestion = proposed;
     if (!analysis) analysis = "AI ไม่แน่ใจ ควรให้คนตรวจ";
     message = DEFAULT_MESSAGE.human;
   } else if (!message) {
     message = DEFAULT_MESSAGE[verdict];
   }
   if (notes.length) analysis = `${analysis ? analysis + " " : ""}[ระบบ: ${notes.join("; ")}]`.trim();
-  return { verdict, confidence, analysis, fix, user_message: message, blind_answer: blind.answer, notes };
+  return { verdict, confidence, analysis, fix, user_message: message, blind_answer: blind.answer, notes, suggestion };
 }

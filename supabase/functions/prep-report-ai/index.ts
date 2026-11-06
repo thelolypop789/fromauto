@@ -88,7 +88,7 @@ serve(async (req) => {
     const { data: reviewId, error: saveErr } = await sb.rpc("prep_admin_save_report_review", {
       p_question: id,
       p_review: {
-        verdict: review.verdict, confidence: review.confidence, analysis: review.analysis, fix: review.fix,
+        verdict: review.verdict, confidence: review.confidence, analysis: review.analysis, fix: review.fix ?? review.suggestion,
         user_message: review.user_message, blind_answer: review.blind_answer, model: judgeRes.model,
       },
     });

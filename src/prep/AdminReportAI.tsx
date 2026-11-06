@@ -34,6 +34,18 @@ const Choices = ({ choices, answer, mark }: { choices: string[]; answer: number;
 
 type Draft = { stem: string; choices: string[]; answer: number; explanation: string };
 
+// What an AI edit would change, on top of the current question.
+const FixPreview = ({ f, q, title }: { f: Fix; q: Review["question"]; title: string }) => (
+  <div className="pp-ai-fix">
+    <b>{title}</b>
+    {f.stem && <div className="pp-ai-new"><span className="pp-muted small">โจทย์ใหม่</span>{f.stem}</div>}
+    {f.choices
+      ? <div className="pp-ai-new"><span className="pp-muted small">ตัวเลือกใหม่ (✓ = เฉลย)</span><Choices choices={f.choices} answer={f.answer ?? q.answer} /></div>
+      : f.answer != null && <div className="pp-ai-new"><span className="pp-muted small">เฉลยใหม่</span>{L[f.answer]}. {q.choices[f.answer]} (เดิม {L[q.answer]})</div>}
+    {f.explanation && <div className="pp-ai-new"><span className="pp-muted small">คำอธิบายใหม่</span>{f.explanation}</div>}
+  </div>
+);
+
 // Editing form for a reported question (AI unsure, or the admin rewrites the AI's fix). Only changed fields are sent.
 function FixForm({ id, d, onChange }: { id: number; d: Draft; onChange: (d: Draft) => void }) {
   return (
@@ -93,15 +105,23 @@ function Card({ r, onDone }: { r: Review; onDone: () => void }) {
   };
   const cancelEdit = () => { setEditing(false); setOutcome(r.verdict as Outcome); setMsg(r.user_message); setError(""); };
 
+  // which button filled the fix form of a "human" card: the AI's key, the AI's draft edit, or the admin from scratch
+  const [via, setVia] = useState<"key" | "draft" | null>(null);
+  const draftFix = human ? r.fix : null;   // a "human" review keeps the AI's edit only as a draft
   const pick = (o: Outcome) => {
-    setOutcome(o); setMsg(PRESETS[o][0].text); setError("");
+    setOutcome(o); setMsg(PRESETS[o][0].text); setError(""); setVia(null);
     if (o === "fix") setDraft({ stem: q.stem, choices: [...q.choices], answer: q.answer, explanation: q.explanation ?? "" });
   };
   // The independent AI answer disagrees with the key in the system: offer it as a one-tap fix.
   const aiDiffers = human && r.blind_answer != null && r.blind_answer !== q.answer;
   const useAiKey = () => {
-    setOutcome("fix"); setMsg(PRESETS.fix[0].text); setError("");
+    setOutcome("fix"); setMsg(PRESETS.fix[0].text); setError(""); setVia("key");
     setDraft({ stem: q.stem, choices: [...q.choices], answer: r.blind_answer as number, explanation: q.explanation ?? "" });
+  };
+  const useAiDraft = () => {
+    if (!draftFix) return;
+    setOutcome("fix"); setMsg(PRESETS.fix[0].text); setError(""); setVia("draft");
+    setDraft({ stem: draftFix.stem ?? q.stem, choices: [...(draftFix.choices ?? q.choices)], answer: draftFix.answer ?? q.answer, explanation: draftFix.explanation ?? q.explanation ?? "" });
   };
 
   const apply = async () => {
@@ -135,18 +155,9 @@ function Card({ r, onDone }: { r: Review; onDone: () => void }) {
       <div className="pp-ai-q">{q.stem}</div>
       <Choices choices={q.choices} answer={q.answer} />
       {r.reports.length > 0 && <div className="pp-ai-rep"><b>ผู้ใช้แจ้งว่า:</b> {r.reports.join(" | ")}</div>}
-      <div className="pp-ai-an"><b>AI ตรวจแล้ว:</b> {r.analysis}</div>
+      <div className="pp-ai-an"><b>{human ? "AI วิเคราะห์ (ยังไม่ยืนยัน ยังไม่ได้แก้อะไร):" : "AI ตรวจแล้ว:"}</b> {r.analysis}</div>
 
-      {!human && !editing && r.verdict === "fix" && r.fix && (
-        <div className="pp-ai-fix">
-          <b>จะแก้เป็น:</b>
-          {r.fix.stem && <div className="pp-ai-new"><span className="pp-muted small">โจทย์ใหม่</span>{r.fix.stem}</div>}
-          {r.fix.choices
-            ? <div className="pp-ai-new"><span className="pp-muted small">ตัวเลือกใหม่ (✓ = เฉลย)</span><Choices choices={r.fix.choices} answer={r.fix.answer ?? 0} /></div>
-            : r.fix.answer != null && <div className="pp-ai-new"><span className="pp-muted small">เฉลยใหม่</span>{L[r.fix.answer]}. {q.choices[r.fix.answer]} (เดิม {L[q.answer]})</div>}
-          {r.fix.explanation && <div className="pp-ai-new"><span className="pp-muted small">คำอธิบายใหม่</span>{r.fix.explanation}</div>}
-        </div>
-      )}
+      {!human && !editing && r.verdict === "fix" && r.fix && <FixPreview f={r.fix} q={q} title="จะแก้เป็น:" />}
 
       {human && (
         <div className="pp-ai-human">
@@ -157,17 +168,23 @@ function Card({ r, onDone }: { r: Review; onDone: () => void }) {
               <span>เฉลยในระบบ <b>{L[q.answer]}</b></span><span>·</span><span>AI ลองทำเองได้ <b>{L[r.blind_answer as number]}</b></span>
             </div>
           )}
+          {draftFix && <FixPreview f={draftFix} q={q} title="AI เสนอแก้เป็น (ยังไม่ผ่านการยืนยัน ตรวจข้อเท็จจริงก่อนใช้):" />}
           <div className="pp-ai-step">ขั้น 1 · เลือกว่าจะทำอะไรกับข้อนี้</div>
           <div className="pp-ai-opts" role="group" aria-label="ผลการตรวจ">
+            {draftFix && (
+              <button type="button" className={`pp-ai-opt ${outcome === "fix" && via === "draft" ? "on" : ""}`} onClick={useAiDraft}>
+                <b>ใช้ข้อเสนอของ AI แล้วแก้ต่อ</b><span>เติมฟอร์มด้วยที่ AI เสนอด้านบน ตรวจ/แก้ได้ก่อนกดส่ง</span>
+              </button>
+            )}
             {aiDiffers && (
-              <button type="button" className={`pp-ai-opt ${outcome === "fix" && draft.answer === r.blind_answer ? "on" : ""}`} onClick={useAiKey}>
+              <button type="button" className={`pp-ai-opt ${outcome === "fix" && via === "key" ? "on" : ""}`} onClick={useAiKey}>
                 <b>ใช้เฉลยของ AI (ข้อ {L[r.blind_answer as number]})</b><span>เปลี่ยนเฉลยเป็นข้อ {L[r.blind_answer as number]} แล้วแจ้งผู้รายงานว่าแก้แล้ว</span>
               </button>
             )}
             <button type="button" className={`pp-ai-opt ${outcome === "ok" ? "on" : ""}`} onClick={() => pick("ok")}>
               <b>เฉลยเดิมถูกแล้ว</b><span>ข้อสอบไม่เปลี่ยน ตอบผู้รายงานว่าข้อนี้ถูกต้อง</span>
             </button>
-            <button type="button" className={`pp-ai-opt ${outcome === "fix" && !(aiDiffers && draft.answer === r.blind_answer) ? "on" : ""}`} onClick={() => pick("fix")}>
+            <button type="button" className={`pp-ai-opt ${outcome === "fix" && via === null ? "on" : ""}`} onClick={() => pick("fix")}>
               <b>แก้ข้อสอบเอง</b><span>เปิดฟอร์มแก้โจทย์ ตัวเลือก เฉลย หรือคำอธิบาย แล้วแจ้งผู้รายงานว่าแก้แล้ว</span>
             </button>
             <button type="button" className={`pp-ai-opt ${outcome === "hide" ? "on" : ""}`} onClick={() => pick("hide")}>

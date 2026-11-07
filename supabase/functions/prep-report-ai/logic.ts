@@ -199,3 +199,62 @@ export function finalize(ctx: Ctx, blind: Blind, judgeRaw: Record<string, unknow
   if (notes.length) analysis = `${analysis ? analysis + " " : ""}[ระบบ: ${notes.join("; ")}]`.trim();
   return { verdict, confidence, analysis, fix, user_message: message, blind_answer: blind.answer, notes, suggestion };
 }
+
+// ---------- admin changed the key by hand: draft an explanation that matches the new key ----------
+// The admin's draft (stem / choices / new key) is what the explanation must fit, not the stored question.
+export type Draft = { stem: string; choices: string[]; answer: number };
+export type Explain = { explanation: string; agrees: boolean; note: string };
+
+/** Validates the draft sent by the browser; returns null when it cannot be used. */
+export function cleanDraft(raw: unknown): Draft | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const stem = typeof r.stem === "string" ? r.stem.trim() : "";
+  if (!stem || stem.length > 2000) return null;
+  if (!Array.isArray(r.choices) || r.choices.length !== 4) return null;
+  const choices = r.choices.map(c => (typeof c === "string" ? c.trim() : ""));
+  if (choices.some(c => !c || c.length > 500)) return null;
+  const a = r.answer;
+  if (typeof a !== "number" || !Number.isInteger(a) || a < 0 || a > 3) return null;
+  return { stem, choices, answer: a };
+}
+
+export function explainPrompt(ctx: Ctx, d: Draft): string {
+  const x = ctx.question;
+  const lines = [
+    "คุณเป็นบรรณาธิการข้อสอบครูผู้ช่วยของไทย แอดมินเปลี่ยนเฉลยของข้อสอบข้อนี้ ให้เขียนคำอธิบายใหม่ให้ตรงกับเฉลยใหม่",
+    "",
+    `วิชา/หมวด: ${x.topic_name}`,
+    `โจทย์: ${d.stem}`,
+    ...d.choices.map((c, i) => `${LABELS[i]}. ${c}`),
+    `เฉลยใหม่ (แอดมินเลือก): ${LABELS[d.answer]}. ${d.choices[d.answer]}`,
+    `เฉลยเดิม: ${LABELS[x.answer]}. ${x.choices[x.answer] ?? ""}`,
+  ];
+  if (x.explanation) lines.push(`คำอธิบายเดิม (ของเฉลยเดิม อาจผิด): ${x.explanation}`);
+  if (x.law_ref) lines.push(`อ้างอิงกฎหมาย: ${x.law_ref}`);
+  if (ctx.reports.length) lines.push("รายงานจากผู้ใช้:", ...ctx.reports.map(r => `- ${r.reason.replace(/^\[[^\]]*\]\s*/, "") || r.label}`));
+  lines.push(
+    "",
+    "explanation = คำอธิบายภาษาไทย 1-3 ประโยค แบบเดียวกับคำอธิบายในข้อสอบ: บอกว่าทำไมข้อ " + LABELS[d.answer] + " ถูก และถ้ามีตัวเลือกที่คนน่าจะสับสน บอกสั้นๆ ว่าต่างกันอย่างไร",
+    "  ห้ามขึ้นต้นด้วย \"เฉลย\" หรือ \"ข้อ ... ถูก\" ซ้ำกับตัวเลือก ห้ามพูดถึงแอดมิน AI หรือเฉลยเดิม ห้ามแต่งข้อเท็จจริง ตัวเลข หรือมาตรากฎหมายที่ไม่แน่ใจ",
+    "agrees = true ถ้าคุณเห็นด้วยว่าเฉลยใหม่ถูก, false ถ้าคิดว่าผิดหรือมีหลายข้อถูก",
+    "note = ถ้า agrees เป็น false บอกสั้นๆ ว่าคิดว่าข้อไหนถูกเพราะอะไร (ภาษาไทย 1 ประโยค) ถ้าเห็นด้วยให้เป็นค่าว่าง",
+  );
+  return lines.join("\n");
+}
+
+export const EXPLAIN_SCHEMA = {
+  type: "OBJECT",
+  properties: { explanation: { type: "STRING" }, agrees: { type: "BOOLEAN" }, note: { type: "STRING" } },
+  required: ["explanation", "agrees", "note"],
+};
+
+export function normalizeExplain(raw: Record<string, unknown>): Explain {
+  const explanation = typeof raw.explanation === "string" ? raw.explanation.trim().slice(0, 2000) : "";
+  if (!explanation) throw new Error("AI ไม่ได้เขียนคำอธิบายมา");
+  return {
+    explanation,
+    agrees: raw.agrees !== false,
+    note: raw.agrees === false && typeof raw.note === "string" ? raw.note.trim().slice(0, 300) : "",
+  };
+}

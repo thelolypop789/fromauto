@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { rpc, supabase, thaiError } from "./api";
 import { APPLY_LABEL, PRESETS, type Outcome } from "./reportPresets";
 
@@ -46,8 +46,59 @@ const FixPreview = ({ f, q, title }: { f: Fix; q: Review["question"]; title: str
   </div>
 );
 
+type Explained = { explanation: string; agrees: boolean; note: string };
+async function callExplain(questionId: number, d: Draft): Promise<Explained> {
+  const { data, error } = await supabase.functions.invoke("prep-report-ai", {
+    body: { action: "explain", question_id: questionId, draft: { stem: d.stem, choices: d.choices, answer: d.answer } },
+  });
+  if (error) {
+    let msg = error.message;
+    try { const j = await (error as { context?: Response }).context?.json(); if (j?.error) msg = j.error; } catch { /* keep generic */ }
+    throw new Error(msg);
+  }
+  if (data?.error) throw new Error(data.error);
+  return data as Explained;
+}
+
 // Editing form for a reported question (AI unsure, or the admin rewrites the AI's fix). Only changed fields are sent.
-function FixForm({ id, d, onChange }: { id: number; d: Draft; onChange: (d: Draft) => void }) {
+// Picking another key rewrites the explanation with AI, unless the admin already typed their own one.
+function FixForm({ id, qid, orig, d, onChange }: {
+  id: number; qid: number; orig: { answer: number; explanation: string }; d: Draft; onChange: (d: Draft) => void;
+}) {
+  const [ex, setEx] = useState<{ state: "idle" | "busy" | "done" | "error"; key?: number; note?: string; agrees?: boolean; error?: string }>({ state: "idle" });
+  const latest = useRef(d);
+  useEffect(() => { latest.current = d; });   // runs before the key effect below, so it sees the new draft
+  const aiText = useRef<string | null>(null);   // the explanation the AI wrote last, so we know it is not the admin's own text
+  const seq = useRef(0);
+
+  const write = useCallback(async () => {
+    const cur = latest.current;
+    const my = ++seq.current;
+    setEx({ state: "busy", key: cur.answer });
+    try {
+      const r = await callExplain(qid, cur);
+      if (my !== seq.current || latest.current.answer !== cur.answer) return;   // the admin picked another key meanwhile
+      aiText.current = r.explanation;
+      onChange({ ...latest.current, explanation: r.explanation });
+      setEx({ state: "done", key: cur.answer, agrees: r.agrees, note: r.note });
+    } catch (e) {
+      if (my === seq.current) setEx({ state: "error", key: cur.answer, error: (e as Error).message });
+    }
+  }, [qid, onChange]);
+
+  useEffect(() => {
+    const cur = latest.current;
+    const untouched = cur.explanation.trim() === orig.explanation.trim() || cur.explanation === aiText.current;
+    if (!untouched) return;
+    if (cur.answer !== orig.answer) { void write(); return; }
+    // back to the old key: put the old explanation back
+    seq.current++;
+    if (cur.explanation !== orig.explanation) onChange({ ...cur, explanation: orig.explanation });
+    aiText.current = null;
+    setEx({ state: "idle" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [d.answer]);
+
   return (
     <div className="pp-ai-edit">
       <label><span className="pp-muted small">โจทย์</span>
@@ -61,7 +112,14 @@ function FixForm({ id, d, onChange }: { id: number; d: Draft; onChange: (d: Draf
         </div>
       ))}
       <label><span className="pp-muted small">คำอธิบาย</span>
-        <textarea className="pp-input" rows={3} value={d.explanation} onChange={e => onChange({ ...d, explanation: e.target.value })} /></label>
+        <textarea className="pp-input" rows={3} value={d.explanation} disabled={ex.state === "busy"} onChange={e => onChange({ ...d, explanation: e.target.value })} /></label>
+      {ex.state === "busy" && <p className="pp-muted small">✨ กำลังเขียนคำอธิบายให้ตรงกับเฉลยข้อ {L[ex.key ?? d.answer]}…</p>}
+      {ex.state === "done" && <p className="pp-muted small">✨ AI เขียนคำอธิบายใหม่ให้ตรงกับเฉลยข้อ {L[ex.key ?? d.answer]} แล้ว อ่านและแก้ได้ก่อนส่ง</p>}
+      {ex.state === "done" && ex.agrees === false && <div className="pp-error">⚠️ AI ไม่แน่ใจว่าข้อ {L[ex.key ?? d.answer]} ถูก{ex.note ? `: ${ex.note}` : ""}</div>}
+      {ex.state === "error" && <div className="pp-error">เขียนคำอธิบายไม่สำเร็จ: {ex.error}</div>}
+      {d.answer !== orig.answer && ex.state !== "busy" && (
+        <button type="button" className="pp-link small" onClick={() => void write()}>✨ ให้ AI เขียนคำอธิบายใหม่ตามเฉลยข้อ {L[d.answer]}</button>
+      )}
     </div>
   );
 }
@@ -93,6 +151,7 @@ function Card({ r, onDone }: { r: Review; onDone: () => void }) {
   const [draft, setDraft] = useState<Draft>({ stem: q.stem, choices: [...q.choices], answer: q.answer, explanation: q.explanation ?? "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const origKey = useMemo(() => ({ answer: q.answer, explanation: q.explanation ?? "" }), [q.answer, q.explanation]);
   // Any card can be edited by hand: the form starts from the AI's fix (when there is one) on top of the current question.
   const [editing, setEditing] = useState(false);
   const v = VERDICT[r.verdict];
@@ -191,14 +250,14 @@ function Card({ r, onDone }: { r: Review; onDone: () => void }) {
               <b>ซ่อนข้อนี้</b><span>เอาข้อนี้ออกจากชุดข้อสอบ (โจทย์ไม่ชัดหรือล้าสมัย) แล้วแจ้งผู้รายงาน</span>
             </button>
           </div>
-          {outcome === "fix" && <FixForm id={r.id} d={draft} onChange={setDraft} />}
+          {outcome === "fix" && <FixForm id={r.id} qid={r.question_id} orig={origKey} d={draft} onChange={setDraft} />}
         </div>
       )}
 
       {!human && (editing
         ? <div className="pp-ai-human">
             <p><b>✏️ แก้ข้อสอบเอง</b> <button type="button" className="pp-link small" onClick={cancelEdit}>ยกเลิก กลับไปใช้ผลของ AI</button></p>
-            <FixForm id={r.id} d={draft} onChange={setDraft} />
+            <FixForm id={r.id} qid={r.question_id} orig={origKey} d={draft} onChange={setDraft} />
           </div>
         : <button type="button" className="pp-link small" onClick={startEdit}>
             ✏️ {r.verdict === "fix" ? "แก้โจทย์ ตัวเลือก เฉลย หรือคำอธิบายเพิ่มเอง" : "แก้ข้อสอบเองแทน (โจทย์ ตัวเลือก เฉลย คำอธิบาย)"}

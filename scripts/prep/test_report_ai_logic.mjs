@@ -51,4 +51,14 @@ r=L.finalize(ctx,blind(1),{verdict:'fix',confidence:90,analysis:'a',user_message
 r=L.finalize(ctx,blind(2),{verdict:'ok',confidence:95,analysis:'a',user_message:'m',fix:{answer:2}}); t('ok downgraded -> no draft',r.verdict==='human'&&r.suggestion===null);
 r=L.finalize(ctx,blind(2),{verdict:'fix',confidence:90,analysis:'a',user_message:'m',fix:{answer:2}}); t('accepted fix has no draft',r.verdict==='fix'&&r.suggestion===null);
 t('judge prompt asks for proposal wording',L.judgePrompt(ctx,blind(1)).includes('ห้ามเขียนว่าแก้แล้ว'));
+// explain: admin picked a new key by hand
+t('cleanDraft ok',L.cleanDraft({stem:'s',choices:['1','2','3','4'],answer:2})?.answer===2);
+t('cleanDraft bad answer',L.cleanDraft({stem:'s',choices:['1','2','3','4'],answer:5})===null);
+t('cleanDraft 3 choices',L.cleanDraft({stem:'s',choices:['1','2','3'],answer:0})===null);
+t('cleanDraft empty stem',L.cleanDraft({stem:' ',choices:['1','2','3','4'],answer:0})===null);
+const ep=L.explainPrompt(ctx,{stem:'2+2=?',choices:['3','4','5','6'],answer:2});
+t('explain prompt has new key + old key',ep.includes('เฉลยใหม่ (แอดมินเลือก): ค. 5')&&ep.includes('เฉลยเดิม: ข. 4')&&ep.includes('ควรเป็น 5'));
+let ex=L.normalizeExplain({explanation:' เพราะ x ',agrees:false,note:'ข ถูก'}); t('normalizeExplain disagree',ex.explanation==='เพราะ x'&&ex.agrees===false&&ex.note==='ข ถูก');
+ex=L.normalizeExplain({explanation:'e',agrees:true,note:'ignored'}); t('normalizeExplain agree drops note',ex.agrees&&ex.note==='');
+let threw=false; try{L.normalizeExplain({explanation:'',agrees:true,note:''})}catch{threw=true} t('normalizeExplain empty throws',threw);
 console.log(`${n-bad}/${n} passed`);

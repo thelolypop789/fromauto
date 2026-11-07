@@ -5,7 +5,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
-  BLIND_SCHEMA, JUDGE_SCHEMA, blindPrompt, finalize, judgePrompt, normalizeBlind, parseJson, type Ctx,
+  BLIND_SCHEMA, EXPLAIN_SCHEMA, JUDGE_SCHEMA, blindPrompt, cleanDraft, explainPrompt, finalize, judgePrompt, normalizeBlind,
+  normalizeExplain, parseJson, type Ctx,
 } from "./logic.ts";
 
 const GEMINI_KEY = Deno.env.get("GEMINI_KEY")!;
@@ -78,6 +79,15 @@ serve(async (req) => {
     const { data: ctx, error: ctxErr } = await sb.rpc("prep_admin_report_context", { p_question: id });
     if (ctxErr) return json({ error: ctxErr.message === "not_found" ? "ไม่พบข้อสอบนี้" : "อ่านข้อสอบไม่ได้: " + ctxErr.message }, 404);
     const c = ctx as Ctx;
+
+    // The admin changed the key by hand: write an explanation that fits the new key (nothing is saved here).
+    if (body.action === "explain") {
+      const draft = cleanDraft(body.draft);
+      if (!draft) return json({ error: "ข้อมูลโจทย์/ตัวเลือก/เฉลยไม่ครบ" }, 400);
+      const res = await ask(JUDGE_MODELS, explainPrompt(c, draft), EXPLAIN_SCHEMA, 0.2);
+      return json({ ...normalizeExplain(res.data), model: res.model });
+    }
+
     if (!c.reports?.length) return json({ error: "ข้อนี้ไม่มีรายงานที่รอตรวจ" }, 409);
 
     const blindRes = await ask(BLIND_MODELS, blindPrompt(c), BLIND_SCHEMA, 0);

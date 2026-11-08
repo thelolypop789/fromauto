@@ -2,13 +2,27 @@ import { useEffect, useState } from "react";
 import Mascot from "./Mascot";
 import { IconCheck, IconX } from "./icons";
 import type { Track } from "./api";
-import { useBackClose } from "./router";
+import { navigate, useBackClose } from "./router";
 
 // One-off notices on Home, each shown once per device until it expires. The first unseen one that applies opens;
 // add a notice with a new id. `track` limits a notice to สพฐ. ("obec") or สอศ. ("vec") users. `before`: only accounts
 // created before then see it, so a fix notice never greets someone who signed up after the problem was gone.
-type Notice = { id: string; until: string; before: string; track?: Track; title: string; intro: string; points: string[]; note: string };
+// `cta`: a second button that opens a page; `notOwner`: hidden from accounts that already own the full pack for life.
+type Notice = { id: string; until: string; before: string; track?: Track; title: string; intro: string; points: string[]; note: string;
+  cta?: { label: string; to: string }; notOwner?: boolean };
 const NOTICES: Notice[] = [
+  {
+    id: "2026-11-lifetime-last", until: "2026-11-16T00:00:00+07:00", before: "2099-01-01T00:00:00+07:00", notOwner: true,
+    title: "แพ็กซื้อขาด ขายถึง 15 พ.ย. นี้เท่านั้น",
+    intro: "แพ็กแบบซื้อขาด (จ่ายครั้งเดียว ใช้ได้ทุกรอบสอบ) จะขายถึงวันเสาร์ที่ 15 พฤศจิกายน 2569 เวลา 23:59 น. เป็นวันสุดท้าย หลังจากนั้นจะมีเฉพาะแบบรายรอบ",
+    points: [
+      "ซื้อขาดภายใน 15 พ.ย. ใช้ได้ตลอดไป รวมทุกรอบสอบครูผู้ช่วยปีต่อ ๆ ไป ไม่ต้องจ่ายเพิ่ม",
+      "มีแพ็กรายรอบอยู่แล้ว อัปเกรดเป็นซื้อขาดได้ จ่ายแค่ส่วนต่าง",
+      "ใครซื้อขาดไปแล้ว สิทธิ์ทุกอย่างยังอยู่ครบเหมือนเดิม",
+    ],
+    note: "ส่งสลิปในแอปภายในเวลา 23:59 น. ของวันที่ 15 พ.ย. ทีมงานตรวจให้ตามปกติ แม้จะอนุมัติหลังเที่ยงคืนก็ได้สิทธิ์ซื้อขาด",
+    cta: { label: "ดูแพ็กซื้อขาด", to: "/prep/buy?pkg=ALL&term=lifetime" },
+  },
   {
     id: "2026-10-track-fix", until: "2026-11-15T00:00:00+07:00", before: "2026-10-26T00:30:00+07:00", track: "obec",
     title: "แก้ไขแล้ว: ข้อสอบ สอศ. ปนในชุดสาย สพฐ.",
@@ -35,21 +49,29 @@ const NOTICES: Notice[] = [
 const key = (id: string) => `pp-notice-${id}`;
 const seen = (id: string) => { try { return localStorage.getItem(key(id)) === "1"; } catch { return true; } };
 
-export default function Announcement({ track, joined }: { track?: Track; joined?: string }) {
+export default function Announcement({ track, joined, lifetimeOwner }: { track?: Track; joined?: string; lifetimeOwner?: boolean }) {
   const [n, setN] = useState<Notice | null>(null);
   useEffect(() => {
     const since = joined ? new Date(joined).getTime() : 0;
     const next = NOTICES.find(x => !seen(x.id) && Date.now() <= new Date(x.until).getTime() && since < new Date(x.before).getTime()
-      && (!x.track || x.track === (track ?? "obec")));
+      && (!x.track || x.track === (track ?? "obec")) && !(x.notOwner && lifetimeOwner));
     if (!next) return;
     // Wait for the track/major pickers to close; never stack on another dialog.
     let id = 0;
     const tryOpen = () => { if (document.querySelector(".pp-modal")) id = window.setTimeout(tryOpen, 1500); else setN(next); };
     id = window.setTimeout(tryOpen, 800);
     return () => window.clearTimeout(id);
-  }, [track, joined]);
+  }, [track, joined, lifetimeOwner]);
   const close = () => { if (n) try { localStorage.setItem(key(n.id), "1"); } catch { /* private mode */ } setN(null); };
   useBackClose(close, !!n);
+  // Closing pops the dialog's history entry (history.back is async): open the page once that pop has landed.
+  const openCta = (to: string) => {
+    let done = false;
+    const go = () => { if (done) return; done = true; window.removeEventListener("popstate", go); navigate(to); };
+    window.addEventListener("popstate", go);
+    window.setTimeout(go, 400);
+    close();
+  };
   if (!n) return null;
   return (
     <div className="pp-modal" role="dialog" aria-modal="true" aria-labelledby="pp-notice-h" onClick={close}>
@@ -61,7 +83,8 @@ export default function Announcement({ track, joined }: { track?: Track; joined?
         <p>{n.intro}</p>
         <ul>{n.points.map(t => <li key={t}><IconCheck size={16} /><span>{t}</span></li>)}</ul>
         <p className="pp-muted small">{n.note}</p>
-        <button className="pp-btn pp-inst-go" onClick={close}>รับทราบ</button>
+        {n.cta && <button className="pp-btn pp-btn-gold pp-wide" onClick={() => openCta(n.cta!.to)}>{n.cta.label}</button>}
+        <button className={n.cta ? "pp-btn pp-btn-ghost pp-wide" : "pp-btn pp-inst-go"} onClick={close}>รับทราบ</button>
       </div>
     </div>
   );

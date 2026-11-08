@@ -1658,3 +1658,10 @@ div.pp-todo-item { cursor: default; }
 .pp-recap-seg { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .pp-recap-seg button { min-width: 0; padding: 8px 2px; font-size: 13px; white-space: nowrap; }
 .pp-followup-choices { display: grid; gap: 8px; margin-top: 10px; }
+.pp-life-last { display: grid; gap: 4px; margin: 10px 0; padding: 12px 14px; border-radius: 14px; background: var(--pp-primary-soft); border: 1.5px solid var(--pp-primary); color: var(--pp-brand-ink); }
+.pp-life-last span { font-size: 13.5px; }
+.pp-area-list { display: grid; gap: 6px; margin: 8px 0 12px; max-height: 300px; overflow-y: auto; overscroll-behavior: contain; }
+.pp-area-list button { display: grid; gap: 2px; text-align: left; border: 1.5px solid var(--pp-line); background: var(--pp-card); color: var(--pp-ink); border-radius: 12px; padding: 9px 12px; font: inherit; cursor: pointer; }
+.pp-area-list button.on { border-color: var(--pp-primary); background: var(--pp-primary-soft); box-shadow: inset 0 -2px 0 var(--pp-gold-bright, #c9a227); }
+.pp-area-list small { color: var(--pp-muted); font-size: 12px; line-height: 1.45; }
+.pp-area-list mark { background: var(--pp-gold-soft, #f6e7b0); color: inherit; border-radius: 4px; padding: 0 3px; margin: 0 2px; }

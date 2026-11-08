@@ -5,7 +5,7 @@ import Skeleton from "./Skeleton";
 
 type AreaStats = {
   answered: number; none: number; snoozed: number;
-  rows: { label: string; kind: string; province: string; n: number; paid: number; majors: { name: string; n: number }[] | null }[];
+  rows: { label: string; kind: string; provinces: string[]; n: number; paid: number; majors: { name: string; n: number }[] | null }[];
 };
 type Post = {
   event_id: number;
@@ -53,7 +53,7 @@ export default function AdminPostExam() {
             {Object.entries(KIND_LABEL).map(([k, l]) => <button key={k} className={kind === k ? "on" : ""} onClick={() => setKind(k)}>{l}</button>)}
           </div>
           <div className="pp-row">
-            <input className="pp-input" placeholder="ค้นหาจังหวัด" value={q} onChange={e => setQ(e.target.value)} />
+            <input className="pp-input" placeholder="ค้นหาชื่อเขต/จังหวัด" value={q} onChange={e => setQ(e.target.value)} />
             <button className="pp-btn pp-btn-ghost" onClick={csv}>ดาวน์โหลด CSV</button>
           </div>
           <div className="pp-otable-wrap">

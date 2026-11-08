@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { rpc, track, type Quote, type Readiness } from "./api";
 import { IconCheck, IconCrown } from "./icons";
 import { navigate } from "./router";
+import { LIFETIME_LAST_DAY, lifetimeOpen } from "./config";
 
 type Plan = { exam_title: string | null; days_left: number | null };
 
@@ -25,7 +26,7 @@ export default function FreeWall() {
     track("paywall_click");
     navigate(term ? `/prep/buy?pkg=ALL&term=${term}` : "/prep/buy");
   };
-  const round = price("round"), life = price("lifetime");
+  const round = price("round"), life = lifetimeOpen() ? price("lifetime") : null;   // ซื้อขาดขายถึง 15 พ.ย. 69
   const days = plan?.days_left;
 
   return (
@@ -46,7 +47,7 @@ export default function FreeWall() {
       {round || life ? (
         <div className="pp-wall-buy">
           {round && <button className="pp-btn pp-btn-outline" onClick={() => buy("round")}><span>ครบทุกภาค · รายรอบ 3 เดือน</span><b>{round} บาท</b></button>}
-          {life && <button className="pp-btn pp-btn-gold" onClick={() => buy("lifetime")}><span>ครบทุกภาค · ซื้อขาด ใช้ได้ทุกรอบ</span><b>{life} บาท</b></button>}
+          {life && <button className="pp-btn pp-btn-gold" onClick={() => buy("lifetime")}><span>ครบทุกภาค · ซื้อขาด ใช้ได้ทุกรอบ · ขายถึง {LIFETIME_LAST_DAY}</span><b>{life} บาท</b></button>}
         </div>
       ) : (
         <button className="pp-btn pp-btn-gold" onClick={() => buy()}><IconCrown size={20} />ดูแพ็ก</button>

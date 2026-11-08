@@ -7,45 +7,32 @@ import { CommunityLinks } from "./Community";
 
 export type AreaKind = "spp" | "spm" | "sped" | "vec" | "none";
 export type MyArea = {
-  kind: AreaKind | null; province?: string; zone?: number | null; label: string | null; ask: boolean;
+  code: string | null; kind: AreaKind | null; label: string | null; ask: boolean;
   same?: number | null; same_major?: number | null;   // null = fewer than 5 people (hidden)
 } | null;
+type Area = { code: string; kind: Exclude<AreaKind, "none">; provinces: string[]; amphoes: string[] };
 
-// 77 จังหวัด (ตรงกับ prep.provinces() ในฐานข้อมูล)
-const PROVINCES = [
-  "กรุงเทพมหานคร", "กระบี่", "กาญจนบุรี", "กาฬสินธุ์", "กำแพงเพชร", "ขอนแก่น", "จันทบุรี", "ฉะเชิงเทรา", "ชลบุรี", "ชัยนาท",
-  "ชัยภูมิ", "ชุมพร", "เชียงราย", "เชียงใหม่", "ตรัง", "ตราด", "ตาก", "นครนายก", "นครปฐม", "นครพนม", "นครราชสีมา", "นครศรีธรรมราช",
-  "นครสวรรค์", "นนทบุรี", "นราธิวาส", "น่าน", "บึงกาฬ", "บุรีรัมย์", "ปทุมธานี", "ประจวบคีรีขันธ์", "ปราจีนบุรี", "ปัตตานี",
-  "พระนครศรีอยุธยา", "พะเยา", "พังงา", "พัทลุง", "พิจิตร", "พิษณุโลก", "เพชรบุรี", "เพชรบูรณ์", "แพร่", "ภูเก็ต", "มหาสารคาม",
-  "มุกดาหาร", "แม่ฮ่องสอน", "ยโสธร", "ยะลา", "ร้อยเอ็ด", "ระนอง", "ระยอง", "ราชบุรี", "ลพบุรี", "ลำปาง", "ลำพูน", "เลย", "ศรีสะเกษ",
-  "สกลนคร", "สงขลา", "สตูล", "สมุทรปราการ", "สมุทรสงคราม", "สมุทรสาคร", "สระแก้ว", "สระบุรี", "สิงห์บุรี", "สุโขทัย", "สุพรรณบุรี",
-  "สุราษฎร์ธานี", "สุรินทร์", "หนองคาย", "หนองบัวลำภู", "อ่างทอง", "อำนาจเจริญ", "อุดรธานี", "อุตรดิตถ์", "อุทัยธานี", "อุบลราชธานี",
+const KINDS: { key: Area["kind"]; title: string; desc: string; hint: string }[] = [
+  { key: "spp", title: "สพป.", desc: "เขตพื้นที่การศึกษาประถมศึกษา", hint: "พิมพ์ชื่อจังหวัดหรืออำเภอ เช่น หนองคาย, ท่าบ่อ" },
+  { key: "spm", title: "สพม.", desc: "เขตพื้นที่การศึกษามัธยมศึกษา", hint: "พิมพ์ชื่อจังหวัด เช่น ลำพูน" },
+  { key: "sped", title: "การศึกษาพิเศษ", desc: "สำนักบริหารงานการศึกษาพิเศษ", hint: "" },
+  { key: "vec", title: "อาชีวศึกษา (สอศ.)", desc: "จังหวัดที่ตั้งวิทยาลัย", hint: "พิมพ์ชื่อจังหวัด" },
 ];
-
-const KINDS: { key: Exclude<AreaKind, "none">; title: string; desc: string }[] = [
-  { key: "spp", title: "สพป.", desc: "เขตพื้นที่การศึกษาประถมศึกษา" },
-  { key: "spm", title: "สพม.", desc: "เขตพื้นที่การศึกษามัธยมศึกษา" },
-  { key: "sped", title: "การศึกษาพิเศษ", desc: "สำนักบริหารงานการศึกษาพิเศษ" },
-  { key: "vec", title: "อาชีวศึกษา (สอศ.)", desc: "วิทยาลัยในจังหวัด" },
-];
-
-// สพป. ต้องเลือกเขต (กทม. ไม่มี สพป.) · สพม. เลือกเขตเฉพาะ กทม. (เขต 1–2)
-const zonesFor = (k: AreaKind | null, prov: string | null) =>
-  k === "spp" ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : k === "spm" && prov === "กรุงเทพมหานคร" ? [1, 2] : [];
 
 // "ลงสอบเขตไหน": popup = asked once after sign-in ("ไว้ทีหลัง" asks again in 3 days); edit = opened from the account page.
 // Saving shows how many people in the app chose the same area (and major) when there are at least 5, and the group links.
 export default function AreaSurvey({ mode, track, onClose, onSaved }: {
   mode: "popup" | "edit"; track?: Track; onClose: () => void; onSaved?: (a: MyArea) => void;
 }) {
-  const [kind, setKind] = useState<AreaKind | null>(track === "vec" ? "vec" : null);
-  const [prov, setProv] = useState<string | null>(null);
-  const [zone, setZone] = useState<number | null>(null);
+  const [areas, setAreas] = useState<Area[] | null>(null);
+  const [kind, setKind] = useState<Area["kind"] | null>(track === "vec" ? "vec" : null);
+  const [picked, setPicked] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState<MyArea>(null);
 
+  useEffect(() => { rpc<Area[]>("prep_exam_areas").then(setAreas).catch(e => setError(thaiError(e))); }, []);
   useBackClose(onClose, mode === "edit" || !!done);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && (mode === "edit" || done)) onClose(); };
@@ -53,17 +40,25 @@ export default function AreaSurvey({ mode, track, onClose, onSaved }: {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose, mode, done]);
 
-  const zones = zonesFor(kind, prov);
-  const provList = useMemo(() => PROVINCES.filter(p => p.includes(q.trim()) && !(kind === "spp" && p === "กรุงเทพมหานคร")), [q, kind]);
-  const ready = !!kind && !!prov && (zones.length === 0 || zone !== null);
+  // รายชื่อเขตของสังกัดที่เลือก ค้นได้ทั้งชื่อเขต จังหวัด และอำเภอ (สพป.)
+  const list = useMemo(() => {
+    const t = q.trim().replace(/^(จ\.|จังหวัด|อ\.|อำเภอ)\s*/, "");
+    return (areas ?? []).filter(a => a.kind === kind).map(a => ({ a, hit: t ? a.amphoes.find(x => x.includes(t)) : undefined }))
+      .filter(({ a, hit }) => !t || a.code.includes(t) || a.provinces.some(p => p.includes(t)) || !!hit);
+  }, [areas, kind, q]);
+  const pickKind = (k: Area["kind"]) => {
+    setKind(k); setQ("");
+    const only = (areas ?? []).filter(a => a.kind === k);
+    setPicked(only.length === 1 ? only[0].code : null);   // การศึกษาพิเศษมีหน่วยเดียว
+  };
 
-  const save = async (k: AreaKind) => {
+  const save = async (code: string) => {
     if (busy) return;
     setBusy(true); setError("");
     try {
-      const a = await rpc<MyArea>("prep_set_area", k === "none" ? { p_kind: "none" } : { p_kind: k, p_province: prov, p_zone: zones.length ? zone : null });
+      const a = await rpc<MyArea>("prep_set_area", { p_code: code });
       onSaved?.(a);
-      if (k === "none") onClose(); else setDone(a);
+      if (code === "none") onClose(); else setDone(a);
     } catch (e) { setError(thaiError(e)); }
     setBusy(false);
   };
@@ -71,6 +66,7 @@ export default function AreaSurvey({ mode, track, onClose, onSaved }: {
     rpc("prep_snooze_area").catch(() => { /* asked again next visit */ });
     onClose();
   };
+  const hint = KINDS.find(k => k.key === kind)?.hint;
 
   if (done) {
     return (
@@ -108,33 +104,31 @@ export default function AreaSurvey({ mode, track, onClose, onSaved }: {
         <div className="pp-area-step">1. สังกัดที่สมัคร</div>
         <div className="pp-seg pp-seg-sub" role="radiogroup" aria-label="สังกัดที่สมัคร">
           {KINDS.map(k => (
-            <button key={k.key} role="radio" aria-checked={kind === k.key} className={kind === k.key ? "on" : ""}
-              onClick={() => { setKind(k.key); setZone(null); if (k.key === "spp" && prov === "กรุงเทพมหานคร") setProv(null); }}>
+            <button key={k.key} role="radio" aria-checked={kind === k.key} className={kind === k.key ? "on" : ""} onClick={() => pickKind(k.key)}>
               {k.title}<small className="pp-area-sub">{k.desc}</small>
             </button>
           ))}
         </div>
 
-        {kind && <>
-          <div className="pp-area-step">2. จังหวัด{prov && <> · <b>{prov}</b> <button className="pp-link" onClick={() => { setProv(null); setZone(null); }}>เปลี่ยน</button></>}</div>
-          {!prov && <>
-            <input className="pp-input" placeholder="พิมพ์ชื่อจังหวัด เช่น หนองคาย" value={q} onChange={e => setQ(e.target.value)} />
-            <div className="pp-area-provs">
-              {provList.map(p => <button key={p} className="pp-chip-btn" onClick={() => { setProv(p); setZone(null); setQ(""); }}>{p}</button>)}
-              {provList.length === 0 && <span className="pp-muted small">ไม่พบจังหวัดนี้</span>}
-            </div>
-          </>}
-        </>}
-
-        {prov && zones.length > 0 && <>
-          <div className="pp-area-step">3. เขตที่</div>
-          <div className="pp-seg pp-seg-sub" role="radiogroup" aria-label="เขตที่">
-            {zones.map(z => <button key={z} role="radio" aria-checked={zone === z} className={zone === z ? "on" : ""} onClick={() => setZone(z)}>เขต {z}</button>)}
+        {kind && kind !== "sped" && <>
+          <div className="pp-area-step">2. เลือกเขต{picked && <> · <b>{picked}</b></>}</div>
+          <input className="pp-input" placeholder={hint} value={q} onChange={e => setQ(e.target.value)} />
+          {!areas && !error && <p className="pp-muted small">กำลังโหลดรายชื่อเขต…</p>}
+          <div className="pp-area-list" role="radiogroup" aria-label="เขตพื้นที่">
+            {list.map(({ a, hit }) => (
+              <button key={a.code} role="radio" aria-checked={picked === a.code} className={picked === a.code ? "on" : ""} onClick={() => setPicked(a.code)}>
+                <b>{a.code}</b>
+                {a.amphoes.length > 0 && <small>{hit ? <>มีอำเภอ<mark>{hit}</mark> · </> : null}{a.amphoes.length} อำเภอ: {a.amphoes.join(" ")}</small>}
+                {a.kind === "spp" && a.amphoes.length === 0 && a.code.indexOf(" เขต ") < 0 && <small>ทุกอำเภอในจังหวัด</small>}
+              </button>
+            ))}
+            {areas && list.length === 0 && <span className="pp-muted small">ไม่พบ ลองพิมพ์ชื่อจังหวัดอย่างเดียว</span>}
           </div>
         </>}
+        {kind === "sped" && picked && <p className="pp-note">ภาค ค ประเมินโดย อ.ก.ค.ศ. สำนักบริหารงานการศึกษาพิเศษ</p>}
 
         {error && <div className="pp-error">{error}</div>}
-        <button className="pp-btn pp-btn-primary pp-wide" disabled={!ready || busy} onClick={() => kind && save(kind)}>{busy ? "กำลังบันทึก..." : "บันทึก"}</button>
+        <button className="pp-btn pp-btn-primary pp-wide" disabled={!picked || busy} onClick={() => picked && save(picked)}>{busy ? "กำลังบันทึก..." : "บันทึก"}</button>
         <div className="pp-row pp-area-foot">
           <button className="pp-btn pp-btn-ghost" disabled={busy} onClick={() => save("none")}>ไม่ได้สมัครรอบนี้</button>
           {mode === "popup" && <button className="pp-btn pp-btn-ghost" disabled={busy} onClick={later}>ไว้ทีหลัง</button>}

@@ -22,3 +22,9 @@ export const COMMUNITY = {
   facebook: "",   // https://www.facebook.com/groups/...
   openchat: "",   // https://line.me/ti/g2/...
 };
+
+// แพ็กซื้อขาด (ตลอดชีพ) ขายถึงสิ้นวันที่ 15 พ.ย. 2569 เท่านั้น (วันสอบภาค ข) ผู้ที่ซื้อไว้แล้วใช้ได้ตลอดเหมือนเดิม
+// ฐานข้อมูลก็ปิดรับคำสั่งซื้อแบบซื้อขาดหลังเวลานี้ (migration 20261108130000_prep_lifetime_cutoff.sql)
+export const LIFETIME_UNTIL = "2026-11-16T00:00:00+07:00";
+export const lifetimeOpen = () => Date.now() < new Date(LIFETIME_UNTIL).getTime();
+export const LIFETIME_LAST_DAY = "15 พ.ย. 69";

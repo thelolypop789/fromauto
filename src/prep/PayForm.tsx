@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, supabase, thaiError, track, type Order, type GroupQuote, type PackageKey, type PromoQuote, type Quote } from "./api";
-import { PACKAGES, SHOP } from "./config";
+import { LIFETIME_LAST_DAY, PACKAGES, SHOP, lifetimeOpen } from "./config";
 import { IconCheck } from "./icons";
 import { ask } from "./dialog";
 
@@ -29,11 +29,16 @@ async function shrink(file: File): Promise<{ blob: Blob; type: string; ext: stri
   }
 }
 
+type Term = "round" | "lifetime";
+// ซื้อขาดขายถึงสิ้นวันที่ 15 พ.ย. 69 (config.ts) หลังจากนั้นเลือกได้เฉพาะรายรอบ
+const terms = (): Term[] => (lifetimeOpen() ? ["round", "lifetime"] : ["round"]);
+
 // `initial`: a package and term already picked on the price cards above the form (Buy.tsx remounts the form with it).
 export default function PayForm({ email, onApproved, initial = null }: {
   email: string; onApproved: () => void; initial?: { pkg: PackageKey; term: "round" | "lifetime" } | null;
 }) {
-  const [choice, setChoice] = useState<{ pkg: PackageKey; term: "round" | "lifetime" } | null>(initial);
+  const [choice, setChoice] = useState<{ pkg: PackageKey; term: Term } | null>(initial && initial.term === "lifetime" && !lifetimeOpen() ? { ...initial, term: "round" } : initial);
+  const [TERMS] = useState(terms);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
   const [note, setNote] = useState("");
@@ -55,7 +60,7 @@ export default function PayForm({ email, onApproved, initial = null }: {
   // Refresh the account when an order was approved since the page loaded data last.
   const load = useCallback(() => { rpc<Quote[]>("prep_quotes").then(setQuotes).catch(() => {
       // Server pricing not available (older database): fall back to the list prices in config.
-      setQuotes(PACKAGES.flatMap(k => (["round", "lifetime"] as const).map(t => {
+      setQuotes(PACKAGES.flatMap(k => TERMS.map(t => {
         const amount = Number((t === "round" ? k.round : k.lifetime).replace(/\D/g, "")) || undefined;
         return { package: k.key, term: t, base: amount, credit: 0, amount, kind: "new" as const, expires_at: undefined };
       })));
@@ -70,7 +75,7 @@ export default function PayForm({ email, onApproved, initial = null }: {
   // The server prices every choice for this account (full price, or the difference when upgrading).
   const quoteOf = (k: PackageKey, t: "round" | "lifetime") => quotes?.find(x => x.package === k && x.term === t);
   // Until the buyer picks, show the first choice that can actually be bought (e.g. the upgrade offer).
-  const firstOpen = (["ALL", "B", "A"] as const).flatMap(k => (["round", "lifetime"] as const).map(t => ({ pkg: k as PackageKey, term: t })))
+  const firstOpen = (["ALL", "B", "A"] as const).flatMap(k => TERMS.map(t => ({ pkg: k as PackageKey, term: t })))
     .find(c => { const x = quoteOf(c.pkg, c.term); return !!x && !x.error; });
   const { pkg, term } = choice ?? firstOpen ?? { pkg: "ALL" as PackageKey, term: "round" as const };
   const q = quoteOf(pkg, term);
@@ -95,7 +100,7 @@ export default function PayForm({ email, onApproved, initial = null }: {
     return () => io.disconnect();
   }, [qr]);
   const pending = orders.filter(o => o.status === "pending").length;
-  const offers = (quotes ?? []).filter(x => x.kind === "upgrade" && !x.error && x.package === "ALL");
+  const offers = (quotes ?? []).filter(x => x.kind === "upgrade" && !x.error && x.package === "ALL" && TERMS.includes(x.term));
   // Holders of ALL รายรอบ: the only upgrade left is ซื้อขาด for the difference.
   const roundAll = offers.length > 0 && offers.every(o => o.term === "lifetime") && (quotes ?? []).some(x => x.package === "ALL" && x.term === "round" && x.kind === "renew");
 
@@ -162,7 +167,7 @@ export default function PayForm({ email, onApproved, initial = null }: {
         {PACKAGES.map(p => <button key={p.key} className={pkg === p.key ? "on" : ""} onClick={() => { setChoice({ pkg: p.key, term }); track("pkg_select"); }}>{PACKAGE_LABEL[p.key]}</button>)}
       </div>
       <div className="pp-seg">
-        {(["round", "lifetime"] as const).map(t => (
+        {TERMS.map(t => (
           <button key={t} className={term === t ? "on" : ""} onClick={() => { setChoice({ pkg, term: t }); track("pkg_select"); }}>
             {TERM_LABEL[t]} · {(() => {
               const x = quoteOf(pkg, t);
@@ -173,6 +178,7 @@ export default function PayForm({ email, onApproved, initial = null }: {
           </button>
         ))}
       </div>
+      {TERMS.includes("lifetime") && <p className="pp-muted small">⏰ แบบซื้อขาดขายถึง {LIFETIME_LAST_DAY} (23:59 น.) เท่านั้น</p>}
       {deals.length > 0 && (
         <div className="pp-seats">
           <label className="small pp-muted">ซื้อกี่คน? ซื้อหลายคนถูกกว่า</label>

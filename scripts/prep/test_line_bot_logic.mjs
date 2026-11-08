@@ -16,9 +16,10 @@ t('sentence with keyword goes to AI', id('ซื้อแล้วใช้ไ�
 t('empty / only ครับ = no match', id('') === null && id('ครับ') === null);
 t('every keyword maps to its preset', L.PRESETS.every(p => p.keywords.every(k => id(k) === p.id)));
 t('no keyword in two presets', new Set(L.PRESETS.flatMap(p => p.keywords.map(k => L.normalize(k)))).size === L.PRESETS.flatMap(p => p.keywords).length);
-const priced = L.priceText([{ package: 'ALL', term: 'round', amount: 89 }]);
+const BEFORE = Date.parse('2026-11-15T23:59:00+07:00'), AFTER = Date.parse('2026-11-16T00:00:00+07:00');
+const priced = L.priceText([{ package: 'ALL', term: 'round', amount: 89 }], BEFORE);
 t('price text uses DB price, fallback for the rest', priced.includes('รายรอบ 3 เดือน 89 บาท') && priced.includes('ซื้อขาด 99 บาท'));
-t('fallback price text = preset prices', L.priceText([]).includes('179 บาท') && L.priceText([]).includes('รายรอบ 69 บาท · ซื้อขาด 129 บาท'));
+t('fallback price text = preset prices', L.priceText([], BEFORE).includes('179 บาท') && L.priceText([], BEFORE).includes('รายรอบ 69 บาท · ซื้อขาด 129 บาท'));
 t('every link carries src=line-oa', [L.WELCOME_TEXT, L.priceText([]), L.SLIP_TEXT, L.DEFAULT_TEXT, L.systemPrompt([]), ...L.PRESETS.map(p => p.text([]))]
   .every(s => (s.match(/https:\/\/\S+/g) ?? []).every(u => u.includes('?src=line-oa'))));
 t('prompt has live price', L.systemPrompt([{ package: 'A', term: 'round', amount: 39 }]).includes('แพ็กภาค ก 39 / 99 บาท'));
@@ -95,5 +96,7 @@ t('prompt: daily quota, never unlimited answers', lp.includes('1,000 ข้อ/�
 t('prompt: group buy, change major, web app, not-yet features', ['2 คน ลด 20%', 'เปลี่ยนวิชาเอก', 'ไม่มีใน App Store', 'ยังไม่มี: ลบชุด'].every(x => lp.includes(x)));
 t('presets: แอป → install, ซื้อกลุ่ม → group', id('โหลดแอปค่ะ') === 'install' && id('ซื้อกลุ่ม') === 'group' && id('ซื้อคู่ครับ') === 'group');
 t('slip reply: steps + Failed to fetch tip', L.SLIP_TEXT.includes('Failed to fetch') && L.SLIP_TEXT.includes('ไม่ต้องโอนซ้ำ'));
+t('lifetime: sold until 15 Nov 23:59 Bangkok only', L.lifetimeOpen(BEFORE) && !L.lifetimeOpen(AFTER));
+t('lifetime: price text says the last day, then drops lifetime', L.priceText([], BEFORE).includes('ขายถึง 15 พ.ย. 69') && !L.priceText([], AFTER).includes('ซื้อขาด') && L.priceText([], AFTER).includes('รายรอบ 3 เดือน 99 บาท'));
 console.log(bad ? `${bad}/${n} FAILED` : `all ${n} passed`);
 process.exit(bad ? 1 : 0);

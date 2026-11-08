@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { rpc, type Me, type PackageKey, type Price } from "./api";
-import { PACKAGES, SHOP } from "./config";
+import { LIFETIME_LAST_DAY, PACKAGES, SHOP, lifetimeOpen } from "./config";
 import { IconCheck, IconCrown } from "./icons";
 import PayForm from "./PayForm";
 
@@ -14,7 +14,8 @@ export default function Buy({ me, email, onChanged }: { me: Me; email: string; o
   const [pick, setPick] = useState<{ pkg: PackageKey; term: Term; n: number } | null>(() => {
     const q = new URLSearchParams(window.location.search);
     const pkg = q.get("pkg"), term = q.get("term");
-    return PACKAGES.some(p => p.key === pkg) && (term === "round" || term === "lifetime") ? { pkg: pkg as PackageKey, term, n: 1 } : null;
+    if (!PACKAGES.some(p => p.key === pkg) || (term !== "round" && term !== "lifetime")) return null;
+    return { pkg: pkg as PackageKey, term: term === "lifetime" && !lifetimeOpen() ? "round" : term, n: 1 };
   });
   const form = useRef<HTMLDivElement>(null);
   useEffect(() => { if (pick?.n === 1) window.setTimeout(() => form.current?.scrollIntoView({ block: "start" }), 300); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -27,6 +28,9 @@ export default function Buy({ me, email, onChanged }: { me: Me; email: string; o
     return x ? `${x.amount} บาท` : fallback;
   };
   const pkgs = me.packages ?? [];
+  // ซื้อขาดขายถึงสิ้นวันที่ 15 พ.ย. 69 เท่านั้น หลังจากนั้นเหลือแบบรายรอบ
+  const [lifeOpen] = useState(lifetimeOpen);
+  const terms: Term[] = lifeOpen ? ["round", "lifetime"] : ["round"];
   const owned = new Set(pkgs.map(p => p.package));
   const lifetimeAll = pkgs.some(p => p.package === "ALL" && !p.expires_at);
   const choose = (pkg: PackageKey, term: Term) => {
@@ -41,11 +45,11 @@ export default function Buy({ me, email, onChanged }: { me: Me; email: string; o
       <b>{p.name}</b>
       <span className="pp-muted small">{p.desc}</span>
       <div className="pp-pkg-prices">
-        {(["round", "lifetime"] as const).map(t => (
+        {terms.map(t => (
           <button key={t} className={pick?.pkg === p.key && pick.term === t ? "on" : ""} onClick={() => choose(p.key, t)}>
             <span>{t === "round" ? "รายรอบ 3 เดือน" : "ซื้อขาด"}</span>
             <b>{priceOf(p.key, t, t === "round" ? p.round : p.lifetime) || "สอบถาม"}</b>
-            {t === "lifetime" && p.best && <em>ใช้ได้ทุกรอบสอบ</em>}
+            {t === "lifetime" && <em>{p.best ? "ใช้ได้ทุกรอบสอบ · " : ""}ขายถึง {LIFETIME_LAST_DAY} เท่านั้น</em>}
           </button>
         ))}
       </div>
@@ -62,10 +66,16 @@ export default function Buy({ me, email, onChanged }: { me: Me; email: string; o
       {exam?.days_left != null && exam.days_left >= 0 && exam.days_left <= 60 && (
         <p className="pp-wall-count">{exam.days_left === 0 ? "วันนี้วันสอบ" : <>อีก <b>{exam.days_left}</b> วัน</>}{exam.exam_title ? ` ถึง${exam.exam_title}` : " ถึงวันสอบ"}</p>
       )}
+      {lifeOpen && (
+        <div className="pp-life-last">
+          <b>⏰ แพ็กซื้อขาด ขายถึง {LIFETIME_LAST_DAY} (23:59 น.) เท่านั้น</b>
+          <span>ซื้อไว้ก่อนใช้ได้ทุกรอบสอบตลอดไป ไม่ต้องจ่ายเพิ่ม · หลังจากนั้นจะมีเฉพาะแบบรายรอบ{pkgs.length ? " · มีแพ็กรายรอบอยู่แล้ว อัปเกรดจ่ายแค่ส่วนต่าง" : ""}</span>
+        </div>
+      )}
       <ul className="pp-perks">
         <li><IconCheck />สร้างชุดใหม่ได้ไม่จำกัดในหมวดของแพ็ก (ชุดละสูงสุด 200 ข้อ)</li>
         <li><IconCheck />ดึงข้อใหม่จากคลังทั้งหมด พร้อมเฉลยและคำอธิบายทุกข้อ</li>
-        <li><IconCheck /><span>เลือกได้ทั้ง <b>รายรอบ</b>{SHOP.roundText ? ` (${SHOP.roundText})` : ""} หรือ <b>ซื้อขาด</b> ใช้ได้ตลอด · ซื้อรายรอบซ้ำจะต่อเวลาจากวันหมดอายุเดิม</span></li>
+        <li><IconCheck /><span>{lifeOpen ? <>เลือกได้ทั้ง <b>รายรอบ</b>{SHOP.roundText ? ` (${SHOP.roundText})` : ""} หรือ <b>ซื้อขาด</b> ใช้ได้ตลอด</> : <><b>รายรอบ</b>{SHOP.roundText ? ` (${SHOP.roundText})` : ""}</>} · ซื้อรายรอบซ้ำจะต่อเวลาจากวันหมดอายุเดิม</span></li>
       </ul>
       {/* 97% of orders are the full pack: it leads, the single-part packs sit behind "แพ็กแยกภาค". */}
       <div className="pp-pkgs">{PACKAGES.filter(p => p.best).map(card)}</div>

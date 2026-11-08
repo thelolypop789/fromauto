@@ -72,7 +72,7 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
       <ExpiryBanner me={me} onRenew={onUpgrade} />
       <InstallBanner />
       {installSheet.open && <InstallSheet onClose={() => installSheet.setOpen(false)} />}
-      <Announcement track={profile.track} joined={joined} />
+      <Announcement track={profile.track} joined={joined} lifetimeOwner={(me.packages ?? []).some(p => p.package === "ALL" && !p.expires_at)} />
       <ExamFollowup />
       {me.plan !== "paid" && <PromoNotice onUpgrade={onUpgrade} />}
 

@@ -16,3 +16,9 @@ export const PACKAGES: { key: "A" | "B" | "ALL"; name: string; desc: string; rou
   { key: "B", name: "แพ็กภาค ข + วิชาเอก", desc: "วิชาการศึกษา กฎหมายการศึกษา และวิชาเอกทุกวิชา", round: "69 บาท", lifetime: "129 บาท" },
   { key: "ALL", name: "แพ็กครบทุกภาค", desc: "ภาค ก + ภาค ข + วิชาเอก คุ้มที่สุด", round: "99 บาท", lifetime: "179 บาท", best: true },
 ];
+
+// กลุ่มเตรียมสอบ by SOBPREP: ใส่ลิงก์เมื่อสร้างกลุ่มแล้ว (ว่าง = ไม่แสดงปุ่มนั้น) แล้ว push ขึ้น main ให้ Vercel build ใหม่
+export const COMMUNITY = {
+  facebook: "",   // https://www.facebook.com/groups/...
+  openchat: "",   // https://line.me/ti/g2/...
+};

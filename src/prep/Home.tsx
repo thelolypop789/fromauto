@@ -73,7 +73,7 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
       <InstallBanner />
       {installSheet.open && <InstallSheet onClose={() => installSheet.setOpen(false)} />}
       <Announcement track={profile.track} joined={joined} />
-      <ExamFollowup me={me} />
+      <ExamFollowup />
       {me.plan !== "paid" && <PromoNotice onUpgrade={onUpgrade} />}
 
       {/* Order: what to do today first, then where you stand, then everything else. On a wide screen the side column

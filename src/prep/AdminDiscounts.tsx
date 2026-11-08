@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { PACKAGE_LABEL, TERM_LABEL, rpc, thaiError, type PackageKey, type Price } from "./api";
 import AdminPromo from "./AdminPromo";
 
-type Term = "round" | "lifetime";
+type Term = "round" | "lifetime" | "year";
 type Item = {
   id: number; recipient: string; contact: string | null; reason: string | null; package: PackageKey; term: Term;
   list_price: number; price: number; created_at: string; paid_at: string | null; cancelled_at: string | null;
@@ -86,7 +86,7 @@ export default function AdminDiscounts() {
             {(["ALL", "A", "B"] as PackageKey[]).map(p => <button key={p} type="button" className={f.package === p ? "on" : ""} onClick={() => setF({ ...f, package: p })}>{PACKAGE_LABEL[p]}</button>)}
           </div>
           <div className="pp-seg pp-seg-sub" role="group" aria-label="ระยะเวลา">
-            {(["lifetime", "round"] as Term[]).map(x => <button key={x} type="button" className={f.term === x ? "on" : ""} onClick={() => setF({ ...f, term: x })}>{TERM_LABEL[x]}</button>)}
+            {(["year", "round", "lifetime"] as Term[]).map(x => <button key={x} type="button" className={f.term === x ? "on" : ""} onClick={() => setF({ ...f, term: x })}>{TERM_LABEL[x]}</button>)}
           </div>
           <label><span className="pp-muted small">ราคาที่เก็บ (บาท) · ราคาปกติ {list !== null ? baht(list) : "-"}</span>
             <input className="pp-input" type="number" min={0} max={list ?? undefined} inputMode="numeric" value={f.price} onChange={e => setF({ ...f, price: e.target.value })} /></label>

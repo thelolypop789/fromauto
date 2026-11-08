@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, supabase, thaiError, type PackageKey } from "./api";
+import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, supabase, thaiError, type PackageKey, type Term } from "./api";
 import AdminPrices from "./AdminPrices";
 import { IconCheck, IconX } from "./icons";
 
 type Row = {
-  id: number; email: string | null; package: PackageKey; term: "round" | "lifetime"; amount: number | null; credit: number; list_price: number | null; promo_code?: string | null; discount?: number; seats?: number; group_name?: string | null;
+  id: number; email: string | null; package: PackageKey; term: Term; amount: number | null; credit: number; list_price: number | null; promo_code?: string | null; discount?: number; seats?: number; group_name?: string | null;
   slip_path: string; note: string | null; status: "pending" | "approved" | "rejected"; admin_note: string | null;
   created_at: string; reviewed_at: string | null; active_packages: PackageKey[];
 };
@@ -96,7 +96,7 @@ function OrderCard({ r, onDone }: { r: Row; onDone: (id: number) => void }) {
               </div>
             </>
           )}
-          {r.status === "approved" && <div className="pp-muted small">เปิดสิทธิ์แล้ว ({r.term === "round" ? "90 วัน" : fmtUntil(null)})</div>}
+          {r.status === "approved" && <div className="pp-muted small">เปิดสิทธิ์แล้ว ({r.term === "round" ? "90 วัน" : r.term === "year" ? "365 วัน" : fmtUntil(null)})</div>}
           {err && <div className="pp-error">{err}</div>}
         </div>
       </div>

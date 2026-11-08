@@ -32,11 +32,13 @@ import { notify } from "./dialog";
 import { DialogHost } from "./DialogHost";
 import { applyReadScale } from "./readScale";
 import Skeleton from "./Skeleton";
+import { AreaPrompt } from "./AreaSurvey";
 
 // Loaded on first open: the admin screens are for staff only, and the summaries bring their own font and styles.
 const Admin = lazy(() => import("./Admin"));
 const Summary = lazy(() => import("./Summary"));
 const Tarot = lazy(() => import("./Tarot"));   // fortune page: its card pictures load only when opened
+const ExamRecap = lazy(() => import("./ExamRecap"));
 
 setupPwa();
 applyReadScale();
@@ -47,7 +49,7 @@ const PATHS = {
   home: "/prep", create: "/prep/create", play: "/prep/play", result: "/prep/result", stats: "/prep/stats", daily: "/prep/daily",
   board: "/prep/board", mock: "/prep/mock", mockplay: "/prep/mock/play", mockresult: "/prep/mock/result", calendar: "/prep/calendar",
   feedback: "/prep/feedback", account: "/prep/me", buy: "/prep/buy", summary: "/prep/summary", past: "/prep/past", admin: "/prep/admin",
-  tarot: "/prep/tarot",
+  tarot: "/prep/tarot", recap: "/prep/recap",
 } as const;
 type ViewName = keyof typeof PATHS;
 function viewFromPath(path: string): ViewName {
@@ -220,7 +222,7 @@ function PrepShell() {
     { key: "account", label: "ฉัน", icon: <IconUser /> },
     ...(me.is_admin ? [{ key: "admin" as const, label: "แอดมิน", icon: <IconShield /> }] : []),
   ];
-  const active = (k: ViewName) => view.name === k || (k === "home" && (view.name === "create" || view.name === "result" || view.name === "daily" || view.name === "board" || view.name === "mock" || view.name === "mockresult" || view.name === "past"))
+  const active = (k: ViewName) => view.name === k || (k === "home" && (view.name === "create" || view.name === "result" || view.name === "daily" || view.name === "board" || view.name === "mock" || view.name === "mockresult" || view.name === "past" || view.name === "recap"))
     || (k === "account" && (view.name === "buy" || view.name === "feedback"));
   const freeLeft = Math.max(0, me.free_sets_limit - me.free_sets_used);
   const go = (k: ViewName) => navigate(PATHS[k]);
@@ -230,6 +232,8 @@ function PrepShell() {
   return (
     <div className="pp-app">
       {askTrack && <TrackPicker variant="popup" current={profile.track} onDone={changeProfile} />}
+      {/* ลงสอบเขตไหน: ถามหลังเลือกสังกัด/เอกแล้วเท่านั้น จะได้ไม่ซ้อนป๊อปอัป */}
+      {!askTrack && profileLoaded && profile.major && view.name !== "admin" && <AreaPrompt track={profile.track} />}
       <header className="pp-top">
         <div className="pp-top-in">
           <button className="pp-brand" onClick={() => go("home")}>
@@ -265,6 +269,7 @@ function PrepShell() {
         {view.name === "mockresult" && held.mock && <MockResult payload={held.mock} onBack={() => back("mock")} onReview={() => startReview("wrong")} />}
         {view.name === "calendar" && <Calendar onBack={() => back("home")} />}
         {view.name === "tarot" && <Tarot onBack={() => back("home")} onPractice={() => go("create")} />}
+        {view.name === "recap" && <ExamRecap onBack={() => back("home")} />}
         {view.name === "feedback" && <Feedback page="tab" />}
         {view.name === "past" && <PastExams onBack={() => back("home")} onUpgrade={() => go("buy")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} />}

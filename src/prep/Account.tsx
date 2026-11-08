@@ -10,6 +10,8 @@ import Feedback from "./Feedback";
 import GroupKeys from "./GroupKeys";
 import { ask as confirmDialog } from "./dialog";
 import ThemePicker from "./ThemePicker";
+import { AreaCard } from "./AreaSurvey";
+import CommunityCard from "./Community";
 
 const noop = () => { /* nothing to refresh */ };
 type Props = {
@@ -69,6 +71,8 @@ export default function Account({ me, email, profile, onMajor, onProfile, onChan
         <button className="pp-btn pp-btn-outline" onClick={() => setPicking(true)}>{profile.major ? "เปลี่ยน" : "เลือกวิชาเอก"}</button>
       </div>
       {picking && <MajorPicker current={profile.major} track={profile.track} onTrack={onProfile} onClose={() => setPicking(false)} onSaved={onMajor} />}
+      <AreaCard track={profile.track} />
+      <CommunityCard />
 
       <ThemePicker />
       <InstallBanner always />

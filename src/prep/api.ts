@@ -76,6 +76,7 @@ const ERRORS: Record<string, string> = {
   duplicate_question: "มีข้อสอบที่โจทย์และตัวเลือกเหมือนกันอยู่แล้ว",
   explanation_required: "เปลี่ยนเฉลยแล้ว ต้องแก้คำอธิบายให้ตรงกับเฉลยใหม่ด้วย",
   bad_picks: "ข้อมูลไพ่ไม่ถูกต้อง ลองเปิดหน้าใหม่แล้วสับไพ่อีกครั้ง",
+  not_for_sale: "แพ็กนี้ปิดการขายแล้ว ลองเลือกแพ็กหรือแบบอื่น",
   lifetime_closed: "แพ็กซื้อขาดปิดการขายแล้วเมื่อ 15 พ.ย. 69 เลือกแบบรายรอบแทนได้ครับ",
   bad_area: "ข้อมูลเขตไม่ครบหรือไม่ถูกต้อง ลองเลือกใหม่อีกครั้ง",
   recap_closed: "ช่วงเล่าข้อสอบปิดแล้ว",
@@ -258,14 +259,16 @@ export const fmtUntil = (iso: string | null) =>
   iso ? `ถึง ${new Date(new Date(iso).getTime() - 1).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}` : "ตลอดชีพ";
 
 export type Order = {
-  id: number; package: PackageKey; term: "round" | "lifetime"; amount: number | null;
+  id: number; package: PackageKey; term: Term; amount: number | null;
   status: "pending" | "approved" | "rejected"; admin_note: string | null; seats?: number; group_name?: string | null;
   created_at: string; reviewed_at: string | null; access_until?: string | null;
 };
-export type Price = { package: PackageKey; term: "round" | "lifetime"; amount: number };
+// รายรอบ 3 เดือน / รายปี 12 เดือน (เริ่ม 16 พ.ย. 69) / ซื้อขาด (ขายถึง 15 พ.ย. 69)
+export type Term = "round" | "lifetime" | "year";
+export type Price = { package: PackageKey; term: Term; amount: number };
 // Server price for this account: credit is deducted when the buyer already holds part of the package.
 export type Quote = {
-  package: PackageKey; term: "round" | "lifetime"; base?: number; credit?: number; amount?: number;
+  package: PackageKey; term: Term; base?: number; credit?: number; amount?: number;
   kind?: "new" | "renew" | "upgrade"; expires_at?: string | null; error?: string;
 };
 export type ReviewCounts = { due: number; wrong: number };
@@ -312,11 +315,11 @@ export type Subtopic = {
   code: string; name: string; kind: "content" | "pedagogy"; keywords: string; share: number; available: number; seen: number; right: number;
 };
 export type GroupQuote = {
-  seats: number; name: string; emoji: string; pct_off: number; package: PackageKey; term: "round" | "lifetime";
+  seats: number; name: string; emoji: string; pct_off: number; package: PackageKey; term: Term;
   base: number; per_seat: number; total: number; save: number;
 };
 export type GroupKeys = {
-  order_id: number; name: string | null; seats: number; package: PackageKey; term: "round" | "lifetime"; created_at: string | null;
+  order_id: number; name: string | null; seats: number; package: PackageKey; term: Term; created_at: string | null;
   keys: { key: string; used: boolean; mine: boolean | null; revoked: boolean }[];
 };
 export type PromoQuote = Quote & { code?: string; before?: number; discount?: number };
@@ -338,7 +341,7 @@ export type MockPayload = {
   attempt_id: string; subject: string; name: string; minutes: number; started_at: string; deadline: string;
   server_now: string; submitted: boolean; free_trial: boolean; items: MockItem[]; result: MockResultData | null;
 };
-export const TERM_LABEL = { round: "รายรอบ 3 เดือน", lifetime: "ซื้อขาด" } as const;
+export const TERM_LABEL: Record<Term, string> = { round: "รายรอบ 3 เดือน", year: "รายปี 12 เดือน", lifetime: "ซื้อขาด" };
 
 // ---- Usage events: only three, one per user per day, no content. The link's ?src= (e.g. /prep?src=fb-post1) is kept so the
 // first visit after Google sign-in can still say where the user came from.

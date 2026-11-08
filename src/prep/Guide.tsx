@@ -1,9 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { rpc, type Price, type PackageKey } from "./api";
+import { TERM_LABEL, rpc, type Price, type PackageKey, type Term } from "./api";
 import { LIFETIME_LAST_DAY, PACKAGES, SHOP, lifetimeOpen } from "./config";
 import { Logo } from "./icons";
 
-type Term = "round" | "lifetime";
 const SECTIONS: { id: string; title: string }[] = [
   { id: "start", title: "เริ่มต้นใช้งาน" },
   { id: "practice", title: "ฝึกทำข้อสอบ" },
@@ -36,9 +35,12 @@ export default function Guide() {
   const n = (k: PackageKey, t: Term) => {
     const x = prices.find(p => p.package === k && p.term === t);
     if (x) return x.amount;
-    const c = PACKAGES.find(p => p.key === k)!;
-    return Number((t === "round" ? c.round : c.lifetime).replace(/\D/g, ""));
+    const c = PACKAGES.find(p => p.key === k);
+    return c ? Number(c[t].replace(/\D/g, "")) : 0;
   };
+  // ถึง 15 พ.ย. 69: รายรอบ + ซื้อขาด · ตั้งแต่ 16 พ.ย.: รายปี + รายรอบ (ภาค ก ปิดการขายแล้ว)
+  const life = lifetimeOpen();
+  const terms: Term[] = life ? ["round", "lifetime"] : ["year", "round"];
   const baht = (v: number) => `${v} บาท`;
 
   return (
@@ -147,11 +149,13 @@ export default function Guide() {
             <div><b>บัญชีฟรี</b><span>สร้างชุดได้ 3 ชุด ชุดละไม่เกิน 40 ข้อ ทำซ้ำชุดเดิมได้ไม่จำกัด</span></div>
             {PACKAGES.map(p => (
               <div key={p.key}><b>{p.name}</b>
-                <span>{p.desc}<br />รายรอบ 3 เดือน {baht(n(p.key, "round"))} · ซื้อขาด {baht(n(p.key, "lifetime"))}</span></div>
+                <span>{p.desc}<br />{terms.map(t => `${TERM_LABEL[t]} ${baht(n(p.key, t))}`).join(" · ")}</span></div>
             ))}
           </div>
           <ul className="pp-list">
-            <li><b>ซื้อขาด</b> ใช้ได้ตลอด{lifetimeOpen() ? ` (ขายถึง ${LIFETIME_LAST_DAY} 23:59 น. เท่านั้น)` : " (ปิดการขายแล้วเมื่อ 15 พ.ย. 69 ผู้ที่ซื้อไว้ใช้ได้ตลอดเหมือนเดิม)"} · <b>รายรอบ 3 เดือน</b> นับจากวันที่ทีมงานเปิดสิทธิ์ ซื้อซ้ำก่อนหมดจะต่อจากวันหมดอายุเดิม</li>
+            {life
+              ? <li><b>ซื้อขาด</b> ใช้ได้ตลอด (ขายถึง {LIFETIME_LAST_DAY} 23:59 น. เท่านั้น ตั้งแต่ 16 พ.ย. เปลี่ยนเป็นรายปี) · <b>รายรอบ 3 เดือน</b> นับจากวันที่ทีมงานเปิดสิทธิ์ ซื้อซ้ำก่อนหมดจะต่อจากวันหมดอายุเดิม</li>
+              : <li><b>รายปี</b> ใช้ได้ 12 เดือน · <b>รายรอบ</b> ใช้ได้ 3 เดือน นับจากวันที่ทีมงานเปิดสิทธิ์ ซื้อซ้ำก่อนหมดจะต่อจากวันหมดอายุเดิม · แพ็กซื้อขาดปิดการขายแล้วเมื่อ 15 พ.ย. 69 ผู้ที่ซื้อไว้ใช้ได้ตลอดเหมือนเดิม</li>}
             <li>ชุดที่มีเฉพาะหมวดในแพ็กของคุณ สร้างได้ไม่จำกัด ชุดละสูงสุด 200 ข้อ ส่วนหมวดนอกแพ็กใช้สิทธิ์ฟรี 3 ชุด</li>
             <li>แบนเนอร์เตือนขึ้นก่อนแพ็กรายรอบหมด 7 วัน</li>
             <li><b>เมื่อแพ็กรายรอบหมดอายุ:</b> ชุดที่สร้างจากแพ็กนั้นจะทำต่อไม่ได้จนกว่าจะต่ออายุ ผลคะแนนและประวัติทั้งหมดยังดูได้ ต่ออายุแล้วกลับมาทำต่อได้ทันที ส่วนชุดฟรีไม่ได้รับผลกระทบ</li>
@@ -160,7 +164,7 @@ export default function Guide() {
 
         <Sec id="pay" title="7. วิธีซื้อและส่งสลิป">
           <ol className="pp-list">
-            <li>แท็บ <b>อัปเกรด / บัญชี</b> เลือกแพ็กและแบบ (รายรอบ / ซื้อขาด) ราคาที่เห็นคือราคาสำหรับบัญชีของคุณแล้ว</li>
+            <li>แท็บ <b>อัปเกรด / บัญชี</b> เลือกแพ็กและแบบ ({terms.map(t => TERM_LABEL[t]).join(" / ")}) ราคาที่เห็นคือราคาสำหรับบัญชีของคุณแล้ว</li>
             <li>สแกน <b>QR</b> ด้วยแอปธนาคาร ยอดเงินล็อกไว้แล้วไม่ต้องพิมพ์เอง (บนมือถือ กดบันทึกรูป QR แล้วเลือก “สแกนจากรูป”)</li>
             <li>แนบรูปสลิปแล้วกด <b>ส่งสลิป</b></li>
             <li>ทีมงานตรวจยอด ปกติภายในวันเดียวกัน แล้วเปิดสิทธิ์ให้บัญชีของคุณโดยอัตโนมัติ ไม่ต้องกรอกคีย์</li>
@@ -170,13 +174,12 @@ export default function Guide() {
         </Sec>
 
         <Sec id="upgrade" title="8. มีแพ็กอยู่แล้ว อยากได้เพิ่ม">
-          <p>ซื้อทีละภาคก่อนแล้วค่อยอัปเกรดได้ <b>จ่ายแค่ส่วนต่าง</b> ไม่ต้องจ่ายซ้ำ ระบบคำนวณให้เองในหน้าซื้อ (ตัวอย่างตามราคาปัจจุบัน)</p>
+          <p>ซื้อภาค ข + วิชาเอกก่อนแล้วค่อยอัปเกรดได้ <b>จ่ายแค่ส่วนต่าง</b> ไม่ต้องจ่ายซ้ำ ระบบคำนวณให้เองในหน้าซื้อ (ตัวอย่างตามราคาปัจจุบัน)</p>
           <div className="pp-guide-table">
-            <div><b>ภาค ก ซื้อขาด → ครบทุกภาค ซื้อขาด</b><span>จ่ายเพิ่ม {baht(n("ALL", "lifetime") - n("A", "lifetime"))}</span></div>
-            <div><b>ภาค ข ซื้อขาด → ครบทุกภาค ซื้อขาด</b><span>จ่ายเพิ่ม {baht(n("ALL", "lifetime") - n("B", "lifetime"))}</span></div>
-            <div><b>ภาค ก รายรอบ → ครบทุกภาค รายรอบ</b><span>จ่ายเพิ่ม {baht(n("ALL", "round") - n("A", "round"))} · สิทธิ์ครบทุกภาคหมดวันเดียวกับรอบเดิม</span></div>
-            <div><b>ภาค ข รายรอบ → ครบทุกภาค รายรอบ</b><span>จ่ายเพิ่ม {baht(n("ALL", "round") - n("B", "round"))} · สิทธิ์ครบทุกภาคหมดวันเดียวกับรอบเดิม</span></div>
-            <div><b>ภาค ก รายรอบ → ครบทุกภาค ซื้อขาด</b><span>จ่ายเพิ่ม {baht(n("ALL", "lifetime") - n("A", "round"))} (หักค่ารอบที่จ่ายไปแล้ว)</span></div>
+            <div><b>ภาค ข รายรอบ → ครบทุกภาค รายรอบ</b><span>จ่ายเพิ่มส่วนต่างจากราคาที่จ่ายไป (ตอนนี้ {baht(n("ALL", "round") - n("B", "round"))}) · สิทธิ์ครบทุกภาคหมดวันเดียวกับรอบเดิม</span></div>
+            {life && <div><b>ภาค ข ซื้อขาด → ครบทุกภาค ซื้อขาด</b><span>จ่ายเพิ่ม {baht(n("ALL", "lifetime") - n("B", "lifetime"))} (ถึง {LIFETIME_LAST_DAY})</span></div>}
+            {life && <div><b>ครบทุกภาค รายรอบ → ครบทุกภาค ซื้อขาด</b><span>จ่ายเพิ่ม {baht(n("ALL", "lifetime") - n("ALL", "round"))} (หักค่ารอบที่จ่ายไปแล้ว ถึง {LIFETIME_LAST_DAY})</span></div>}
+            {!life && <div><b>มีรายรอบอยู่ → ซื้อรายปี</b><span>รายปี 12 เดือนนับต่อจากวันหมดอายุเดิม ไม่เสียวันที่เหลือ</span></div>}
           </div>
           <p className="pp-muted small">ตัวเลือกที่ไม่ต้องซื้อหรือส่วนต่างน้อยเกินไป (ต่ำกว่า 20 บาท) ระบบจะไม่เปิดให้ซื้อ ในหน้าซื้อจะมีปุ่มอัปเกรดสีทองขึ้นให้เมื่อบัญชีของคุณอัปเกรดได้</p>
         </Sec>

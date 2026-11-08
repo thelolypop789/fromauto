@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, supabase, thaiError, track, type Order, type GroupQuote, type PackageKey, type PromoQuote, type Quote } from "./api";
+import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, supabase, thaiError, track, type Order, type GroupQuote, type PackageKey, type PromoQuote, type Quote, type Term } from "./api";
 import { LIFETIME_LAST_DAY, PACKAGES, SHOP, lifetimeOpen } from "./config";
 import { IconCheck } from "./icons";
 import { ask } from "./dialog";
@@ -29,16 +29,15 @@ async function shrink(file: File): Promise<{ blob: Blob; type: string; ext: stri
   }
 }
 
-type Term = "round" | "lifetime";
-// ซื้อขาดขายถึงสิ้นวันที่ 15 พ.ย. 69 (config.ts) หลังจากนั้นเลือกได้เฉพาะรายรอบ
-const terms = (): Term[] => (lifetimeOpen() ? ["round", "lifetime"] : ["round"]);
+const TERM_ORDER: Term[] = ["year", "round", "lifetime"];
+// ใช้เมื่อโหลดราคาจากเซิร์ฟเวอร์ไม่ได้: ถึง 15 พ.ย. 69 รายรอบ + ซื้อขาด, ตั้งแต่ 16 พ.ย. รายปี + รายรอบ
+const fallbackTerms = (): Term[] => (lifetimeOpen() ? ["round", "lifetime"] : ["year", "round"]);
 
 // `initial`: a package and term already picked on the price cards above the form (Buy.tsx remounts the form with it).
 export default function PayForm({ email, onApproved, initial = null }: {
-  email: string; onApproved: () => void; initial?: { pkg: PackageKey; term: "round" | "lifetime" } | null;
+  email: string; onApproved: () => void; initial?: { pkg: PackageKey; term: Term } | null;
 }) {
-  const [choice, setChoice] = useState<{ pkg: PackageKey; term: Term } | null>(initial && initial.term === "lifetime" && !lifetimeOpen() ? { ...initial, term: "round" } : initial);
-  const [TERMS] = useState(terms);
+  const [choice, setChoice] = useState<{ pkg: PackageKey; term: Term } | null>(initial);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
   const [note, setNote] = useState("");
@@ -60,8 +59,8 @@ export default function PayForm({ email, onApproved, initial = null }: {
   // Refresh the account when an order was approved since the page loaded data last.
   const load = useCallback(() => { rpc<Quote[]>("prep_quotes").then(setQuotes).catch(() => {
       // Server pricing not available (older database): fall back to the list prices in config.
-      setQuotes(PACKAGES.flatMap(k => TERMS.map(t => {
-        const amount = Number((t === "round" ? k.round : k.lifetime).replace(/\D/g, "")) || undefined;
+      setQuotes(PACKAGES.flatMap(k => fallbackTerms().map(t => {
+        const amount = Number(k[t].replace(/\D/g, "")) || undefined;
         return { package: k.key, term: t, base: amount, credit: 0, amount, kind: "new" as const, expires_at: undefined };
       })));
     }); return rpc<Order[]>("prep_my_orders").then(o => {
@@ -73,11 +72,15 @@ export default function PayForm({ email, onApproved, initial = null }: {
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
   // The server prices every choice for this account (full price, or the difference when upgrading).
-  const quoteOf = (k: PackageKey, t: "round" | "lifetime") => quotes?.find(x => x.package === k && x.term === t);
+  const quoteOf = (k: PackageKey, t: Term) => quotes?.find(x => x.package === k && x.term === t);
+  // แบบที่เปิดขาย = แบบที่เซิร์ฟเวอร์ส่งราคามา (เฉพาะราคา active)
+  const TERMS: Term[] = quotes ? TERM_ORDER.filter(t => quotes.some(x => x.term === t)) : fallbackTerms();
   // Until the buyer picks, show the first choice that can actually be bought (e.g. the upgrade offer).
-  const firstOpen = (["ALL", "B", "A"] as const).flatMap(k => TERMS.map(t => ({ pkg: k as PackageKey, term: t })))
+  const firstOpen = (["ALL", "B"] as const).flatMap(k => TERMS.map(t => ({ pkg: k as PackageKey, term: t })))
     .find(c => { const x = quoteOf(c.pkg, c.term); return !!x && !x.error; });
-  const { pkg, term } = choice ?? firstOpen ?? { pkg: "ALL" as PackageKey, term: "round" as const };
+  // ตัวเลือกจากลิงก์/การ์ดที่ปิดขายไปแล้ว (เช่น ซื้อขาดหลัง 15 พ.ย.) → ใช้ตัวเลือกแรกที่ซื้อได้แทน
+  const valid = choice && (!quotes || TERMS.includes(choice.term)) ? choice : null;
+  const { pkg, term } = valid ?? firstOpen ?? { pkg: "ALL" as PackageKey, term: TERMS[0] ?? "round" };
   const q = quoteOf(pkg, term);
   const promoKey = applied ? `${applied}|${pkg}|${term}` : "";
   const promo = pq && pq.key === promoKey ? pq : null;      // only a result for the current choice counts

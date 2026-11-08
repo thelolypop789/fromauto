@@ -18,15 +18,16 @@ export default function FreeWall() {
     rpc<Plan>("prep_plan").then(setPlan).catch(() => { /* no countdown */ });
     rpc<Readiness>("prep_readiness").then(r => setFocus(r.focus?.[0] ?? null)).catch(() => { /* no hint */ });
   }, []);
-  const price = (t: "round" | "lifetime") => {
+  const price = (t: "round" | "lifetime" | "year") => {
     const q = quotes.find(x => x.package === "ALL" && x.term === t && !x.error);
     return q?.amount ?? null;
   };
-  const buy = (term?: "round" | "lifetime") => {
+  const buy = (term?: "round" | "lifetime" | "year") => {
     track("paywall_click");
     navigate(term ? `/prep/buy?pkg=ALL&term=${term}` : "/prep/buy");
   };
-  const round = price("round"), life = lifetimeOpen() ? price("lifetime") : null;   // ซื้อขาดขายถึง 15 พ.ย. 69
+  // ราคามาจากเซิร์ฟเวอร์เฉพาะแบบที่เปิดขาย: ซื้อขาดถึง 15 พ.ย. 69, รายปีตั้งแต่ 16 พ.ย.
+  const round = price("round"), life = lifetimeOpen() ? price("lifetime") : null, year = price("year");
   const days = plan?.days_left;
 
   return (
@@ -44,9 +45,10 @@ export default function FreeWall() {
         <li><IconCheck />ข้อสอบจำลองเสมือนจริงจับเวลา และสรุปเนื้อหาแบบแผนผังครบทุกเรื่อง</li>
         <li><IconCheck />จ่ายผ่าน QR แล้วเปิดสิทธิ์ให้ ปกติภายในไม่กี่นาที</li>
       </ul>
-      {round || life ? (
+      {round || life || year ? (
         <div className="pp-wall-buy">
           {round && <button className="pp-btn pp-btn-outline" onClick={() => buy("round")}><span>ครบทุกภาค · รายรอบ 3 เดือน</span><b>{round} บาท</b></button>}
+          {year && <button className="pp-btn pp-btn-gold" onClick={() => buy("year")}><span>ครบทุกภาค · รายปี 12 เดือน</span><b>{year} บาท</b></button>}
           {life && <button className="pp-btn pp-btn-gold" onClick={() => buy("lifetime")}><span>ครบทุกภาค · ซื้อขาด ใช้ได้ทุกรอบ · ขายถึง {LIFETIME_LAST_DAY}</span><b>{life} บาท</b></button>}
         </div>
       ) : (

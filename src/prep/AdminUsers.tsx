@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAdminTrack } from "./adminTrack";
-import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, thaiError, type PackageKey } from "./api";
+import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, thaiError, type PackageKey, type Term } from "./api";
 import { ColumnChart, CompareList } from "./ChartParts";
 import { nf } from "./chartFormat";
 import AdminUserView from "./AdminUserView";
@@ -13,7 +13,7 @@ const PAGE = 50;
 type Detail = {
   user: { id: string; email: string; created_at: string; plan: string; major?: string | null; track?: string | null; major_name: string | null; free_sets_used: number; free_mock_used: boolean };
   entitlements: { id: number; package: PackageKey; starts_at: string; expires_at: string | null; revoked_at: string | null; source: string; active: boolean }[];
-  orders: { id: number; package: PackageKey; term: "round" | "lifetime"; amount: number | null; credit: number; status: "pending" | "approved" | "rejected"; created_at: string; reviewed_at: string | null; admin_note: string | null }[];
+  orders: { id: number; package: PackageKey; term: Term; amount: number | null; credit: number; status: "pending" | "approved" | "rejected"; created_at: string; reviewed_at: string | null; admin_note: string | null }[];
   activity: { answered_total: number; last_active: string | null; sets: number; mock_done: number };
   actions: { action: string; detail: { package?: string; days?: number | null; note?: string | null }; created_at: string }[];
 };

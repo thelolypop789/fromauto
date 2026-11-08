@@ -1,10 +1,11 @@
 import { useRef, useState, useEffect } from "react";
-import { rpc, type Me, type PackageKey, type Price } from "./api";
+import { TERM_LABEL, rpc, type Me, type PackageKey, type Price, type Term } from "./api";
 import { LIFETIME_LAST_DAY, PACKAGES, SHOP, lifetimeOpen } from "./config";
 import { IconCheck, IconCrown } from "./icons";
 import PayForm from "./PayForm";
 
-type Term = "round" | "lifetime";
+const TERM_ORDER: Term[] = ["year", "round", "lifetime"];
+const isTerm = (t: string | null): t is Term => t === "round" || t === "year" || t === "lifetime";
 
 // /prep/buy: packages, how to pay and the payment form. Tapping a price on a card picks that package and term in the
 // form below (the form is remounted with it), so the buyer does not choose twice.
@@ -14,8 +15,9 @@ export default function Buy({ me, email, onChanged }: { me: Me; email: string; o
   const [pick, setPick] = useState<{ pkg: PackageKey; term: Term; n: number } | null>(() => {
     const q = new URLSearchParams(window.location.search);
     const pkg = q.get("pkg"), term = q.get("term");
-    if (!PACKAGES.some(p => p.key === pkg) || (term !== "round" && term !== "lifetime")) return null;
-    return { pkg: pkg as PackageKey, term: term === "lifetime" && !lifetimeOpen() ? "round" : term, n: 1 };
+    if (!PACKAGES.some(p => p.key === pkg) || !isTerm(term)) return null;
+    // ลิงก์เก่าที่ชี้ซื้อขาด (ปิดขายหลัง 15 พ.ย. 69) → รายปี
+    return { pkg: pkg as PackageKey, term: term === "lifetime" && !lifetimeOpen() ? "year" : term, n: 1 };
   });
   const form = useRef<HTMLDivElement>(null);
   useEffect(() => { if (pick?.n === 1) window.setTimeout(() => form.current?.scrollIntoView({ block: "start" }), 300); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -28,9 +30,13 @@ export default function Buy({ me, email, onChanged }: { me: Me; email: string; o
     return x ? `${x.amount} บาท` : fallback;
   };
   const pkgs = me.packages ?? [];
-  // ซื้อขาดขายถึงสิ้นวันที่ 15 พ.ย. 69 เท่านั้น หลังจากนั้นเหลือแบบรายรอบ
+  // แบบที่เปิดขาย: ตามราคาในฐานข้อมูล (เฉพาะที่ active) · ก่อนโหลดเสร็จ/โหลดไม่ได้ ใช้ตามวันที่
+  // (ถึง 15 พ.ย. 69: รายรอบ + ซื้อขาด · ตั้งแต่ 16 พ.ย.: รายปี + รายรอบ)
   const [lifeOpen] = useState(lifetimeOpen);
-  const terms: Term[] = lifeOpen ? ["round", "lifetime"] : ["round"];
+  const termsOf = (k: PackageKey): Term[] => {
+    const db = TERM_ORDER.filter(t => prices.some(x => x.package === k && x.term === t));
+    return db.length ? db : lifeOpen ? ["round", "lifetime"] : ["year", "round"];
+  };
   const owned = new Set(pkgs.map(p => p.package));
   const lifetimeAll = pkgs.some(p => p.package === "ALL" && !p.expires_at);
   const choose = (pkg: PackageKey, term: Term) => {
@@ -38,18 +44,19 @@ export default function Buy({ me, email, onChanged }: { me: Me; email: string; o
     window.setTimeout(() => form.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   };
 
-  const others = PACKAGES.filter(p => !p.best && (p.key !== "A" || !owned.has("A")));
+  const others = PACKAGES.filter(p => !p.best);
   const card = (p: (typeof PACKAGES)[number]) => (
     <div key={p.key} className={`pp-pkg ${p.best ? "best" : ""}`}>
       {p.best && <span className="pp-pkg-ribbon">คุ้มที่สุด</span>}
       <b>{p.name}</b>
       <span className="pp-muted small">{p.desc}</span>
       <div className="pp-pkg-prices">
-        {terms.map(t => (
+        {termsOf(p.key).map(t => (
           <button key={t} className={pick?.pkg === p.key && pick.term === t ? "on" : ""} onClick={() => choose(p.key, t)}>
-            <span>{t === "round" ? "รายรอบ 3 เดือน" : "ซื้อขาด"}</span>
-            <b>{priceOf(p.key, t, t === "round" ? p.round : p.lifetime) || "สอบถาม"}</b>
+            <span>{TERM_LABEL[t]}</span>
+            <b>{priceOf(p.key, t, p[t]) || "สอบถาม"}</b>
             {t === "lifetime" && <em>{p.best ? "ใช้ได้ทุกรอบสอบ · " : ""}ขายถึง {LIFETIME_LAST_DAY} เท่านั้น</em>}
+            {t === "year" && <em>ถูกกว่าซื้อ 3 เดือน 4 ครั้ง</em>}
           </button>
         ))}
       </div>
@@ -69,26 +76,28 @@ export default function Buy({ me, email, onChanged }: { me: Me; email: string; o
       {lifeOpen && (
         <div className="pp-life-last">
           <b>⏰ แพ็กซื้อขาด ขายถึง {LIFETIME_LAST_DAY} (23:59 น.) เท่านั้น</b>
-          <span>ซื้อไว้ก่อนใช้ได้ทุกรอบสอบตลอดไป ไม่ต้องจ่ายเพิ่ม · หลังจากนั้นจะมีเฉพาะแบบรายรอบ{pkgs.length ? " · มีแพ็กรายรอบอยู่แล้ว อัปเกรดจ่ายแค่ส่วนต่าง" : ""}</span>
+          <span>ซื้อไว้ก่อนใช้ได้ทุกรอบสอบตลอดไป ไม่ต้องจ่ายเพิ่ม · ตั้งแต่ 16 พ.ย. แพ็กครบทุกภาคจะเป็น <b>รายปี 219 บาท</b> / 3 เดือน 129 บาท{pkgs.length ? " · มีแพ็กรายรอบอยู่แล้ว อัปเกรดเป็นซื้อขาดจ่ายแค่ส่วนต่าง" : ""}</span>
         </div>
       )}
       <ul className="pp-perks">
         <li><IconCheck />สร้างชุดใหม่ได้ไม่จำกัดในหมวดของแพ็ก (ชุดละสูงสุด 200 ข้อ)</li>
         <li><IconCheck />ดึงข้อใหม่จากคลังทั้งหมด พร้อมเฉลยและคำอธิบายทุกข้อ</li>
-        <li><IconCheck /><span>{lifeOpen ? <>เลือกได้ทั้ง <b>รายรอบ</b>{SHOP.roundText ? ` (${SHOP.roundText})` : ""} หรือ <b>ซื้อขาด</b> ใช้ได้ตลอด</> : <><b>รายรอบ</b>{SHOP.roundText ? ` (${SHOP.roundText})` : ""}</>} · ซื้อรายรอบซ้ำจะต่อเวลาจากวันหมดอายุเดิม</span></li>
+        <li><IconCheck /><span>{lifeOpen
+          ? <>เลือกได้ทั้ง <b>รายรอบ</b>{SHOP.roundText ? ` (${SHOP.roundText})` : ""} หรือ <b>ซื้อขาด</b> ใช้ได้ตลอด</>
+          : <><b>รายปี</b> ใช้ได้ 12 เดือน หรือ <b>รายรอบ</b>{SHOP.roundText ? ` (${SHOP.roundText})` : ""}</>} · ซื้อซ้ำจะต่อเวลาจากวันหมดอายุเดิม</span></li>
       </ul>
       {/* 97% of orders are the full pack: it leads, the single-part packs sit behind "แพ็กแยกภาค". */}
       <div className="pp-pkgs">{PACKAGES.filter(p => p.best).map(card)}</div>
       {others.length > 0 && (
         <details className="pp-pkg-more" open={!!pick && !PACKAGES.find(p => p.key === pick.pkg)?.best}>
-          <summary>แพ็กแยกภาค (ภาค ก / ภาค ข + วิชาเอก)</summary>
+          <summary>แพ็กภาค ข + วิชาเอก</summary>
           <div className="pp-pkgs">{others.map(card)}</div>
         </details>
       )}
       <p className="pp-muted small">แตะราคาเพื่อเลือกแพ็กนั้นในขั้นตอนด้านล่าง</p>
       <h3>วิธีซื้อ</h3>
       <ol className="pp-list">
-        <li>เลือกแพ็กและแบบ (รายรอบ / ซื้อขาด) · มีแพ็กอยู่แล้วและอยากได้เพิ่ม ระบบคิดให้จ่ายแค่ส่วนต่าง</li>
+        <li>เลือกแพ็กและแบบ ({termsOf("ALL").map(t => TERM_LABEL[t]).join(" / ")}) · มีแพ็กอยู่แล้วและอยากได้เพิ่ม ระบบคิดให้จ่ายแค่ส่วนต่าง</li>
         <li>สแกน QR ที่ขึ้นมา (ยอดเงินตรงตามแพ็กแล้ว ไม่ต้องพิมพ์เอง){SHOP.bankText ? ` · ${SHOP.bankText}` : ""}</li>
         <li>แนบรูปสลิปแล้วกดส่ง</li>
         <li>ทีมงานตรวจยอดแล้วเปิดสิทธิ์ให้บัญชีนี้ ({email}) ไม่ต้องกรอกคีย์ สถานะการตรวจแสดงในฟอร์มด้านล่าง{SHOP.contactText ? ` · สอบถาม: ${SHOP.contactText}` : ""}</li>

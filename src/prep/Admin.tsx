@@ -31,7 +31,7 @@ type KeyRow = { id: number; note: string | null; created_at: string; redeemed_at
   package?: PackageKey; free?: boolean; duration_days?: number | null; expires_on?: string | null; access_until?: string | null };
 const keyTerm = (r: { duration_days?: number | null; expires_on?: string | null }) =>
   r.expires_on ? `ถึง ${new Date(r.expires_on + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}`
-    : r.duration_days ? (r.duration_days === 90 ? "รายรอบ 3 เดือน" : `${r.duration_days} วัน`) : "ซื้อขาด";
+    : r.duration_days ? (r.duration_days === 90 ? "รายรอบ 3 เดือน" : r.duration_days === 365 ? "รายปี" : `${r.duration_days} วัน`) : "ซื้อขาด";
 type QItem = { id: number; topic: string; stem: string; choices: string[]; answer: number; explanation: string;
   law_ref: string | null; status: string; source: string | null; reports: string[] };
 

@@ -18,11 +18,11 @@ t('every keyword maps to its preset', L.PRESETS.every(p => p.keywords.every(k =>
 t('no keyword in two presets', new Set(L.PRESETS.flatMap(p => p.keywords.map(k => L.normalize(k)))).size === L.PRESETS.flatMap(p => p.keywords).length);
 const BEFORE = Date.parse('2026-11-15T23:59:00+07:00'), AFTER = Date.parse('2026-11-16T00:00:00+07:00');
 const priced = L.priceText([{ package: 'ALL', term: 'round', amount: 89 }], BEFORE);
-t('price text uses DB price, fallback for the rest', priced.includes('รายรอบ 3 เดือน 89 บาท') && priced.includes('ซื้อขาด 99 บาท'));
+t('price text uses DB price, fallback for the rest', priced.includes('รายรอบ 3 เดือน 89 บาท') && priced.includes('ซื้อขาด ใช้ได้ทุกรอบสอบ 179 บาท') && !priced.includes('ภาค ก\n'));
 t('fallback price text = preset prices', L.priceText([], BEFORE).includes('179 บาท') && L.priceText([], BEFORE).includes('รายรอบ 69 บาท · ซื้อขาด 129 บาท'));
 t('every link carries src=line-oa', [L.WELCOME_TEXT, L.priceText([]), L.SLIP_TEXT, L.DEFAULT_TEXT, L.systemPrompt([]), ...L.PRESETS.map(p => p.text([]))]
   .every(s => (s.match(/https:\/\/\S+/g) ?? []).every(u => u.includes('?src=line-oa'))));
-t('prompt has live price', L.systemPrompt([{ package: 'A', term: 'round', amount: 39 }]).includes('แพ็กภาค ก 39 / 99 บาท'));
+t('prompt has live price, ภาค ก closed', /แพ็กภาค ข \+ วิชาเอก[^;\n]*\b59\b/.test(L.systemPrompt([{ package: 'B', term: 'round', amount: 59 }])) && L.systemPrompt([]).includes('แพ็กภาค ก ปิดการขายแล้ว'));
 const body = '{"events":[]}', sec = 'abc';
 const sig = crypto.createHmac('sha256', sec).update(body).digest('base64');
 t('signature ok', L.signatureOk(sig, sig));
@@ -73,7 +73,7 @@ const live = { code: 'SOB10', kind: 'amount', value: 10, packages: null, expires
 const gone = { ...live, active: false, left: 0 };
 const pt = L.promoText([live], []);
 t('promo: keywords → promo preset, "โค้ด" alone → AI', id('โปร') === 'promo' && id('SOB10') === 'promo' && id('ส่วนลดครับ') === 'promo' && id('โค้ด') === null && id('คีย์') === 'key');
-t('promo text: prices after the code', pt.includes('เหลือ 89 บาท (จาก 99)') && pt.includes('ภาค ก เหลือ 39') && pt.includes('ภาค ข + วิชาเอก เหลือ 59'));
+t('promo text: prices after the code', pt.includes('เหลือ 89 บาท (จาก 99)') && !pt.includes('ภาค ก เหลือ') && pt.includes('ภาค ข + วิชาเอก เหลือ 59'));
 t('promo text: left, until 14 พ.ย., link applies the code', pt.includes('เหลือ 37 สิทธิ์') && pt.includes('14 พ.ย.') && pt.includes('buy?promo=SOB10&src=line-oa'));
 t('promo text: used up → no code offered', !L.promoText([gone], []).includes('SOB10') && L.promoText([gone], []).includes('ยังไม่มีโค้ดส่วนลด'));
 t('promo preset uses live state', L.PRESETS.find(p => p.id === 'promo').text([], [live]).includes('SOB10'));
@@ -97,6 +97,9 @@ t('prompt: group buy, change major, web app, not-yet features', ['2 คน ล�
 t('presets: แอป → install, ซื้อกลุ่ม → group', id('โหลดแอปค่ะ') === 'install' && id('ซื้อกลุ่ม') === 'group' && id('ซื้อคู่ครับ') === 'group');
 t('slip reply: steps + Failed to fetch tip', L.SLIP_TEXT.includes('Failed to fetch') && L.SLIP_TEXT.includes('ไม่ต้องโอนซ้ำ'));
 t('lifetime: sold until 15 Nov 23:59 Bangkok only', L.lifetimeOpen(BEFORE) && !L.lifetimeOpen(AFTER));
-t('lifetime: price text says the last day, then drops lifetime', L.priceText([], BEFORE).includes('ขายถึง 15 พ.ย. 69') && !L.priceText([], AFTER).includes('ซื้อขาด') && L.priceText([], AFTER).includes('รายรอบ 3 เดือน 99 บาท'));
+t('lifetime: price text says the last day, then drops lifetime', L.priceText([], BEFORE).includes('ขายถึง 15 พ.ย. 69') && !L.priceText([], AFTER).includes('ซื้อขาด'));
+const after16 = [{ package: 'ALL', term: 'year', amount: 219 }, { package: 'ALL', term: 'round', amount: 129 }, { package: 'B', term: 'year', amount: 169 }, { package: 'B', term: 'round', amount: 99 }];
+t('new prices from 16 Nov: yearly + 3 months, no ภาค ก', L.priceText(after16, AFTER).includes('รายปี 12 เดือน 219 บาท') && L.priceText(after16, AFTER).includes('รายรอบ 3 เดือน 129 บาท') && L.priceText(after16, AFTER).includes('รายปี 169 บาท · 3 เดือน 99 บาท') && !L.priceText(after16, AFTER).includes('ภาค ก\n•') && !L.priceText(after16, AFTER).includes('📘'));
+t('before 16 Nov: announces the new yearly price, no ภาค ก pack', L.priceText([], BEFORE).includes('รายปี 219 บาท') && !L.priceText([], BEFORE).includes('📘'));
 console.log(bad ? `${bad}/${n} FAILED` : `all ${n} passed`);
 process.exit(bad ? 1 : 0);

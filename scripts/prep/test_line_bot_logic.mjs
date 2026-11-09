@@ -19,6 +19,7 @@ t('no keyword in two presets', new Set(L.PRESETS.flatMap(p => p.keywords.map(k =
 const BEFORE = Date.parse('2026-11-15T23:59:00+07:00'), AFTER = Date.parse('2026-11-16T00:00:00+07:00');
 const priced = L.priceText([{ package: 'ALL', term: 'round', amount: 89 }], BEFORE);
 t('price text uses DB price, fallback for the rest', priced.includes('รายรอบ 3 เดือน 89 บาท') && priced.includes('ซื้อขาด ใช้ได้ทุกรอบสอบ 179 บาท') && !priced.includes('ภาค ก\n'));
+t('price preset with live promos still shows pre-cutoff prices', (() => { const x = L.PRESETS.find(p => p.id === 'price').text([], [{ code: 'SOB10', amount_off: 10 }]); return Date.now() >= L.LIFETIME_UNTIL || (x.includes('ซื้อขาด') && !x.includes('รายปี 12 เดือน')); })());
 t('fallback price text = preset prices', L.priceText([], BEFORE).includes('179 บาท') && L.priceText([], BEFORE).includes('รายรอบ 69 บาท · ซื้อขาด 129 บาท'));
 t('every link carries src=line-oa', [L.WELCOME_TEXT, L.priceText([]), L.SLIP_TEXT, L.DEFAULT_TEXT, L.systemPrompt([]), ...L.PRESETS.map(p => p.text([]))]
   .every(s => (s.match(/https:\/\/\S+/g) ?? []).every(u => u.includes('?src=line-oa'))));

@@ -232,7 +232,7 @@ ${BUY.replace("?", `?promo=${p.code}&`)}`;
 
 type Preset = { id: string; keywords: string[]; text: (p: Price[], promos?: PromoStatus[]) => string };
 export const PRESETS: Preset[] = [
-  { id: "price", keywords: ["ราคา", "แพ็ก", "แพ็กเกจ", "กี่บาท", "ค่าใช้จ่าย"], text: priceText },
+  { id: "price", keywords: ["ราคา", "แพ็ก", "แพ็กเกจ", "กี่บาท", "ค่าใช้จ่าย"], text: p => priceText(p) },   // อย่าส่ง promos ต่อไปเป็น now — ไม่งั้นแสดงราคาหลัง 16 พ.ย. ตั้งแต่ตอนนี้
   { id: "buy", keywords: ["วิธีซื้อ", "ซื้อ", "โอน", "จ่ายเงิน", "ชำระ", "สมัคร"], text: () => howToBuy() },
   { id: "slip", keywords: ["สลิป", "โอนแล้ว", "จ่ายแล้ว", "ส่งสลิป"], text: () => SLIP_TEXT },
   // "โค้ด" alone is not a keyword: since the SOB10 broadcast it usually means a discount code, so the AI answers it.

@@ -35,6 +35,7 @@ t('parseSlip garbage', O.parseSlip('not json') === null);
 t('thaiTime', O.thaiTime(Date.parse('2026-11-10T13:05:00Z')) === '10/11 20:05 น.');
 const c = O.confirmMessage('a'.repeat(24), 'สลิปออเดอร์ #7 · 89 บาท');
 t('confirm template: 2 postbacks, labels ≤ 20, text ≤ 240', c.template.actions.length === 2 && c.template.actions.every(a => a.label.length <= 20 && a.data.length <= 300) && c.template.text.length <= 240);
+t('approved one-liner', O.approvedText({ order_id: 334, amount: 69, package: 'B', term: 'round' }) === '✅ อนุมัติอัตโนมัติ #334 · ภาค ข+เอก รายรอบ · 69 บาท');
 t('alert text lists reasons', O.slipAlertText({ order_id: 7, amount: 89, package: 'ALL', term: 'round', reasons: ['x', 'y'] }, good).includes('• y'));
 
 t('postback ok', JSON.stringify(B.parsePostback('ops:' + 'ab'.repeat(12) + ':y')) === JSON.stringify({ token: 'ab'.repeat(12), approve: true }));

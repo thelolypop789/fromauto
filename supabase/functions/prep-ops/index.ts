@@ -1,12 +1,12 @@
 // เอเจนต์หลังบ้าน SOBPREP ฝั่ง Supabase (deploy --no-verify-jwt; ทุก action ต้องมี x-ops-secret = vault ops_secret)
 //   * action "slip_check" {order_id}: เรียกจาก trigger ตอนมีออเดอร์ใหม่ (และ prep.ops_tick สำหรับรายการตกหล่น)
-//     Gemini อ่านสลิป → slipReasons (logic.ts) → prep_ops_slip_result: ผ่านครบ = อนุมัติเอง, ไม่ผ่าน = ส่ง LINE หาเจ้าของพร้อมปุ่ม
+//     Gemini อ่านสลิป → slipReasons (logic.ts) → prep_ops_slip_result: ผ่านครบ = อนุมัติเอง (แจ้ง LINE 1 บรรทัด), ไม่ผ่าน = ส่ง LINE หาเจ้าของพร้อมปุ่ม
 //   * action "remind": สลิปที่รอเกิน 3 ชม. → ส่ง LINE เตือนซ้ำครั้งเดียว
 // ไม่มีทางปฏิเสธออเดอร์เองในไฟล์นี้ — ปฏิเสธได้เฉพาะเจ้าของ (ปุ่ม LINE / หน้าแอดมิน)
 // Secrets: GEMINI_KEY, LINE_CHANNEL_ACCESS_TOKEN (ใช้ร่วมกับ prep-line-bot); ตัวเลือก PREP_SLIP_MODEL (default gemini-flash-latest)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { SLIP_PROMPT, SLIP_SCHEMA, cleanRef, confirmMessage, parseSlip, slipAlertText, slipReasons, type SlipRead } from "./logic.ts";
+import { SLIP_PROMPT, SLIP_SCHEMA, approvedText, cleanRef, confirmMessage, parseSlip, slipAlertText, slipReasons, type SlipRead } from "./logic.ts";
 
 const GEMINI_KEY = Deno.env.get("GEMINI_KEY") ?? "";
 const LINE_TOKEN = (Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN") ?? "").trim();
@@ -96,7 +96,12 @@ async function slipCheck(orderId: number): Promise<Response> {
     p_id: orderId, p_check: { read, model: MODEL, mime }, p_ref: cleanRef(read?.ref), p_pass: pass, p_reasons: reasons,
   });
   if (e2) return json({ error: "save: " + e2.message }, 500);
-  if (res?.skipped || res?.approved) return json(res);
+  if (res?.skipped) return json(res);
+  if (res?.approved) {
+    const text = approvedText({ order_id: o.id, amount: o.amount, package: o.package, term: o.term, seats: o.seats });
+    if (LINE_TOKEN) for (const u of await owners()) await push(u, [{ type: "text", text }]);
+    return json(res);
+  }
 
   await alertOwners({ order_id: o.id, amount: o.amount, package: o.package, term: o.term, seats: o.seats, email: o.email, reasons: res.reasons ?? reasons },
                     read, res.token, `สลิปออเดอร์ #${o.id} · ${o.amount} บาท`, o.slip_path, mime);

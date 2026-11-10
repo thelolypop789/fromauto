@@ -135,7 +135,7 @@ function cheerCard(c) {
     jobs.push([`${q.day}-am-quiz.png`, quizCard(q)]);
     jobs.push([`${q.day}-am-answer.png`, answerCard(q)]);
   }
-  for (const f of data.feature) jobs.push([`${f.day}-pm-${f.nosale ? 'checklist' : 'feature'}.png`, featureCard(f)]);
+  for (const f of data.feature) jobs.push([f.file || `${f.day}-pm-${f.nosale ? 'checklist' : 'feature'}.png`, featureCard(f)]);
   for (const c of data.cheer) jobs.push([`${c.day}-${c.time.replace(':', '')}-cheer.png`, cheerCard(c)]);
   const b = await chromium.launch();
   const p = await b.newPage({ viewport: { width: 1080, height: 1350 } });

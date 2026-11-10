@@ -4,6 +4,8 @@
 //     answered by Gemini from the facts in systemPrompt() plus the session so far; a picture (usually a slip) gets
 //     SLIP_TEXT (slips are accepted in the app only). Typing แอดมิน hands the chat to a human: the bot stays quiet for
 //     that customer until 2 hours pass without a message (prep_line_session). Only 1:1 chats are answered.
+//     Owner (prep.ops_owners): postback ops:<token>:y|n = approval button (prep_ops_decide); "สั่ง: ..." = a job for the
+//     Claude Code agent (prep_ops_command → prep.fire_agent). Anyone else typing "สั่ง:" is answered as a customer.
 //     A burst of messages gets one answer: each message is queued (prep_line_pending), LINE gets its 200 at once, and
 //     after PREP_LINE_DEBOUNCE_S (default 8) the newest message of the burst answers them all (planBurst).
 //   * action "chat" / "history" from the app (user JWT): the in-app chat. Same facts, plus the signed-in customer's
@@ -17,7 +19,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   APP_ADMIN_TEXT, APP_DAILY_LIMIT, APP_LIMIT_TEXT, DEFAULT_TEXT, ANNOUNCED_PROMOS, FALLBACK_PRICES, PRESETS, SLIP_TEXT, WELCOME_TEXT, aiMessages,
-  appSystemPrompt, cleanReply, type TopicCount, matchPreset, planBurst, signatureOk, summaryPrompt, systemPrompt,
+  appSystemPrompt, cleanReply, commandReply, decideReply, type TopicCount, matchPreset, parseCommand, parsePostback, planBurst,
+  signatureOk, summaryPrompt, systemPrompt,
   type AppContext, type DayData, type Pending, type Price, type PromoStatus, type Turn,
 } from "./logic.ts";
 
@@ -123,7 +126,7 @@ async function markRead(userId: string) {
 
 type LineEvent = {
   type: string; replyToken?: string; source?: { type: string; userId?: string };
-  message?: { type: string; text?: string };
+  message?: { type: string; text?: string }; postback?: { data?: string };
 };
 
 // Session store (migration prep_line_bot_sessions). If the database is down the bot still answers, just without
@@ -189,9 +192,23 @@ async function handle(ev: LineEvent) {
   const user = ev.source?.userId;
   if (ev.source?.type !== "user" || !user || !ev.replyToken) return; // groups / rooms: stay out
   if (ev.type === "follow") return reply(ev.replyToken, WELCOME_TEXT);
+  if (ev.type === "postback") {   // ปุ่มอนุมัติของเจ้าของ (prep_ops_decide: เฉพาะเจ้าของ, ใช้ครั้งเดียว, ภายใน 24 ชม.)
+    const pb = parsePostback(ev.postback?.data);
+    if (!pb) return;
+    const { data, error } = await sb().rpc("prep_ops_decide", { p_line: user, p_token: pb.token, p_approve: pb.approve });
+    if (error) console.error("prep_ops_decide:", error.message);
+    return reply(ev.replyToken, decideReply(error ? null : data));
+  }
   if (ev.type !== "message" || !ev.message) return;
   const kind = ev.message.type;
   const text = kind === "text" ? (ev.message.text ?? "").trim() : "";
+  const cmd = kind === "text" ? parseCommand(text) : null;
+  if (cmd != null) {   // "สั่ง: ..." ของเจ้าของ → คิวงาน Claude Code; ไม่ใช่เจ้าของ = แชทลูกค้าปกติ (ตกลงไปด้านล่าง)
+    const { data, error } = await sb().rpc("prep_ops_command", { p_line: user, p_body: cmd });
+    if (error) console.error("prep_ops_command:", error.message);
+    const out = commandReply(error ? null : data);
+    if (out) return reply(ev.replyToken, out);
+  }
   const media = kind === "image" || kind === "file";
   if (!media && !text) return; // stickers etc.: stay quiet
   const { data: id, error } = await sb().rpc("prep_line_pending_add", { p_user: user, p_kind: media ? "media" : "text", p_text: text, p_token: ev.replyToken });

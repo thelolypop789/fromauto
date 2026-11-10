@@ -441,3 +441,45 @@ export function planBurst(rows: Pending[]): BurstPlan {
     + (media ? "\n(ลูกค้าส่งรูปหรือไฟล์มาด้วย ถ้าน่าจะเป็นสลิป ให้แนบในหน้าซื้อเท่านั้น)" : "");
   return { type: "ai", said, question };
 }
+
+// ---------- เจ้าของร้าน: ปุ่มอนุมัติ + คำสั่ง (prep-ops, docs/ops-agents.md) ----------
+// ปุ่มมาจาก confirmMessage ใน prep-ops/logic.ts (data = ops:<token>:y|n)
+export function parsePostback(data: string | undefined): { token: string; approve: boolean } | null {
+  const m = /^ops:([0-9a-f]{16,64}):([yn])$/.exec(data ?? "");
+  return m ? { token: m[1], approve: m[2] === "y" } : null;
+}
+
+// "สั่ง: ..." / "สั่ง ..." / "สั่ง:..." — คืนเนื้อคำสั่ง หรือ null ถ้าไม่ใช่คำสั่ง
+export function parseCommand(text: string): string | null {
+  const m = /^\s*สั่ง\s*[:：]\s*([\s\S]*)$/.exec(text ?? "");
+  return m ? m[1].trim() : null;
+}
+
+// คำตอบของบอทหลังเจ้าของกดปุ่ม
+export function decideReply(res: Record<string, unknown> | null): string {
+  if (!res) return "บันทึกไม่สำเร็จ ลองกดใหม่อีกครั้ง หรือทำในหน้าแอดมิน";
+  const title = String(res.title ?? "");
+  switch (res.error) {
+    case "not_owner": return "ปุ่มนี้ใช้ได้เฉพาะเจ้าของร้าน";
+    case "not_found": return "ไม่พบเรื่องนี้แล้ว";
+    case "used": return `เรื่องนี้ตัดสินไปแล้ว (${res.status === "approved" ? "อนุมัติ" : res.status === "rejected" ? "ไม่อนุมัติ" : String(res.status)}) — ${title}`;
+    case "expired": return `ปุ่มหมดอายุแล้ว (เกิน 24 ชม.) — ${title}\nทำต่อในหน้าแอดมิน หรือพิมพ์ "สั่ง: ..." ใหม่`;
+  }
+  if (res.kind === "slip") {
+    if (res.note) return `ออเดอร์นี้ถูกตัดสินไปก่อนแล้ว (${String(res.note)}) — ${title}`;
+    return res.approved ? `✅ อนุมัติแล้ว ลูกค้าใช้งานได้ทันที — ${title}` : `❌ ไม่อนุมัติ — ${title}`;
+  }
+  return res.approved ? `✅ รับทราบ เอเจนต์เริ่มทำแล้ว (งาน #${res.command_id}) จะส่งผลกลับมาที่นี่ — ${title}`
+                      : `รับทราบ ข้าม — ${title}`;
+}
+
+export function commandReply(res: Record<string, unknown> | null): string | null {
+  if (!res) return "รับคำสั่งไม่สำเร็จ ลองใหม่อีกครั้ง";
+  if (res.registered) return "บัญชีนี้ลงทะเบียนเป็นเจ้าของแล้ว";
+  if (res.register_code) return `รหัสลงทะเบียน: ${res.register_code}\nบอกรหัสนี้กับ Claude ในแชท Claude Code เพื่อยืนยันว่าเป็นบัญชีของคุณ (หมดอายุใน 1 วัน)`;
+  if (res.error === "not_owner") return null;   // ไม่ใช่เจ้าของ → ตอบแบบแชทลูกค้าปกติ
+  if (res.error === "empty") return 'พิมพ์งานต่อจาก "สั่ง:" เช่น สั่ง: สรุปเช้า';
+  return res.fired
+    ? `รับคำสั่ง #${res.command_id} แล้ว เอเจนต์กำลังเริ่มทำ จะส่งผลกลับมาที่นี่`
+    : `รับคำสั่ง #${res.command_id} แล้ว แต่ยังไม่ได้เชื่อม Claude Code (ตั้ง vault claude_routine_url / claude_routine_token) — คำสั่งรอในคิว`;
+}

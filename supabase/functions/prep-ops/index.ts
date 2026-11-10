@@ -8,7 +8,7 @@
 // Secrets: GEMINI_KEY, LINE_CHANNEL_ACCESS_TOKEN (ใช้ร่วมกับ prep-line-bot); ตัวเลือก PREP_SLIP_MODEL (default gemini-flash-latest)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { SLIP_PROMPT, SLIP_SCHEMA, approvedText, cleanRef, confirmMessage, parseSlip, slipAlertText, slipReasons, type SlipRead } from "./logic.ts";
+import { SLIP_SCHEMA, slipPrompt, approvedText, cleanRef, confirmMessage, parseSlip, slipAlertText, slipReasons, type SlipRead } from "./logic.ts";
 
 const GEMINI_KEY = Deno.env.get("GEMINI_KEY") ?? "";
 const LINE_TOKEN = (Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN") ?? "").trim();
@@ -35,7 +35,7 @@ async function readSlip(path: string): Promise<{ read: SlipRead | null; mime: st
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_KEY },
       body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ inlineData: { mimeType: mime, data: b64(new Uint8Array(await blob.arrayBuffer())) } }, { text: SLIP_PROMPT }] }],
+        contents: [{ role: "user", parts: [{ inlineData: { mimeType: mime, data: b64(new Uint8Array(await blob.arrayBuffer())) } }, { text: slipPrompt() }] }],
         generationConfig: { temperature: 0, responseMimeType: "application/json", responseSchema: SLIP_SCHEMA },
       }),
       signal: AbortSignal.timeout(60_000),

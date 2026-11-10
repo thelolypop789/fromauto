@@ -55,7 +55,7 @@ def owners() -> list[str]:
 def line_push(messages: list[dict]):
     for u in owners():
         raw = curl("https://api.line.me/v2/bot/message/push", {"to": u, "messages": messages[:5]})
-        if raw.strip() not in ("{}", ""):
+        if '"sentMessages"' not in raw and raw.strip() not in ("{}", ""):
             print("LINE:", raw[:300], file=sys.stderr)
 
 

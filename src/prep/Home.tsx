@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { GROUPS, PASS_PCT, SECTIONS, rpc, thaiError, type Dashboard, type Me, type Profile, type ReviewCounts, type SetSummary } from "./api";
 import MajorPicker from "./MajorPicker";
 import type { Preset } from "./CreateSet";
-import { IconCheck, IconCrown, IconPlus } from "./icons";
+import { IconBook, IconCards, IconCheck, IconClock, IconCrown, IconFlame, IconNext, IconPlay, IconPlus, IconRepeat } from "./icons";
 import InstallBanner from "./InstallBanner";
 import InstallSheet from "./InstallSheet";
 import Announcement from "./Announcement";
@@ -60,9 +60,9 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
   const resume = sets?.find(s => s.open_round);   // the list comes newest first
   const streak = dash?.streak ?? 0;
   const greeting = me.answered_today === 0
-    ? <>สวัสดี! วันนี้ยังไม่ได้ซ้อมเลย <button className="pp-link" onClick={onDaily}>ลองข้อสอบประจำวันสัก 10 ข้อ</button> กันไหม</>
+    ? <>สวัสดี วันนี้ยังไม่ได้ซ้อมเลย <button className="pp-link" onClick={onDaily}>ลองข้อสอบประจำวันสัก 10 ข้อ</button> กันไหม</>
     : [3, 7, 14, 30, 60, 100].includes(streak) && me.answered_today > 0
-      ? <>ซ้อมต่อเนื่อง <b>{streak} วัน</b> แล้ว ไฟลุกโชนเลย 🔥</>
+      ? <>ซ้อมต่อเนื่อง <b>{streak} วัน</b> แล้ว ไฟลุกโชนเลย</>
       : me.answered_today >= 100
         ? <>วันนี้ทำไปแล้ว <b>{me.answered_today.toLocaleString()} ข้อ</b> เก่งมาก พักสายตาบ้างนะ</>
         : null;
@@ -92,7 +92,7 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
         </div>
         {resume?.open_round && (
           <button className="pp-hero-resume" onClick={() => onStart(resume.id, resume.open_round!.mode)}>
-            <span>▶ ทำต่อ · <b>{resume.title}</b></span><small>{resume.open_round.answered}/{resume.open_round.total} ข้อ</small>
+            <span><IconPlay size={14} />ทำต่อ · <b>{resume.title}</b></span><small>{resume.open_round.answered}/{resume.open_round.total} ข้อ</small>
           </button>
         )}
         <div className="pp-hero-today">
@@ -178,27 +178,27 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
       <div className="pp-h"><h2>โหมดฝึก</h2><span className="pp-muted small">เลือกแบบที่อยากซ้อม</span></div>
       <div className="pp-quick">
         <button className="pp-quick-tile hot" disabled={!canCreate} onClick={() => onCreate({ mode: "hard" })}>
-          <span className="pp-quick-ico" aria-hidden>🔥</span>
+          <span className="pp-quick-ico" aria-hidden><IconFlame /></span>
           <span className="pp-quick-t"><b>โหมดท้าทาย</b><small>โจทย์สถานการณ์ กฎหมาย วิชาครู และข้อที่คนส่วนใหญ่ตอบผิด</small></span>
           <span className="pp-quick-badge">ใหม่</span>
         </button>
         <button className="pp-quick-tile" onClick={onMock}>
-          <span className="pp-quick-ico" aria-hidden>⏱️</span>
+          <span className="pp-quick-ico" aria-hidden><IconClock /></span>
           <span className="pp-quick-t"><b>สอบจำลองจับเวลา</b><small>จำนวนข้อและเวลาเท่าสนามสอบ ไม่เฉลยจนกว่าจะส่ง</small></span>
         </button>
         <button className="pp-quick-tile" onClick={onPast}>
-          <span className="pp-quick-ico" aria-hidden>📚</span>
+          <span className="pp-quick-ico" aria-hidden><IconBook /></span>
           <span className="pp-quick-t"><b>แนวข้อสอบตามปี</b><small>แยกตามสนามสอบและปี กดครั้งเดียวได้ชุดพร้อมทำ</small></span>
         </button>
         <button className="pp-quick-tile" disabled={!counts || counts.wrong === 0} onClick={() => onReview("wrong")}>
-          <span className="pp-quick-ico" aria-hidden>🔁</span>
+          <span className="pp-quick-ico" aria-hidden><IconRepeat /></span>
           <span className="pp-quick-t"><b>ทวนข้อผิดทั้งหมด</b><small>{counts && counts.wrong === 0 ? "ไม่มีข้อที่ยังผิดอยู่" : "รวมข้อที่ยังตอบผิดจากทุกชุด"}</small></span>
           {counts && counts.wrong > 0 && <span className="pp-quick-badge count">{counts.wrong.toLocaleString()}</span>}
         </button>
       </div>
 
       <button className="pp-tarot-link" onClick={onTarot}>
-        <span aria-hidden>🔮</span><span><b>เปิดไพ่ดวงสอบ</b> ไพ่ยิปซี 3 ใบ อดีต ปัจจุบัน อนาคต</span><span aria-hidden>›</span>
+        <IconCards /><span><b>เปิดไพ่ดวงสอบ</b> ไพ่ยิปซี 3 ใบ อดีต ปัจจุบัน อนาคต</span><IconNext size={18} />
       </button>
 
       {error && <div className="pp-error">{error}</div>}

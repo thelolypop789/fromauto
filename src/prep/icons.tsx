@@ -26,8 +26,14 @@ export const IconTarget = ({ size = 22 }: P) => svg(size, <><circle cx="12" cy="
 export const IconBook = ({ size = 22 }: P) => svg(size, <><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z" /><path d="M4 19V5" /><path d="M8 7h7" /></>);
 export const IconTrophy = ({ size = 22 }: P) => svg(size, <><path d="M8 4h8v5a4 4 0 0 1-8 0z" /><path d="M8 6H5a3 3 0 0 0 3 4" /><path d="M16 6h3a3 3 0 0 1-3 4" /><path d="M12 13v4" /><path d="M8 21h8" /><path d="M10 17h4v4h-4z" /></>);
 export const IconLogout = ({ size = 18 }: P) => svg(size, <><path d="M15 4h4v16h-4" /><path d="M10 8l-4 4 4 4" /><path d="M6 12h10" /></>);
+// Home practice modes and streak (these replaced emoji, which render differently on every phone).
+export const IconFlame = ({ size = 22 }: P) => svg(size, <path d="M12 21c-3.9 0-7-2.8-7-6.6 0-3 1.9-5 3.6-6.6.4 1.6 1.3 2.6 2.4 3C10.6 7.5 12.3 4.8 15 3c-.2 2.6.6 4.4 2 6 1.3 1.5 2 3.2 2 5.4 0 3.8-3.1 6.6-7 6.6Z" />);
+export const IconClock = ({ size = 22 }: P) => svg(size, <><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 2" /><path d="M10 2h4" /></>);
+export const IconRepeat = ({ size = 22 }: P) => svg(size, <><path d="M17 2l3 3-3 3" /><path d="M4 11V9a4 4 0 0 1 4-4h12" /><path d="M7 22l-3-3 3-3" /><path d="M20 13v2a4 4 0 0 1-4 4H4" /></>);
+export const IconCards = ({ size = 22 }: P) => svg(size, <><rect x="3" y="6" width="11" height="15" rx="2" transform="rotate(-8 8.5 13.5)" /><rect x="10" y="3" width="11" height="15" rx="2" transform="rotate(8 15.5 10.5)" /></>);
+export const IconPlay = ({ size = 16 }: P) => svg(size, <path d="M7 4.5v15l12-7.5z" />);
 
-export const Logo = ({ size = 36 }: P) => <img src="/prep-icons/icon-192.png?v=2" width={size} height={size} alt="" className="pp-logo-img" />;
+export const Logo =({ size = 36 }: P) => <img src="/prep-icons/icon-192.png?v=2" width={size} height={size} alt="" className="pp-logo-img" />;
 export const IconCalendar = ({ size = 22 }: P) => svg(size, <><rect x="3" y="5" width="18" height="16" rx="2.5" /><path d="M8 3v4" /><path d="M16 3v4" /><path d="M3 10h18" /><path d="M8 14h2" /><path d="M14 14h2" /><path d="M8 17.5h2" /></>);
 export const IconBolt = ({ size = 20 }: P) => svg(size, <path d="M13 2 4 14h7l-1 8 9-12h-7z" />);
 export const IconExpand = ({ size = 20 }: P) => svg(size, <><path d="M4 9V4h5" /><path d="M20 9V4h-5" /><path d="M4 15v5h5" /><path d="M20 15v5h-5" /></>);

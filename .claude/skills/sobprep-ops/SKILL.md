@@ -37,7 +37,7 @@ description: SOBPREP back-office agent run by the Claude Code scheduled task "SO
 3. funnel: visit → buy_view (`prep.events`) → ส่งสลิป (`prep.orders.created_at`) → approved
 4. `?src=` ที่ได้ผู้ใช้/ยอดมากสุด 3 อันดับ (ดูวิธีนับใน `AdminOverview.tsx` / migration `prep_pay_funnel`)
 5. ตรวจสลิปอัตโนมัติเมื่อวาน: อนุมัติเอง N (`auto_approved`), ส่งให้เจ้าของ N, ยังค้าง N + รายการ #id ที่อนุมัติเอง
-6. ผลตรวจข้อสอบเมื่อคืน (owner_commands kind job body quality ล่าสุด .result) + เรื่องที่ยังรออนุมัติ (`ops_actions` pending)
+6. ผลตรวจข้อสอบเมื่อคืน (owner_commands kind job body quality ล่าสุด .result) + รายงานข้อสอบเมื่อวาน (job reports: ปิด/แก้/ซ่อน/รออนุมัติ) + เรื่องที่ยังรออนุมัติ (`ops_actions` pending)
 7. ข้อเสนอแนะลูกค้า: `prep.feedback` ใหม่, `prep.chat_summaries` ของเมื่อวาน, `prep.reports` open — รวมเรื่องซ้ำ,
    เลือก ≤ 5 เรื่องที่คุ้มสุด → แต่ละเรื่อง `ops.py ask feedback <id> "<สิ่งที่จะทำ ≤ 60 ตัว>" '<detail: แผน, ไฟล์, แรงที่ใช้ S/M/L>'`
    คำถามที่บอทตอบไม่ได้/ผิดจากสรุปแชท → `ops.py ask bot ...` พร้อมร่างพรีเซต/ข้อเท็จจริง (ใน detail)
@@ -64,6 +64,23 @@ description: SOBPREP back-office agent run by the Claude Code scheduled task "SO
 6. ปิดงานด้วย `done ... --quiet` (ถ้ามาจากคำสั่ง "สั่ง:" ไม่ต้อง quiet) — result =
    "ตรวจ N/100 · ok N · ซ่อน N · แก้ N · รออนุมัติ N · คิวที่เหลือ N" + #id ที่ซ่อน/รออนุมัติ
 
+## 3.1 job `reports` (อัตโนมัติ: รายงานใหม่ ~10–25 นาทีหลังส่ง, ดู `prep.ops_tick`)
+
+รายงานที่ต้องดู = `prep.reports` status open และ `ops_queued_at` ไม่ null — รวมตาม `question_id` (หลายคนรายงานข้อเดียวกัน = ชุดเดียว)
+ทำไม่เกิน 30 ข้อต่อรอบ (เกินนั้นเหลือให้ job quality); ถ้ามี `prep.report_reviews` ของ Gemini สำหรับข้อนั้น ใช้เป็นข้อมูลประกอบ ไม่ใช่คำตัดสิน
+แต่ละข้อ: อ่านโจทย์ ตัวเลือก เฉลย คำอธิบาย `choice_counts` และเหตุผลของทุกรายงาน แล้วตัดสิน (กฎข้อเท็จจริงเหมือน §3 ข้อ 5)
+- **รายงานไม่ถูก (เฉลยถูก)** → ปิดเอง: `update prep.reports set status='rejected', admin_note=<ข้อความถึงผู้รายงาน>, resolved_at=now()
+  where question_id=<qid> and status='open'` — ข้อความสุภาพ ≤ 400 ตัว อธิบายว่าทำไมเฉลยถูก อ้างหลัก/กฎหมายถ้ามี ขอบคุณที่แจ้ง
+  + บันทึก `prep.item_checks` (เหมือน §3 ข้อ 3)
+- **พิมพ์ผิด/จัดรูปแบบ ที่ไม่เปลี่ยนคำตอบหรือความหมาย** → แก้เอง (stem/choices/explanation) + `content_hash = prep.content_hash(stem, choices)`
+  + ปิดรายงานเป็น `fixed` พร้อมข้อความว่าแก้อะไร
+- **ข้อเสียชัดเจน** (บทอ่าน/รูปหาย, ตัวเลือกซ้ำ/ว่าง) → ซ่อนเอง + ปิดรายงานเป็น `fixed` พร้อมข้อความ
+- **เฉลยผิด / มีคำตอบได้หลายข้อ / ต้องใช้ความรู้เฉพาะที่ไม่แน่ใจ** → ไม่แตะคำถาม ไม่ปิดรายงาน → `ops.py ask answer|hide <qid> ...`
+  (detail ต้องมี fix ครบ: answer + explanation ใหม่ และ message ถึงผู้รายงาน — ตอนเจ้าของกด ✅ job action จะแก้ข้อ + ปิดรายงานด้วยข้อความนั้น)
+ทุกข้อที่ตัดสิน บันทึก `insert into prep.report_reviews (question_id, verdict, confidence, analysis, fix, user_message, report_ids, model, status)`
+(verdict ok|fix|hide|human, model 'claude-ops', status 'applied' เมื่อทำเอง / 'pending' เมื่อส่งให้เจ้าของ) เพื่อให้หน้าแอดมินเห็นประวัติ
+ปิดงานด้วย `done ... --quiet` — result = "รายงาน N ข้อ · ปิด(เฉลยถูก) N · แก้ N · ซ่อน N · รออนุมัติ N" (สรุปเช้าจะรวมให้)
+
 ## 4. job `command` ("สั่ง: ..." จากเจ้าของ)
 
 อ่าน `body` แล้วทำให้จบในงานนี้ ถ้าเกินกฎข้อ 1 ให้เตรียมงานให้พร้อมแล้ว `ask` แทนการลงมือ
@@ -76,7 +93,8 @@ description: SOBPREP back-office agent run by the Claude Code scheduled task "SO
 `ops.py cmd N` ให้ `action` (kind/ref/detail) และ `body` = approved | rejected
 - rejected → ไม่ทำอะไร (ปิด PR ถ้าเป็น deploy) แล้ว `done` สั้นๆ
 - approved:
-  - `answer`/`hide`: แก้ใน DB ตาม detail + ปิด report + แจ้งผู้รายงาน (เหมือนปุ่มในหน้าแอดมิน)
+  - `answer`/`hide`: แก้ใน DB ตาม detail (เปลี่ยนเฉลยต้องเปลี่ยนคำอธิบายด้วย) + ปิด report เป็น `fixed` ด้วย message ใน detail
+    + อัปเดต `prep.report_reviews` ที่ pending ของข้อนั้นเป็น applied (ถ้ากด ❌: ปิด report เป็น rejected ด้วยข้อความว่าตรวจแล้วเฉลยเดิมถูก)
   - `feedback`/`bot`: ทำโค้ดบน branch → PR → `ask deploy` (บอท: deploy ผ่าน Management API `POST /v1/projects/<ref>/functions/deploy?slug=…`, verify_jwt false)
   - `broadcast`: ส่งหาบัญชีเจ้าของก่อน 1 ครั้ง (`push`) แล้วจึงส่งจริง
   - `deploy`: merge PR → รัน migration ใน detail (Management API `database/query`) → deploy functions → ตรวจว่าใช้งานได้ → `done` พร้อมผล

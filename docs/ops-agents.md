@@ -38,7 +38,7 @@ pg_cron: ทุก 15 นาที prep.ops_tick → ตรวจสลิปท
    - repo `thelolypop789/fromauto` (branch main), environment เดียวกับเซสซันนี้ (มี credential ของ api.supabase.com / api.line.me)
    - prompt: ดูด้านล่าง · trigger: **API** (ไม่ต้องตั้ง schedule — pg_cron เป็นคนปลุก)
    - กด Generate token → คัดลอก Fire URL + token
-5. **เก็บใน Supabase Vault** (Dashboard → Project Settings → Vault → Add secret) — ห้ามวาง token ในแชท:
+5. **เก็บเป็น Edge Function secrets** (Dashboard → Edge Functions → Secrets) — ห้ามวาง token ในแชท (prep-ops เป็นคนปลุก):
    - `claude_routine_url` = Fire URL (`https://api.anthropic.com/v1/claude_code/routines/trig_…/fire`)
    - `claude_routine_token` = token (`sk-ant-oat01-…`)
 6. ทดสอบ: พิมพ์ `สั่ง: สรุปเช้า` ใน LINE → ควรได้ "รับคำสั่ง #N แล้ว" และสรุปภายในไม่กี่นาที
@@ -53,8 +53,7 @@ python3 scripts/prep/ops/ops.py cmd N แล้วจบด้วย ops.py done
 
 ## ตรวจสอบ/แก้ปัญหา
 
-- ปลุกแล้วไม่ทำงาน: `select * from prep.ops_fires order by id desc limit 5` → `note = not_configured` (ยังไม่ตั้ง vault) หรือดู
-  `select status_code, content from net._http_response where id = <request_id>` (401 token ผิด, 429 เกิน 30 ครั้ง/ชม.)
+- ปลุกแล้วไม่ทำงาน: `select * from prep.ops_fires order by id desc limit 5` → `status_code` / `note` (not_configured = ยังไม่ตั้ง secret, 401 token ผิด, 429 เกิน 30 ครั้ง/ชม.), `session_url` = เซสชันที่ถูกปลุก
 - สลิปไม่ถูกตรวจ: `select id, slip_checked_at, slip_check from prep.orders order by id desc limit 5` + log ของ prep-ops
 - ปิดตรวจสลิปชั่วคราว: `alter table prep.orders disable trigger orders_slip_check` (ออเดอร์จะกลับไปรอแอดมินแบบเดิม;
   `ops_tick` ยังเรียกซ้ำรายการที่ยังไม่ตรวจ — ปิดด้วย `select cron.unschedule('prep-ops-tick')`)

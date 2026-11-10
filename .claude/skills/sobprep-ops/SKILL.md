@@ -46,13 +46,23 @@ description: SOBPREP back-office agent run by the Claude Code scheduled task "SO
 
 ## 3. job `quality` (01:10 ทุกคืน หรือ "สั่ง: ตรวจข้อสอบ")
 
-1. หาข้อน่าสงสัย: `prep.reports` open, `prep.question_stats` ตอบถูก < 20% (n ≥ 20) หรือตัวเลือกหลอกหนึ่งตัวถูกเลือกมากกว่าเฉลย,
-   ข้อที่อ้างบทอ่าน/รูปที่ไม่มี, ตัวเลือกซ้ำ — ข้ามข้อที่ตรวจแล้ว (`prep.item_checks`, `prep.report_reviews`, ประวัติใน PROJECT_NOTES)
-2. เสียชัดเจน → ซ่อนเอง (`prep.questions.status='hidden'`) + ปิด report ที่เกี่ยวข้อง; คำผิดในคำอธิบาย → แก้เอง
-3. เฉลยน่าจะผิด/กำกวม → `ops.py ask answer|hide <qid> "<ข้อ #id: เสนออะไร>" '{"qid":..,"from":..,"to":..,"why":..,"explanation":..}'`
+เป้า **100 ข้อต่อคืน** (เจ้าของกำหนด 10 พ.ย. 69) — ดูจริงทีละข้อ ไม่ใช่แค่นับ
+1. คิวตามลำดับ (เอาให้ครบ 100): (ก) `prep.reports` open ทุกรายการ (ข) `prep.item_suspect(...)` ไม่ null เรียงค่ามากก่อน
+   (ค) ตอบถูก < 20% (n ≥ 20) เรียง n มากก่อน (ง) ข้อที่อ้างบทอ่าน/รูปที่ไม่มี, ตัวเลือกซ้ำ/ว่าง
+   ข้ามข้อที่ตรวจแล้ว: มีใน `prep.item_checks` และ n ยังไม่ถึง 1.5 เท่าของ `n_at` (กติกาเดียวกับ `prep.item_suspect`)
+2. แบ่งเป็น 5 ชุด ชุดละ 20 ข้อ ส่งให้ subagent (Agent tool) ตรวจพร้อมกัน — ให้แต่ละตัวได้ข้อความโจทย์ ตัวเลือก เฉลย คำอธิบาย
+   `choice_counts` และกฎข้อ 5 แล้วตอบกลับเป็นรายการ {qid, verdict: ok|broken|typo|key_wrong|ambiguous, เหตุผล, ข้อแก้}
+   subagent อ่านอย่างเดียว — การเขียน DB/ส่ง LINE ทำโดยเซสชันหลักเท่านั้น
+3. ok → บันทึกว่าตรวจแล้ว: `insert into prep.item_checks (question_id, n_at) values (<qid>, <n ปัจจุบัน>)
+   on conflict (question_id) do update set n_at = excluded.n_at, checked_at = now(), checked_by = null` (ข้อจะหายจาก
+   "เฉลยน่าสงสัย" ในหน้าแอดมินจนมีคนตอบเพิ่ม 50%); report ที่เกี่ยวข้อง → rejected
+4. broken (เสียชัดเจน) → ซ่อนเอง (`prep.questions.status='hidden'`) + ปิด report; typo ในคำอธิบาย (ไม่เปลี่ยนความหมาย) → แก้เอง
+5. key_wrong / ambiguous → `ops.py ask answer|hide <qid> "<ข้อ #id: เสนออะไร>" '{"qid":..,"from":..,"to":..,"why":..,"explanation":..}'`
+   **ไม่เกิน 10 ปุ่มต่อคืน** (เรียงจากมั่นใจสุด) ที่เหลือไม่ต้องบันทึก item_checks ให้คืนถัดไปหยิบใหม่
    การเปลี่ยนเฉลยต้องมีคำอธิบายใหม่เสมอ (SQL guard `explanation_required`)
-4. ใช้ข้อเท็จจริงจาก `content/summaries/*.ts` เท่านั้นสำหรับกฎหมาย/วิชาครู; ไม่แน่ใจ = ส่งให้เจ้าของ ไม่เดา
-5. ปิดงานด้วย `done ... --quiet` (ถ้ามาจากคำสั่ง "สั่ง:" ไม่ต้อง quiet) — result = "ซ่อน N · แก้ N · รออนุมัติ N" + #id
+   ใช้ข้อเท็จจริงจาก `content/summaries/*.ts` เท่านั้นสำหรับกฎหมาย/วิชาครู; ไม่แน่ใจ = ambiguous ไม่เดา
+6. ปิดงานด้วย `done ... --quiet` (ถ้ามาจากคำสั่ง "สั่ง:" ไม่ต้อง quiet) — result =
+   "ตรวจ N/100 · ok N · ซ่อน N · แก้ N · รออนุมัติ N · คิวที่เหลือ N" + #id ที่ซ่อน/รออนุมัติ
 
 ## 4. job `command` ("สั่ง: ..." จากเจ้าของ)
 

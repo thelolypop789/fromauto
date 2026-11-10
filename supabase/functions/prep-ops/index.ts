@@ -2,6 +2,8 @@
 //   * action "slip_check" {order_id}: เรียกจาก trigger ตอนมีออเดอร์ใหม่ (และ prep.ops_tick สำหรับรายการตกหล่น)
 //     Gemini อ่านสลิป → slipReasons (logic.ts) → prep_ops_slip_result: ผ่านครบ = อนุมัติเอง (แจ้ง LINE 1 บรรทัด), ไม่ผ่าน = ส่ง LINE หาเจ้าของพร้อมปุ่ม
 //   * action "remind": สลิปที่รอเกิน 3 ชม. → ส่ง LINE เตือนซ้ำครั้งเดียว
+//   * action "fire" {job, command_id, fire_id}: จาก prep.fire_agent — ปลุก Claude Code (API trigger ของ scheduled task
+//     "SOBPREP ops") ด้วย secrets claude_routine_url / claude_routine_token แล้วบันทึกผล (prep_ops_fire_result)
 // ไม่มีทางปฏิเสธออเดอร์เองในไฟล์นี้ — ปฏิเสธได้เฉพาะเจ้าของ (ปุ่ม LINE / หน้าแอดมิน)
 // Secrets: GEMINI_KEY, LINE_CHANNEL_ACCESS_TOKEN (ใช้ร่วมกับ prep-line-bot); ตัวเลือก PREP_SLIP_MODEL (default gemini-flash-latest)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -11,6 +13,8 @@ import { SLIP_PROMPT, SLIP_SCHEMA, approvedText, cleanRef, confirmMessage, parse
 const GEMINI_KEY = Deno.env.get("GEMINI_KEY") ?? "";
 const LINE_TOKEN = (Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN") ?? "").trim();
 const MODEL = Deno.env.get("PREP_SLIP_MODEL") || "gemini-flash-latest";
+const ROUTINE_URL = (Deno.env.get("claude_routine_url") ?? Deno.env.get("CLAUDE_ROUTINE_URL") ?? "").trim();
+const ROUTINE_TOKEN = (Deno.env.get("claude_routine_token") ?? Deno.env.get("CLAUDE_ROUTINE_TOKEN") ?? "").trim();
 const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
@@ -121,6 +125,34 @@ async function remind(): Promise<Response> {
   return json({ reminded: due.length });
 }
 
+// payload มีแค่ job + เลขคำสั่ง; เนื้อคำสั่งจริงเอเจนต์อ่านจาก owner_commands เอง
+async function fire(body: { job?: unknown; command_id?: unknown; fire_id?: unknown }): Promise<Response> {
+  const fireId = Number(body.fire_id), commandId = body.command_id == null ? null : Number(body.command_id);
+  let status = 0, session: string | null = null, note: string | null = null;
+  if (!ROUTINE_URL || !ROUTINE_TOKEN) note = "not_configured";
+  else {
+    try {
+      const res = await fetch(ROUTINE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${ROUTINE_TOKEN}`,
+                   "anthropic-version": "2023-06-01", "anthropic-beta": "experimental-cc-routine-2026-04-01" },
+        body: JSON.stringify({ text: JSON.stringify({ job: String(body.job ?? ""), command_id: commandId }) }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      status = res.status;
+      const data = await res.json().catch(() => ({}));
+      session = data?.claude_code_session_url ?? null;
+      if (!res.ok) note = `${res.status} ${data?.error?.type ?? ""} ${data?.error?.message ?? ""}`.trim().slice(0, 300);
+    } catch (e) { note = (e as Error).message.slice(0, 300); }
+  }
+  const { error } = await sb.rpc("prep_ops_fire_result", { p_fire: fireId, p_status: status, p_session: session, p_note: note });
+  if (error) console.error("prep_ops_fire_result:", error.message);
+  if (status !== 200 && commandId != null && LINE_TOKEN) {
+    for (const u of await owners()) await push(u, [{ type: "text", text: `⚠️ ปลุกเอเจนต์ไม่สำเร็จ (งาน #${commandId}): ${note ?? status}` }]);
+  }
+  return json({ status, session, note });
+}
+
 serve(async (req) => {
   if (req.method !== "POST") return new Response("ok");
   const sec = req.headers.get("x-ops-secret") ?? "";
@@ -130,6 +162,7 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     if (body.action === "slip_check") return await slipCheck(Number(body.order_id));
     if (body.action === "remind") return await remind();
+    if (body.action === "fire") return await fire(body);
     return json({ error: "unknown action" }, 400);
   } catch (e) {
     return json({ error: (e as Error).message }, 500);

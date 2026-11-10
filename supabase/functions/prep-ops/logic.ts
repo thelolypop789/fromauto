@@ -106,6 +106,11 @@ export function parseSlip(raw: unknown): SlipRead | null {
 const PACK: Record<string, string> = { A: "ภาค ก", B: "ภาค ข+เอก", ALL: "ครบทุกภาค" };
 const TERM: Record<string, string> = { round: "รายรอบ", year: "รายปี", lifetime: "ตลอดชีพ" };
 
+// แจ้งเจ้าของ 1 บรรทัดเมื่ออนุมัติเอง (เจ้าของขอ 10 พ.ย. 69 — ให้เห็นทันทีว่าระบบอนุมัติอะไรไป)
+export function approvedText(d: { order_id: number; amount: number; package: string; term: string; seats?: number }): string {
+  return `✅ อนุมัติอัตโนมัติ #${d.order_id} · ${PACK[d.package] ?? d.package} ${TERM[d.term] ?? d.term}${(d.seats ?? 1) > 1 ? ` ×${d.seats} คน` : ""} · ${d.amount} บาท`;
+}
+
 // ข้อความ LINE ถึงเจ้าของ (ข้อความธรรมดาก่อนปุ่ม) — สั้น อ่านบนมือถือ
 export function slipAlertText(
   d: { order_id: number; amount: number; package: string; term: string; seats?: number; email?: string | null; reasons: string[] },

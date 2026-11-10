@@ -20,6 +20,8 @@ t('missing amount', O.slipReasons(order, { ...good, amount: null }).some(r => r.
 t('receiver Thai / latin / masked', O.receiverOk('นาย พงศกร ด.') && O.receiverOk('MR. PONGSAKORN D') && O.receiverOk('Pongsarkon Dornkotkok'));
 t('wrong receiver', O.slipReasons(order, { ...good, receiver_name: 'นาย สมศักดิ์ ก' }).some(r => r.includes('ชื่อผู้รับไม่ตรง')));
 t('ถุงเงิน ชื่อร้าน (slip #333)', O.slipReasons(order, { ...good, receiver_name: 'ถุงเงิน (ซ้อมข้อสอบครูผู้ช่วย)', receiver_account: 'KN143990QP0389845IZ' }).length === 0);
+t('กรุงไทย: รหัสร้านอยู่ในชื่อผู้รับ (slip #336)', O.slipReasons(order, { ...good, receiver_name: 'TUNGNGERN (somkosobkrupuchuai)', receiver_account: '010753700088205' }).length === 0);
+t('TUNGNGERN อย่างเดียวไม่พอ', !O.receiverOk('TUNGNGERN (ร้านอื่น)', '010753700088205'));
 t('merchant id alone', O.receiverOk('ร้านค้า', 'รหัสร้านค้า: KN143990QP0389845IZ') && !O.receiverOk('ร้านอื่น', 'KN000000'));
 t('no receiver', !O.receiverOk(null) && !O.receiverOk(''));
 t('paid 47h before ok', O.slipReasons(order, { ...good, paid_at: '2026-11-08T21:30:00+07:00' }).length === 0);

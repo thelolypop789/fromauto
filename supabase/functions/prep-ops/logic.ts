@@ -30,8 +30,9 @@ export const RECEIVER_ACCOUNTS = ["KN143990QP0389845IZ", "SOMKOSOBKRUPUCHUAI"];
 const norm = (s: string) => s.normalize("NFC").toUpperCase().replace(/[\s.-]/g, "");
 
 export function receiverOk(name: string | null, account: string | null = null, names: string[] = RECEIVER_NAMES): boolean {
-  const n = name ? norm(name) : "", a = account ? norm(account) : "";
-  return (!!n && names.some(x => n.includes(norm(x)))) || (!!a && RECEIVER_ACCOUNTS.some(x => a.includes(norm(x))));
+  // ชื่อร้าน/รหัสร้านค้าอาจอยู่ช่องไหนก็ได้ (กรุงไทยพิมพ์ "TUNGNGERN (somkosobkrupuchuai)" เป็นชื่อผู้รับ — สลิป #336)
+  const hay = [name, account].filter(Boolean).map(x => norm(x as string)).join("|");
+  return !!hay && [...names, ...RECEIVER_ACCOUNTS].some(x => hay.includes(norm(x)));
 }
 
 // คืนรายการเหตุผลที่ไม่ผ่าน (ภาษาไทย ส่งให้เจ้าของอ่าน) — ว่าง = ผ่านครบ

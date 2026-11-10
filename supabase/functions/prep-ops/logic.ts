@@ -22,15 +22,16 @@ export type SlipRead = {
 
 export type OrderInfo = { id: number; amount: number; created_at: string };
 
-// ชื่อร้านตามบัญชีพร้อมเพย์ (src/prep/config.ts bankText) — สลิปมักย่อ/ปิดนามสกุล จึงเทียบแค่ชื่อต้น
-export const RECEIVER_NAMES = ["พงศกร", "PONGSAKORN", "PONGSAKON", "PONGSARKON"];
+// ผู้รับเงินของร้าน: QR หลักคือถุงเงินกรุงไทย ชื่อร้าน "ซ้อมข้อสอบครูผู้ช่วย" รหัสร้านค้า KN143990QP0389845IZ
+// (สลิปจริง ออเดอร์ #333, 10 พ.ย. 69) + บัญชีพร้อมเพย์ส่วนตัว (src/prep/config.ts bankText) ซึ่งสลิปมักย่อ/ปิดนามสกุล จึงเทียบแค่ชื่อต้น
+export const RECEIVER_NAMES = ["ซ้อมข้อสอบครูผู้ช่วย", "พงศกร", "PONGSAKORN", "PONGSAKON", "PONGSARKON"];
+export const RECEIVER_ACCOUNTS = ["KN143990QP0389845IZ", "SOMKOSOBKRUPUCHUAI"];
 
 const norm = (s: string) => s.normalize("NFC").toUpperCase().replace(/[\s.-]/g, "");
 
-export function receiverOk(name: string | null, names: string[] = RECEIVER_NAMES): boolean {
-  if (!name) return false;
-  const n = norm(name);
-  return names.some(x => n.includes(norm(x)));
+export function receiverOk(name: string | null, account: string | null = null, names: string[] = RECEIVER_NAMES): boolean {
+  const n = name ? norm(name) : "", a = account ? norm(account) : "";
+  return (!!n && names.some(x => n.includes(norm(x)))) || (!!a && RECEIVER_ACCOUNTS.some(x => a.includes(norm(x))));
 }
 
 // คืนรายการเหตุผลที่ไม่ผ่าน (ภาษาไทย ส่งให้เจ้าของอ่าน) — ว่าง = ผ่านครบ
@@ -42,7 +43,7 @@ export function slipReasons(order: OrderInfo, r: SlipRead | null, names: string[
   if (r.tamper_signs) out.push("อาจถูกตัดต่อ" + (r.tamper_note ? `: ${r.tamper_note}` : ""));
   if (r.amount == null || !Number.isFinite(r.amount)) out.push("ไม่พบยอดเงิน");
   else if (Math.abs(r.amount - order.amount) > 0.004) out.push(`ยอด ${fmt(r.amount)} บาท ไม่ตรงกับออเดอร์ ${order.amount} บาท`);
-  if (!receiverOk(r.receiver_name, names)) out.push(`ชื่อผู้รับไม่ตรง (${r.receiver_name ?? "ไม่พบ"})`);
+  if (!receiverOk(r.receiver_name, r.receiver_account, names)) out.push(`ชื่อผู้รับไม่ตรง (${r.receiver_name ?? "ไม่พบ"})`);
   const paid = r.paid_at ? Date.parse(r.paid_at) : NaN;
   const sent = Date.parse(order.created_at);
   if (!Number.isFinite(paid)) out.push("ไม่พบวันเวลาโอน");
@@ -67,7 +68,7 @@ export function thaiTime(ms: number): string {
 
 export const SLIP_PROMPT = `ภาพนี้ควรเป็นสลิปโอนเงินของธนาคารไทย/พร้อมเพย์ อ่านแล้วตอบเป็น JSON ตาม schema เท่านั้น
 - amount: ยอดเงินที่โอน เป็นตัวเลข (ไม่รวมค่าธรรมเนียม) ถ้าไม่เห็นให้ null
-- receiver_name / receiver_account: ชื่อและเลขบัญชี/พร้อมเพย์ของ "ผู้รับเงิน" ตามที่พิมพ์ในสลิป (คงตัวที่ถูกปิดเป็น x ไว้)
+- receiver_name / receiver_account: ชื่อและเลขบัญชี/พร้อมเพย์/รหัสร้านค้าของ "ผู้รับเงิน" ตามที่พิมพ์ในสลิป (คงตัวที่ถูกปิดเป็น x ไว้)
 - sender_name: ชื่อผู้โอน
 - paid_at: วันเวลาโอน แปลงเป็น ISO 8601 ปี ค.ศ. เวลาไทย (+07:00) เช่น 2026-11-10T20:15:00+07:00 (พ.ศ. ลบ 543; "10 พ.ย. 69" = 2026-11-10)
 - ref: เลขที่รายการ/รหัสอ้างอิง/Transaction ID ตามที่เห็น ถ้ามีหลายเลขให้เลือกเลขอ้างอิงธุรกรรมหลัก

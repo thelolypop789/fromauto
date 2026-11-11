@@ -11,13 +11,13 @@
   python3 scripts/prep/ops/ops.py done ID STATUS RESULT|- [SESSION_URL] [--quiet]
                                                            ปิดงาน (done/failed) แล้วส่งผลหาเจ้าของ (--quiet = ไม่ส่ง LINE)
 
-KIND: answer hide feedback bot broadcast deploy content other  (slip เป็นของ prep-ops เท่านั้น)
+KIND: answer hide feedback bot broadcast deploy content post other  (slip เป็นของ prep-ops เท่านั้น)
 ข้อความที่ส่งหาเจ้าของ: สั้น อ่านบนมือถือ ≤ 15 บรรทัด
 """
 import json, secrets, subprocess, sys
 
 REF = "diprxrkddsqmzzihjjwi"
-KINDS = {"answer", "hide", "feedback", "bot", "broadcast", "deploy", "content", "other"}
+KINDS = {"answer", "hide", "feedback", "bot", "broadcast", "deploy", "content", "post", "other"}
 
 
 def lit(s: str) -> str:

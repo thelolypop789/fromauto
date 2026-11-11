@@ -57,6 +57,11 @@ def line_push(messages: list[dict]):
         raw = curl("https://api.line.me/v2/bot/message/push", {"to": u, "messages": messages[:5]})
         if '"sentMessages"' not in raw and raw.strip() not in ("{}", ""):
             print("LINE:", raw[:300], file=sys.stderr)
+            # โควตาเต็ม/ส่งไม่ได้ → เก็บไว้ให้เจ้าของพิมพ์ "งานค้าง" (ปุ่มของ ask อยู่ใน ops_actions อยู่แล้ว)
+            text = "\n".join(m["text"] for m in messages if m.get("type") == "text")
+            if text:
+                sql(f"select public.prep_ops_outbox_add({lit(text)})")
+            return
 
 
 def text_msg(t: str) -> dict:

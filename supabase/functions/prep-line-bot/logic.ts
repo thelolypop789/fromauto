@@ -483,3 +483,31 @@ export function commandReply(res: Record<string, unknown> | null): string | null
     ? `รับคำสั่ง #${res.command_id} แล้ว เอเจนต์กำลังเริ่มทำ จะส่งผลกลับมาที่นี่`
     : `รับคำสั่ง #${res.command_id} แล้ว แต่ยังไม่ได้เชื่อม Claude Code (ตั้ง vault claude_routine_url / claude_routine_token) — คำสั่งรอในคิว`;
 }
+
+// "งานค้าง" (เจ้าของ): ตอบกลับไม่กินโควตา push — ข้อความที่ส่งไม่ถึง + ปุ่มของเรื่องที่รออนุมัติ (prep_ops_pending)
+export const isPendingKeyword = (text: string) => /^\s*(สั่ง\s*[:：]\s*)?งานค้าง\s*$/.test(text ?? "");
+
+type PendingAction = { id: number; kind: string; title: string; token: string; detail?: { reasons?: string[] } };
+export function pendingMessages(res: Record<string, unknown> | null): unknown[] | null {
+  if (!res) return [{ type: "text", text: "ดึงงานค้างไม่สำเร็จ ลองใหม่อีกครั้ง" }];
+  if (res.error === "not_owner") return null;
+  const out: unknown[] = [];
+  const ob = (res.outbox ?? []) as { text: string }[];
+  if (ob.length) out.push({ type: "text", text: ("📬 ข้อความที่ส่งไม่ถึง (โควตา LINE เต็ม)\n\n" + ob.map(o => o.text).join("\n\n———\n\n")).slice(0, 4900) });
+  const acts = (res.actions ?? []) as PendingAction[];
+  const total = Number(res.total ?? acts.length);
+  if (!total) { out.push({ type: "text", text: "ไม่มีเรื่องรออนุมัติ ✅" }); return out; }
+  const room = Math.min(acts.length, 4 - (out.length ? 1 : 0));
+  const lines = acts.slice(0, room).map((a, i) => `${i + 1}. ${a.title}${a.kind === "slip" && a.detail?.reasons?.length ? ` — ${a.detail.reasons[0]}` : ""}`);
+  out.push({ type: "text", text: [`📋 รออนุมัติ ${total} เรื่อง`, ...lines, total > room ? `\nกดแล้วพิมพ์ "งานค้าง" อีกครั้งเพื่อดูที่เหลือ` : ""].filter(Boolean).join("\n").slice(0, 4900) });
+  for (const a of acts.slice(0, room)) {
+    out.push({
+      type: "template", altText: `รออนุมัติ: ${a.title}`.slice(0, 400),
+      template: { type: "confirm", text: `${a.title}\n(ปุ่มใช้ได้ครั้งเดียว ภายใน 24 ชม.)`.slice(0, 240), actions: [
+        { type: "postback", label: "✅ อนุมัติ", data: `ops:${a.token}:y`, displayText: `✅ อนุมัติ — ${a.title}`.slice(0, 300) },
+        { type: "postback", label: "❌ ไม่อนุมัติ", data: `ops:${a.token}:n`, displayText: `❌ ไม่อนุมัติ — ${a.title}`.slice(0, 300) },
+      ] },
+    });
+  }
+  return out.slice(0, 5);
+}

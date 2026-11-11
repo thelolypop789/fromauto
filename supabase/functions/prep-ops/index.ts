@@ -8,7 +8,7 @@
 // Secrets: GEMINI_KEY, LINE_CHANNEL_ACCESS_TOKEN (ใช้ร่วมกับ prep-line-bot); ตัวเลือก PREP_SLIP_MODEL (default gemini-flash-latest)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { SLIP_SCHEMA, slipPrompt, approvedText, cleanRef, confirmMessage, parseSlip, slipAlertText, slipReasons, type SlipRead } from "./logic.ts";
+import { SLIP_SCHEMA, slipPrompt, cleanRef, confirmMessage, parseSlip, slipAlertText, slipReasons, type SlipRead } from "./logic.ts";
 
 const GEMINI_KEY = Deno.env.get("GEMINI_KEY") ?? "";
 const LINE_TOKEN = (Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN") ?? "").trim();
@@ -55,13 +55,21 @@ async function owners(): Promise<string[]> {
   return (data ?? []) as string[];
 }
 
-async function push(to: string, messages: unknown[]) {
+// push ไม่สำเร็จ (เช่น โควตาเดือนเต็ม) → เก็บข้อความใน ops_outbox ให้เจ้าของเรียกดูด้วย "งานค้าง" (ปุ่มอยู่ใน ops_actions อยู่แล้ว)
+async function push(to: string, messages: unknown[]): Promise<boolean> {
   const res = await fetch("https://api.line.me/v2/bot/message/push", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${LINE_TOKEN}` },
     body: JSON.stringify({ to, messages: messages.slice(0, 5) }),
   });
-  if (!res.ok) console.error("LINE push", res.status, await res.text());
+  if (res.ok) return true;
+  console.error("LINE push", res.status, await res.text());
+  const text = messages.map(m => (m as { type?: string; text?: string }).type === "text" ? (m as { text: string }).text : "").filter(Boolean).join("\n");
+  if (text) {
+    const { error } = await sb.rpc("prep_ops_outbox_add", { p_text: text });
+    if (error) console.error("prep_ops_outbox_add:", error.message);
+  }
+  return false;
 }
 
 // รูปสลิปใน LINE ต้องเป็น https JPEG/PNG — ชนิดอื่น (HEIC/WebP) ส่งเป็นลิงก์แทน (ลิงก์อายุ 24 ชม.)
@@ -101,11 +109,7 @@ async function slipCheck(orderId: number): Promise<Response> {
   });
   if (e2) return json({ error: "save: " + e2.message }, 500);
   if (res?.skipped) return json(res);
-  if (res?.approved) {
-    const text = approvedText({ order_id: o.id, amount: o.amount, package: o.package, term: o.term, seats: o.seats });
-    if (LINE_TOKEN) for (const u of await owners()) await push(u, [{ type: "text", text }]);
-    return json(res);
-  }
+  if (res?.approved) return json(res);   // ไม่ push (ประหยัดโควตา LINE) — ดูได้ในสรุปเช้า / งานค้าง
 
   await alertOwners({ order_id: o.id, amount: o.amount, package: o.package, term: o.term, seats: o.seats, email: o.email, reasons: res.reasons ?? reasons },
                     read, res.token, `สลิปออเดอร์ #${o.id} · ${o.amount} บาท`, o.slip_path, mime);

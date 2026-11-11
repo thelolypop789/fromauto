@@ -18,7 +18,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
-  APP_ADMIN_TEXT, APP_DAILY_LIMIT, APP_LIMIT_TEXT, DEFAULT_TEXT, ANNOUNCED_PROMOS, FALLBACK_PRICES, PRESETS, SLIP_TEXT, WELCOME_TEXT, aiMessages,
+  APP_ADMIN_TEXT, approveAllReply, isApproveAllKeyword, APP_DAILY_LIMIT, APP_LIMIT_TEXT, DEFAULT_TEXT, ANNOUNCED_PROMOS, FALLBACK_PRICES, PRESETS, SLIP_TEXT, WELCOME_TEXT, aiMessages,
   appSystemPrompt, cleanReply, commandReply, decideReply, isPendingKeyword, pendingMessages, type TopicCount, matchPreset, parseCommand, parsePostback, planBurst,
   signatureOk, summaryPrompt, systemPrompt,
   type AppContext, type DayData, type Pending, type Price, type PromoStatus, type Turn,
@@ -211,6 +211,12 @@ async function handle(ev: LineEvent) {
     if (error) console.error("prep_ops_pending:", error.message);
     const msgs = pendingMessages(error ? null : data);
     if (msgs) return replyMessages(ev.replyToken, msgs);
+  }
+  if (kind === "text" && isApproveAllKeyword(text)) {   // เจ้าของ: อนุมัติทั้งหมด (ยกเว้นสลิป); คนอื่น = แชทปกติ
+    const { data, error } = await sb().rpc("prep_ops_decide_all", { p_line: user });
+    if (error) console.error("prep_ops_decide_all:", error.message);
+    const out = approveAllReply(error ? null : data);
+    if (out) return reply(ev.replyToken, out);
   }
   const cmd = kind === "text" ? parseCommand(text) : null;
   if (cmd != null) {   // "สั่ง: ..." ของเจ้าของ → คิวงาน Claude Code; ไม่ใช่เจ้าของ = แชทลูกค้าปกติ (ตกลงไปด้านล่าง)

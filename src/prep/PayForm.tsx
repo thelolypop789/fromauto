@@ -141,6 +141,11 @@ export default function PayForm({ email, onApproved, initial = null }: {
       setFile(null); setPreview(""); setNote(""); setSeats(1); setApplied(""); setPromoText("");
       try { localStorage.removeItem("pp-promo"); } catch { /* ignore */ }
       load();
+      setBusy(false);
+      // ลูกค้าสับสนว่าส่งแล้วหรือยัง/ต้องรอนานแค่ไหน (สรุปแชท 9 พ.ย. 69) → ป๊อปอัปยืนยันหลังส่งสำเร็จ
+      // ระยะเวลาไม่ใส่ตัวเลขตายตัว: 7 วันล่าสุดครึ่งหนึ่งผ่านใน ~2 นาที แต่บางรายการนานเกิน 30 นาที
+      await ask({ title: "ส่งสลิปเรียบร้อย", body: "ระบบกำลังตรวจสลิป ส่วนใหญ่เปิดสิทธิ์ให้ภายในไม่กี่นาที ช่วงที่มีคนส่งมากอาจนานกว่านั้น ไม่ต้องส่งซ้ำ ดูสถานะได้ที่รายการแจ้งชำระด้านล่าง", ok: "เข้าใจแล้ว", cancel: "" });
+      return;
     } catch (e) { setMsg({ ok: false, text: thaiError(e) }); track("slip_fail"); }
     setBusy(false);
   };

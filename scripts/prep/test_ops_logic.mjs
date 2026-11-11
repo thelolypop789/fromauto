@@ -37,6 +37,7 @@ t('parseSlip garbage', O.parseSlip('not json') === null);
 t('thaiTime', O.thaiTime(Date.parse('2026-11-10T13:05:00Z')) === '10/11 20:05 น.');
 const c = O.confirmMessage('a'.repeat(24), 'สลิปออเดอร์ #7 · 89 บาท');
 t('confirm template: 2 postbacks, labels ≤ 20, text ≤ 240', c.template.actions.length === 2 && c.template.actions.every(a => a.label.length <= 20 && a.data.length <= 300) && c.template.text.length <= 240);
+t('prompt carries today (BE) + no date-based tamper', O.slipPrompt(Date.parse('2026-11-10T13:00:00Z')).startsWith('วันนี้คือ 2026-11-10 (พ.ศ. 2569)') && O.slipPrompt().includes('ห้ามตัดสินจากวันที่'));
 t('approved one-liner', O.approvedText({ order_id: 334, amount: 69, package: 'B', term: 'round' }) === '✅ อนุมัติอัตโนมัติ #334 · ภาค ข+เอก รายรอบ · 69 บาท');
 t('alert text lists reasons', O.slipAlertText({ order_id: 7, amount: 89, package: 'ALL', term: 'round', reasons: ['x', 'y'] }, good).includes('• y'));
 

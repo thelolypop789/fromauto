@@ -19,7 +19,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   APP_ADMIN_TEXT, APP_DAILY_LIMIT, APP_LIMIT_TEXT, DEFAULT_TEXT, ANNOUNCED_PROMOS, FALLBACK_PRICES, PRESETS, SLIP_TEXT, WELCOME_TEXT, aiMessages,
-  appSystemPrompt, cleanReply, commandReply, decideReply, type TopicCount, matchPreset, parseCommand, parsePostback, planBurst,
+  appSystemPrompt, cleanReply, commandReply, decideReply, isPendingKeyword, pendingMessages, type TopicCount, matchPreset, parseCommand, parsePostback, planBurst,
   signatureOk, summaryPrompt, systemPrompt,
   type AppContext, type DayData, type Pending, type Price, type PromoStatus, type Turn,
 } from "./logic.ts";
@@ -105,10 +105,14 @@ async function gemini(messages: { role: string; content: string }[], opts: { mod
 // ---------- LINE ----------
 
 async function reply(replyToken: string, text: string) {
+  await replyMessages(replyToken, [{ type: "text", text }]);
+}
+
+async function replyMessages(replyToken: string, messages: unknown[]) {
   const res = await fetch("https://api.line.me/v2/bot/message/reply", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${TOKEN}` },
-    body: JSON.stringify({ replyToken, messages: [{ type: "text", text }] }),
+    body: JSON.stringify({ replyToken, messages: messages.slice(0, 5) }),
   });
   if (!res.ok) console.error("LINE reply", res.status, await res.text());
 }
@@ -202,6 +206,12 @@ async function handle(ev: LineEvent) {
   if (ev.type !== "message" || !ev.message) return;
   const kind = ev.message.type;
   const text = kind === "text" ? (ev.message.text ?? "").trim() : "";
+  if (kind === "text" && isPendingKeyword(text)) {   // เจ้าของ: งานค้าง (ตอบกลับ = ไม่กินโควตา push); คนอื่น = แชทปกติ
+    const { data, error } = await sb().rpc("prep_ops_pending", { p_line: user, p_limit: 4 });
+    if (error) console.error("prep_ops_pending:", error.message);
+    const msgs = pendingMessages(error ? null : data);
+    if (msgs) return replyMessages(ev.replyToken, msgs);
+  }
   const cmd = kind === "text" ? parseCommand(text) : null;
   if (cmd != null) {   // "สั่ง: ..." ของเจ้าของ → คิวงาน Claude Code; ไม่ใช่เจ้าของ = แชทลูกค้าปกติ (ตกลงไปด้านล่าง)
     const { data, error } = await sb().rpc("prep_ops_command", { p_line: user, p_body: cmd });

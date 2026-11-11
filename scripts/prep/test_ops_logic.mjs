@@ -50,4 +50,10 @@ t('register code reply', B.commandReply({ register_code: '012345' }).includes('0
 t('queued but not configured', B.commandReply({ ok: true, command_id: 3, fired: false }).includes('ยังไม่ได้เชื่อม'));
 t('decide replies', B.decideReply({ error: 'expired', title: 'x' }).includes('หมดอายุ') && B.decideReply({ ok: true, kind: 'slip', approved: true, title: 'x' }).includes('อนุมัติแล้ว')
   && B.decideReply({ error: 'used', status: 'approved', title: 'x' }).includes('ตัดสินไปแล้ว') && B.decideReply(null).includes('ไม่สำเร็จ'));
+t('งานค้าง keyword', B.isPendingKeyword('งานค้าง') && B.isPendingKeyword(' สั่ง: งานค้าง ') && !B.isPendingKeyword('มีงานค้างไหม'));
+t('pending: not owner falls through', B.pendingMessages({ error: 'not_owner' }) === null);
+t('pending: nothing', JSON.stringify(B.pendingMessages({ outbox: [], actions: [], total: 0 })).includes('ไม่มีเรื่องรออนุมัติ'));
+const acts = [1, 2, 3, 4].map(i => ({ id: i, kind: i === 1 ? 'slip' : 'post', title: 'เรื่อง ' + i, token: 'ab'.repeat(12), detail: { reasons: ['ยอดไม่ตรง'] } }));
+const pm = B.pendingMessages({ outbox: [{ text: 'สรุปเช้า' }], actions: acts, total: 6 });
+t('pending: ≤ 5 messages, outbox first, buttons, "more" hint', pm.length === 5 && pm[0].text.includes('สรุปเช้า') && pm[1].text.includes('รออนุมัติ 6 เรื่อง') && pm[1].text.includes('ยอดไม่ตรง') && pm[1].text.includes('อีกครั้ง') && pm.slice(2).every(m => m.type === 'template'));
 console.log(`${n - bad}/${n} passed`); if (bad) process.exit(1);

@@ -1,3 +1,4 @@
+import ErrorBoundary from "./ErrorBoundary";
 import { useCallback, useEffect, useState } from "react";
 import { PACKAGE_LABEL, fmtUntil, rpc, thaiError, type PackageKey } from "./api";
 import ImportAI from "./ImportAI";
@@ -100,28 +101,28 @@ export default function Admin() {
           ))}
         </div>
       )}
-      {tab === "stats" && <AdminDashboard onGo={go} />}
-      {tab === "learning" && <AdminLearning />}
-      {tab === "live" && <AdminLive />}
-      {tab === "charts" && <AdminCharts />}
-      {tab === "users" && <AdminUsers />}
-      {tab === "majors" && <AdminMajors />}
-      {tab === "times" && <AdminTimes />}
-      {tab === "orders" && <AdminOrders onChanged={loadPending} />}
-      {tab === "discounts" && <AdminDiscounts />}
-      {tab === "subtopics" && <AdminSubtopics />}
-      {tab === "keys" && <KeysTab />}
-      {tab === "bank" && <AdminBank onChanged={loadCount} />}
-      {tab === "reports" && <><AdminReportAI onChanged={loadCount} /><AdminBank reportsOnly onChanged={loadCount} /></>}
-      {tab === "review" && <ReviewTab />}
-      {tab === "health" && <AdminHealth />}
-      {tab === "import" && <ImportHub />}
-      {tab === "facebook" && <AdminFacebook />}
-      {tab === "calendar" && <AdminCalendar />}
-      {tab === "summaries" && <AdminSummaries onChanged={loadDrafts} />}
-      {tab === "feedback" && <AdminFeedback onChanged={loadFb} />}
-      {tab === "chats" && <AdminChats />}
-      {tab === "postexam" && <AdminPostExam />}
+      {tab === "stats" && <ErrorBoundary key="stats" label="stats"><AdminDashboard onGo={go} /></ErrorBoundary>}
+      {tab === "learning" && <ErrorBoundary key="learning" label="learning"><AdminLearning /></ErrorBoundary>}
+      {tab === "live" && <ErrorBoundary key="live" label="live"><AdminLive /></ErrorBoundary>}
+      {tab === "charts" && <ErrorBoundary key="charts" label="charts"><AdminCharts /></ErrorBoundary>}
+      {tab === "users" && <ErrorBoundary key="users" label="users"><AdminUsers /></ErrorBoundary>}
+      {tab === "majors" && <ErrorBoundary key="majors" label="majors"><AdminMajors /></ErrorBoundary>}
+      {tab === "times" && <ErrorBoundary key="times" label="times"><AdminTimes /></ErrorBoundary>}
+      {tab === "orders" && <ErrorBoundary key="orders" label="orders"><AdminOrders onChanged={loadPending} /></ErrorBoundary>}
+      {tab === "discounts" && <ErrorBoundary key="discounts" label="discounts"><AdminDiscounts /></ErrorBoundary>}
+      {tab === "subtopics" && <ErrorBoundary key="subtopics" label="subtopics"><AdminSubtopics /></ErrorBoundary>}
+      {tab === "keys" && <ErrorBoundary key="keys" label="keys"><KeysTab /></ErrorBoundary>}
+      {tab === "bank" && <ErrorBoundary key="bank" label="bank"><AdminBank onChanged={loadCount} /></ErrorBoundary>}
+      {tab === "reports" && <><ErrorBoundary label="รายงาน+AI"><AdminReportAI onChanged={loadCount} /></ErrorBoundary><ErrorBoundary label="รายงานจากผู้ใช้"><AdminBank reportsOnly onChanged={loadCount} /></ErrorBoundary></>}
+      {tab === "review" && <ErrorBoundary key="review" label="review"><ReviewTab /></ErrorBoundary>}
+      {tab === "health" && <ErrorBoundary key="health" label="health"><AdminHealth /></ErrorBoundary>}
+      {tab === "import" && <ErrorBoundary key="import" label="import"><ImportHub /></ErrorBoundary>}
+      {tab === "facebook" && <ErrorBoundary key="facebook" label="facebook"><AdminFacebook /></ErrorBoundary>}
+      {tab === "calendar" && <ErrorBoundary key="calendar" label="calendar"><AdminCalendar /></ErrorBoundary>}
+      {tab === "summaries" && <ErrorBoundary key="summaries" label="summaries"><AdminSummaries onChanged={loadDrafts} /></ErrorBoundary>}
+      {tab === "feedback" && <ErrorBoundary key="feedback" label="feedback"><AdminFeedback onChanged={loadFb} /></ErrorBoundary>}
+      {tab === "chats" && <ErrorBoundary key="chats" label="chats"><AdminChats /></ErrorBoundary>}
+      {tab === "postexam" && <ErrorBoundary key="postexam" label="postexam"><AdminPostExam /></ErrorBoundary>}
     </AdminTrackContext.Provider>
   );
 }

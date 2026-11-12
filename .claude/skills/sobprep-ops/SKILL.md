@@ -79,6 +79,9 @@ description: SOBPREP back-office agent run by the Claude Code scheduled task "SO
   (detail ต้องมี fix ครบ: answer + explanation ใหม่ และ message ถึงผู้รายงาน — ตอนเจ้าของกด ✅ job action จะแก้ข้อ + ปิดรายงานด้วยข้อความนั้น)
 ทุกข้อที่ตัดสิน บันทึก `insert into prep.report_reviews (question_id, verdict, confidence, analysis, fix, user_message, report_ids, model, status)`
 (verdict ok|fix|hide|human, model 'claude-ops', status 'applied' เมื่อทำเอง / 'pending' เมื่อส่งให้เจ้าของ) เพื่อให้หน้าแอดมินเห็นประวัติ
+**รูปแบบ `fix` (หน้าแอดมินอ่านตรงนี้ ผิดรูปแบบ = หน้าพัง):** `{"stem": "<ข้อความ>", "choices": ["ก","ข","ค","ง"], "answer": 0-3, "explanation": "<ข้อความ>"}`
+ใส่เฉพาะช่องที่เปลี่ยน แต่ `choices` ต้องเป็น array ครบ 4 ตัวเลือกเสมอ (แก้ตัวเดียวก็ส่งครบ 4) ห้ามเป็น `{"3": "..."}`;
+`explanation` เป็นข้อความเท่านั้น ห้ามเป็น `{"from":..,"to":..}`; ไม่มีอะไรแก้ = `null`
 ปิดงานด้วย `done ... --quiet` — result = "รายงาน N ข้อ · ปิด(เฉลยถูก) N · แก้ N · ซ่อน N · รออนุมัติ N" (สรุปเช้าจะรวมให้)
 
 ## 4. job `command` ("สั่ง: ..." จากเจ้าของ)

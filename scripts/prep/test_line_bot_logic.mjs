@@ -20,6 +20,11 @@ const BEFORE = Date.parse('2026-11-15T23:59:00+07:00'), AFTER = Date.parse('2026
 const priced = L.priceText([{ package: 'ALL', term: 'round', amount: 89 }], BEFORE);
 t('price text uses DB price, fallback for the rest', priced.includes('รายรอบ 3 เดือน 89 บาท') && priced.includes('ซื้อขาด ใช้ได้ทุกรอบสอบ 179 บาท') && !priced.includes('ภาค ก\n'));
 t('price preset with live promos still shows pre-cutoff prices', (() => { const x = L.PRESETS.find(p => p.id === 'price').text([], [{ code: 'SOB10', amount_off: 10 }]); return Date.now() >= L.LIFETIME_UNTIL || (x.includes('ซื้อขาด') && !x.includes('รายปี 12 เดือน')); })());
+t('approve-all keyword', L.isApproveAllKeyword('อนุมัติทั้งหมด') && L.isApproveAllKeyword(' อนุมัติ ทั้งหมด ครับ') && L.isApproveAllKeyword('สั่ง: อนุมัติทั้งหมด') && !L.isApproveAllKeyword('อนุมัติ') && !L.isApproveAllKeyword('ไม่อนุมัติทั้งหมด'));
+t('approve-all: non-owner falls through to chat', L.approveAllReply({ error: 'not_owner' }) === null);
+t('approve-all reply lists done, failed, slips, expired', (() => { const x = L.approveAllReply({ decided: [{ title: 'ข้อ #1', ok: true }, { title: 'ข้อ #2', ok: false, error: 'used' }], slips: 2, expired: 1 });
+  return x.includes('อนุมัติแล้ว 1 เรื่อง') && x.includes('• ข้อ #1') && x.includes('ไม่สำเร็จ 1 เรื่อง (used)') && x.includes('สลิปที่รอตรวจ 2 ใบ') && x.includes('หมดอายุ 1 เรื่อง'); })());
+t('approve-all with nothing waiting', L.approveAllReply({ decided: [], slips: 0, expired: 0 }) === 'ไม่มีเรื่องที่รออนุมัติตอนนี้');
 t('fallback price text = preset prices', L.priceText([], BEFORE).includes('179 บาท') && L.priceText([], BEFORE).includes('รายรอบ 69 บาท · ซื้อขาด 129 บาท'));
 t('every link carries src=line-oa', [L.WELCOME_TEXT, L.priceText([]), L.SLIP_TEXT, L.DEFAULT_TEXT, L.systemPrompt([]), ...L.PRESETS.map(p => p.text([]))]
   .every(s => (s.match(/https:\/\/\S+/g) ?? []).every(u => u.includes('?src=line-oa'))));

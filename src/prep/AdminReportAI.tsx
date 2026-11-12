@@ -11,6 +11,30 @@ type Review = {
   reports: string[];
 };
 const L = ["ก", "ข", "ค", "ง"];
+
+// ข้อเสนอแก้ (fix) มาจากหลายแหล่ง (Gemini, เอเจนต์ claude-ops) บางครั้งรูปแบบไม่ตรง เช่น choices เป็น {"3": "..."}
+// (แก้แค่บางตัวเลือก) หรือ explanation เป็น object → ทำให้เป็นรูปแบบเดียวก่อนแสดง ไม่งั้นทั้งหน้าพังเป็นหน้าขาว
+const str = (x: unknown) => (typeof x === "string" ? x : undefined);
+function cleanFix(raw: unknown, base: string[]): Fix | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const f = raw as Record<string, unknown>;
+  const out: Fix = {};
+  if (str(f.stem)) out.stem = f.stem as string;
+  if (str(f.explanation)) out.explanation = f.explanation as string;
+  if (typeof f.answer === "number" && Number.isInteger(f.answer) && f.answer >= 0 && f.answer <= 3) out.answer = f.answer;
+  const c = f.choices;
+  if (Array.isArray(c) && c.length === 4 && c.every(x => typeof x === "string")) out.choices = c as string[];
+  else if (c && typeof c === "object" && !Array.isArray(c) && base.length === 4) {   // แก้เฉพาะบางตัวเลือก: เติมที่เหลือจากข้อเดิม
+    const part = c as Record<string, unknown>;
+    out.choices = base.map((b, i) => str(part[String(i)]) ?? b);
+  }
+  return Object.keys(out).length ? out : null;
+}
+const cleanReviews = (rv: Review[]) => (Array.isArray(rv) ? rv : []).map(r => ({
+  ...r,
+  reports: Array.isArray(r.reports) ? r.reports.map(String) : [],
+  fix: cleanFix(r.fix, Array.isArray(r.question?.choices) ? r.question.choices : []),
+}));
 const VERDICT: Record<Verdict, { label: string; cls: string; apply: string }> = {
   ok: { label: "ข้อนี้ถูกต้องแล้ว", cls: "ok", apply: "ตอบผู้รายงานว่าข้อนี้ถูกต้อง" },
   fix: { label: "ควรแก้ข้อสอบ", cls: "warn", apply: "แก้ข้อสอบและแจ้งผู้รายงาน" },
@@ -296,12 +320,12 @@ export default function AdminReportAI({ onChanged }: { onChanged: () => void }) 
     () => Promise.all([rpc<Review[]>("prep_admin_report_reviews", { p_status: "pending" }), rpc<number[]>("prep_admin_reports_to_review", { p_limit: 100 })]),
     []);
   const load = useCallback(async () => {
-    try { const [rv, q] = await fetchAll(); setReviews(rv); setTodo(q); }
+    try { const [rv, q] = await fetchAll(); setReviews(cleanReviews(rv)); setTodo(q); }
     catch (e) { setError(thaiError(e)); }
   }, [fetchAll]);
   useEffect(() => {
     let alive = true;
-    fetchAll().then(([rv, q]) => { if (alive) { setReviews(rv); setTodo(q); } }).catch(e => { if (alive) setError(thaiError(e)); });
+    fetchAll().then(([rv, q]) => { if (alive) { setReviews(cleanReviews(rv)); setTodo(q); } }).catch(e => { if (alive) setError(thaiError(e)); });
     return () => { alive = false; };
   }, [fetchAll]);
 

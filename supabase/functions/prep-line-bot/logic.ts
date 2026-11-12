@@ -484,6 +484,24 @@ export function commandReply(res: Record<string, unknown> | null): string | null
     : `รับคำสั่ง #${res.command_id} แล้ว แต่ยังไม่ได้เชื่อม Claude Code (ตั้ง vault claude_routine_url / claude_routine_token) — คำสั่งรอในคิว`;
 }
 
+// "อนุมัติทั้งหมด" (เจ้าของ): อนุมัติทุกเรื่องที่รอ ยกเว้นสลิป (prep_ops_decide_all); คนอื่นพิมพ์ = แชทปกติ
+export const isApproveAllKeyword = (text: string) => /^\s*(สั่ง\s*[:：]\s*)?อนุมัติ\s*ทั้งหมด\s*(ครับ|ค่ะ|คะ|จ้า)?\s*$/.test(text ?? "");
+
+export function approveAllReply(res: Record<string, unknown> | null): string | null {
+  if (!res) return "อนุมัติทั้งหมดไม่สำเร็จ ลองใหม่อีกครั้ง หรือกดทีละปุ่ม";
+  if (res.error === "not_owner") return null;
+  const list = (res.decided ?? []) as { title: string; ok: boolean; error?: string | null }[];
+  const ok = list.filter(d => d.ok), bad = list.filter(d => !d.ok);
+  const lines: string[] = [];
+  if (ok.length) lines.push(`✅ อนุมัติแล้ว ${ok.length} เรื่อง เอเจนต์เริ่มทำแล้ว จะส่งผลกลับมาที่นี่`, ...ok.map(d => `• ${d.title}`));
+  else lines.push("ไม่มีเรื่องที่รออนุมัติตอนนี้");
+  if (bad.length) lines.push("", `⚠️ ทำไม่สำเร็จ ${bad.length} เรื่อง (${[...new Set(bad.map(d => d.error ?? "error"))].join(", ")})`, ...bad.map(d => `• ${d.title}`));
+  const slips = Number(res.slips ?? 0), expired = Number(res.expired ?? 0);
+  if (slips) lines.push("", `🧾 สลิปที่รอตรวจ ${slips} ใบ ไม่ได้อนุมัติให้ เพราะระบบตรวจแล้วสงสัย ต้องดูทีละใบ พิมพ์ "งานค้าง" เพื่อดู`);
+  if (expired) lines.push("", `⏰ ปุ่มหมดอายุ ${expired} เรื่อง ไม่ได้อนุมัติ พิมพ์ "งานค้าง" เพื่อเปิดดูก่อน แล้วค่อยพิมพ์ "อนุมัติทั้งหมด" อีกครั้ง`);
+  return lines.join("\n").slice(0, 4900);
+}
+
 // "งานค้าง" (เจ้าของ): ตอบกลับไม่กินโควตา push — ข้อความที่ส่งไม่ถึง + ปุ่มของเรื่องที่รออนุมัติ (prep_ops_pending)
 export const isPendingKeyword = (text: string) => /^\s*(สั่ง\s*[:：]\s*)?งานค้าง\s*$/.test(text ?? "");
 

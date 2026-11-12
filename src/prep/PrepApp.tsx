@@ -27,6 +27,7 @@ import Waiting from "./Waiting";
 import PastExams from "./PastExams";
 import MajorPicker from "./MajorPicker";
 import TrackPicker from "./TrackPicker";
+import ErrorBoundary from "./ErrorBoundary";
 import "./prep.css";
 import { notify } from "./dialog";
 import { DialogHost } from "./DialogHost";
@@ -256,6 +257,7 @@ function PrepShell() {
         </div>
       </header>
       <main className="pp-main" key={reloadKey}>
+        <ErrorBoundary key={view.name} label={view.name}>
         <Suspense fallback={<Skeleton kind="cards" n={2} />}>
         {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onProfile={changeProfile} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onPast={() => go("past")} onCalendar={() => go("calendar")} onUpgrade={() => go("buy")} onStats={() => go("stats")} onBoard={() => go("board")} onTarot={() => go("tarot")} joined={session.user.created_at} />}
         {view.name === "create" && <CreateSet me={me} major={profile.major} preset={held.preset} onCancel={() => go("home")}
@@ -280,6 +282,7 @@ function PrepShell() {
         {view.name === "buy" && <Buy me={me} email={session.user.email ?? ""} onChanged={refreshMe} />}
         {view.name === "admin" && me.is_admin && <Admin />}
         </Suspense>
+        </ErrorBoundary>
       </main>
       {view.name !== "admin" && <ChatButton />}
       <nav className="pp-nav" aria-label="เมนูหลัก">

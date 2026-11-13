@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Mascot from "./Mascot";
+import Mascot, { type Mood } from "./Mascot";
 import { IconCheck, IconX } from "./icons";
 import type { Track } from "./api";
 import { navigate, useBackClose } from "./router";
@@ -8,9 +8,23 @@ import { navigate, useBackClose } from "./router";
 // add a notice with a new id. `track` limits a notice to สพฐ. ("obec") or สอศ. ("vec") users. `before`: only accounts
 // created before then see it, so a fix notice never greets someone who signed up after the problem was gone.
 // `cta`: a second button that opens a page; `notOwner`: hidden from accounts that already own the full pack for life.
+// `from`: not shown before this time; `tag` / `mood` / `ok`: the label above the title, the mascot pose, the close button text.
 type Notice = { id: string; until: string; before: string; track?: Track; title: string; intro: string; points: string[]; note: string;
-  cta?: { label: string; to: string }; notOwner?: boolean };
+  cta?: { label: string; to: string }; notOwner?: boolean; from?: string; tag?: string; mood?: Mood; ok?: string };
 const NOTICES: Notice[] = [
+  {
+    // ขอบคุณ + ให้กำลังใจคืนก่อนสอบ (ตัวเลขจากระบบ 13 พ.ย. 2569 08:47 น.) — ขึ้นก่อนประกาศซื้อขาด ไม่ขายของ
+    id: "2026-11-thanks-exam", from: "2026-11-13T18:00:00+07:00", until: "2026-11-16T00:00:00+07:00", before: "2099-01-01T00:00:00+07:00",
+    tag: "จากใจทีมงาน SOBPREP", mood: "cheer", ok: "สู้ ๆ ครับ 💪",
+    title: "ขอบคุณคุณครูทุกคน ที่ซ้อมมาด้วยกัน 🤍",
+    intro: "ยังไม่ถึงเดือน คุณครูทุกคนช่วยกันทำสิ่งนี้",
+    points: [
+      "ตอบข้อสอบรวมกันกว่า 355,000 ข้อ ทำจบไปแล้ว 20,004 ชุด",
+      "กว่า 31,000 ข้อ ถูกตอบระหว่างเที่ยงคืนถึงตีห้า หลังงาน หลังสอน ตอนที่ได้เวลาของตัวเอง",
+      "8,695 ครั้ง ที่กลับไปทวนข้อที่เคยผิด ไม่ยอมแพ้",
+    ],
+    note: "สิ่งที่ทีมงานหวังจริง ๆ คือ ขอให้นี่เป็นรอบสุดท้ายที่คุณครูต้องใช้เว็บเรา คืนนี้นอนให้พอ เตรียมบัตรประชาชน บัตรเข้าสอบ ดินสอ 2B ไว้ข้างหัวนอน ภาค ก เสาร์ 14 · ภาค ข อาทิตย์ 15 พ.ย. ขอให้ทุกคนได้บรรจุครับ",
+  },
   {
     id: "2026-11-lifetime-last", until: "2026-11-16T00:00:00+07:00", before: "2099-01-01T00:00:00+07:00", notOwner: true,
     title: "แพ็กซื้อขาด ขายถึง 15 พ.ย. นี้เท่านั้น",
@@ -54,7 +68,7 @@ export default function Announcement({ track, joined, lifetimeOwner }: { track?:
   const [n, setN] = useState<Notice | null>(null);
   useEffect(() => {
     const since = joined ? new Date(joined).getTime() : 0;
-    const next = NOTICES.find(x => !seen(x.id) && Date.now() <= new Date(x.until).getTime() && since < new Date(x.before).getTime()
+    const next = NOTICES.find(x => !seen(x.id) && Date.now() <= new Date(x.until).getTime() && (!x.from || Date.now() >= new Date(x.from).getTime()) && since < new Date(x.before).getTime()
       && (!x.track || x.track === (track ?? "obec")) && !(x.notOwner && lifetimeOwner));
     if (!next) return;
     // Wait for the track/major pickers to close; never stack on another dialog.
@@ -78,14 +92,14 @@ export default function Announcement({ track, joined, lifetimeOwner }: { track?:
     <div className="pp-modal" role="dialog" aria-modal="true" aria-labelledby="pp-notice-h" onClick={close}>
       <div className="pp-modal-box pp-notice" onClick={e => e.stopPropagation()}>
         <button className="pp-x pp-inst-x" onClick={close} aria-label="ปิด"><IconX /></button>
-        <div className="pp-notice-hero"><Mascot costume="teacher" mood="happy" size={96} motion="pop" /></div>
-        <span className="pp-notice-tag">ประกาศจากทีมงาน</span>
+        <div className="pp-notice-hero"><Mascot costume="teacher" mood={n.mood ?? "happy"} size={96} motion="pop" /></div>
+        <span className="pp-notice-tag">{n.tag ?? "ประกาศจากทีมงาน"}</span>
         <h3 id="pp-notice-h">{n.title}</h3>
         <p>{n.intro}</p>
         <ul>{n.points.map(t => <li key={t}><IconCheck size={16} /><span>{t}</span></li>)}</ul>
         <p className="pp-muted small">{n.note}</p>
         {n.cta && <button className="pp-btn pp-btn-gold pp-wide" onClick={() => openCta(n.cta!.to)}>{n.cta.label}</button>}
-        <button className={n.cta ? "pp-btn pp-btn-ghost pp-wide" : "pp-btn pp-inst-go"} onClick={close}>รับทราบ</button>
+        <button className={n.cta ? "pp-btn pp-btn-ghost pp-wide" : "pp-btn pp-inst-go"} onClick={close}>{n.ok ?? "รับทราบ"}</button>
       </div>
     </div>
   );

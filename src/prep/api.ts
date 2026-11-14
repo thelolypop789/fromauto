@@ -273,7 +273,7 @@ export type Quote = {
 };
 export type ReviewCounts = { due: number; wrong: number };
 export type DailyItem = {
-  idx: number; stem: string; choices: string[]; picked: number | null;
+  idx: number; tag?: string | null; stem: string; choices: string[]; picked: number | null;
   correct?: boolean; answer?: number; explanation?: string; pct_correct?: number | null;
 };
 export type DailyTopic = { code: string; name: string; section: "A" | "B" };

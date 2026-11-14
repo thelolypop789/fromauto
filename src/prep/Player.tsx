@@ -7,6 +7,7 @@ import { useSinceShown } from "./timing";
 import { ask } from "./dialog";
 import { useTopicNames } from "./topicNames";
 import TextSize from "./TextSize";
+import ExamTag from "./ExamTag";
 import VerseText from "./VerseText";
 
 // A short line from the mascot under the verdict. Picked by question id so it does not change on re-render.
@@ -149,7 +150,7 @@ export default function Player({ round, onExit, onSubmitted }: Props) {
         <div className="pp-card pp-q">
           <div className="pp-q-head">
             {topics[item.topic] && <div className="pp-q-topic">{topics[item.topic]}</div>}
-            {item.tag && <div className="pp-q-tag">{item.tag}</div>}
+            <ExamTag tag={item.tag} />
             <TextSize />
             {reported.has(item.question_id)
               ? <span className="pp-report-btn done"><IconCheck size={14} />รายงานแล้ว</span>

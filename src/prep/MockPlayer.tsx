@@ -5,6 +5,7 @@ import { useSinceShown } from "./timing";
 import { ask } from "./dialog";
 import { useTopicNames } from "./topicNames";
 import TextSize from "./TextSize";
+import ExamTag from "./ExamTag";
 import VerseText from "./VerseText";
 
 const LABELS = ["ก", "ข", "ค", "ง"];
@@ -90,7 +91,7 @@ export default function MockPlayer({ payload, onDone, onExit }: Props) {
         <div className="pp-card pp-q">
           <div className="pp-q-head">
             {topics[item.topic] && <div className="pp-q-topic">{topics[item.topic]}</div>}
-            {item.tag && <div className="pp-q-tag">{item.tag}</div>}
+            <ExamTag tag={item.tag} />
             <TextSize />
             <button className={`pp-report-btn ${flags.has(pos) ? "done" : ""}`} onClick={flag}><IconFlag size={14} />{flags.has(pos) ? "ทำเครื่องหมายแล้ว" : "กลับมาดูทีหลัง"}</button>
           </div>

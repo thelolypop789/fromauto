@@ -1171,8 +1171,11 @@ div.pp-todo-item { cursor: default; }
 .pp-aiv-fix { margin-top: 8px; display: grid; gap: 4px; }
 .pp-aiv-fix .pp-btn { justify-self: start; margin-top: 4px; }
 
-/* "แนวข้อสอบ สอศ. 2567" next to the topic chip */
-.pp-q-tag { font-size: 12px; font-weight: 600; color: var(--pp-brand-ink-2); background: var(--pp-card); display: inline-block; padding: 3px 10px; border-radius: 99px; margin: 0 0 8px 6px; border: 1px solid var(--pp-primary); }
+/* แถบที่มาของข้อ ("แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 · จากผู้เข้าสอบ") — เต็มแถวบนสุดของหัวการ์ดโจทย์ ให้เห็นชัดทุกชุด */
+.pp-q-tag { order: -1; flex: 1 0 100%; box-sizing: border-box; min-width: 0; display: flex; align-items: center; gap: 8px; font-size: 13.5px; line-height: 1.4; color: #fff; background: var(--pp-primary); padding: 7px 12px; border-radius: 10px; margin: 0 0 4px; }
+.pp-q-tag svg { flex: none; }
+.pp-q-tag b { font-weight: 700; }
+.pp-q-tag small { font-size: 12px; font-weight: 500; opacity: .88; white-space: nowrap; }
 
 /* Exam picker (สพฐ. / สอศ.) */
 .pp-track-pick { display: grid; gap: 12px; margin: 14px 0 6px; }

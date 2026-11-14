@@ -1,0 +1,58 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&family=Sarabun:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+body{width:1080px;height:1350px;background:#4A0B16;font-family:Prompt,sans-serif;color:#2A1418}
+.wrap{position:relative;width:1080px;height:1350px;padding:56px 64px;background:radial-gradient(ellipse at 85% 0%,#8E1B2E 0%,#6E1423 45%,#4A0B16 100%);overflow:hidden}
+.top{display:flex;align-items:center;gap:14px;color:#FBF3DC;font-weight:600;font-size:26px;letter-spacing:.5px}
+.top img{width:52px;height:52px;border-radius:12px;background:#fff}
+.tag{margin-left:auto;border:2px solid #D4AF37;color:#D4AF37;border-radius:999px;padding:6px 18px;font-size:22px}
+h1{margin-top:34px;color:#fff;font-size:68px;line-height:1.12;font-weight:800;width:700px}
+h1 em{font-style:normal;color:#D4AF37}
+.sub{margin-top:14px;color:#F3DADF;font-size:28px;width:640px;line-height:1.45;font-family:Sarabun,sans-serif}
+.mascot{position:absolute;right:30px;top:120px;width:330px}
+.stats{margin-top:48px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.st{background:#FBF7F1;border-radius:22px;padding:22px 22px 20px}
+.st b{display:block;font-size:64px;font-weight:800;color:#8E1B2E;line-height:1}
+.st span{display:block;margin-top:10px;font-size:22px;line-height:1.35;color:#5E4A4E;font-family:Sarabun,sans-serif}
+.card{margin-top:28px;background:#FBF7F1;border-radius:22px;padding:28px 32px 24px}
+.card h2{font-size:30px;font-weight:700;color:#4A0B16}
+.card p.n{font-size:20px;color:#7A6468;margin-top:4px;font-family:Sarabun,sans-serif}
+.row{display:grid;grid-template-columns:330px 1fr 90px;align-items:center;gap:16px;margin-top:22px;font-size:23px}
+.row .lab{color:#2A1418;line-height:1.2}
+.track{height:30px;background:#EADFD8;border-radius:4px;position:relative}
+.bar{height:30px;background:#B8869A;border-radius:0 4px 4px 0}
+.row.hi .bar{background:#8E1B2E}
+.row.hi .lab{font-weight:600}
+.val{text-align:right;font-weight:700;color:#2A1418}
+.tick{position:absolute;top:-6px;bottom:-6px;width:2px;background:#CDBFB4}
+.cta{margin-top:30px;display:flex;align-items:center;gap:24px;background:linear-gradient(90deg,#D4AF37,#B8860B);border-radius:22px;padding:24px 32px;color:#4A0B16}
+.cta .l{flex:1}
+.cta .l b{display:block;font-size:34px;font-weight:800;line-height:1.2}
+.cta .l span{font-size:22px;font-family:Sarabun,sans-serif;font-weight:600}
+.cta .r{background:#4A0B16;color:#FBF3DC;border-radius:16px;padding:14px 22px;text-align:center;font-weight:700;font-size:26px;line-height:1.2}
+.cta .r small{display:block;font-size:18px;font-weight:500;color:#D4AF37}
+.foot{position:absolute;left:64px;right:64px;bottom:26px;color:#E9C9CF;font-size:17px;font-family:Sarabun,sans-serif;display:flex;justify-content:space-between}
+</style></head><body><div class="wrap">
+<div class="top"><img src="../../../public/prep/welcome/img/logo.png">SOBPREP<div class="tag">สาย สอศ. · อาชีวะ</div></div>
+<img class="mascot" src="../../../public/prep/welcome/img/mascot-none-think.webp">
+<h1>ยังไม่มั่นใจ<br>ว่าจะผ่าน<em>รอบนี้</em>?</h1>
+<p class="sub">ไม่ได้เป็นคนเดียว — ดูสถิติจริง<br>ของคนที่ซ้อมสาย สอศ. ใน SOBPREP</p>
+<div class="stats">
+ <div class="st"><b>46</b><span>คน ซ้อมข้อสอบ<br>ภาค ข สาย สอศ.</span></div>
+ <div class="st"><b>847</b><span>ครั้งที่ตอบ<br>จาก 394 ข้อ</span></div>
+ <div class="st"><b>57%</b><span>ตอบถูกเฉลี่ย<br>แนวข้อสอบ สอศ. 65/67</span></div>
+</div>
+<div class="card">
+ <h2>ตอบถูกเฉลี่ยแต่ละหมวด (%)</h2>
+ <p class="n">หมวดที่มีคนทำ 16 คนขึ้นไป · เส้นแนวตั้ง = 60%</p>
+ <div class="row"><div class="lab">บริบทโลก / เศรษฐกิจพอเพียง</div><div class="track"><div class="bar" style="width:74.7%"></div><i class="tick" style="left:60%"></i></div><div class="val">74.7</div></div>
+ <div class="row"><div class="lab">ประกันคุณภาพการศึกษาอาชีวะ</div><div class="track"><div class="bar" style="width:70%"></div><i class="tick" style="left:60%"></i></div><div class="val">70.0</div></div>
+ <div class="row"><div class="lab">พ.ร.บ.การอาชีวศึกษา</div><div class="track"><div class="bar" style="width:66.7%"></div><i class="tick" style="left:60%"></i></div><div class="val">66.7</div></div>
+ <div class="row hi"><div class="lab">แนวข้อสอบ สอศ. 2565/2567</div><div class="track"><div class="bar" style="width:57.2%"></div><i class="tick" style="left:60%"></i></div><div class="val">57.2</div></div>
+ <div class="row hi"><div class="lab">หลักสูตรอาชีวศึกษา / ทวิภาคี</div><div class="track"><div class="bar" style="width:46.3%"></div><i class="tick" style="left:60%"></i></div><div class="val">46.3</div></div>
+</div>
+<div class="cta"><div class="l"><b>941 ข้อ ภาค ข สาย สอศ. · 4 วิชาเอก</b><span>ช่างยนต์ · คอมพิวเตอร์ธุรกิจฯ · การบัญชี · ช่างกลโรงงานฯ<br>ทุกข้อมีคำอธิบาย · ซื้อตลอดชีพ ใช้ต่อได้ถึงรอบหน้า</span></div>
+ <div class="r">ภาค ข + เอก<br>129.-<small>ตลอดชีพ · sobprep.com</small></div></div>
+<div class="foot"><span>ข้อมูลจากระบบ SOBPREP 24 ต.ค. – 14 พ.ย. 2569</span><span>แนวข้อสอบ = เรียบเรียงใหม่ ไม่ใช่ข้อสอบจริง</span></div>
+</div></body></html>

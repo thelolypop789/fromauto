@@ -1171,6 +1171,13 @@ div.pp-todo-item { cursor: default; }
 .pp-aiv-fix { margin-top: 8px; display: grid; gap: 4px; }
 .pp-aiv-fix .pp-btn { justify-self: start; margin-top: 4px; }
 
+/* แนวข้อสอบเก่า: การ์ดต่อสนามสอบ/ปี แยกภาคและหมวด */
+.pp-past .pp-past-sec + .pp-past-sec { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--pp-line); }
+.pp-past-sec-h { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin-bottom: 8px; }
+.pp-past-sec-h b { color: var(--pp-brand-ink); }
+.pp-past-sec-h span { font-size: 13px; color: var(--pp-muted); }
+.pp-past .pp-modes button:disabled { opacity: .55; cursor: default; }
+
 /* การ์ดเล็กบอกสนามสอบของข้อ (ExamTag) — แถวบนสุดของหัวการ์ดโจทย์ กว้างเท่าข้อความ */
 .pp-q-tagrow { order: -1; flex: 1 0 100%; min-width: 0; margin-bottom: 2px; }
 .pp-q-tag { display: inline-flex; align-items: center; gap: 9px; max-width: 100%; box-sizing: border-box; padding: 5px 12px 5px 5px; border-radius: 12px; background: var(--pp-primary-soft); border: 1px solid var(--pp-line); color: var(--pp-brand-ink); }

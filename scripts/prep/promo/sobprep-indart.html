@@ -1,0 +1,67 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&family=Sarabun:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+body{width:1080px;height:1350px;font-family:Prompt,sans-serif;color:#2A1418}
+.wrap{position:relative;width:1080px;height:1350px;padding:56px 64px;background:radial-gradient(ellipse at 85% 0%,#8E1B2E 0%,#6E1423 45%,#4A0B16 100%);overflow:hidden}
+.top{display:flex;align-items:center;gap:14px;color:#FBF3DC;font-weight:600;font-size:26px}
+.top img{width:52px;height:52px;border-radius:12px;background:#fff}
+.tag{margin-left:auto;border:2px solid #D4AF37;color:#D4AF37;border-radius:999px;padding:6px 18px;font-size:22px}
+h1{margin-top:30px;color:#fff;font-size:56px;line-height:1.14;font-weight:800;width:680px}
+h1 em{font-style:normal;color:#D4AF37}
+.sub{margin-top:12px;color:#F3DADF;font-size:26px;width:640px;line-height:1.45;font-family:Sarabun,sans-serif}
+.mascot{position:absolute;right:40px;top:118px;width:280px}
+.stats{margin-top:34px;display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:18px}
+.st{background:#FBF7F1;border-radius:22px;padding:20px 22px}
+.st b{display:block;font-size:62px;font-weight:800;color:#8E1B2E;line-height:1}
+.st b small{font-size:28px;color:#7A6468;font-weight:600}
+.st span{display:block;margin-top:8px;font-size:21px;line-height:1.35;color:#5E4A4E;font-family:Sarabun,sans-serif}
+.st.main{background:#FBF3DC;border:3px solid #D4AF37}
+.card{margin-top:22px;background:#FBF7F1;border-radius:22px;padding:24px 30px}
+.card h2{font-size:28px;font-weight:700;color:#4A0B16}
+.list{margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px 26px}
+.it{display:flex;gap:10px;font-size:21px;line-height:1.3;font-family:Sarabun,sans-serif;font-weight:600;color:#2A1418}
+.it i{flex:none;width:28px;height:28px;border-radius:50%;background:#0F8A5F;color:#fff;font-style:normal;font-size:18px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.en{margin-top:14px;padding-top:12px;border-top:2px dashed #EADFD8;font-size:21px;color:#5E4A4E;font-family:Sarabun,sans-serif}
+.en b{color:#2A1418}
+.cta{margin-top:20px;display:flex;align-items:center;gap:22px;background:linear-gradient(90deg,#D4AF37,#B8860B);border-radius:22px;padding:22px 30px;color:#4A0B16}
+.cta .l{flex:1}
+.cta .l b{display:block;font-size:34px;font-weight:800;line-height:1.2}
+.cta .l span{display:block;margin-top:4px;font-size:22px;font-family:Sarabun,sans-serif;font-weight:600;line-height:1.4}
+.cta .r{background:#4A0B16;color:#FBF3DC;border-radius:16px;padding:12px 22px;text-align:center;font-weight:700;font-size:24px;line-height:1.25}
+.cta .r big{display:block;font-size:40px;color:#fff}
+.cta .r small{display:block;font-size:17px;font-weight:500;color:#D4AF37}
+.foot{position:absolute;left:64px;right:64px;bottom:24px;color:#E9C9CF;font-size:16px;font-family:Sarabun,sans-serif;line-height:1.4}
+.nums{display:flex;gap:12px;margin-top:10px}.nums div{background:rgba(255,255,255,.55);border-radius:14px;padding:8px 14px;font-size:18px;line-height:1.25;font-family:Sarabun,sans-serif;font-weight:600}.nums em{display:block;font-style:normal;font-family:Prompt,sans-serif;font-size:32px;font-weight:800;color:#4A0B16}
+.chart{margin-top:22px;background:#FBF7F1;border-radius:22px;padding:22px 30px 20px}
+.chart h2{font-size:27px;font-weight:700;color:#4A0B16}.chart p{font-size:18px;color:#7A6468;font-family:Sarabun,sans-serif;margin-top:2px}
+.row{display:grid;grid-template-columns:360px 1fr 92px;align-items:center;gap:14px;margin-top:7px;font-size:20px;font-family:Sarabun,sans-serif}
+.row .lab{line-height:1.15;color:#2A1418}.row .lab small{font-size:16px;color:#7A6468}
+.row.hi .lab{font-weight:600}.track{height:22px;background:#EADFD8;border-radius:4px}.bar{height:22px;background:#B8869A;border-radius:0 4px 4px 0}.row.hi .bar{background:#8E1B2E}
+.val{text-align:right;font-weight:700;font-family:Prompt,sans-serif}
+</style></head><body><div class="wrap">
+<div class="top"><img src="../../../public/prep/welcome/img/logo.png">SOBPREP<div class="tag">ภาค ข · 15 พ.ย. 2569</div></div>
+<img class="mascot" src="../../../public/prep/welcome/img/mascot-teacher-cheer.webp">
+<h1>เอก<em>อุตสาหกรรมศิลป์</em><br>พรุ่งนี้สอบแล้ว</h1>
+<p class="sub">ทบทวนคืนสุดท้าย เริ่มจากเรื่องที่คนพลาดบ่อยที่สุด</p>
+<div class="stats">
+ <div class="st main"><b>1,084 <small>ข้อ</small></b><span>ข้อสอบเอกอุตสาหกรรมศิลป์<br>เฉลยละเอียดทุกข้อ</span></div>
+ <div class="st"><b>10 <small>ผัง</small></b><span>สรุปเนื้อหา<br>ครบ 10 งานช่าง</span></div>
+ <div class="st"><b>209 <small>คน</small></b><span>ซ้อมแล้ว<br>57,237 ครั้ง</span></div>
+</div>
+<div class="chart"><h2>ตอบถูกเฉลี่ยรายหัวข้อ — เรียงจากยากไปง่าย</h2><p>จากการตอบ 57,237 ครั้งในระบบ · ตัวเลขในวงเล็บ = จำนวนข้อในคลัง</p>
+<div class="row hi"><div class="lab">การออกแบบและเทคโนโลยี <small>(19)</small></div><div class="track"><div class="bar" style="width:65.2%"></div></div><div class="val">65.2%</div></div>
+<div class="row hi"><div class="lab">งานช่างโลหะและงานเชื่อม <small>(307)</small></div><div class="track"><div class="bar" style="width:67.3%"></div></div><div class="val">67.3%</div></div>
+<div class="row hi"><div class="lab">การเขียนแบบ <small>(71)</small></div><div class="track"><div class="bar" style="width:67.6%"></div></div><div class="val">67.6%</div></div>
+<div class="row"><div class="lab">งานช่างไม้ <small>(107)</small></div><div class="track"><div class="bar" style="width:68.1%"></div></div><div class="val">68.1%</div></div>
+<div class="row"><div class="lab">งานช่างยนต์ <small>(89)</small></div><div class="track"><div class="bar" style="width:69.3%"></div></div><div class="val">69.3%</div></div>
+<div class="row"><div class="lab">เครื่องมือช่างและการบำรุงรักษา <small>(155)</small></div><div class="track"><div class="bar" style="width:69.8%"></div></div><div class="val">69.8%</div></div>
+<div class="row"><div class="lab">งานช่างปูนและก่อสร้าง <small>(179)</small></div><div class="track"><div class="bar" style="width:71.3%"></div></div><div class="val">71.3%</div></div>
+<div class="row"><div class="lab">งานช่างไฟฟ้าและอิเล็กทรอนิกส์ <small>(109)</small></div><div class="track"><div class="bar" style="width:73.0%"></div></div><div class="val">73.0%</div></div>
+<div class="row"><div class="lab">การบริหารจัดการโรงฝึกงาน <small>(13)</small></div><div class="track"><div class="bar" style="width:78.9%"></div></div><div class="val">78.9%</div></div>
+<div class="row"><div class="lab">ความปลอดภัยในโรงฝึกงาน <small>(32)</small></div><div class="track"><div class="bar" style="width:80.1%"></div></div><div class="val">80.1%</div></div>
+</div>
+<div class="cta"><div class="l"><b>ภาค ข + วิชาเอก ครบในแพ็กเดียว</b><span>วิชาการศึกษา/วิชาชีพครู 1,056 ข้อ · กฎหมายการศึกษา 572 ข้อ<br>สอบจำลองจับเวลา · สรุปผังภาพ · ทบทวนข้อที่ผิด</span></div>
+ <div class="r">ภาค ข + เอก<big>69.-</big><small>sobprep.com · โค้ด SOB10</small></div></div>
+<div class="foot">ข้อมูลจากระบบ SOBPREP 24 ต.ค. – 14 พ.ย. 2569 · ร้อยละตอบถูก = สัดส่วนคำตอบที่ถูกต่อจำนวนครั้งที่ตอบในหัวข้อนั้น</div>
+</div></body></html>

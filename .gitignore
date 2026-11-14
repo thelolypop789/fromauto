@@ -27,3 +27,6 @@ dist-ssr
 supabase/.temp/
 scratch/
 cloudflared.exe
+# Python bytecode (generated when running scripts/prep/*.py)
+__pycache__/
+*.pyc

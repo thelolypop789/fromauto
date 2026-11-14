@@ -1,0 +1,135 @@
+[
+ {
+  "topic": "A2-GRAMMAR",
+  "subtopic": null,
+  "level": "apply",
+  "stem": "I ___ my keys. Have you seen them?",
+  "choices": [
+   "am losing",
+   "lose",
+   "have lost",
+   "lost"
+  ],
+  "answer": 2,
+  "explanation": "ทำกุญแจหายไปแล้วและผลยังอยู่ตอนนี้ (ยังหาไม่เจอ จึงถามว่าเห็นไหม) ใช้ present perfect คือ have lost ภาษาพูดแบบอเมริกันอาจได้ยิน I lost my keys แต่เมื่อมีตัวเลือก have lost ให้เลือก have lost เพราะตรงหลักการใช้ present perfect ที่สุด lose เป็นปัจจุบันกาลซึ่งไม่เข้ากับบริบท และ am losing แปลว่ากำลังทำหาย ไม่ใช่หายไปแล้ว",
+  "law_ref": null,
+  "ref": "แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)",
+  "source": "เรียบเรียงใหม่ · แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)",
+  "status": "review",
+  "exam_tag": "แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)"
+ },
+ {
+  "topic": "A2-GRAMMAR",
+  "subtopic": null,
+  "level": "apply",
+  "stem": "We ___ dinner when the lights went out.",
+  "choices": [
+   "have had",
+   "were having",
+   "are having",
+   "will have"
+  ],
+  "answer": 1,
+  "explanation": "เหตุการณ์ที่กำลังดำเนินอยู่ในอดีต (กำลังกินข้าว) แล้วมีอีกเหตุการณ์แทรกเข้ามา (ไฟดับ ใช้ past simple went out) เหตุการณ์ที่กำลังทำอยู่ใช้ past continuous คือ were having",
+  "law_ref": null,
+  "ref": "แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)",
+  "source": "เรียบเรียงใหม่ · แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)",
+  "status": "review",
+  "exam_tag": "แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)"
+ },
+ {
+  "topic": "A2-GRAMMAR",
+  "subtopic": null,
+  "level": "apply",
+  "stem": "Could you hold this box ___ I open the door?",
+  "choices": [
+   "during",
+   "unless",
+   "so",
+   "while"
+  ],
+  "answer": 3,
+  "explanation": "while แปลว่า ในขณะที่ ใช้เชื่อมประโยคสองประโยคที่เกิดขึ้นพร้อมกัน (ถือกล่องไว้ในขณะที่ฉันเปิดประตู) during ต้องตามด้วยคำนาม ไม่ใช่ประโยค unless แปลว่า เว้นแต่ และ so แปลว่า ดังนั้น ไม่เข้ากับความหมาย",
+  "law_ref": null,
+  "ref": "แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)",
+  "source": "เรียบเรียงใหม่ · แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)",
+  "status": "review",
+  "exam_tag": "แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)"
+ },
+ {
+  "topic": "A2-GRAMMAR",
+  "subtopic": null,
+  "level": "apply",
+  "stem": "Which sentence is written correctly?",
+  "choices": [
+   "Our school trip to Chiang Mai is on Monday.",
+   "Our school trip to Chiang Mai is on monday.",
+   "Our school trip to chiang mai is on Monday.",
+   "our school trip to Chiang Mai is on Monday."
+  ],
+  "answer": 0,
+  "explanation": "ในภาษาอังกฤษ คำแรกของประโยค ชื่อเฉพาะ (Chiang Mai) และชื่อวันในสัปดาห์ (Monday) ต้องขึ้นต้นด้วยตัวพิมพ์ใหญ่เสมอ",
+  "law_ref": null,
+  "ref": "แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)",
+  "source": "เรียบเรียงใหม่ · แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)",
+  "status": "review",
+  "exam_tag": "แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)"
+ },
+ {
+  "topic": "A2-VOCAB",
+  "subtopic": null,
+  "level": "apply",
+  "stem": "Please ___ the lights before you leave the room.",
+  "choices": [
+   "turn down",
+   "turn off",
+   "turn on",
+   "turn up"
+  ],
+  "answer": 1,
+  "explanation": "ก่อนออกจากห้องควร ปิดไฟ ซึ่งใช้ turn off ส่วน turn on คือเปิด turn up คือเพิ่มเสียงหรือความแรง และ turn down คือลดเสียงหรือปฏิเสธ",
+  "law_ref": null,
+  "ref": "แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)",
+  "source": "เรียบเรียงใหม่ · แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)",
+  "status": "review",
+  "exam_tag": "แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)"
+ },
+ {
+  "topic": "A2-VOCAB",
+  "subtopic": null,
+  "level": "remember",
+  "stem": "Which word is closest in meaning to \"discover\"?",
+  "choices": [
+   "forget",
+   "borrow",
+   "find",
+   "hide"
+  ],
+  "answer": 2,
+  "explanation": "discover แปลว่า ค้นพบ หรือ พบ ความหมายใกล้เคียงกับ find ส่วน borrow คือยืม hide คือซ่อน และ forget คือลืม",
+  "law_ref": null,
+  "ref": "แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)",
+  "source": "เรียบเรียงใหม่ · แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)",
+  "status": "review",
+  "exam_tag": "แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)"
+ },
+ {
+  "topic": "A2-CONV",
+  "subtopic": null,
+  "level": "apply",
+  "stem": "Choose the most appropriate response.\nA: Would you like some coffee?\nB: ___",
+  "choices": [
+   "Yes, please.",
+   "No, I don't like you.",
+   "Sure, I don't care.",
+   "Yes, I like."
+  ],
+  "answer": 0,
+  "explanation": "การตอบรับข้อเสนออย่างสุภาพใช้ Yes, please. หรือปฏิเสธว่า No, thank you. Yes, I like. ผิดไวยากรณ์ เพราะ like ต้องมีกรรม No, I don't like you. หยาบคาย และ Sure, I don't care. ฟังเหมือนไม่ใส่ใจ ไม่สุภาพ",
+  "law_ref": null,
+  "ref": "แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)",
+  "source": "เรียบเรียงใหม่ · แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)",
+  "status": "review",
+  "exam_tag": "แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)"
+ }
+]

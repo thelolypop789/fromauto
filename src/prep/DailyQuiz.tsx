@@ -4,6 +4,7 @@ import { IconBack, IconCheck, IconNext, IconX } from "./icons";
 import ScoreDist from "./ScoreDist";
 import { useSinceShown } from "./timing";
 import TextSize from "./TextSize";
+import ExamTag from "./ExamTag";
 import Skeleton from "./Skeleton";
 import VerseText from "./VerseText";
 
@@ -61,7 +62,7 @@ export default function DailyQuiz({ onBack }: { onBack: () => void }) {
       {data.done && <ScoreDist kind="daily" />}
 
       <div className="pp-card pp-q">
-        <div className="pp-q-head"><TextSize /></div>
+        <div className="pp-q-head"><ExamTag tag={item.tag} /><TextSize /></div>
         <div className="pp-q-stem"><span className="pp-q-no">{pos + 1}.</span> <VerseText stem text={item.stem} /></div>
         <div className="pp-choices">
           {item.choices.map((text, c) => {

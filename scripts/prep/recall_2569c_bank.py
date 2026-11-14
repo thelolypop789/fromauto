@@ -15,11 +15,14 @@ ROOT = Path(__file__).resolve().parents[2]
 TAG = "แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)"
 b = Bank(seed=256916)
 
+# ปรับเป็นฉบับข้อสอบ (ภาพเฉลยติวเตอร์สองแหล่งตรงกัน: lose / lost / am losing / have lost เฉลย have lost)
+# แก้ข้อความอย่างเดียว ตำแหน่งตัวเลือกคงเดิม id 15407
 b.add("A2-GRAMMAR", "apply",
       "I ___ my keys. Have you seen them?",
-      "lost", ["lose", "losing", "have losing"],
-      "ประโยคหลังถามว่าเห็นกุญแจไหม แปลว่าการทำหายเกิดขึ้นแล้ว จึงใช้กริยาช่องที่ 2 lost (ถ้ามีตัวเลือก have lost ก็ถูกเช่นกัน) "
-      "lose เป็นปัจจุบันกาลซึ่งไม่เข้ากับบริบท losing ต้องมี am นำหน้า และ have losing ผิดรูป เพราะ have ต้องตามด้วยกริยาช่องที่ 3")
+      "have lost", ["lose", "am losing", "lost"],
+      "ทำกุญแจหายไปแล้วและผลยังอยู่ตอนนี้ (ยังหาไม่เจอ จึงถามว่าเห็นไหม) ใช้ present perfect คือ have lost "
+      "ภาษาพูดแบบอเมริกันอาจได้ยิน I lost my keys แต่เมื่อมีตัวเลือก have lost ให้เลือก have lost เพราะตรงหลักการใช้ present perfect ที่สุด "
+      "lose เป็นปัจจุบันกาลซึ่งไม่เข้ากับบริบท และ am losing แปลว่ากำลังทำหาย ไม่ใช่หายไปแล้ว")
 
 b.add("A2-GRAMMAR", "apply",
       "We ___ dinner when the lights went out.",

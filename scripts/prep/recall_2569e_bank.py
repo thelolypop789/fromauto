@@ -1,8 +1,8 @@
 """แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (ภาค ก ภาษาอังกฤษ, 14 พ.ย. 2569) — ชุด e
 
 ที่มา: ภาพเฉลยของติวเตอร์ที่ผู้ใช้ส่งมา (เรียกว่า "แนวข้อสอบ" เสมอ) — เขียนประโยคใหม่ หาเฉลยเอง
-มีแล้ว ไม่เพิ่ม: turn off the light (ชุด c), widen (ชุด d), I ___ my keys (ชุด c — ภาพนี้มีตัวเลือก have lost กับ lost
-ซึ่งถูกทั้งคู่ในการใช้จริง ชุด c จึงไม่ใส่ have lost เพื่อไม่ให้มีสองคำตอบ)
+มีแล้ว ไม่เพิ่ม: turn off the light (ชุด c), widen (ชุด d), I ___ my keys (ชุด c — ภายหลังปรับ id 15407 เป็นฉบับข้อสอบ
+lose / lost / am losing / have lost เฉลย have lost ตามภาพติวเตอร์สองแหล่ง)
 python3 scripts/prep/recall_2569e_bank.py → content/prep/bank-recall-2569e.json
 """
 import json

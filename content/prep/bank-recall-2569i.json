@@ -1,0 +1,21 @@
+[
+ {
+  "topic": "A2-GRAMMAR",
+  "subtopic": null,
+  "level": "apply",
+  "stem": "My grandparents enjoy ___ in the park on Sunday mornings.",
+  "choices": [
+   "walking",
+   "walked",
+   "to walk",
+   "walk"
+  ],
+  "answer": 0,
+  "explanation": "กริยา enjoy ต้องตามด้วยกริยาเติม -ing (gerund) เสมอ เช่น enjoy walking, enjoy reading จึงใช้ walk, walked หรือ to walk ตามหลัง enjoy ไม่ได้",
+  "law_ref": null,
+  "ref": "แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)",
+  "source": "เรียบเรียงใหม่ · แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)",
+  "status": "review",
+  "exam_tag": "แนวข้อสอบ ครูผู้ช่วย สพฐ. รอบทั่วไป 2569 (จากผู้เข้าสอบ)"
+ }
+]

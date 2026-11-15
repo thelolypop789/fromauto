@@ -1,0 +1,26 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//SOBPREP//plan//TH
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+UID:sobprep-vec2570-start@sobprep
+DTSTAMP:20261115T073500Z
+DTSTART;VALUE=DATE:20261201
+DTEND;VALUE=DATE:20261202
+SUMMARY:SOBPREP: เริ่มทำเนื้อหาครูผู้ช่วย สอศ. 2570
+DESCRIPTION:สอบ สพฐ. รอบนี้จบแล้ว (ภาค ค ถึง 30 พ.ย.) เริ่มระยะ 1: วิชาชีพครูสาย สอศ. 400+ ข้อ\, กฎหมายอาชีวะ 150+ ข้อ\, ผังสรุป สอศ.\, ขยายวิชาเอกตามประกาศ — ตัดสินใจราคาแพ็ก สอศ.
+BEGIN:VALARM
+TRIGGER:-PT0M
+ACTION:DISPLAY
+DESCRIPTION:เริ่มทำเนื้อหาครูผู้ช่วย สอศ. 2570
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:sobprep-vec2570-exam@sobprep
+DTSTAMP:20261115T073500Z
+DTSTART;VALUE=DATE:20270201
+DTEND;VALUE=DATE:20270401
+SUMMARY:สอบครูผู้ช่วย สอศ. 2570 (ตามข่าว ก.พ.–มี.ค. 70)
+DESCRIPTION:รอบทั่วไป 92 + กรณีพิเศษ 92 อัตรา (ตามข่าว ยังไม่ใช่ประกาศทางการ) — อัปเดตเมื่อมีประกาศรับสมัคร
+END:VEVENT
+END:VCALENDAR

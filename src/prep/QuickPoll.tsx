@@ -5,14 +5,14 @@ import { rpc } from "./api";
 import { useBackClose } from "./router";
 
 // โพลสั้นแบบ pop up บนหน้าแรก ขึ้นครั้งเดียวต่อเครื่องในช่วงเวลาที่กำหนด ไม่เรียก server จนกว่าจะกดตอบ
-// (วันสอบภาค ข 15 พ.ย. 2569: ถามคนที่กำลังทวนว่าข้อสอบในแอปช่วยได้แค่ไหน — ผลอยู่ใน prep.poll_answers)
+// (หลังสอบภาค ข 15–16 พ.ย. 2569: ถามคนที่สอบแล้วว่าข้อสอบในแอปช่วยได้แค่ไหน — ผลอยู่ใน prep.poll_answers)
 const POLL = {
-  id: "2026-11-b-help",
+  id: "2026-11-b-after",
   from: "2026-11-15T11:00:00+07:00",
-  until: "2026-11-15T17:00:00+07:00",
-  title: "ข้อสอบใน SOBPREP ช่วยให้มั่นใจขึ้นแค่ไหน",
-  intro: "ใครกำลังทวนภาค ข อยู่ ขอถามสั้น ๆ ครับ กดตอบได้เลย 🙏",
-  choices: [["much", "ช่วยได้มาก ทำได้เยอะ"], ["some", "ช่วยได้บ้าง พอทำได้"], ["little", "ยังไม่ค่อยช่วย"], ["none", "ยังไม่ได้ลองทำ"]] as [string, string][],
+  until: "2026-11-17T00:00:00+07:00",
+  title: "สอบแล้ว ข้อสอบใน SOBPREP ช่วยได้แค่ไหน",
+  intro: "ใครสอบไปแล้ว ขอถามสั้น ๆ ครับ เจอข้อที่เคยซ้อม หรือพอทำได้บ้างไหม 🙏",
+  choices: [["much", "ช่วยได้มาก เจอข้อที่เคยซ้อมเยอะ"], ["some", "ช่วยได้บ้าง พอทำได้"], ["little", "ไม่ค่อยช่วย ไม่ค่อยตรง"], ["none", "ยังไม่ได้สอบ / ยังไม่ได้ใช้แอป"]] as [string, string][],
 };
 type Result = { total: number; counts: Record<string, number> };
 const key = `pp-poll-${POLL.id}`;
@@ -60,7 +60,7 @@ export default function QuickPoll() {
           </>
         ) : (
           <>
-            <p>ขอบคุณครับ ขอให้สอบภาค ข ได้เต็มที่นะครับ 💪</p>
+            <p>ขอบคุณครับ ขอให้ได้ผลดีนะครับ 🤍</p>
             {res.total >= 5 && (
               <ul style={{ textAlign: "left" }}>
                 {POLL.choices.map(([v, label]) => (
@@ -69,7 +69,7 @@ export default function QuickPoll() {
               </ul>
             )}
             {res.total >= 5 && <p className="pp-muted small">จากคุณครูที่ตอบแล้ว {res.total.toLocaleString("th-TH")} คน</p>}
-            <button className="pp-btn pp-inst-go" onClick={close}>สู้ ๆ ครับ</button>
+            <button className="pp-btn pp-inst-go" onClick={close}>ปิด</button>
           </>
         )}
       </div>

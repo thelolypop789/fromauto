@@ -14,6 +14,7 @@ import LevelCard from "./LevelCard";
 import Readiness from "./Readiness";
 import Skeleton from "./Skeleton";
 import ExamFollowup from "./ExamFollowup";
+import QuickPoll from "./QuickPoll";
 import PromoNotice from "./PromoNotice";
 
 const SHOW_SETS = 4;   // ชุดล่าสุดที่โชว์ก่อนกด "ดูทั้งหมด" (รายการเรียงใหม่สุดก่อน)
@@ -74,6 +75,7 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
       {installSheet.open && <InstallSheet onClose={() => installSheet.setOpen(false)} />}
       <Announcement track={profile.track} joined={joined} lifetimeOwner={(me.packages ?? []).some(p => p.package === "ALL" && !p.expires_at)} />
       <ExamFollowup />
+      <QuickPoll />
       {me.plan !== "paid" && <PromoNotice onUpgrade={onUpgrade} />}
 
       {/* Order: what to do today first, then where you stand, then everything else. On a wide screen the side column

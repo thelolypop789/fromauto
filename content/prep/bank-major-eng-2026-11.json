@@ -1,0 +1,1172 @@
+[
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-FUNC",
+  "level": "understand",
+  "stem": "A: Would you mind if I opened the window? It's quite hot in here.\nB: ______",
+  "choices": [
+   "Not at all. Go ahead.",
+   "Yes, of course. Go ahead.",
+   "Yes, I would. Open it, please.",
+   "No, I don't mind it at all, sorry."
+  ],
+  "answer": 0,
+  "explanation": "Would you mind if I...? แปลตรงตัวว่า 'คุณจะรังเกียจไหม' ถ้าอนุญาตต้องตอบปฏิเสธ เช่น Not at all. / No, go ahead. การตอบ Yes หมายถึงรังเกียจ จึงขัดกับ Go ahead ที่ตามมา",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-FUNC",
+  "level": "understand",
+  "stem": "A: Can I give you a hand with those heavy boxes?\nB: ______",
+  "choices": [
+   "That's very kind of you. Thanks.",
+   "No, my hands are very clean.",
+   "Yes, I can give you a hand too.",
+   "You're welcome. Any time."
+  ],
+  "answer": 0,
+  "explanation": "give someone a hand = ช่วยเหลือ การตอบรับข้อเสนอความช่วยเหลือใช้ That's very kind of you / Thanks, that would be great You're welcome ใช้ตอบเมื่อผู้อื่นขอบคุณเรา ไม่ใช่ตอบรับความช่วยเหลือ",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-FUNC",
+  "level": "understand",
+  "stem": "A: I'm so sorry I'm late. The traffic was terrible.\nB: ______",
+  "choices": [
+   "Don't worry. We've only just started.",
+   "Yes, you are very late, aren't you?",
+   "You're welcome. It's my pleasure.",
+   "Thank you for your traffic today."
+  ],
+  "answer": 0,
+  "explanation": "การตอบรับคำขอโทษอย่างสุภาพใช้ Don't worry. / That's all right. / No problem. You're welcome ใช้ตอบคำขอบคุณ ส่วนการย้ำว่ามาสายมากเป็นการตอบที่ไม่สุภาพ",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-FUNC",
+  "level": "apply",
+  "stem": "In a staff meeting, a colleague suggests giving Grade 1 students a 30-minute grammar test every day. Which response disagrees politely?",
+  "choices": [
+   "That's the worst idea I've ever heard in this school, honestly speaking.",
+   "You are wrong, and everyone here knows it.",
+   "Whatever. Do what you want with your class.",
+   "I see your point, but I'm not sure it suits young learners."
+  ],
+  "answer": 3,
+  "explanation": "การแสดงความไม่เห็นด้วยอย่างสุภาพมักเริ่มจากยอมรับความเห็นอีกฝ่าย (I see your point / I understand what you mean) แล้วใช้คำที่ลดความแรง (I'm not sure... / I wonder if...) ตัวเลือกอื่นตรงและแรงเกินไปสำหรับที่ประชุม",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-FUNC",
+  "level": "understand",
+  "stem": "A teacher gives instructions too quickly for a student. What is the most appropriate thing for the student to say?",
+  "choices": [
+   "What? I don't care about the instructions you gave us today.",
+   "Sorry, could you say that again more slowly, please?",
+   "You speak very badly, teacher.",
+   "Stop talking and give me the answer now."
+  ],
+  "answer": 1,
+  "explanation": "การขอให้พูดซ้ำหรือขอคำอธิบาย (asking for clarification) ใช้ Sorry, could you repeat that? / Could you say that again more slowly? เป็นสำนวนที่ครูควรสอนให้นักเรียนใช้สื่อสารเมื่อฟังไม่ทัน",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-FUNC",
+  "level": "understand",
+  "stem": "A: I'm bored. There's nothing to do this weekend.\nB: ______",
+  "choices": [
+   "Because we don't go to the night market.",
+   "Yes, I went to the night market with my family last week.",
+   "Why don't we go to the night market on Saturday?",
+   "How about you were bored last weekend?"
+  ],
+  "answer": 2,
+  "explanation": "Why don't we...? / How about + V-ing...? / Let's... เป็นการเสนอแนะ (making suggestions) ตัวเลือก How about you were... ผิดโครงสร้าง ต้องตามด้วย V-ing หรือคำนาม",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-FUNC",
+  "level": "apply",
+  "stem": "At a restaurant, a customer finds an extra item on the bill. Which is the most polite way to complain?",
+  "choices": [
+   "Hey! You cheated me on this bill!",
+   "Excuse me, I think there may be a mistake on our bill.",
+   "This bill is wrong. Fix it now.",
+   "I'm not paying anything at all until you apologise to me first."
+  ],
+  "answer": 1,
+  "explanation": "การร้องเรียนอย่างสุภาพเริ่มด้วย Excuse me และใช้คำที่ไม่กล่าวหา เช่น I think there may be a mistake... ภาษาที่อ่อนโยน (hedging) ช่วยให้แก้ปัญหาได้ราบรื่นกว่าการกล่าวหาตรง ๆ",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-FUNC",
+  "level": "understand",
+  "stem": "Caller: Hello. Could I speak to Ms. Malee, please?\nReceptionist: ______",
+  "choices": [
+   "Yes, I'm speaking to Ms. Malee now.",
+   "Please hold the line. I'm afraid that I can speak to you now.",
+   "I'm afraid she's not in at the moment. Can I take a message?",
+   "No, you can't. She is not here. Goodbye."
+  ],
+  "answer": 2,
+  "explanation": "ภาษาโทรศัพท์ที่สุภาพ: I'm afraid she's not available. / Can I take a message? / Would you like to leave a message? I'm afraid... ใช้บอกข่าวที่ไม่น่ายินดีอย่างนุ่มนวล",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-FUNC",
+  "level": "understand",
+  "stem": "A: I heard you passed the teacher exam. Congratulations!\nB: ______",
+  "choices": [
+   "I'm sorry to hear that. It's terrible news.",
+   "Don't mention it. It was nothing at all.",
+   "Congratulations to you too on your exam!",
+   "Thank you so much! I'm really relieved."
+  ],
+  "answer": 3,
+  "explanation": "การตอบรับคำแสดงความยินดีใช้ Thank you (so much)! และอาจบอกความรู้สึกต่อ Don't mention it ใช้ตอบคำขอบคุณ ส่วน I'm sorry to hear that ใช้แสดงความเห็นใจเมื่อได้ยินข่าวร้าย",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-FUNC",
+  "level": "understand",
+  "stem": "A: We're having a small party at my place on Saturday. Would you like to come?\nB: ______ (B cannot go.)",
+  "choices": [
+   "Yes, I'd love to come to your party. See you on Saturday then!",
+   "I don't come to parties on any days.",
+   "No, I would not like your party.",
+   "I'd love to, but I've already made plans for Saturday."
+  ],
+  "answer": 3,
+  "explanation": "การปฏิเสธคำเชิญอย่างสุภาพใช้ I'd love to, but... / I'm afraid I can't... พร้อมเหตุผลสั้น ๆ การปฏิเสธตรง ๆ ว่าไม่อยากไปถือว่าไม่สุภาพ",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-FUNC",
+  "level": "understand",
+  "stem": "A: My grandmother passed away last week.\nB: ______",
+  "choices": [
+   "That's OK. Don't worry about it.",
+   "Congratulations! That's really wonderful news for your family.",
+   "Never mind. It doesn't matter at all.",
+   "I'm so sorry to hear that. Let me know if I can help."
+  ],
+  "answer": 3,
+  "explanation": "การแสดงความเสียใจ (expressing sympathy) ใช้ I'm so sorry to hear that / I'm sorry for your loss Never mind และ That's OK ใช้กับเรื่องเล็กน้อย ไม่เหมาะกับข่าวการเสียชีวิต",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-FUNC",
+  "level": "analyze",
+  "stem": "After explaining a group task, which question best checks whether students really understood the instructions?",
+  "choices": [
+   "Do you understand?",
+   "Is everything clear?",
+   "So, what do you have to do first?",
+   "Any questions? No? Good. Let's begin."
+  ],
+  "answer": 2,
+  "explanation": "คำถาม Do you understand? มักได้คำตอบ Yes แม้นักเรียนยังไม่เข้าใจ ครูภาษาจึงใช้ instruction-checking questions ที่ให้นักเรียนบอกสิ่งที่ต้องทำจริง เช่น What do you do first? / How many minutes do you have? ทำให้ตรวจความเข้าใจได้จริง",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-FUNC",
+  "level": "understand",
+  "stem": "A student needs to leave class early for a doctor's appointment. Which is the most appropriate request to the teacher?",
+  "choices": [
+   "I'm going now. I have a doctor's appointment.",
+   "Excuse me, may I leave early today? I have a doctor's appointment.",
+   "You must let me go home early today, OK?",
+   "Leave me go early today, teacher, because I have the doctor appointment."
+  ],
+  "answer": 1,
+  "explanation": "การขออนุญาตอย่างสุภาพใช้ May I...? / Could I...? พร้อมให้เหตุผล การบอกว่าจะไปเลยหรือใช้ must เป็นการไม่ขออนุญาต",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-FUNC",
+  "level": "apply",
+  "stem": "A: I don't really enjoy horror films.\nB: ______ They give me nightmares.",
+  "choices": [
+   "So do I.",
+   "Neither I don't.",
+   "Me too do.",
+   "Neither do I."
+  ],
+  "answer": 3,
+  "explanation": "การเห็นด้วยกับประโยคปฏิเสธใช้ Neither do I. หรือ Me neither. ส่วน So do I. / Me too. ใช้กับประโยคบอกเล่า Neither ตามด้วยกริยาช่วยรูปบอกเล่าแล้วจึงเป็นประธาน (Neither + aux + subject)",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-FUNC",
+  "level": "understand",
+  "stem": "A: I can't sleep well because I drink coffee every evening.\nB: ______",
+  "choices": [
+   "If I were you, I drank decaf coffee every day after lunch.",
+   "If you were me, you sleep better.",
+   "If I were you, I'd switch to decaf after lunch.",
+   "If I am you, I will drink more coffee."
+  ],
+  "answer": 2,
+  "explanation": "การให้คำแนะนำใช้ If I were you, I'd (would) + V1 เป็นเงื่อนไขแบบที่ 2 (สมมติไม่จริงในปัจจุบัน) ใช้ were กับทุกประธาน ส่วนผลต้องเป็น would + V1 ไม่ใช่กริยาช่องที่ 2",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-FUNC",
+  "level": "understand",
+  "stem": "A: Thank you so much for helping me with my lesson plan.\nB: ______",
+  "choices": [
+   "Yes, you should thank me more often than you do.",
+   "I'm sorry. It was my fault.",
+   "Same to you, and thank you too.",
+   "My pleasure. Good luck with your class."
+  ],
+  "answer": 3,
+  "explanation": "การตอบคำขอบคุณใช้ You're welcome. / My pleasure. / No problem. / Don't mention it. I'm sorry ใช้ขอโทษ ส่วน Same to you ใช้ตอบคำอวยพร เช่น Have a nice weekend!",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-FUNC",
+  "level": "analyze",
+  "stem": "A: How come you're so tired today?\nB: I stayed up late marking exam papers.\nWhat does 'How come' mean in A's question?",
+  "choices": [
+   "Why",
+   "How often",
+   "When",
+   "How"
+  ],
+  "answer": 0,
+  "explanation": "How come...? เป็นสำนวนในภาษาพูดแปลว่า Why...? แต่โครงสร้างหลัง How come ไม่ต้องสลับกริยาช่วยกับประธาน เช่น How come you're tired? (ไม่ใช่ How come are you tired?) คำตอบของ B จึงเป็นเหตุผล",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-FUNC",
+  "level": "apply",
+  "stem": "A tourist asks, 'Excuse me, how do I get to the post office?' Which answer gives clear directions?",
+  "choices": [
+   "Go straight ahead and take the second turning on the left.",
+   "You can send letters and parcels at the post office there.",
+   "The post office is a very old building.",
+   "It opens at 8.30 and closes at 4.30."
+  ],
+  "answer": 0,
+  "explanation": "การบอกทาง (giving directions) ใช้ประโยคคำสั่งพร้อมจุดสังเกต เช่น Go straight ahead / Turn right at the traffic lights / Take the second turning on the left / It's next to the bank ตัวเลือกอื่นให้ข้อมูลที่ไม่ได้ตอบคำถามเรื่องเส้นทาง",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-READ",
+  "level": "understand",
+  "stem": "Read the passage and answer the question. Last year, Ban Nong Khai School turned an empty corner of its playground into a vegetable garden. Students in each class take turns to water the plants before lessons, and they sell the vegetables to teachers every Friday. The money pays for new seeds. Teachers say the project has done more than produce vegetables: students who used to arrive late now come early because they do not want their plants to die.\nWhat is the main idea of the passage?",
+  "choices": [
+   "The school sells vegetables every Friday to make a very large profit.",
+   "A school garden project has had benefits beyond growing food.",
+   "Students should not arrive late for their lessons.",
+   "Teachers prefer to buy vegetables from the market."
+  ],
+  "answer": 1,
+  "explanation": "ใจความหลักคือโครงการแปลงผักให้ผลมากกว่าการได้ผัก (has done more than produce vegetables) โดยเฉพาะเรื่องความรับผิดชอบ เงินที่ขายได้ใช้ซื้อเมล็ดพันธุ์ ไม่ใช่กำไรมาก และเรื่องมาสายเป็นรายละเอียดสนับสนุน",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-READ",
+  "level": "analyze",
+  "stem": "Read the passage and answer the question. Last year, Ban Nong Khai School turned an empty corner of its playground into a vegetable garden. Students in each class take turns to water the plants before lessons, and they sell the vegetables to teachers every Friday. The money pays for new seeds. Teachers say the project has done more than produce vegetables: students who used to arrive late now come early because they do not want their plants to die.\nWhy do some students now arrive at school early?",
+  "choices": [
+   "Teachers give them extra marks every time they arrive before 8 a.m.",
+   "They have to sell vegetables before lessons.",
+   "They feel responsible for keeping their plants alive.",
+   "The school changed its opening time last year."
+  ],
+  "answer": 2,
+  "explanation": "บทอ่านบอกว่า they do not want their plants to die แสดงว่านักเรียนรู้สึกรับผิดชอบต่อต้นไม้ที่ต้องรดน้ำก่อนเรียน การขายผักทำวันศุกร์ ไม่ใช่ก่อนเรียนทุกวัน และไม่มีข้อมูลเรื่องคะแนนหรือเวลาเปิดโรงเรียน",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-READ",
+  "level": "understand",
+  "stem": "Read the passage and answer the question. Notice to all parents: From 1 December, the school gate will close at 7.50 a.m. instead of 8.00 a.m. so that morning assembly can start on time. Students who arrive after the gate closes must sign in at the office. Parents who drop off children by car are asked to use the back entrance on Soi 3 to reduce traffic in front of the school.\nWhat is the main purpose of this notice?",
+  "choices": [
+   "To announce that the school will close for a long holiday in December",
+   "To invite parents to attend the morning assembly",
+   "To complain about parents who drive too fast",
+   "To inform parents about changes to morning arrival arrangements"
+  ],
+  "answer": 3,
+  "explanation": "ประกาศแจ้งเวลาปิดประตูที่เปลี่ยน การลงชื่อเมื่อมาสาย และทางเข้าสำหรับรถผู้ปกครอง จุดประสงค์จึงเป็นการแจ้งการเปลี่ยนแปลงช่วงเช้า โรงเรียนไม่ได้ปิด และไม่มีการเชิญผู้ปกครองเข้าร่วมกิจกรรมหน้าเสาธง",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-READ",
+  "level": "apply",
+  "stem": "Read the passage and answer the question. Notice to all parents: From 1 December, the school gate will close at 7.50 a.m. instead of 8.00 a.m. so that morning assembly can start on time. Students who arrive after the gate closes must sign in at the office. Parents who drop off children by car are asked to use the back entrance on Soi 3 to reduce traffic in front of the school.\nA student arrives at 7.55 a.m. on 3 December. According to the notice, what must the student do?",
+  "choices": [
+   "Sign in at the school office",
+   "Wait at the gate until 8.00 a.m.",
+   "Go home and come back tomorrow",
+   "Enter through the back gate on Soi 3"
+  ],
+  "answer": 0,
+  "explanation": "ตั้งแต่ 1 ธันวาคม ประตูปิด 7.50 น. นักเรียนที่มาถึง 7.55 น. จึงมาหลังประตูปิด ต้องลงชื่อที่ห้องธุรการ (must sign in at the office) ทางเข้าซอย 3 มีไว้สำหรับผู้ปกครองที่ขับรถมาส่ง ไม่ใช่ทางสำหรับนักเรียนที่มาสาย",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-READ",
+  "level": "understand",
+  "stem": "Read the passage and answer the question. Microplastics are pieces of plastic smaller than five millimetres. Some are made small on purpose, such as the tiny beads once used in face scrubs, while most come from larger items that slowly break apart in sunlight and sea water. Scientists have found them in fish, salt and even drinking water. Although their effects on human health are still being studied, many countries have already banned plastic microbeads in cosmetics.\nAccording to the passage, where do most microplastics come from?",
+  "choices": [
+   "Factories that make and bottle drinking water for sale",
+   "Tiny beads added to face scrubs",
+   "Fish that eat plastic in the sea",
+   "Larger plastic items that gradually break down"
+  ],
+  "answer": 3,
+  "explanation": "บทอ่านระบุว่า most come from larger items that slowly break apart in sunlight and sea water ส่วนเม็ดบีดในสครับเป็นแหล่งส่วนน้อย (Some are made small on purpose) ปลาและน้ำดื่มเป็นที่ที่พบไมโครพลาสติก ไม่ใช่แหล่งกำเนิด",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-READ",
+  "level": "analyze",
+  "stem": "Read the passage and answer the question. Microplastics are pieces of plastic smaller than five millimetres. Some are made small on purpose, such as the tiny beads once used in face scrubs, while most come from larger items that slowly break apart in sunlight and sea water. Scientists have found them in fish, salt and even drinking water. Although their effects on human health are still being studied, many countries have already banned plastic microbeads in cosmetics.\nWhich statement can be inferred from the passage?",
+  "choices": [
+   "Some governments acted before the health effects were fully known.",
+   "Microplastics are larger than five centimetres.",
+   "Microbeads are still allowed in all cosmetics in every country worldwide.",
+   "Scientists have proved that microplastics cause cancer."
+  ],
+  "answer": 0,
+  "explanation": "ผลต่อสุขภาพยัง 'are still being studied' แต่หลายประเทศ 'have already banned' แล้ว แสดงว่ารัฐบาลบางแห่งออกมาตรการก่อนจะรู้ผลชัดเจน ไม่มีข้อความว่าพิสูจน์แล้วว่าก่อมะเร็ง และไมโครพลาสติกเล็กกว่า 5 มิลลิเมตร ไม่ใช่เซนติเมตร",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-READ",
+  "level": "understand",
+  "stem": "Read the passage and answer the question. Dear Khun Somsri, Thank you for agreeing to speak to our Grade 9 students about your work as a nurse. As we discussed, the talk will be on Friday 12 January in the school hall from 10.00 to 11.00 a.m. The students have prepared some questions, and they are especially keen to hear how you deal with stress. Please let me know if you need a projector. Best regards, Arun (English teacher)\nWhat is the main purpose of Arun's email?",
+  "choices": [
+   "To invite Khun Somsri to apply for a teaching job",
+   "To cancel a talk because the school hall is not available on that day",
+   "To confirm the details of a talk Khun Somsri has agreed to give",
+   "To ask Khun Somsri for advice about stress at work"
+  ],
+  "answer": 2,
+  "explanation": "Thank you for agreeing to speak... และ As we discussed แสดงว่าตกลงกันแล้ว อีเมลนี้จึงยืนยันวัน เวลา สถานที่ และถามเรื่องโปรเจกเตอร์ เรื่องความเครียดเป็นสิ่งที่นักเรียนอยากฟัง ไม่ใช่ครูขอคำปรึกษาเอง",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-READ",
+  "level": "understand",
+  "stem": "Read the passage and answer the question. Dear Khun Somsri, Thank you for agreeing to speak to our Grade 9 students about your work as a nurse. As we discussed, the talk will be on Friday 12 January in the school hall from 10.00 to 11.00 a.m. The students have prepared some questions, and they are especially keen to hear how you deal with stress. Please let me know if you need a projector. Best regards, Arun (English teacher)\nThe word 'keen' in the email is closest in meaning to ______.",
+  "choices": [
+   "unwilling",
+   "afraid",
+   "confused",
+   "eager"
+  ],
+  "answer": 3,
+  "explanation": "be keen to do something = อยากทำสิ่งนั้นมาก ใกล้เคียง eager ในบริบทนี้นักเรียนอยากฟังว่าพยาบาลจัดการความเครียดอย่างไร การเดาความหมายจากบริบท (they have prepared some questions) ช่วยตัดตัวเลือก unwilling และ afraid ออก",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-READ",
+  "level": "analyze",
+  "stem": "Read the passage and answer the question. Some parents believe that more homework always means better results. However, a large review of studies found that for primary students the link between time spent on homework and test scores is weak. For secondary students the link is stronger, but only up to about one to two hours a night; beyond that, scores do not improve and students report more stress. The quality of homework, the review concludes, matters more than the quantity.\nWhat is the writer's main argument?",
+  "choices": [
+   "Parents should stop helping their children with homework.",
+   "The amount of homework is less important than how useful it is.",
+   "Primary students should do at least two hours of homework every single night.",
+   "Homework should be banned at every level of school."
+  ],
+  "answer": 1,
+  "explanation": "ประโยคสรุป The quality of homework... matters more than the quantity คือข้อโต้แย้งหลัก ผู้เขียนไม่ได้เสนอให้ยกเลิกการบ้าน และข้อมูลชี้ว่าระดับประถมการบ้านมากไม่ได้ช่วยมากนัก",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-READ",
+  "level": "apply",
+  "stem": "Read the passage and answer the question. Some parents believe that more homework always means better results. However, a large review of studies found that for primary students the link between time spent on homework and test scores is weak. For secondary students the link is stronger, but only up to about one to two hours a night; beyond that, scores do not improve and students report more stress. The quality of homework, the review concludes, matters more than the quantity.\nAccording to the passage, what happens when secondary students do more than about two hours of homework a night?",
+  "choices": [
+   "Their scores continue to rise steadily.",
+   "Their scores stop improving and they feel more stressed.",
+   "Their parents report better family relationships and less stress at home.",
+   "They no longer need to attend lessons."
+  ],
+  "answer": 1,
+  "explanation": "บทอ่านระบุ beyond that, scores do not improve and students report more stress คะแนนจึงไม่เพิ่มต่อและความเครียดสูงขึ้น คำเชื่อม However และ but only up to... เป็นตัวบอกขอบเขตของข้อค้นพบ",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-READ",
+  "level": "understand",
+  "stem": "Read the passage and answer the question. When Daeng opened her small noodle shop in 2015, she had only four tables and no idea how to advertise. Instead of paying for adverts, she asked every customer to write one sentence about their meal on a board by the door. Within a year, the board was full, passers-by stopped to read it, and a local food blogger wrote about the shop. Today Daeng runs three branches, but the original board still hangs in the first shop.\nHow did Daeng's shop first become well known?",
+  "choices": [
+   "Customers' comments on a board caught people's attention.",
+   "She paid a famous food blogger to advertise her noodles online.",
+   "She gave free noodles to everyone who passed by.",
+   "She opened three branches at the same time in 2015."
+  ],
+  "answer": 0,
+  "explanation": "บทอ่านบอกว่าเธอไม่ได้จ่ายค่าโฆษณา แต่ให้ลูกค้าเขียนลงกระดาน คนเดินผ่านหยุดอ่าน และบล็อกเกอร์ท้องถิ่นเขียนถึงร้าน การขยาย 3 สาขาเกิดภายหลัง",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-READ",
+  "level": "analyze",
+  "stem": "Read the passage and answer the question. When Daeng opened her small noodle shop in 2015, she had only four tables and no idea how to advertise. Instead of paying for adverts, she asked every customer to write one sentence about their meal on a board by the door. Within a year, the board was full, passers-by stopped to read it, and a local food blogger wrote about the shop. Today Daeng runs three branches, but the original board still hangs in the first shop.\nWhy does the writer mention that the original board 'still hangs in the first shop'?",
+  "choices": [
+   "To complain that the shop has not been decorated",
+   "To show that Daeng values how her business began",
+   "To explain that she cannot afford a new board",
+   "To suggest that the board is now for sale"
+  ],
+  "answer": 1,
+  "explanation": "รายละเอียดปิดท้ายสื่อว่าแม้ธุรกิจโตเป็น 3 สาขา เดงยังเก็บกระดานแรกไว้ สะท้อนการให้คุณค่ากับจุดเริ่มต้นและลูกค้า คำถามแบบนี้ถามจุดประสงค์ของผู้เขียน (author's purpose) ต้องอ่านความหมายแฝง ไม่ใช่แค่ข้อเท็จจริง",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-PED-CEFR",
+  "level": "understand",
+  "stem": "'Can introduce him/herself and others and can ask and answer questions about personal details such as where he/she lives.' This CEFR descriptor matches which level?",
+  "choices": [
+   "A1",
+   "B2",
+   "B1",
+   "A2"
+  ],
+  "answer": 0,
+  "explanation": "คำอธิบายระดับ A1 (Breakthrough) คือใช้ประโยคพื้นฐานง่าย ๆ แนะนำตัว ถามตอบข้อมูลส่วนตัว และสื่อสารได้ถ้าคู่สนทนาพูดช้าและชัด A2 เริ่มบรรยายเรื่องใกล้ตัวและสื่อสารงานประจำ B1 จัดการสถานการณ์ส่วนใหญ่ระหว่างเดินทางได้",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-PED-CEFR",
+  "level": "understand",
+  "stem": "'Can understand a wide range of demanding, longer texts, and recognise implicit meaning.' This CEFR descriptor matches which level?",
+  "choices": [
+   "C1",
+   "C2 only when reading poems",
+   "B1",
+   "A2"
+  ],
+  "answer": 0,
+  "explanation": "C1 (Effective operational proficiency) เข้าใจข้อความยากและยาวหลากหลาย จับความหมายแฝงได้ ใช้ภาษาคล่องและยืดหยุ่นในงานและการศึกษา C2 เข้าใจแทบทุกสิ่งที่ฟังหรืออ่านได้อย่างง่ายดาย",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-PED-CEFR",
+  "level": "understand",
+  "stem": "The CEFR Companion Volume gives much more attention to which mode of communication, in which learners help others understand texts or ideas?",
+  "choices": [
+   "Memorisation",
+   "Pronunciation drills",
+   "Translation only",
+   "Mediation"
+  ],
+  "answer": 3,
+  "explanation": "CEFR Companion Volume ขยายกิจกรรมการสื่อสารเป็น reception, production, interaction และ mediation mediation คือการเป็นตัวกลางสื่อความหมาย เช่น สรุปเนื้อหาให้เพื่อน อธิบายข้อมูลจากกราฟ หรือช่วยให้กลุ่มทำงานร่วมกันได้ ไม่ใช่แค่การแปล",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-PED-CEFR",
+  "level": "apply",
+  "stem": "Which learning objective is best written for a 50-minute lesson at A2 level?",
+  "choices": [
+   "Students will appreciate English culture.",
+   "Students will be able to ask and answer 5 questions on daily routines.",
+   "Students will understand the English language and its grammar very deeply.",
+   "Students will know all present tense rules."
+  ],
+  "answer": 1,
+  "explanation": "จุดประสงค์ที่ดีระบุพฤติกรรมที่สังเกตและวัดได้ (be able to ask and answer) เงื่อนไข และเกณฑ์ (5 questions) เหมาะกับเวลาและระดับ คำว่า understand, know, appreciate วัดตรง ๆ ไม่ได้ และ 'all rules' กว้างเกินไปสำหรับคาบเดียว",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-PED-CEFR",
+  "level": "understand",
+  "stem": "A teacher designs the final speaking task first, then plans the lessons that will prepare students for it. This planning approach is called ______.",
+  "choices": [
+   "the audio-lingual method",
+   "backward design",
+   "summative ranking",
+   "grammar-translation"
+  ],
+  "answer": 1,
+  "explanation": "backward design (Wiggins & McTighe) เริ่มจากกำหนดผลการเรียนรู้ที่ต้องการ แล้วออกแบบหลักฐานการประเมิน จากนั้นจึงวางกิจกรรมการเรียนรู้ ทำให้กิจกรรมทุกอย่างมุ่งไปที่เป้าหมายเดียวกัน",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-PED-CEFR",
+  "level": "analyze",
+  "stem": "A school's English exam only tests grammar through multiple choice, so teachers stop practising speaking in class. This effect of a test on teaching is called ______.",
+  "choices": [
+   "face validity",
+   "negative washback",
+   "inter-rater reliability",
+   "positive washback"
+  ],
+  "answer": 1,
+  "explanation": "washback คือผลของการสอบต่อการสอนและการเรียน ถ้าข้อสอบวัดเพียงไวยากรณ์ ครูอาจละเลยทักษะการพูด จึงเป็น negative washback การออกแบบการประเมินให้ครอบคลุมทักษะสื่อสารช่วยให้เกิด positive washback",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-PED-CEFR",
+  "level": "understand",
+  "stem": "Two teachers score the same speaking test very differently. Which action improves inter-rater reliability most?",
+  "choices": [
+   "Make the speaking test shorter by half.",
+   "Use a shared rubric and practise scoring samples together.",
+   "Let each teacher use his or her own criteria and personal judgement.",
+   "Give the test only to the best students."
+  ],
+  "answer": 1,
+  "explanation": "inter-rater reliability คือความสอดคล้องของคะแนนระหว่างผู้ประเมิน เพิ่มได้ด้วยเกณฑ์ร่วม (rubric) ที่ชัดเจน และการปรับมาตรฐาน (standardisation) โดยลองให้คะแนนตัวอย่างร่วมกันก่อนประเมินจริง",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-PED-CEFR",
+  "level": "apply",
+  "stem": "Which is an example of formative assessment in a writing lesson?",
+  "choices": [
+   "Scores are sent to parents only once, at the very end of the school term.",
+   "Students take a final writing exam that counts for 40%.",
+   "The school ranks students by their end-of-year scores.",
+   "The teacher comments on first drafts so students can revise."
+  ],
+  "answer": 3,
+  "explanation": "formative assessment ใช้ข้อมูลระหว่างเรียนเพื่อปรับปรุงการเรียนรู้ เช่น feedback บนฉบับร่าง peer review และ self-assessment ส่วน summative assessment ใช้ตัดสินผลเมื่อจบหน่วยหรือภาคเรียน",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-PED-CEFR",
+  "level": "understand",
+  "stem": "In a PPP lesson, what happens in the 'Production' stage?",
+  "choices": [
+   "Students use the new language more freely in a communicative task.",
+   "Students repeat the model sentences after the teacher.",
+   "The teacher checks attendance and homework.",
+   "The teacher explains the new grammar rule to the whole class for the first time."
+  ],
+  "answer": 0,
+  "explanation": "PPP มี 3 ขั้น: Presentation (ครูนำเสนอภาษาใหม่) Practice (ฝึกแบบควบคุม เช่น drill) และ Production (ใช้ภาษาอย่างอิสระในงานสื่อสาร) การพูดตามแบบเป็นขั้น Practice",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-PED-CEFR",
+  "level": "analyze",
+  "stem": "A teacher wants to test reading comprehension but the test uses many difficult words that are not in the course. Which quality of the test is most affected?",
+  "choices": [
+   "Validity, as it may measure vocabulary instead of reading",
+   "Authenticity, because the reading passage is about real-life situations",
+   "Reliability, because the test has too many questions",
+   "Practicality, because the test is too cheap to print"
+  ],
+  "answer": 0,
+  "explanation": "ความตรง (validity) คือแบบทดสอบวัดสิ่งที่ตั้งใจจะวัดหรือไม่ ถ้าคำศัพท์ยากนอกหลักสูตร ผลอาจสะท้อนความรู้คำศัพท์มากกว่าทักษะการอ่าน ผลที่ได้จึงตีความเรื่องความเข้าใจการอ่านได้ไม่ถูกต้อง",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-CULT",
+  "level": "understand",
+  "stem": "In many English-speaking countries, which question is generally considered too personal when meeting someone for the first time?",
+  "choices": [
+   "How was your trip here?",
+   "Where are you from?",
+   "How much money do you earn?",
+   "What do you do?"
+  ],
+  "answer": 2,
+  "explanation": "การถามรายได้ อายุ น้ำหนัก หรือศาสนาในการพบกันครั้งแรกมักถือว่าเป็นเรื่องส่วนตัวเกินไป หัวข้อที่ปลอดภัยสำหรับ small talk คือการเดินทาง สภาพอากาศ งาน และที่มาของอีกฝ่าย",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-CULT",
+  "level": "understand",
+  "stem": "Someone sneezes in a meeting in the United States. What do people usually say?",
+  "choices": [
+   "Bless you.",
+   "Excuse me for you.",
+   "Cheers.",
+   "Good luck."
+  ],
+  "answer": 0,
+  "explanation": "Bless you. เป็นธรรมเนียมเมื่อมีคนจาม และผู้จามมักตอบ Thank you. Cheers ใช้ชนแก้วหรือขอบคุณแบบไม่เป็นทางการในอังกฤษ Good luck ใช้อวยพรให้โชคดี",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-CULT",
+  "level": "understand",
+  "stem": "A British colleague says, 'It's raining cats and dogs.' What does this idiom mean?",
+  "choices": [
+   "The weather is changing quickly.",
+   "Pets are not allowed outside.",
+   "It is a little cloudy and cool.",
+   "It's raining very heavily."
+  ],
+  "answer": 3,
+  "explanation": "raining cats and dogs เป็นสำนวน (idiom) แปลว่าฝนตกหนักมาก ความหมายของสำนวนไม่ได้มาจากความหมายของแต่ละคำ ครูควรสอนสำนวนในบริบทพร้อมสถานการณ์การใช้",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-CULT",
+  "level": "analyze",
+  "stem": "After a presentation, a British manager says, 'That's an interesting idea. We might come back to it later.' What does this most likely suggest?",
+  "choices": [
+   "The manager wants to start working on the idea immediately, this week.",
+   "The manager has misunderstood the presentation.",
+   "The manager is politely showing little support for the idea.",
+   "The manager is giving very strong praise."
+  ],
+  "answer": 2,
+  "explanation": "ภาษาอังกฤษแบบบริติชมักสื่อความไม่เห็นด้วยแบบอ้อม (understatement / indirectness) คำว่า interesting และ might come back to it later อาจหมายถึงยังไม่สนับสนุน การเข้าใจความหมายเชิงวัฒนธรรมช่วยลดความเข้าใจผิดในการสื่อสารข้ามวัฒนธรรม",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-CULT",
+  "level": "understand",
+  "stem": "In the United States, Thanksgiving is celebrated on ______.",
+  "choices": [
+   "the fourth Thursday of November",
+   "the last Monday of December",
+   "the first Sunday of October",
+   "the 4th of July every year"
+  ],
+  "answer": 0,
+  "explanation": "Thanksgiving ในสหรัฐอเมริกาตรงกับวันพฤหัสบดีที่ 4 ของเดือนพฤศจิกายน เป็นวันรวมครอบครัวและรับประทานไก่งวง ส่วน 4 กรกฎาคมเป็นวันประกาศอิสรภาพ (Independence Day)",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-CULT",
+  "level": "apply",
+  "stem": "A new English teacher from Canada is introduced to the class. How should students greet her if her name is Sarah Brown?",
+  "choices": [
+   "Good morning, Ms. Sarah.",
+   "Good morning, Mrs. Sarah.",
+   "Good morning, Ms. Brown.",
+   "Good morning, Teacher Sarah Brown."
+  ],
+  "answer": 2,
+  "explanation": "ในภาษาอังกฤษ คำนำหน้า Mr./Ms./Mrs. ใช้กับนามสกุล (Ms. Brown) ไม่ใช้กับชื่อต้น ต่างจากภาษาไทยที่ใช้ 'ครู' หรือ 'คุณ' กับชื่อต้น Ms. ใช้ได้กับผู้หญิงโดยไม่ต้องรู้สถานภาพสมรส",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-CULT",
+  "level": "analyze",
+  "stem": "A Thai teacher wants students to compare Loy Krathong with a festival in another culture. Which activity best develops intercultural competence?",
+  "choices": [
+   "Students memorise only the date and name of a Western festival.",
+   "Students translate a festival song word by word.",
+   "Students decide which country has the best festival.",
+   "Students compare the meanings of both festivals without judging either."
+  ],
+  "answer": 3,
+  "explanation": "ความสามารถในการสื่อสารข้ามวัฒนธรรม (intercultural competence) ต้องมีทั้งความรู้ ทักษะการเปรียบเทียบ และเจตคติที่เปิดกว้าง การเทียบความหมายของประเพณีโดยไม่ตัดสินว่าอะไรดีกว่า ช่วยลดอคติและเห็นทั้งความเหมือนและความต่าง",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-CULT",
+  "level": "understand",
+  "stem": "Students say a speaker from Singapore 'does not speak real English' because of her accent. How should the teacher respond?",
+  "choices": [
+   "Agree with them that only American or British English is real English.",
+   "Explain that English has many valid varieties and accents.",
+   "Tell students to ignore speakers from Asia.",
+   "Correct the speaker's accent as a class activity."
+  ],
+  "answer": 1,
+  "explanation": "แนวคิด World Englishes และ English as a Lingua Franca มองว่าภาษาอังกฤษมีหลายสำเนียงและรูปแบบที่ใช้สื่อสารได้จริง เป้าหมายของผู้เรียนคือความเข้าใจได้ (intelligibility) มากกว่าการพูดให้เหมือนเจ้าของภาษาประเทศใดประเทศหนึ่ง",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-PED-METH",
+  "level": "understand",
+  "stem": "A teacher of young learners says 'Stand up', 'Touch your nose', 'Jump three times' and students respond with actions before speaking. This method is ______.",
+  "choices": [
+   "Total Physical Response (TPR)",
+   "Silent Way",
+   "Grammar-Translation Method",
+   "Content and Language Integrated Learning"
+  ],
+  "answer": 0,
+  "explanation": "TPR (James Asher) ให้ผู้เรียนฟังคำสั่งแล้วตอบสนองด้วยการเคลื่อนไหวก่อนการพูด เลียนแบบการเรียนภาษาแม่ของเด็ก ลดความกังวล เหมาะกับผู้เรียนวัยเด็กและผู้เริ่มต้น",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-PED-METH",
+  "level": "understand",
+  "stem": "Which feature best describes the Audio-Lingual Method?",
+  "choices": [
+   "Tasks with real outcomes and no drills",
+   "Learning subject content through English",
+   "Repetition drills to form correct language habits",
+   "Long reading and word-by-word translation of classic literature"
+  ],
+  "answer": 2,
+  "explanation": "Audio-Lingual Method มีฐานจากพฤติกรรมนิยม (behaviourism) เชื่อว่าภาษาคือนิสัย ใช้การฟังและพูดตามแบบ ฝึกซ้ำ (drills) และเสริมแรงเมื่อพูดถูก การอ่านแปลวรรณกรรมเป็นลักษณะของ Grammar-Translation",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-PED-METH",
+  "level": "understand",
+  "stem": "In CLIL (Content and Language Integrated Learning), the '4Cs' refer to ______.",
+  "choices": [
+   "courses, classes, clubs and camps",
+   "content, communication, cognition and culture",
+   "copying, checking, correcting and completing",
+   "correctness, clarity, completeness and conciseness"
+  ],
+  "answer": 1,
+  "explanation": "CLIL สอนเนื้อหาวิชาผ่านภาษาเป้าหมาย กรอบ 4Cs (Coyle) คือ Content (ความรู้ในวิชา) Communication (การใช้ภาษา) Cognition (ทักษะการคิด) และ Culture (ความเข้าใจตนเองและผู้อื่น)",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-PED-METH",
+  "level": "analyze",
+  "stem": "Some students know the answers but rarely speak because they are afraid of making mistakes in front of classmates. According to Krashen, which factor is blocking their learning?",
+  "choices": [
+   "A low level of fossilisation",
+   "Overuse of the natural order",
+   "A high affective filter",
+   "Too much comprehensible input"
+  ],
+  "answer": 2,
+  "explanation": "สมมติฐานตัวกรองทางอารมณ์ (affective filter) ของ Krashen กล่าวว่าความกังวล ความกลัว และแรงจูงใจต่ำทำให้ข้อมูลภาษาเข้าไปไม่ถึงกระบวนการเรียนรู้ ครูลดตัวกรองได้ด้วยบรรยากาศที่ปลอดภัย การทำงานคู่หรือกลุ่มเล็ก และการแก้ข้อผิดพลาดอย่างเหมาะสม",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-PED-METH",
+  "level": "apply",
+  "stem": "In an information-gap activity, Student A has a timetable with some times missing and Student B has the missing times. What is the main communicative purpose?",
+  "choices": [
+   "Students copy the whole timetable from the board into their notebooks.",
+   "Students translate the timetable into Thai.",
+   "Students memorise the timetable alone.",
+   "Students must exchange information to complete the task."
+  ],
+  "answer": 3,
+  "explanation": "information gap คือแต่ละคนมีข้อมูลไม่ครบ ต้องถามและตอบเพื่อเติมให้ครบ จึงเกิดความจำเป็นในการสื่อสารจริง เป็นกิจกรรมสำคัญของการสอนภาษาเพื่อการสื่อสาร (CLT)",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-PED-METH",
+  "level": "understand",
+  "stem": "In Jane Willis's task-based framework, when do students focus on the grammar and vocabulary of the task?",
+  "choices": [
+   "Before any task, in a long grammar lecture",
+   "In the language focus stage after the task cycle",
+   "Never, because tasks do not involve any language work at all",
+   "Only in the final exam at the end of term"
+  ],
+  "answer": 1,
+  "explanation": "กรอบ TBL ของ Willis มี 3 ขั้น: pre-task (เตรียม) task cycle (task → planning → report) และ language focus (วิเคราะห์และฝึกภาษาที่ปรากฏในงาน) ภาษาจึงถูกเน้นหลังจากผู้เรียนใช้ภาษาสื่อสารทำงานจริงแล้ว",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-CLAUSE",
+  "level": "apply",
+  "stem": "The teacher ______ I met at the conference has written three textbooks.",
+  "choices": [
+   "which",
+   "whose",
+   "what",
+   "whom"
+  ],
+  "answer": 3,
+  "explanation": "ประโยคต้องการ relative pronoun แทนคนที่เป็นกรรมของ met (I met the teacher) จึงใช้ whom (หรือ who/that หรือละได้) whose แสดงความเป็นเจ้าของ which ใช้กับสิ่งของ ส่วน what ไม่ใช้เป็น relative pronoun หลังคำนาม",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-CLAUSE",
+  "level": "apply",
+  "stem": "______ the students finished the project on time surprised everyone.",
+  "choices": [
+   "What",
+   "Which",
+   "That",
+   "If"
+  ],
+  "answer": 2,
+  "explanation": "ประโยคใช้ noun clause เป็นประธาน (That + ประโยคสมบูรณ์) That the students finished... เป็นประธานของ surprised What ใช้เมื่อประโยคตามมาขาดส่วนใดส่วนหนึ่ง เช่น What they did surprised everyone ส่วน if ใช้ขึ้นต้นประธานไม่ได้ (ต้องใช้ whether)",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-CLAUSE",
+  "level": "analyze",
+  "stem": "Which sentence uses a non-defining relative clause correctly?",
+  "choices": [
+   "My father that is a farmer gets up at five every day.",
+   "My father, that is a farmer, gets up at five every day.",
+   "My father, who is a farmer, gets up at five every day.",
+   "My father who, is a farmer gets up at five every day."
+  ],
+  "answer": 2,
+  "explanation": "non-defining relative clause ให้ข้อมูลเพิ่มเติมเกี่ยวกับนามที่ชี้ชัดแล้ว (my father มีคนเดียว) ต้องมีจุลภาคทั้งหน้าและหลัง และห้ามใช้ that ใน non-defining clause",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-TENSE",
+  "level": "apply",
+  "stem": "By the time we arrived at the cinema, the film ______.",
+  "choices": [
+   "had already started",
+   "has already started",
+   "was already starting to start",
+   "already starts"
+  ],
+  "answer": 0,
+  "explanation": "By the time + past simple บอกจุดเวลาในอดีต เหตุการณ์ที่เกิดก่อนหน้าจุดนั้นใช้ past perfect (had + V3) present perfect ใช้เชื่อมกับปัจจุบัน จึงไม่เข้ากับเรื่องเล่าในอดีต",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-TENSE",
+  "level": "apply",
+  "stem": "Look at those dark clouds! It ______ rain.",
+  "choices": [
+   "is going to",
+   "will be",
+   "rains",
+   "has"
+  ],
+  "answer": 0,
+  "explanation": "be going to ใช้ทำนายจากหลักฐานที่เห็นในปัจจุบัน (dark clouds) ส่วน will ใช้ทำนายจากความคิดเห็นหรือตัดสินใจทันที will be rain ผิดโครงสร้าง เพราะ rain ในที่นี้เป็นกริยา",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-TENSE",
+  "level": "apply",
+  "stem": "I ______ English at this school since 2019.",
+  "choices": [
+   "teach",
+   "have been teaching",
+   "am teaching",
+   "was teaching"
+  ],
+  "answer": 1,
+  "explanation": "since + จุดเริ่มต้นในอดีต ใช้กับ present perfect หรือ present perfect continuous เพื่อบอกการกระทำที่เริ่มในอดีตและยังทำอยู่ present continuous และ present simple ไม่ใช้กับ since ในความหมายนี้",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-TENSE",
+  "level": "analyze",
+  "stem": "Which sentence is grammatically correct?",
+  "choices": [
+   "When I am walking home, it started to rain.",
+   "When I walked home, it was starting rain.",
+   "When I was walking home, it started to rain.",
+   "When I was walk home, it starts to rain."
+  ],
+  "answer": 2,
+  "explanation": "past continuous (was walking) บอกเหตุการณ์ที่กำลังดำเนินอยู่ แล้วมีเหตุการณ์สั้นแทรกเข้ามาด้วย past simple (started) ตัวเลือกอื่นผิดเรื่องการผสม tense หรือรูปกริยา (was walk, starting rain)",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-SPEECH",
+  "level": "apply",
+  "stem": "'Have you finished your homework?' my mother asked me. → My mother asked me ______.",
+  "choices": [
+   "had I finished my homework",
+   "if I have finished my homework",
+   "if I had finished my homework",
+   "that had I finished my homework"
+  ],
+  "answer": 2,
+  "explanation": "Yes/No question เปลี่ยนเป็น reported question ด้วย if/whether และเรียงแบบประโยคบอกเล่า (subject + verb) กริยารายงานเป็นอดีต (asked) จึงถอย tense: have finished → had finished และ your → my",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-SPEECH",
+  "level": "apply",
+  "stem": "'I can't come to the meeting tomorrow,' said Nida. → Nida said that she ______ to the meeting the next day.",
+  "choices": [
+   "can't come",
+   "couldn't come",
+   "couldn't came",
+   "won't come"
+  ],
+  "answer": 1,
+  "explanation": "ใน reported speech ที่กริยารายงานเป็นอดีต can't เปลี่ยนเป็น couldn't และ tomorrow เปลี่ยนเป็น the next day / the following day หลัง could ต้องใช้ V1 (come) ไม่ใช่ V2",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-SPEECH",
+  "level": "apply",
+  "stem": "'Please close the door,' the teacher said to Tom. → The teacher ______.",
+  "choices": [
+   "told to Tom close the door",
+   "said Tom closed the door",
+   "asked Tom to close the door",
+   "asked Tom that he closes the door"
+  ],
+  "answer": 2,
+  "explanation": "คำขอร้องหรือคำสั่งในรูป reported speech ใช้ ask/tell + object + to-infinitive เช่น asked Tom to close the door ใช้ told to Tom ไม่ได้ เพราะ tell ตามด้วยกรรมโดยตรง",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ },
+ {
+  "topic": "B3-ENG",
+  "subtopic": "B3-ENG-SPEECH",
+  "level": "analyze",
+  "stem": "'We are studying here now,' the students said. Which reported version is most appropriate when reported a week later in another place?",
+  "choices": [
+   "The students said that they are studied there then.",
+   "The students said that they were study here now.",
+   "The students said that we are studying here now.",
+   "The students said that they were studying there then."
+  ],
+  "answer": 3,
+  "explanation": "เมื่อรายงานต่างเวลาและสถานที่ ต้องเปลี่ยนสรรพนาม (we → they) tense (are studying → were studying) และคำบอกเวลาสถานที่ (here → there, now → then) ตามมุมมองของผู้รายงาน",
+  "law_ref": null,
+  "ref": "claude-major-2026-11",
+  "source": "claude:authored",
+  "status": "review"
+ }
+]

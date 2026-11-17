@@ -26,7 +26,9 @@ FILES = {"bank-scenario-2026.json": "claude-scenario-2026-11", "bank-news-2026.j
          "bank-round4-2026.json": "claude-scenario-2026-11", "bank-round5-2026.json": "claude-scenario-2026-11",
          "bank-round5b-2026.json": "claude-scenario-2026-11",
          # วิชาเอกที่คลังบาง (17 พ.ย. 2569): ref เดียวทั้งชุด ซ่อน/ถอนได้ด้วย where ref = 'claude-major-2026-11'
-         "bank-major-sci-2026-11.json": "claude-major-2026-11", "bank-major-agri-2026-11.json": "claude-major-2026-11"}
+         "bank-major-sci-2026-11.json": "claude-major-2026-11", "bank-major-agri-2026-11.json": "claude-major-2026-11",
+         "bank-major-early-2026-11.json": "claude-major-2026-11", "bank-major-eng-2026-11.json": "claude-major-2026-11",
+         "bank-major-math-2026-11.json": "claude-major-2026-11"}
 picked = sys.argv[1:] or ["bank-scenario-2026.json", "bank-news-2026.json"]
 rows = []
 for name, tag in ((n, FILES[n]) for n in picked):

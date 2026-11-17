@@ -4,6 +4,7 @@
 origin ในตารางรับได้แค่ sheet/template/ai/manual จึงใช้ 'manual' และเก็บป้ายชุดไว้ใน ref:
   โจทย์สถานการณ์  ref = 'claude-scenario-2026-11'   (โหมดท้าทายดึงจาก ref นี้)
   โจทย์ข่าว        ref = 'claude-news-2026-11 | <url แหล่งข่าว>'   (ซ่อนทั้งชุด: where ref like 'claude-news-2026-11%')
+  วิชาเอกเติมคลัง   ref = 'claude-major-2026-11'
 ซ้ำกับของเดิม (content_hash) ข้ามไป · Usage: python3 scripts/prep/import_claude_bank.py [bank-xxx.json ...] > x.sql
 """
 import json
@@ -23,12 +24,14 @@ FILES = {"bank-scenario-2026.json": "claude-scenario-2026-11", "bank-news-2026.j
          "bank-pisa-2026.json": "claude-scenario-2026-11", "bank-pisa2-2026.json": "claude-scenario-2026-11",
          "bank-round3-2026.json": "claude-scenario-2026-11", "bank-news2-2026.json": "claude-news-2026-11",
          "bank-round4-2026.json": "claude-scenario-2026-11", "bank-round5-2026.json": "claude-scenario-2026-11",
-         "bank-round5b-2026.json": "claude-scenario-2026-11"}
+         "bank-round5b-2026.json": "claude-scenario-2026-11",
+         # วิชาเอกที่คลังบาง (17 พ.ย. 2569): ref เดียวทั้งชุด ซ่อน/ถอนได้ด้วย where ref = 'claude-major-2026-11'
+         "bank-major-sci-2026-11.json": "claude-major-2026-11", "bank-major-agri-2026-11.json": "claude-major-2026-11"}
 picked = sys.argv[1:] or ["bank-scenario-2026.json", "bank-news-2026.json"]
 rows = []
 for name, tag in ((n, FILES[n]) for n in picked):
     for q in json.loads((ROOT / "content" / "prep" / name).read_text()):
-        ref = tag if tag.startswith("claude-scenario") else f"{tag} | {q.get('ref')}"
+        ref = f"{tag} | {q.get('ref')}" if tag.startswith("claude-news") else tag
         choices = json.dumps(q["choices"], ensure_ascii=False)
         rows.append("(" + ", ".join([lit(q["topic"]), lit(q.get("subtopic")), lit(q["level"]), lit(q["stem"]), lit(choices) + "::jsonb",
                                      str(int(q["answer"])), lit(q["explanation"]), lit(q.get("law_ref")), lit(ref)]) + ")")

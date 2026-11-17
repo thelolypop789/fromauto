@@ -49,7 +49,7 @@
 | 1 | B1-EVAL | 40 | ✅ 40 |
 | 2 | B1-INSTR | 40 | ✅ 41 |
 | 3 | B1-PSY | 35 | ✅ 34 |
-| 4 | B1-CLASSMGT | 30 | |
+| 4 | B1-CLASSMGT | 30 | ✅ 30 |
 | 5 | B1-CURR | 30 | |
 | 6 | B1-PROF 20 · B1-RESEARCH 18 | 38 | |
 | 7 | B1-INNOV 13 · B2-POLICY 7 · B2-MOEADMIN 6 · B2-COMPULSORY 8 | 34 | |

@@ -25,6 +25,7 @@ pg_cron: ทุก 15 นาที prep.ops_tick → ตรวจสลิปท
 | ตรวจข้อสอบ | Claude Code job `quality` | ซ่อนข้อเสียชัดเจน, แก้คำผิด | เปลี่ยนเฉลย, ข้อกำกวม |
 | ตรวจข้อสอบที่โดนรายงาน | Claude Code job `reports` (~10–25 นาทีหลังรายงาน) | ปิดรายงานที่ไม่ถูกพร้อมอธิบายผู้รายงาน, แก้พิมพ์ผิด, ซ่อนข้อเสีย | เปลี่ยนเฉลย, ข้อกำกวม |
 | ตามข่าวการสอบ/การศึกษา | Claude Code job `news` 06:30, 17:30 (เว็บสาธารณะ ไม่ท่อง FB) | บันทึกข่าว, แจ้งข่าวด่วน, ร่างโพสต์/ข้อสอบข่าว | ลงคิวโพสต์, ข้อสอบข่าวขึ้นแอป |
+| เฝ้าเว็บเขตพื้นที่ (สพป./สพม. ทุกเขต) | `supabase/functions/prep-esa-watch` (pg_cron ทุก 10 นาที, แต่ละเว็บ ~2 ชม.ครั้ง) | เก็บหัวข้อประกาศครูผู้ช่วยลง `prep.esa_posts`, แจ้ง LINE เป็นสรุปชั่วโมงละครั้ง (07–22 น.) | — (ไม่โพสต์เอง; job news เอาไปร่างโพสต์ "ประกาศแล้ว N เขต") |
 | ปรับปรุงบอท | ใน job `morning` | ร่างพรีเซต/ข้อเท็จจริง | deploy บอท |
 | สร้างเนื้อหา | เมื่อสั่ง "สั่ง: ..." | เขียนเข้า DB เป็น review | ขึ้นแอป |
 
@@ -54,6 +55,8 @@ python3 scripts/prep/ops/ops.py cmd N แล้วจบด้วย ops.py done
 ```
 
 ## ตรวจสอบ/แก้ปัญหา
+
+- เฝ้าเว็บเขต: รายชื่อ/เว็บอยู่ `scripts/prep/esa/sites.json` → `python3 scripts/prep/esa/sync_sites.py`; สถานะ `select name, url, mode, last_ok_at, fail_count, last_error from prep.esa_sites order by fail_count desc`; ที่เจอ `select * from prep.esa_posts order by id desc limit 20`; ปิดชั่วคราว `update prep.esa_settings set enabled = false`
 
 - ปลุกแล้วไม่ทำงาน: `select * from prep.ops_fires order by id desc limit 5` → `status_code` / `note` (not_configured = ยังไม่ตั้ง secret, 401 token ผิด, 429 เกิน 30 ครั้ง/ชม.), `session_url` = เซสชันที่ถูกปลุก
 - สลิปไม่ถูกตรวจ: `select id, slip_checked_at, slip_check from prep.orders order by id desc limit 5` + log ของ prep-ops

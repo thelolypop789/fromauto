@@ -113,6 +113,13 @@ description: SOBPREP back-office agent run by the Claude Code scheduled task "SO
    เรียกบรรจุ, สอบรอบหน้า), ข่าวนโยบายการศึกษา, และข่าวในกระแสที่น่าจะออกภาค ก (เศรษฐกิจ/สังคม/กฎหมายใหม่/เหตุการณ์สำคัญ)
 2. เปิดอ่านต้นฉบับ (WebFetch) ทุกข่าวที่จะใช้ — **ต้องมีวันที่เผยแพร่**; ข่าวลือ/โพสต์ไม่มีแหล่ง/"วงในบอก" = ไม่ใช้
    ข้ามข่าวที่มีใน `prep.news_items` แล้ว (url ซ้ำ หรือเรื่องเดียวกัน) แล้ว insert ข่าวที่ใช้ (kind official|news|exam_topic, summary 1–2 บรรทัด)
+   **ประกาศจากเว็บเขต**: ตัวเฝ้า `prep-esa-watch` เช็กเว็บ สพป./สพม. ทุก ~2 ชม. และแจ้ง LINE เจ้าของเองแล้ว (ไม่ต้อง push ซ้ำ) — ดูที่เจอใน 36 ชม.:
+   `select s.name, p.title, p.url, p.topic, p.found_at from prep.esa_posts p join prep.esa_sites s on s.code = p.site_code where not p.baseline and p.found_at > now() - interval '36 hours' order by p.found_at`
+   - ใช้นับ "ประกาศแล้ว N เขต" (นับจากตารางนี้ + ข่าวที่ยืนยันแล้วเท่านั้น ห้ามเดา) แล้วร่างโพสต์ตามข้อ 4: คอมเมนต์ปักหมุด = ชื่อเขต + ลิงก์ประกาศของเขต
+   - เขตที่ยังไม่รู้เว็บ (`prep.esa_sites` ที่ `active and url is null`): รอบ 17:30 หาให้ ≤ 10 เขต จากลิงก์ในหน้ารวมลิงก์ที่เจอระหว่างค้น หรือ WebSearch ชื่อเขต;
+     เปิดดูว่าเป็นเว็บของเขตนั้นจริง (ชื่อเขตอยู่ในหัวเว็บ, โดเมน .go.th) แล้ว
+     `update prep.esa_sites set url = '<หน้าแรก>', mode = null, feed_url = null, last_ok_at = null, next_check_at = now(), updated_at = now() where code = '<code>'`
+     (DB เป็นตัวจริง; `sync_sites.py` ไม่ทับ url ที่ไฟล์เป็น null) — บอกใน result ว่าเพิ่มเว็บกี่เขต
 3. **ข่าวด่วน** (กระทบผู้สอบโดยตรง: เลื่อนสอบ, เปลี่ยนสนาม/เวลา, ประกาศผล, เรียกรายงานตัว) → `ops.py push` ทันที พร้อมลิงก์ + `urgent = true`
 4. คอนเทนต์ ≤ 2 ชิ้นต่อรอบ → `ops.py ask post <news_id> "<หัวข้อ ≤ 60 ตัว>" '{"caption":..,"comment_text":..,"scheduled_at":..,"group_text":..}' "<ร่าง>"`
    - caption สั้น (≤ 130 ตัว ใช้พื้นหลังสีได้) โทนเพจ: ไม่ยัดเยียด ตัวเลขจริงเท่านั้น อ้างแหล่งข่าว ห้ามฟันธงสิ่งที่ยังไม่ประกาศ ห้ามอ้าง "แนว มธ."

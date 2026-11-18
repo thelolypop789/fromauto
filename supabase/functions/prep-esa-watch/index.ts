@@ -6,7 +6,7 @@
 // Secrets: LINE_CHANNEL_ACCESS_TOKEN (ใช้ร่วมกับ prep-line-bot / prep-ops)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { charsetOf, digestText, type Found, isRss, type Item, parseFeed, parseHtmlLinks, recruitItems, topicOf } from "./logic.ts";
+import { charsetOf, digestText, type Found, isRss, type Item, parseFeed, parseHtmlLinks, recruitItems, shellTargets, topicOf } from "./logic.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -53,6 +53,13 @@ async function check(s: Site): Promise<Checked> {
       if (r.status >= 400) return { ok: false, error: `HTTP ${r.status}`, items: [] };
       items = parseHtmlLinks(r.body, r.url);
       mode = "html";
+      // หน้าแรกเป็นตัวพาไปหน้าอื่น → ตามไปหน้าจริง (เช่น /frontpage) ไม่เกิน 2 หน้า
+      for (const u of shellTargets(r.body, r.url)) {
+        try {
+          const r2 = await get(u);
+          if (r2.status < 400) items = items.concat(parseHtmlLinks(r2.body, r2.url));
+        } catch { /* ข้าม */ }
+      }
     }
     const keep = recruitItems(items).slice(0, 40).map((i) => ({ ...i, topic: topicOf(i.title) }));
     return { ok: true, mode, feed_url: feed, items: keep };

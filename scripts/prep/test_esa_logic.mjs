@@ -59,6 +59,14 @@ t('html img title', hi[1].title === 'ประกาศเรียกบรร�
 t('html js link dropped', !hi.some((i) => i.url.startsWith('javascript')));
 t('numeric entity', L.decodeEntities('&#3588;&#x0E23;') === 'คร');
 
+// หน้าพาไปหน้าอื่น
+const shell = '<script>\n\t// document.location.href="event.php";\n\tdocument.location.href="event.php";\n\t/* ถ้าอินโทรจากส่วนกลางไม่ขึ้นแสดงว่า ปิดรับอินโทรในระบบ admin เว็บนี้*/\n\t// document.location.href="intro";\n</script>';
+const st = L.shellTargets(shell, 'https://npt2.go.th/');
+t('shell → frontpage first', st[0] === 'https://npt2.go.th/frontpage' && st[1] === 'https://npt2.go.th/event.php');
+t('shell commented ignored', L.shellTargets('<script>// document.location.href="x.php";\ndocument.location.href="intro";</script>', 'https://a.go.th/').join() === 'https://a.go.th/frontpage,https://a.go.th/intro');
+t('meta refresh', L.shellTargets('<meta http-equiv="refresh" content="0;url=/web/">', 'https://b.go.th/')[0] === 'https://b.go.th/web/');
+t('big page not shell', L.shellTargets('x'.repeat(7000) + 'document.location.href="a"', 'https://c.go.th/').length === 0);
+
 // ข้อความ LINE
 const rows = Array.from({ length: 60 }, (_, i) => ({ site: `สพป.ทดสอบ เขต ${i % 7}`, title: 'ประกาศรายชื่อผู้มีสิทธิเข้ารับการประเมิน ภาค ค ตำแหน่งครูผู้ช่วย สังกัดสำนักงานคณะกรรมการการศึกษาขั้นพื้นฐาน', url: `https://x${i}.go.th/archives/${i}`, topic: 'eligible' }));
 const d = L.digestText(rows, 'https://sobprep.com/prep/news/');

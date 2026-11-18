@@ -1547,8 +1547,8 @@
   "code": "spm-samutprakarn",
   "kind": "spm",
   "name": "สพม.สมุทรปราการ",
-  "url": null,
-  "source": null,
+  "url": "https://www.sesaosp.go.th/",
+  "source": "ลิงก์ประกาศผลจากเจ้าของ 18 พ.ย. 69",
   "watch": true
  },
  {
@@ -1957,6 +1957,14 @@
   "name": "สพม.สุพรรณบุรี",
   "url": "https://mathayomspb.go.th/",
   "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": true
+ },
+ {
+  "code": "other-special-ed",
+  "kind": "other",
+  "name": "สำนักบริหารงานการศึกษาพิเศษ",
+  "url": null,
+  "source": null,
   "watch": true
  }
 ]

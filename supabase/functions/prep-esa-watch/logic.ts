@@ -104,6 +104,24 @@ export function parseHtmlLinks(html: string, base: string): Item[] {
   return out;
 }
 
+// หน้าแรกที่เป็นแค่ตัวพาไปหน้าอื่น (meta refresh / document.location) — ระบบเว็บกลางของ สพท. หลายเขต:
+// index → "intro"/"event.php" → หน้าจริงที่ /frontpage
+export function shellTargets(html: string, base: string): string[] {
+  if (html.length > 6000) return [];
+  const code = html.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[\s;>])\/\/[^\n]*/g, "$1");
+  const raw: string[] = [];
+  if (/อินโทรจากส่วนกลาง|event\.php|["']intro["']/.test(html)) raw.push("frontpage");
+  for (const m of code.matchAll(/(?:document\.|window\.)?location(?:\.href)?\s*=\s*["']([^"']+)["']|location\.replace\(\s*["']([^"']+)["']/g)) raw.push(m[1] ?? m[2]);
+  const meta = /<meta[^>]+http-equiv=["']?refresh["']?[^>]+content=["'][^"']*url=([^"'>\s]+)/i.exec(html);
+  if (meta) raw.push(meta[1]);
+  const out: string[] = [];
+  for (const r of raw) {
+    const u = absUrl(r, base);
+    if (u && u !== absUrl(base, base) && !out.includes(u)) out.push(u);
+  }
+  return out.slice(0, 2);
+}
+
 export function recruitItems(items: Item[]): Item[] {
   const seen = new Set<string>();
   return items.filter((i) => isRecruit(i.title) && !seen.has(i.url) && seen.add(i.url));

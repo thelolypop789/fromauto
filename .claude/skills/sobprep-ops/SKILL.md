@@ -118,7 +118,7 @@ description: SOBPREP back-office agent run by the Claude Code scheduled task "SO
    - นับ "ประกาศแล้ว N เขต" (ห้ามเดา): รวมที่เจอตอนเช็กครั้งแรก (baseline) ด้วย แต่เฉพาะของรอบนี้ —
      `select s.name, p.title, p.url from prep.esa_posts p join prep.esa_sites s on s.code = p.site_code where p.topic in ('eligible','result') and (p.posted_at >= '2026-11-14' or p.title ~ '(2569|๒๕๖๙)') order by s.name`
      (รอบสอบถัดไปเปลี่ยนวันที่/ปี) + ข่าวที่ยืนยันแล้ว แล้วร่างโพสต์ตามข้อ 4: คอมเมนต์ปักหมุด = ชื่อเขต + ลิงก์ประกาศของเขต
-   - เขตที่ยังไม่รู้เว็บ (`prep.esa_sites` ที่ `active and url is null`): รอบ 17:30 หาให้ ≤ 10 เขต จากลิงก์ในหน้ารวมลิงก์ที่เจอระหว่างค้น หรือ WebSearch ชื่อเขต;
+   - เขตที่เปิดสอบรอบนี้แต่ยังไม่รู้เว็บ (`prep.esa_sites` ที่ `active and url is null`; active = เปิดสอบรอบนี้): รอบ 17:30 หาให้ ≤ 10 เขต จากลิงก์ในหน้ารวมลิงก์ที่เจอระหว่างค้น หรือ WebSearch ชื่อเขต;
      เปิดดูว่าเป็นเว็บของเขตนั้นจริง (ชื่อเขตอยู่ในหัวเว็บ, โดเมน .go.th) แล้ว
      `update prep.esa_sites set url = '<หน้าแรก>', mode = null, feed_url = null, last_ok_at = null, next_check_at = now(), updated_at = now() where code = '<code>'`
      (DB เป็นตัวจริง; `sync_sites.py` ไม่ทับ url ที่ไฟล์เป็น null) — บอกใน result ว่าเพิ่มเว็บกี่เขต

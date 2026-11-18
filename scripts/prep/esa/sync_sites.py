@@ -3,7 +3,8 @@
 
 usage: python3 scripts/prep/esa/sync_sites.py [--dry]
 - เพิ่มเขตใหม่ / แก้ชื่อ / แก้ url (url null ในไฟล์ = คงค่าเดิมใน DB เช่นที่ job news หามาเพิ่ม); เขตที่ url เปลี่ยนจะล้าง mode/feed_url/last_ok_at ให้ตรวจใหม่ (ประกาศที่เจอครั้งแรกนับเป็นของเก่า ไม่แจ้ง)
-- ไม่ลบเขตที่หายจากไฟล์ (ตั้ง active=false แทน)
+- ไม่ลบเขตที่หายจากไฟล์ (ตั้ง active=false แทน); "watch": false = ไม่เปิดสอบรอบนี้ → active=false (ไม่เช็ก)
+- รอบสอบ 2569: watch = เขตที่ประกาศรับสมัคร (จากหน้ารวมลิงก์ครูวันดี news-id58908, 121 หน่วยงาน) — รอบหน้าปรับ watch ใหม่
 sites.json: [{"code": "spp-chanthaburi-2", "kind": "spp", "name": "สพป.จันทบุรี เขต 2", "url": "https://www.chan2.go.th/" | null, "source": "..."}]
 """
 import json
@@ -27,14 +28,14 @@ def main():
     for s in sites:
         assert s["kind"] in ("spp", "spm", "other"), s
         assert s["url"] is None or s["url"].startswith(("https://", "http://")), s
-    values = ",\n".join(f"({lit(s['code'])}, {lit(s['kind'])}, {lit(s['name'])}, {lit(s['url'])})" for s in sites)
+    values = ",\n".join(f"({lit(s['code'])}, {lit(s['kind'])}, {lit(s['name'])}, {lit(s['url'])}, {'true' if s.get('watch', True) else 'false'})" for s in sites)
     q = f"""
-with v(code, kind, name, url) as (values {values}),
+with v(code, kind, name, url, watch) as (values {values}),
 up as (
-  insert into prep.esa_sites as e (code, kind, name, url)
-  select code, kind, name, url from v
+  insert into prep.esa_sites as e (code, kind, name, url, active)
+  select code, kind, name, url, watch from v
   on conflict (code) do update
-    set kind = excluded.kind, name = excluded.name, url = coalesce(excluded.url, e.url), active = true,
+    set kind = excluded.kind, name = excluded.name, url = coalesce(excluded.url, e.url), active = excluded.active,
         mode = case when coalesce(excluded.url, e.url) is distinct from e.url then null else e.mode end,
         feed_url = case when coalesce(excluded.url, e.url) is distinct from e.url then null else e.feed_url end,
         last_ok_at = case when coalesce(excluded.url, e.url) is distinct from e.url then null else e.last_ok_at end,

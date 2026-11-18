@@ -4,1714 +4,1959 @@
   "kind": "spp",
   "name": "สพป.เชียงราย เขต 1",
   "url": "https://cri1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-chiangrai-2",
   "kind": "spp",
   "name": "สพป.เชียงราย เขต 2",
   "url": "https://cri2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-chiangrai-3",
   "kind": "spp",
   "name": "สพป.เชียงราย เขต 3",
   "url": "https://cr3.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": true
  },
  {
   "code": "spp-chiangrai-4",
   "kind": "spp",
   "name": "สพป.เชียงราย เขต 4",
   "url": "https://www.cri4.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-chiangmai-1",
   "kind": "spp",
   "name": "สพป.เชียงใหม่ เขต 1",
   "url": "https://chiangmaiarea1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-chiangmai-2",
   "kind": "spp",
   "name": "สพป.เชียงใหม่ เขต 2",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-chiangmai-3",
   "kind": "spp",
   "name": "สพป.เชียงใหม่ เขต 3",
   "url": "https://cmarea3.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-chiangmai-4",
   "kind": "spp",
   "name": "สพป.เชียงใหม่ เขต 4",
   "url": "https://cmi4.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-chiangmai-5",
   "kind": "spp",
   "name": "สพป.เชียงใหม่ เขต 5",
   "url": "https://chiangmaiarea5.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-chiangmai-6",
   "kind": "spp",
   "name": "สพป.เชียงใหม่ เขต 6",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-nan-1",
   "kind": "spp",
   "name": "สพป.น่าน เขต 1",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-nan-2",
   "kind": "spp",
   "name": "สพป.น่าน เขต 2",
   "url": "http://www.nan2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-phayao-1",
   "kind": "spp",
   "name": "สพป.พะเยา เขต 1",
   "url": "https://pyo1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-phayao-2",
   "kind": "spp",
   "name": "สพป.พะเยา เขต 2",
   "url": "https://phayao2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-phrae-1",
   "kind": "spp",
   "name": "สพป.แพร่ เขต 1",
   "url": "https://phrae1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-phrae-2",
   "kind": "spp",
   "name": "สพป.แพร่ เขต 2",
   "url": "https://phrae2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-maehongson-1",
   "kind": "spp",
   "name": "สพป.แม่ฮ่องสอน เขต 1",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-maehongson-2",
   "kind": "spp",
   "name": "สพป.แม่ฮ่องสอน เขต 2",
   "url": "https://mhs2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-lampang-1",
   "kind": "spp",
   "name": "สพป.ลำปาง เขต 1",
   "url": "https://lpg1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-lampang-2",
   "kind": "spp",
   "name": "สพป.ลำปาง เขต 2",
   "url": "https://lpg2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-lampang-3",
   "kind": "spp",
   "name": "สพป.ลำปาง เขต 3",
   "url": "https://lpg3.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-lamphun-1",
   "kind": "spp",
   "name": "สพป.ลำพูน เขต 1",
   "url": "http://lpn1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": false
  },
  {
   "code": "spp-lamphun-2",
   "kind": "spp",
   "name": "สพป.ลำพูน เขต 2",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-uttaradit-1",
   "kind": "spp",
   "name": "สพป.อุตรดิตถ์ เขต 1",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-uttaradit-2",
   "kind": "spp",
   "name": "สพป.อุตรดิตถ์ เขต 2",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-kalasin-1",
   "kind": "spp",
   "name": "สพป.กาฬสินธุ์ เขต 1",
   "url": "https://ksn1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": false
  },
  {
   "code": "spp-kalasin-2",
   "kind": "spp",
   "name": "สพป.กาฬสินธุ์ เขต 2",
   "url": "https://kalasin2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-kalasin-3",
   "kind": "spp",
   "name": "สพป.กาฬสินธุ์ เขต 3",
   "url": "https://www.kalasin3.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-khonkaen-1",
   "kind": "spp",
   "name": "สพป.ขอนแก่น เขต 1",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-khonkaen-2",
   "kind": "spp",
   "name": "สพป.ขอนแก่น เขต 2",
   "url": "https://kkn2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-khonkaen-3",
   "kind": "spp",
   "name": "สพป.ขอนแก่น เขต 3",
   "url": "https://kkn3.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-khonkaen-4",
   "kind": "spp",
   "name": "สพป.ขอนแก่น เขต 4",
   "url": "https://www.khonkaen4.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-khonkaen-5",
   "kind": "spp",
   "name": "สพป.ขอนแก่น เขต 5",
   "url": "https://kkn5.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": true
  },
  {
   "code": "spp-chaiyaphum-1",
   "kind": "spp",
   "name": "สพป.ชัยภูมิ เขต 1",
   "url": "https://chaiyaphum1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-chaiyaphum-2",
   "kind": "spp",
   "name": "สพป.ชัยภูมิ เขต 2",
   "url": "https://chaiyaphum2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-chaiyaphum-3",
   "kind": "spp",
   "name": "สพป.ชัยภูมิ เขต 3",
   "url": "https://chaiyaphum3.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-nakhonphanom-1",
   "kind": "spp",
   "name": "สพป.นครพนม เขต 1",
   "url": "https://nkpedu1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-nakhonphanom-2",
   "kind": "spp",
   "name": "สพป.นครพนม เขต 2",
   "url": "https://nkp2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-nakhonratchasima-1",
   "kind": "spp",
   "name": "สพป.นครราชสีมา เขต 1",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-nakhonratchasima-2",
   "kind": "spp",
   "name": "สพป.นครราชสีมา เขต 2",
   "url": "https://korat2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-nakhonratchasima-3",
   "kind": "spp",
   "name": "สพป.นครราชสีมา เขต 3",
   "url": "https://korat3.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-nakhonratchasima-4",
   "kind": "spp",
   "name": "สพป.นครราชสีมา เขต 4",
   "url": "https://korat4.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-nakhonratchasima-5",
   "kind": "spp",
   "name": "สพป.นครราชสีมา เขต 5",
   "url": "https://korat5.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": false
  },
  {
   "code": "spp-nakhonratchasima-6",
   "kind": "spp",
   "name": "สพป.นครราชสีมา เขต 6",
   "url": "https://nma6.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ + ชื่อเขตในหน้า"
+  "source": "auto: โดเมนตรงรูปแบบ + ชื่อเขตในหน้า",
+  "watch": true
  },
  {
   "code": "spp-nakhonratchasima-7",
   "kind": "spp",
   "name": "สพป.นครราชสีมา เขต 7",
   "url": "https://korat7.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-buengkan",
   "kind": "spp",
   "name": "สพป.บึงกาฬ",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-buriram-1",
   "kind": "spp",
   "name": "สพป.บุรีรัมย์ เขต 1",
   "url": "https://brm1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-buriram-2",
   "kind": "spp",
   "name": "สพป.บุรีรัมย์ เขต 2",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-buriram-3",
   "kind": "spp",
   "name": "สพป.บุรีรัมย์ เขต 3",
   "url": "https://brm3.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-buriram-4",
   "kind": "spp",
   "name": "สพป.บุรีรัมย์ เขต 4",
   "url": "https://brm4.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-mahasarakham-1",
   "kind": "spp",
   "name": "สพป.มหาสารคาม เขต 1",
   "url": "https://mkarea1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-mahasarakham-2",
   "kind": "spp",
   "name": "สพป.มหาสารคาม เขต 2",
   "url": "https://mkarea2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-mahasarakham-3",
   "kind": "spp",
   "name": "สพป.มหาสารคาม เขต 3",
   "url": "https://mkarea3.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-mukdahan",
   "kind": "spp",
   "name": "สพป.มุกดาหาร",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-yasothon-1",
   "kind": "spp",
   "name": "สพป.ยโสธร เขต 1",
   "url": "https://yst1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-yasothon-2",
   "kind": "spp",
   "name": "สพป.ยโสธร เขต 2",
   "url": "https://yst2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-roiet-1",
   "kind": "spp",
   "name": "สพป.ร้อยเอ็ด เขต 1",
   "url": "https://roiet1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-roiet-2",
   "kind": "spp",
   "name": "สพป.ร้อยเอ็ด เขต 2",
   "url": "https://ret2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-roiet-3",
   "kind": "spp",
   "name": "สพป.ร้อยเอ็ด เขต 3",
   "url": "https://roiet3.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-loei-1",
   "kind": "spp",
   "name": "สพป.เลย เขต 1",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-loei-2",
   "kind": "spp",
   "name": "สพป.เลย เขต 2",
   "url": "https://loei2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-loei-3",
   "kind": "spp",
   "name": "สพป.เลย เขต 3",
   "url": "https://loei3.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-sisaket-1",
   "kind": "spp",
   "name": "สพป.ศรีสะเกษ เขต 1",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-sisaket-2",
   "kind": "spp",
   "name": "สพป.ศรีสะเกษ เขต 2",
   "url": "https://ssk2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-sisaket-3",
   "kind": "spp",
   "name": "สพป.ศรีสะเกษ เขต 3",
   "url": "https://ssk3.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-sisaket-4",
   "kind": "spp",
   "name": "สพป.ศรีสะเกษ เขต 4",
   "url": "https://ssk4.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-sakonnakhon-1",
   "kind": "spp",
   "name": "สพป.สกลนคร เขต 1",
   "url": "https://sakonarea1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-sakonnakhon-2",
   "kind": "spp",
   "name": "สพป.สกลนคร เขต 2",
   "url": "https://sakon2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-sakonnakhon-3",
   "kind": "spp",
   "name": "สพป.สกลนคร เขต 3",
   "url": "https://sakonnakhon3.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-surin-1",
   "kind": "spp",
   "name": "สพป.สุรินทร์ เขต 1",
   "url": "https://srn1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-surin-2",
   "kind": "spp",
   "name": "สพป.สุรินทร์ เขต 2",
   "url": "https://srn2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-surin-3",
   "kind": "spp",
   "name": "สพป.สุรินทร์ เขต 3",
   "url": "https://srn3.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-nongkhai-1",
   "kind": "spp",
   "name": "สพป.หนองคาย เขต 1",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-nongkhai-2",
   "kind": "spp",
   "name": "สพป.หนองคาย เขต 2",
   "url": "https://nongkhai2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-nongbua-1",
   "kind": "spp",
   "name": "สพป.หนองบัวลำภู เขต 1",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-nongbua-2",
   "kind": "spp",
   "name": "สพป.หนองบัวลำภู เขต 2",
   "url": "https://nb2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-amnatcharoen",
   "kind": "spp",
   "name": "สพป.อำนาจเจริญ",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-udonthani-1",
   "kind": "spp",
   "name": "สพป.อุดรธานี เขต 1",
   "url": "https://udn1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-udonthani-2",
   "kind": "spp",
   "name": "สพป.อุดรธานี เขต 2",
   "url": "https://udn2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-udonthani-3",
   "kind": "spp",
   "name": "สพป.อุดรธานี เขต 3",
   "url": "https://www.udonthani3.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-udonthani-4",
   "kind": "spp",
   "name": "สพป.อุดรธานี เขต 4",
   "url": "https://udon4.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-ubonratchathani-1",
   "kind": "spp",
   "name": "สพป.อุบลราชธานี เขต 1",
   "url": "https://ubn1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-ubonratchathani-2",
   "kind": "spp",
   "name": "สพป.อุบลราชธานี เขต 2",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-ubonratchathani-3",
   "kind": "spp",
   "name": "สพป.อุบลราชธานี เขต 3",
   "url": "https://ubon3.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-ubonratchathani-4",
   "kind": "spp",
   "name": "สพป.อุบลราชธานี เขต 4",
   "url": "https://ubn4.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-ubonratchathani-5",
   "kind": "spp",
   "name": "สพป.อุบลราชธานี เขต 5",
   "url": "https://ubon5.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-kanchanaburi-1",
   "kind": "spp",
   "name": "สพป.กาญจนบุรี เขต 1",
   "url": "https://kan1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-kanchanaburi-2",
   "kind": "spp",
   "name": "สพป.กาญจนบุรี เขต 2",
   "url": "https://kan2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-kanchanaburi-3",
   "kind": "spp",
   "name": "สพป.กาญจนบุรี เขต 3",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-kanchanaburi-4",
   "kind": "spp",
   "name": "สพป.กาญจนบุรี เขต 4",
   "url": "https://kan4.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-tak-1",
   "kind": "spp",
   "name": "สพป.ตาก เขต 1",
   "url": "https://takesa1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-tak-2",
   "kind": "spp",
   "name": "สพป.ตาก เขต 2",
   "url": "https://www.takesa2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-prachuap-1",
   "kind": "spp",
   "name": "สพป.ประจวบคีรีขันธ์ เขต 1",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-prachuap-2",
   "kind": "spp",
   "name": "สพป.ประจวบคีรีขันธ์ เขต 2",
   "url": "https://pkn2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": true
  },
  {
   "code": "spp-phetchaburi-1",
   "kind": "spp",
   "name": "สพป.เพชรบุรี เขต 1",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-phetchaburi-2",
   "kind": "spp",
   "name": "สพป.เพชรบุรี เขต 2",
   "url": "https://pbi2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-ratchaburi-1",
   "kind": "spp",
   "name": "สพป.ราชบุรี เขต 1",
   "url": "https://ratchaburi1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-ratchaburi-2",
   "kind": "spp",
   "name": "สพป.ราชบุรี เขต 2",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-chanthaburi-1",
   "kind": "spp",
   "name": "สพป.จันทบุรี เขต 1",
   "url": "https://chan1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-chanthaburi-2",
   "kind": "spp",
   "name": "สพป.จันทบุรี เขต 2",
   "url": "https://chan2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-chachoengsao-1",
   "kind": "spp",
   "name": "สพป.ฉะเชิงเทรา เขต 1",
   "url": "https://ccs1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-chachoengsao-2",
   "kind": "spp",
   "name": "สพป.ฉะเชิงเทรา เขต 2",
   "url": "https://ccs2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-chonburi-1",
   "kind": "spp",
   "name": "สพป.ชลบุรี เขต 1",
   "url": "https://chon1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-chonburi-2",
   "kind": "spp",
   "name": "สพป.ชลบุรี เขต 2",
   "url": "https://chon2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-chonburi-3",
   "kind": "spp",
   "name": "สพป.ชลบุรี เขต 3",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-trat",
   "kind": "spp",
   "name": "สพป.ตราด",
   "url": "https://web.trat-edu.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-prachinburi-1",
   "kind": "spp",
   "name": "สพป.ปราจีนบุรี เขต 1",
   "url": "https://prachin1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-prachinburi-2",
   "kind": "spp",
   "name": "สพป.ปราจีนบุรี เขต 2",
   "url": "https://prachinburiarea2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": true
  },
  {
   "code": "spp-rayong-1",
   "kind": "spp",
   "name": "สพป.ระยอง เขต 1",
   "url": "https://rayong1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-rayong-2",
   "kind": "spp",
   "name": "สพป.ระยอง เขต 2",
   "url": "https://rayong2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-sakaeo-1",
   "kind": "spp",
   "name": "สพป.สระแก้ว เขต 1",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-sakaeo-2",
   "kind": "spp",
   "name": "สพป.สระแก้ว เขต 2",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-bangkok",
   "kind": "spp",
   "name": "สพป.กรุงเทพมหานคร",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-kamphaengphet-1",
   "kind": "spp",
   "name": "สพป.กำแพงเพชร เขต 1",
   "url": "https://kpt1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": true
  },
  {
   "code": "spp-kamphaengphet-2",
   "kind": "spp",
   "name": "สพป.กำแพงเพชร เขต 2",
   "url": "http://kpp2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-chainat",
   "kind": "spp",
   "name": "สพป.ชัยนาท",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-nakhonnayok",
   "kind": "spp",
   "name": "สพป.นครนายก",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-nakhonpathom-1",
   "kind": "spp",
   "name": "สพป.นครปฐม เขต 1",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-nakhonpathom-2",
   "kind": "spp",
   "name": "สพป.นครปฐม เขต 2",
   "url": "https://npt2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": true
  },
  {
   "code": "spp-nakhonsawan-1",
   "kind": "spp",
   "name": "สพป.นครสวรรค์ เขต 1",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-nakhonsawan-2",
   "kind": "spp",
   "name": "สพป.นครสวรรค์ เขต 2",
   "url": "https://nsw2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": true
  },
  {
   "code": "spp-nakhonsawan-3",
   "kind": "spp",
   "name": "สพป.นครสวรรค์ เขต 3",
   "url": "https://nsw3.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-nonthaburi-1",
   "kind": "spp",
   "name": "สพป.นนทบุรี เขต 1",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-nonthaburi-2",
   "kind": "spp",
   "name": "สพป.นนทบุรี เขต 2",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-pathumthani-1",
   "kind": "spp",
   "name": "สพป.ปทุมธานี เขต 1",
   "url": "https://ptt1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-pathumthani-2",
   "kind": "spp",
   "name": "สพป.ปทุมธานี เขต 2",
   "url": "https://ptt2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-ayutthaya-1",
   "kind": "spp",
   "name": "สพป.พระนครศรีอยุธยา เขต 1",
   "url": "https://aya1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-ayutthaya-2",
   "kind": "spp",
   "name": "สพป.พระนครศรีอยุธยา เขต 2",
   "url": "https://ayaprimary2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-phichit-1",
   "kind": "spp",
   "name": "สพป.พิจิตร เขต 1",
   "url": "https://phichit1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-phichit-2",
   "kind": "spp",
   "name": "สพป.พิจิตร เขต 2",
   "url": "https://phichit2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-phitsanulok-1",
   "kind": "spp",
   "name": "สพป.พิษณุโลก เขต 1",
   "url": "https://phitsanulok1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-phitsanulok-2",
   "kind": "spp",
   "name": "สพป.พิษณุโลก เขต 2",
   "url": "https://phitsanulok2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-phitsanulok-3",
   "kind": "spp",
   "name": "สพป.พิษณุโลก เขต 3",
   "url": "https://phitsanulok3.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-phetchabun-1",
   "kind": "spp",
   "name": "สพป.เพชรบูรณ์ เขต 1",
   "url": "https://phetchabun1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-phetchabun-2",
   "kind": "spp",
   "name": "สพป.เพชรบูรณ์ เขต 2",
   "url": "https://phetchabun2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-phetchabun-3",
   "kind": "spp",
   "name": "สพป.เพชรบูรณ์ เขต 3",
   "url": "https://pbn3.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-lopburi-1",
   "kind": "spp",
   "name": "สพป.ลพบุรี เขต 1",
   "url": "https://lopburi1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-lopburi-2",
   "kind": "spp",
   "name": "สพป.ลพบุรี เขต 2",
   "url": "https://lopburi2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": true
  },
  {
   "code": "spp-samutprakarn-1",
   "kind": "spp",
   "name": "สพป.สมุทรปราการ เขต 1",
   "url": "https://samutprakan1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-samutprakarn-2",
   "kind": "spp",
   "name": "สพป.สมุทรปราการ เขต 2",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-samutsongkhram",
   "kind": "spp",
   "name": "สพป.สมุทรสงคราม",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-samutsakhon",
   "kind": "spp",
   "name": "สพป.สมุทรสาคร",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-saraburi-1",
   "kind": "spp",
   "name": "สพป.สระบุรี เขต 1",
   "url": "https://srb1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-saraburi-2",
   "kind": "spp",
   "name": "สพป.สระบุรี เขต 2",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-singburi",
   "kind": "spp",
   "name": "สพป.สิงห์บุรี",
   "url": "https://singprimary.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-sukhothai-1",
   "kind": "spp",
   "name": "สพป.สุโขทัย เขต 1",
   "url": "https://sukhothai1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": false
  },
  {
   "code": "spp-sukhothai-2",
   "kind": "spp",
   "name": "สพป.สุโขทัย เขต 2",
   "url": "https://sukhothai2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": false
  },
  {
   "code": "spp-suphanburi-1",
   "kind": "spp",
   "name": "สพป.สุพรรณบุรี เขต 1",
   "url": "https://suphan1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": false
  },
  {
   "code": "spp-suphanburi-2",
   "kind": "spp",
   "name": "สพป.สุพรรณบุรี เขต 2",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-suphanburi-3",
   "kind": "spp",
   "name": "สพป.สุพรรณบุรี เขต 3",
   "url": "https://spb3.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-angthong",
   "kind": "spp",
   "name": "สพป.อ่างทอง",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-uthaithani-1",
   "kind": "spp",
   "name": "สพป.อุทัยธานี เขต 1",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-uthaithani-2",
   "kind": "spp",
   "name": "สพป.อุทัยธานี เขต 2",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-krabi",
   "kind": "spp",
   "name": "สพป.กระบี่",
   "url": "http://krabiedu.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": true
  },
  {
   "code": "spp-chumphon-1",
   "kind": "spp",
   "name": "สพป.ชุมพร เขต 1",
   "url": "https://www.cpn1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-chumphon-2",
   "kind": "spp",
   "name": "สพป.ชุมพร เขต 2",
   "url": "https://cpn2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-trang-1",
   "kind": "spp",
   "name": "สพป.ตรัง เขต 1",
   "url": "https://trang1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-trang-2",
   "kind": "spp",
   "name": "สพป.ตรัง เขต 2",
   "url": "https://trang2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-nakhonsithammarat-1",
   "kind": "spp",
   "name": "สพป.นครศรีธรรมราช เขต 1",
   "url": "http://nst1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-nakhonsithammarat-2",
   "kind": "spp",
   "name": "สพป.นครศรีธรรมราช เขต 2",
   "url": "https://nst2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-nakhonsithammarat-3",
   "kind": "spp",
   "name": "สพป.นครศรีธรรมราช เขต 3",
   "url": "http://nst3.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-nakhonsithammarat-4",
   "kind": "spp",
   "name": "สพป.นครศรีธรรมราช เขต 4",
   "url": "https://nst4.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-narathiwat-1",
   "kind": "spp",
   "name": "สพป.นราธิวาส เขต 1",
   "url": "https://narathiwat1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-narathiwat-2",
   "kind": "spp",
   "name": "สพป.นราธิวาส เขต 2",
   "url": "https://nara2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-narathiwat-3",
   "kind": "spp",
   "name": "สพป.นราธิวาส เขต 3",
   "url": "https://narathiwat3.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-pattani-1",
   "kind": "spp",
   "name": "สพป.ปัตตานี เขต 1",
   "url": "https://pattani1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-pattani-2",
   "kind": "spp",
   "name": "สพป.ปัตตานี เขต 2",
   "url": "https://pattani2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-pattani-3",
   "kind": "spp",
   "name": "สพป.ปัตตานี เขต 3",
   "url": "https://pattani3.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-phangnga",
   "kind": "spp",
   "name": "สพป.พังงา",
   "url": "https://phangngaedarea.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-phatthalung-1",
   "kind": "spp",
   "name": "สพป.พัทลุง เขต 1",
   "url": "https://phatthalung1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-phatthalung-2",
   "kind": "spp",
   "name": "สพป.พัทลุง เขต 2",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-phuket",
   "kind": "spp",
   "name": "สพป.ภูเก็ต",
   "url": "https://phuketarea.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ + ชื่อเขตในหน้า"
+  "source": "auto: โดเมนตรงรูปแบบ + ชื่อเขตในหน้า",
+  "watch": true
  },
  {
   "code": "spp-yala-1",
   "kind": "spp",
   "name": "สพป.ยะลา เขต 1",
   "url": "https://yala1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-yala-2",
   "kind": "spp",
   "name": "สพป.ยะลา เขต 2",
   "url": "https://www.yala2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-yala-3",
   "kind": "spp",
   "name": "สพป.ยะลา เขต 3",
   "url": "https://yala3.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spp-ranong",
   "kind": "spp",
   "name": "สพป.ระนอง",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-songkhla-1",
   "kind": "spp",
   "name": "สพป.สงขลา เขต 1",
   "url": "https://ska1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spp-songkhla-2",
   "kind": "spp",
   "name": "สพป.สงขลา เขต 2",
   "url": "https://ska2.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spp-songkhla-3",
   "kind": "spp",
   "name": "สพป.สงขลา เขต 3",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spp-satun",
   "kind": "spp",
   "name": "สพป.สตูล",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spp-suratthani-1",
   "kind": "spp",
   "name": "สพป.สุราษฎร์ธานี เขต 1",
   "url": "https://surat1.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-suratthani-2",
   "kind": "spp",
   "name": "สพป.สุราษฎร์ธานี เขต 2",
   "url": "https://surat2.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spp-suratthani-3",
   "kind": "spp",
   "name": "สพป.สุราษฎร์ธานี เขต 3",
   "url": "https://surat3.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spm-bangkok-1",
   "kind": "spm",
   "name": "สพม.กรุงเทพมหานคร เขต 1",
   "url": "https://www.sesao1.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spm-bangkok-2",
   "kind": "spm",
   "name": "สพม.กรุงเทพมหานคร เขต 2",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spm-nonthaburi",
   "kind": "spm",
   "name": "สพม.นนทบุรี",
   "url": "https://spmnonthaburi.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spm-ayutthaya",
   "kind": "spm",
   "name": "สพม.พระนครศรีอยุธยา",
   "url": "https://spmay.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": true
  },
  {
   "code": "spm-pathumthani",
   "kind": "spm",
   "name": "สพม.ปทุมธานี",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spm-saraburi",
   "kind": "spm",
   "name": "สพม.สระบุรี",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spm-lopburi",
   "kind": "spm",
   "name": "สพม.ลพบุรี",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spm-singburi-angthong",
   "kind": "spm",
   "name": "สพม.สิงห์บุรี อ่างทอง",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spm-uthaithani-chainat",
   "kind": "spm",
   "name": "สพม.อุทัยธานี ชัยนาท",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spm-chachoengsao",
   "kind": "spm",
   "name": "สพม.ฉะเชิงเทรา",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spm-samutprakarn",
   "kind": "spm",
   "name": "สพม.สมุทรปราการ",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spm-prachinburi-nakhonnayok",
   "kind": "spm",
   "name": "สพม.ปราจีนบุรี นครนายก",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spm-sakaeo",
   "kind": "spm",
   "name": "สพม.สระแก้ว",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spm-kanchanaburi",
   "kind": "spm",
   "name": "สพม.กาญจนบุรี",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spm-ratchaburi",
   "kind": "spm",
   "name": "สพม.ราชบุรี",
   "url": "https://sesaorb.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spm-nakhonpathom",
   "kind": "spm",
   "name": "สพม.นครปฐม",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spm-prachuap",
   "kind": "spm",
   "name": "สพม.ประจวบคีรีขันธ์",
   "url": "https://sesaopkn.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spm-phetchaburi",
   "kind": "spm",
   "name": "สพม.เพชรบุรี",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spm-samutsakhon-samutsongkhram",
   "kind": "spm",
   "name": "สพม.สมุทรสาคร สมุทรสงคราม",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spm-suratthani-chumphon",
   "kind": "spm",
   "name": "สพม.สุราษฎร์ธานี ชุมพร",
   "url": "https://spmsnicpn.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spm-nakhonsithammarat",
   "kind": "spm",
   "name": "สพม.นครศรีธรรมราช",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spm-phatthalung",
   "kind": "spm",
   "name": "สพม.พัทลุง",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spm-trang-krabi",
   "kind": "spm",
   "name": "สพม.ตรัง กระบี่",
   "url": "https://sesatrgkbi.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spm-phangnga-phuket-ranong",
   "kind": "spm",
   "name": "สพม.พังงา ภูเก็ต ระนอง",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spm-narathiwat",
   "kind": "spm",
   "name": "สพม.นราธิวาส",
   "url": "https://sesaonara.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spm-pattani",
   "kind": "spm",
   "name": "สพม.ปัตตานี",
   "url": "https://sesaopn.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spm-yala",
   "kind": "spm",
   "name": "สพม.ยะลา",
   "url": "https://sesaoyala.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spm-songkhla-satun",
   "kind": "spm",
   "name": "สพม.สงขลา สตูล",
   "url": "https://spmsongkhlasatun.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": false
  },
  {
   "code": "spm-chanthaburi-trat",
   "kind": "spm",
   "name": "สพม.จันทบุรี ตราด",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spm-chonburi-rayong",
   "kind": "spm",
   "name": "สพม.ชลบุรี ระยอง",
   "url": "https://spmcr.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spm-loei-nongbua",
   "kind": "spm",
   "name": "สพม.เลย หนองบัวลำภู",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": true
  },
  {
   "code": "spm-udonthani",
   "kind": "spm",
   "name": "สพม.อุดรธานี",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spm-buengkan",
   "kind": "spm",
   "name": "สพม.บึงกาฬ",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spm-nongkhai",
   "kind": "spm",
   "name": "สพม.หนองคาย",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spm-nakhonphanom",
   "kind": "spm",
   "name": "สพม.นครพนม",
   "url": "https://sesaonkp.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spm-mukdahan",
   "kind": "spm",
   "name": "สพม.มุกดาหาร",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spm-sakonnakhon",
   "kind": "spm",
   "name": "สพม.สกลนคร",
   "url": "https://sesaosakon.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": false
  },
  {
   "code": "spm-kalasin",
   "kind": "spm",
   "name": "สพม.กาฬสินธุ์",
   "url": "https://sesaoksn.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spm-khonkaen",
   "kind": "spm",
   "name": "สพม.ขอนแก่น",
   "url": "https://kksec.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spm-mahasarakham",
   "kind": "spm",
   "name": "สพม.มหาสารคาม",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spm-roiet",
   "kind": "spm",
   "name": "สพม.ร้อยเอ็ด",
   "url": "https://sesao-ret.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spm-sisaket-yasothon",
   "kind": "spm",
   "name": "สพม.ศรีสะเกษ ยโสธร",
   "url": "https://secondarysskyst.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spm-ubonratchathani-amnatcharoen",
   "kind": "spm",
   "name": "สพม.อุบลราชธานี อำนาจเจริญ",
   "url": "https://secubac.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spm-chaiyaphum",
   "kind": "spm",
   "name": "สพม.ชัยภูมิ",
   "url": "https://sesaochaiyaphum.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spm-nakhonratchasima",
   "kind": "spm",
   "name": "สพม.นครราชสีมา",
   "url": "https://spmkorat.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": true
  },
  {
   "code": "spm-buriram",
   "kind": "spm",
   "name": "สพม.บุรีรัมย์",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spm-surin",
   "kind": "spm",
   "name": "สพม.สุรินทร์",
   "url": "https://secondarysurin.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spm-chiangmai",
   "kind": "spm",
   "name": "สพม.เชียงใหม่",
   "url": "https://seccm.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spm-maehongson",
   "kind": "spm",
   "name": "สพม.แม่ฮ่องสอน",
   "url": "https://secondarymhs.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spm-lampang-lamphun",
   "kind": "spm",
   "name": "สพม.ลำปาง ลำพูน",
   "url": "https://www.sesalpglpn.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)"
+  "source": "auto: โดเมนตรงรูปแบบ (เปิดจากเซิร์ฟเวอร์ไม่ได้ ยังไม่ยืนยัน)",
+  "watch": true
  },
  {
   "code": "spm-chiangrai",
   "kind": "spm",
   "name": "สพม.เชียงราย",
   "url": "https://spmcri.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spm-phayao",
   "kind": "spm",
   "name": "สพม.พะเยา",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spm-phrae",
   "kind": "spm",
   "name": "สพม.แพร่",
   "url": "https://spmphrae.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spm-nan",
   "kind": "spm",
   "name": "สพม.น่าน",
   "url": "https://spmnan.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spm-tak",
   "kind": "spm",
   "name": "สพม.ตาก",
   "url": "https://secondarytak.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spm-sukhothai",
   "kind": "spm",
   "name": "สพม.สุโขทัย",
   "url": "https://sesaoskt.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": false
  },
  {
   "code": "spm-phitsanulok-uttaradit",
   "kind": "spm",
   "name": "สพม.พิษณุโลก อุตรดิตถ์",
   "url": "https://sec-plkutt.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": true
  },
  {
   "code": "spm-phetchabun",
   "kind": "spm",
   "name": "สพม.เพชรบูรณ์",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spm-nakhonsawan",
   "kind": "spm",
   "name": "สพม.นครสวรรค์",
   "url": "https://spmnw.obec.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spm-kamphaengphet",
   "kind": "spm",
   "name": "สพม.กำแพงเพชร",
   "url": "https://sesaokpp.go.th/",
-  "source": "auto: หัวเว็บระบุชื่อเขต"
+  "source": "auto: หัวเว็บระบุชื่อเขต",
+  "watch": true
  },
  {
   "code": "spm-phichit",
   "kind": "spm",
   "name": "สพม.พิจิตร",
   "url": null,
-  "source": null
+  "source": null,
+  "watch": false
  },
  {
   "code": "spm-suphanburi",
   "kind": "spm",
   "name": "สพม.สุพรรณบุรี",
   "url": "https://mathayomspb.go.th/",
-  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)"
+  "source": "auto: โดเมนตรงรูปแบบ (อ่านชื่อในหน้าไม่ได้)",
+  "watch": true
  }
 ]

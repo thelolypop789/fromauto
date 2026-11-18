@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://sobprep.com/sitemap.xml
+Sitemap: https://sobprep.com/prep/news/sitemap.xml

@@ -61,7 +61,7 @@ def build(rows, users: int) -> str:
     other = len(rated) - rated.count(5)
     parts = [
         f'{START} สร้างด้วย scripts/prep/landing_reviews.py ห้ามแก้มือ -->',
-        '<section class="s" id="reviews"><div class="w"><h2>รีวิวจาก<em>ผู้ใช้จริง</em></h2>',
+        '<section id="reviews"><div class="w"><small class="eyebrow">รีวิว</small><h2>รีวิวจากผู้ใช้</h2>',
         f'<p class="lead">{users_txt}แสดงทุกรีวิวที่ผู้ใช้อนุญาตให้นำมาแสดง ข้อความตามที่ผู้ใช้เขียนทุกตัวอักษร ไม่ตัดต่อ</p>',
         f'<div class="card rv-sum"><div class="rv-avg"><b>{avg:.1f}</b>{stars(round(avg))}'
         f'<small>จาก {len(rated)} รีวิว · 5 ดาว {rated.count(5)} รีวิว · ดาวอื่น ๆ {other} รีวิว</small></div>'

@@ -115,7 +115,9 @@ description: SOBPREP back-office agent run by the Claude Code scheduled task "SO
    ข้ามข่าวที่มีใน `prep.news_items` แล้ว (url ซ้ำ หรือเรื่องเดียวกัน) แล้ว insert ข่าวที่ใช้ (kind official|news|exam_topic, summary 1–2 บรรทัด)
    **ประกาศจากเว็บเขต**: ตัวเฝ้า `prep-esa-watch` เช็กเว็บ สพป./สพม. ทุก ~2 ชม. และแจ้ง LINE เจ้าของเองแล้ว (ไม่ต้อง push ซ้ำ) — ดูที่เจอใน 36 ชม.:
    `select s.name, p.title, p.url, p.topic, p.found_at from prep.esa_posts p join prep.esa_sites s on s.code = p.site_code where not p.baseline and p.found_at > now() - interval '36 hours' order by p.found_at`
-   - ใช้นับ "ประกาศแล้ว N เขต" (นับจากตารางนี้ + ข่าวที่ยืนยันแล้วเท่านั้น ห้ามเดา) แล้วร่างโพสต์ตามข้อ 4: คอมเมนต์ปักหมุด = ชื่อเขต + ลิงก์ประกาศของเขต
+   - นับ "ประกาศแล้ว N เขต" (ห้ามเดา): รวมที่เจอตอนเช็กครั้งแรก (baseline) ด้วย แต่เฉพาะของรอบนี้ —
+     `select s.name, p.title, p.url from prep.esa_posts p join prep.esa_sites s on s.code = p.site_code where p.topic in ('eligible','result') and (p.posted_at >= '2026-11-14' or p.title ~ '(2569|๒๕๖๙)') order by s.name`
+     (รอบสอบถัดไปเปลี่ยนวันที่/ปี) + ข่าวที่ยืนยันแล้ว แล้วร่างโพสต์ตามข้อ 4: คอมเมนต์ปักหมุด = ชื่อเขต + ลิงก์ประกาศของเขต
    - เขตที่ยังไม่รู้เว็บ (`prep.esa_sites` ที่ `active and url is null`): รอบ 17:30 หาให้ ≤ 10 เขต จากลิงก์ในหน้ารวมลิงก์ที่เจอระหว่างค้น หรือ WebSearch ชื่อเขต;
      เปิดดูว่าเป็นเว็บของเขตนั้นจริง (ชื่อเขตอยู่ในหัวเว็บ, โดเมน .go.th) แล้ว
      `update prep.esa_sites set url = '<หน้าแรก>', mode = null, feed_url = null, last_ok_at = null, next_check_at = now(), updated_at = now() where code = '<code>'`

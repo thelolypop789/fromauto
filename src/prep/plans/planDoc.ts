@@ -9,6 +9,7 @@ export type Block =
   | { t: "tbl"; w: number[]; head?: Cell[][]; rows: Cell[][]; sm?: number; tall?: number; cards?: number; i?: number }
   | { t: "sign"; role: string; blank?: number }   // blank = ผู้ลงนามคนอื่น (หัวหน้ากลุ่มสาระ/ผู้บริหาร): เว้นชื่อและปีให้เขียนเอง
   | { t: "qr"; svg: string; x: string; url: string }
+  | { t: "html"; x: string }   // HTML/SVG ที่ build.mjs สร้างจากเนื้อหาของเราเอง (การ์ดสี ภาพประกอบ) ไม่ใช่ข้อมูลผู้ใช้
   | { t: "br" };
 
 export type Vars = { teacher: string; term: string; year: string };
@@ -56,6 +57,7 @@ function block(b: Exclude<Block, { t: "br" } | { t: "tbl" }>, v: Vars): HTMLElem
       const year = b.blank ? ".........." : esc(v.year.trim() || "..........");
       return el("div", "lp-sign", `<div>ลงชื่อ${line}${esc(b.role)}</div><div>${name}</div><div>วันที่.......เดือน................ พ.ศ. ${year}</div>`);
     }
+    case "html": return el("div", "lp-html", b.x);
     case "qr": {
       const e = el("div", "lp-qr");
       const box = el("div", "lp-qr-img");
@@ -144,18 +146,22 @@ export function paginate(blocks: Block[], v: Vars, host: HTMLElement): HTMLEleme
 // ฟอนต์ของเอกสาร: Sarabun (ไทย+ละติน, 400/700) แปลงเป็น data URL ใช้ชื่อ "SarabunDoc"
 // ใช้ชุดเดียวกันทั้งบนจอและตอนถ่ายภาพหน้าเป็น PDF (html-to-image ฝัง CSS นี้ลงภาพ) ตัวอักษรจึงตัดบรรทัดตรงกันทุกจุด
 // ถ้าใช้ฟอนต์จาก stylesheet ของหน้าเว็บ ภาพใน PDF จะตัดบรรทัดต่างจากที่วัดไว้ แล้วเกิดช่องว่าง/ข้อความล้น
-const FONT_CSS = "https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap";
+const FONT_CSS = [
+  ["https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap", "Sarabun", "SarabunDoc"],
+  ["https://fonts.googleapis.com/css2?family=Prompt:wght@600;700&display=swap", "Prompt", "PromptDoc"],   // หัวข้อการ์ด
+] as const;
 let fontCss: Promise<string> | null = null;
 export function docFontCss() {
   fontCss ??= (async () => {
-    const css = await (await fetch(FONT_CSS)).text();
+    const css = (await Promise.all(FONT_CSS.map(async ([url, from, to]) =>
+      (await (await fetch(url)).text()).replaceAll(`font-family: '${from}'`, `font-family: '${to}'`)))).join("\n");
     const faces = css.split(/(?=\/\*\s*[\w-]+\s*\*\/)/).filter(b => /^\/\*\s*(thai|latin)\s*\*\//.test(b));
     const out = await Promise.all(faces.map(async face => {
       const url = face.match(/url\((https:[^)]+)\)/)?.[1];
       if (!url) return "";
       const blob = await (await fetch(url)).blob();
       const data = await new Promise<string>((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.onerror = bad; r.readAsDataURL(blob); });
-      return face.replace(url, data).replace(/font-family:\s*'Sarabun'/, "font-family: 'SarabunDoc'");
+      return face.replace(url, data);
     }));
     return out.join("\n");
   })().catch(e => { fontCss = null; throw e; });
@@ -170,6 +176,7 @@ export async function fontsReady() {
       st.textContent = await docFontCss();
       document.head.append(st);
     }
-    await Promise.all(["400", "700"].map(w => document.fonts.load(`${w} 15px SarabunDoc`, "กขค abc")));
+    await Promise.all([...["400", "700"].map(w => `${w} 15px SarabunDoc`), ...["600", "700"].map(w => `${w} 15px PromptDoc`)]
+      .map(f => document.fonts.load(f, "กขค abc")));
   } catch { /* โหลดฟอนต์ไม่ได้: ใช้ Sarabun ของหน้าเว็บแทน (PDF อาจตัดบรรทัดต่างเล็กน้อย) */ }
 }

@@ -301,40 +301,8 @@
     "  □ จับหลอดด้วยสองมือ ไม่มีหลอดแตก",
     "  □ เก็บเครื่องมือและทำความสะอาดพื้นที่เรียบร้อย",
     {
-      "br": true
+      "cases": true
     },
-    "!c **การ์ดเคสคนไข้**",
-    "!c (พิมพ์และตัดแจกกลุ่มละ 1 ใบ)",
-    {
-      "table": {
-        "w": [
-          50,
-          50
-        ],
-        "cards": true,
-        "rows": [
-          [
-            "**เคสที่ 1**\nหลอดไม่ติดเลย วัดไส้หลอดทั้งสองข้างได้ค่าปกติ\n**สถานที่:** ห้องเรียน ม.3",
-            "**เคสที่ 2**\nปลายหลอดทั้งสองข้างแดงค้าง แต่หลอดไม่สว่าง\n**สถานที่:** ห้องสมุด"
-          ],
-          [
-            "**เคสที่ 3**\nหลอดกะพริบตลอดเวลา และปลายหลอดดำ\n**สถานที่:** โรงอาหาร",
-            "**เคสที่ 4**\nเปลี่ยนหลอดและสตาร์ตเตอร์ใหม่แล้ว หลอดก็ยังไม่ติด\n**สถานที่:** ห้องพักครู"
-          ],
-          [
-            "**เคสที่ 5**\nมีเสียงหึ่งดังจากรางโคม และรางโคมร้อนผิดปกติ\n**สถานที่:** ห้องประชุม",
-            "**เคสที่ 6**\nหลอดติด ๆ ดับ ๆ เฉพาะช่วงหัวค่ำที่ไฟตก\n**สถานที่:** บ้านพักครู"
-          ]
-        ]
-      }
-    },
-    "**เฉลยการ์ดเคสคนไข้ (สำหรับครู)**",
-    "  เคสที่ 1 ตรวจสตาร์ตเตอร์ก่อน แล้วจึงตรวจบัลลาสต์และขั้วหลอด",
-    "  เคสที่ 2 สตาร์ตเตอร์ลัดวงจร ให้เปลี่ยนสตาร์ตเตอร์",
-    "  เคสที่ 3 หลอดใกล้หมดอายุ ให้เปลี่ยนหลอด และตรวจสตาร์ตเตอร์ร่วมด้วย",
-    "  เคสที่ 4 ตรวจบัลลาสต์ (อาจขาด) และตรวจว่ามีไฟเข้ารางโคมหรือไม่ ถ้าต้องเปิดแผงไฟฟ้าให้ช่างไฟฟ้าดำเนินการ",
-    "  เคสที่ 5 บัลลาสต์เสื่อมหรือยึดไม่แน่น ให้ยึดให้แน่น หากยังร้อนจัดให้เปลี่ยนบัลลาสต์",
-    "  เคสที่ 6 แรงดันไฟตก หลอดจุดติดยาก ไม่ใช่ความเสียหายของอุปกรณ์ ควรแจ้งผู้ดูแลระบบไฟฟ้า",
     "**บัตรราคาอ้างอิง (ครูกรอกราคาจากร้านในชุมชนก่อนสอน)**",
     {
       "table": {
@@ -826,5 +794,97 @@
       "บัตรออก (Exit Ticket) รายบุคคล",
       "ตอบครบ 2 ข้อ และเชื่อมโยงกับการใช้ที่บ้านได้"
     ]
+  ],
+  "cases": [
+    {
+      "color": "#B5531A",
+      "place": "ห้องเรียน ม.3",
+      "symptom": "หลอดไม่ติดเลย",
+      "caption": "หลอดดับสนิท",
+      "level": 2,
+      "history": [
+        "เปิดสวิตช์แล้ว หลอดไม่สว่างเลยสักนิด",
+        "ไฟห้องข้าง ๆ ยังติดตามปกติ",
+        "วัดไส้หลอดทั้งสองข้างด้วยมัลติมิเตอร์ ได้ค่าปกติ"
+      ],
+      "cause": "สตาร์ตเตอร์เสีย หรือบัลลาสต์ขาด / ขั้วหลวม",
+      "fix": "ตรวจสตาร์ตเตอร์ก่อน (ราคาถูก เปลี่ยนง่าย) แล้วจึงวัดบัลลาสต์และตรวจขั้วหลอด",
+      "art": "<svg viewBox=\"0 0 240 180\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"14\" y=\"8\" width=\"212\" height=\"14\" fill=\"#E3D8C5\"/><rect x=\"30\" y=\"22\" width=\"180\" height=\"34\" rx=\"7\" fill=\"#D5DBE0\" stroke=\"#22303A\" stroke-width=\"3\"/><rect x=\"40\" y=\"54\" width=\"12\" height=\"16\" fill=\"#22303A\"/><rect x=\"188\" y=\"54\" width=\"12\" height=\"16\" fill=\"#22303A\"/><rect x=\"36\" y=\"68\" width=\"168\" height=\"24\" rx=\"12\" fill=\"#C9D0D6\" stroke=\"#22303A\" stroke-width=\"3\"/><path d=\"M60 92q-14 30 26 52\" fill=\"none\" stroke=\"#22303A\" stroke-width=\"2.5\"/><path d=\"M180 92q14 30-26 52\" fill=\"none\" stroke=\"#C0392B\" stroke-width=\"2.5\"/><rect x=\"80\" y=\"108\" width=\"80\" height=\"60\" rx=\"9\" fill=\"#F0A04B\" stroke=\"#22303A\" stroke-width=\"3\"/><rect x=\"92\" y=\"116\" width=\"56\" height=\"22\" rx=\"4\" fill=\"#E9F3EA\" stroke=\"#22303A\" stroke-width=\"2\"/><text x=\"120\" y=\"133\" text-anchor=\"middle\" font-size=\"15\" font-weight=\"700\" fill=\"#1E6B35\" font-family=\"Prompt,sans-serif\">Ω ✓</text><circle cx=\"100\" cy=\"154\" r=\"6\" fill=\"#22303A\"/><circle cx=\"140\" cy=\"154\" r=\"6\" fill=\"#C0392B\"/></svg>"
+    },
+    {
+      "color": "#C0392B",
+      "place": "ห้องสมุด",
+      "symptom": "ปลายหลอดแดงค้าง แต่หลอดไม่สว่าง",
+      "caption": "ปลายหลอดแดงค้าง",
+      "level": 1,
+      "history": [
+        "ปลายหลอดทั้งสองข้างเรืองแสงสีแดงส้ม",
+        "แดงค้างอยู่นานหลายนาที ไม่ยอมติด",
+        "ตรงกลางหลอดไม่สว่างเลย"
+      ],
+      "cause": "สตาร์ตเตอร์ลัดวงจร (หน้าสัมผัสติดกัน)",
+      "fix": "เปลี่ยนสตาร์ตเตอร์ใหม่ ไม่ต้องเปลี่ยนหลอด",
+      "art": "<svg viewBox=\"0 0 240 180\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"14\" y=\"8\" width=\"212\" height=\"14\" fill=\"#E3D8C5\"/><rect x=\"30\" y=\"22\" width=\"180\" height=\"34\" rx=\"7\" fill=\"#D5DBE0\" stroke=\"#22303A\" stroke-width=\"3\"/><rect x=\"40\" y=\"54\" width=\"12\" height=\"16\" fill=\"#22303A\"/><rect x=\"188\" y=\"54\" width=\"12\" height=\"16\" fill=\"#22303A\"/><rect x=\"36\" y=\"68\" width=\"168\" height=\"24\" rx=\"12\" fill=\"#C9D0D6\" stroke=\"#22303A\" stroke-width=\"3\"/><circle cx=\"50\" cy=\"80\" r=\"17\" fill=\"#F5B7A8\" opacity=\".85\"/><circle cx=\"190\" cy=\"80\" r=\"17\" fill=\"#F5B7A8\" opacity=\".85\"/><circle cx=\"50\" cy=\"80\" r=\"9\" fill=\"#E8592F\"/><circle cx=\"190\" cy=\"80\" r=\"9\" fill=\"#E8592F\"/><path d=\"M50 104v18M42 112l8-10 8 10M190 104v18M182 112l8-10 8 10\" fill=\"none\" stroke=\"#C0392B\" stroke-width=\"3\"/><text x=\"120\" y=\"150\" text-anchor=\"middle\" font-size=\"18\" font-weight=\"700\" fill=\"#C0392B\" font-family=\"Prompt,sans-serif\">ปลายแดง ไม่ติด</text><text x=\"120\" y=\"172\" text-anchor=\"middle\" font-size=\"12\" fill=\"#5A6670\" font-family=\"Sarabun,sans-serif\">ค้างนานหลายนาที</text></svg>"
+    },
+    {
+      "color": "#2E6B3A",
+      "place": "โรงอาหาร",
+      "symptom": "หลอดกะพริบตลอดเวลา",
+      "caption": "กะพริบ + ปลายหลอดดำ",
+      "level": 1,
+      "history": [
+        "กะพริบติด ๆ ดับ ๆ ตั้งแต่เช้า",
+        "ปลายหลอดทั้งสองข้างมีรอยดำชัดเจน",
+        "หลอดนี้ใช้งานมาหลายปีแล้ว"
+      ],
+      "cause": "หลอดเสื่อม ใกล้หมดอายุ",
+      "fix": "เปลี่ยนหลอดใหม่ ตรวจสตาร์ตเตอร์ร่วมด้วย ทิ้งหลอดเก่าในถังขยะอันตราย",
+      "art": "<svg viewBox=\"0 0 240 180\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"14\" y=\"8\" width=\"212\" height=\"14\" fill=\"#E3D8C5\"/><rect x=\"30\" y=\"22\" width=\"180\" height=\"34\" rx=\"7\" fill=\"#D5DBE0\" stroke=\"#22303A\" stroke-width=\"3\"/><rect x=\"40\" y=\"54\" width=\"12\" height=\"16\" fill=\"#22303A\"/><rect x=\"188\" y=\"54\" width=\"12\" height=\"16\" fill=\"#22303A\"/><rect x=\"26\" y=\"62\" width=\"188\" height=\"36\" rx=\"18\" fill=\"#FFF3C4\"/><rect x=\"36\" y=\"68\" width=\"168\" height=\"24\" rx=\"12\" fill=\"#FFF8DC\" stroke=\"#22303A\" stroke-width=\"3\"/><rect x=\"40\" y=\"72\" width=\"26\" height=\"16\" rx=\"8\" fill=\"#22303A\"/><rect x=\"174\" y=\"72\" width=\"26\" height=\"16\" rx=\"8\" fill=\"#22303A\"/><path transform=\"translate(66 110)\" d=\"M12 0 0 20h9l-3 16 14-22h-9z\" fill=\"#2E6B3A\"/><path transform=\"translate(110 110)\" d=\"M12 0 0 20h9l-3 16 14-22h-9z\" fill=\"#2E6B3A\"/><path transform=\"translate(154 110)\" d=\"M12 0 0 20h9l-3 16 14-22h-9z\" fill=\"#2E6B3A\"/><text x=\"120\" y=\"172\" text-anchor=\"middle\" font-size=\"16\" font-weight=\"700\" fill=\"#2E6B3A\" font-family=\"Prompt,sans-serif\">ติด–ดับ–ติด–ดับ</text></svg>"
+    },
+    {
+      "color": "#2C5876",
+      "place": "ห้องพักครู",
+      "symptom": "เปลี่ยนของใหม่แล้ว ยังไม่ติด",
+      "caption": "ของใหม่ก็ยังดับ",
+      "level": 3,
+      "history": [
+        "ภารโรงเปลี่ยนหลอดใหม่แล้ว",
+        "เปลี่ยนสตาร์ตเตอร์ใหม่ด้วย",
+        "หลอดยังดับสนิท ไม่มีอาการกะพริบเลย"
+      ],
+      "cause": "บัลลาสต์ขาด หรือไม่มีไฟเข้ารางโคม",
+      "fix": "วัดบัลลาสต์ ถ้าต้องเปิดแผงไฟหรือเดินสายใหม่ ให้ช่างไฟฟ้าดำเนินการ",
+      "art": "<svg viewBox=\"0 0 240 180\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"14\" y=\"8\" width=\"212\" height=\"14\" fill=\"#E3D8C5\"/><rect x=\"30\" y=\"22\" width=\"180\" height=\"34\" rx=\"7\" fill=\"#D5DBE0\" stroke=\"#22303A\" stroke-width=\"3\"/><rect x=\"40\" y=\"54\" width=\"12\" height=\"16\" fill=\"#22303A\"/><rect x=\"188\" y=\"54\" width=\"12\" height=\"16\" fill=\"#22303A\"/><rect x=\"36\" y=\"68\" width=\"168\" height=\"24\" rx=\"12\" fill=\"#C9D0D6\" stroke=\"#22303A\" stroke-width=\"3\"/><rect x=\"44\" y=\"112\" width=\"30\" height=\"44\" rx=\"11\" fill=\"#D5DBE0\" stroke=\"#22303A\" stroke-width=\"3\"/><path d=\"M52 156v10M66 156v10\" stroke=\"#22303A\" stroke-width=\"3\"/><g transform=\"rotate(-10 60 108)\"><rect x=\"34\" y=\"96\" width=\"46\" height=\"20\" rx=\"5\" fill=\"#2C5876\"/><text x=\"57\" y=\"111\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"#fff\" font-family=\"Prompt,sans-serif\">ใหม่!</text></g><g transform=\"rotate(8 170 104)\"><rect x=\"146\" y=\"94\" width=\"50\" height=\"22\" rx=\"5\" fill=\"#2C5876\"/><text x=\"171\" y=\"110\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"#fff\" font-family=\"Prompt,sans-serif\">ใหม่!</text></g><text x=\"128\" y=\"152\" text-anchor=\"middle\" font-size=\"34\" font-weight=\"700\" fill=\"#2C5876\" font-family=\"Prompt,sans-serif\">?</text><text x=\"128\" y=\"174\" text-anchor=\"middle\" font-size=\"12\" fill=\"#2C5876\" font-weight=\"700\" font-family=\"Sarabun,sans-serif\">แล้วเสียตรงไหน</text></svg>"
+    },
+    {
+      "color": "#6A3FA0",
+      "place": "ห้องประชุม",
+      "symptom": "มีเสียงหึ่ง และรางโคมร้อน",
+      "caption": "หึ่ง ๆ + ร้อนผิดปกติ",
+      "level": 2,
+      "history": [
+        "ได้ยินเสียงหึ่งดังมาจากรางโคม",
+        "แตะรางโคมแล้วรู้สึกร้อนผิดปกติ",
+        "หลอดยังสว่างอยู่"
+      ],
+      "cause": "บัลลาสต์เสื่อม หรือยึดไม่แน่น",
+      "fix": "ตัดไฟ ยึดบัลลาสต์ให้แน่น ถ้ายังร้อนจัดให้เปลี่ยนบัลลาสต์",
+      "art": "<svg viewBox=\"0 0 240 180\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"14\" y=\"8\" width=\"212\" height=\"14\" fill=\"#E3D8C5\"/><rect x=\"30\" y=\"22\" width=\"180\" height=\"34\" rx=\"7\" fill=\"#D5DBE0\" stroke=\"#22303A\" stroke-width=\"3\"/><rect x=\"40\" y=\"54\" width=\"12\" height=\"16\" fill=\"#22303A\"/><rect x=\"188\" y=\"54\" width=\"12\" height=\"16\" fill=\"#22303A\"/><rect x=\"26\" y=\"62\" width=\"188\" height=\"36\" rx=\"18\" fill=\"#FFF3C4\"/><rect x=\"36\" y=\"68\" width=\"168\" height=\"24\" rx=\"12\" fill=\"#FFF8DC\" stroke=\"#22303A\" stroke-width=\"3\"/><path d=\"M44 110q12 12 0 24M58 104q18 18 0 36M72 98q24 24 0 48\" fill=\"none\" stroke=\"#6A3FA0\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><text x=\"92\" y=\"132\" font-size=\"18\" font-weight=\"700\" fill=\"#6A3FA0\" font-family=\"Prompt,sans-serif\">หึ่ง~</text><path d=\"M156 150q-8-8 0-16t0-16M174 150q-8-8 0-16t0-16M192 150q-8-8 0-16t0-16\" fill=\"none\" stroke=\"#E8592F\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><text x=\"174\" y=\"172\" text-anchor=\"middle\" font-size=\"15\" font-weight=\"700\" fill=\"#E8592F\" font-family=\"Prompt,sans-serif\">ร้อน!</text></svg>"
+    },
+    {
+      "color": "#8C6A12",
+      "place": "บ้านพักครู",
+      "symptom": "ติด ๆ ดับ ๆ เฉพาะช่วงหัวค่ำ",
+      "caption": "ไฟตกช่วงหัวค่ำ",
+      "level": 3,
+      "history": [
+        "ช่วงกลางวัน หลอดติดตามปกติ",
+        "ช่วงหัวค่ำที่ทุกบ้านเปิดไฟ หลอดติด ๆ ดับ ๆ",
+        "หลอดไฟบ้านข้าง ๆ ก็หรี่ลงด้วย"
+      ],
+      "cause": "แรงดันไฟฟ้าตกช่วงที่ใช้ไฟพร้อมกัน (อุปกรณ์ไม่ได้เสีย)",
+      "fix": "ไม่ต้องเปลี่ยนอุปกรณ์ แจ้งผู้ดูแลระบบไฟฟ้าหรือการไฟฟ้าส่วนภูมิภาค",
+      "art": "<svg viewBox=\"0 0 240 180\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"14\" y=\"8\" width=\"212\" height=\"14\" fill=\"#E3D8C5\"/><rect x=\"30\" y=\"22\" width=\"180\" height=\"34\" rx=\"7\" fill=\"#D5DBE0\" stroke=\"#22303A\" stroke-width=\"3\"/><rect x=\"40\" y=\"54\" width=\"12\" height=\"16\" fill=\"#22303A\"/><rect x=\"188\" y=\"54\" width=\"12\" height=\"16\" fill=\"#22303A\"/><rect x=\"26\" y=\"62\" width=\"188\" height=\"36\" rx=\"18\" fill=\"#FFF3C4\"/><rect x=\"36\" y=\"68\" width=\"168\" height=\"24\" rx=\"12\" fill=\"#FFF8DC\" stroke=\"#22303A\" stroke-width=\"3\"/><path d=\"M24 132l18-16 18 16v24h-36z\" fill=\"#F4E3B5\" stroke=\"#8C6A12\" stroke-width=\"2.5\" stroke-linejoin=\"round\"/><rect x=\"36\" y=\"138\" width=\"12\" height=\"10\" fill=\"#FFE08A\" stroke=\"#8C6A12\" stroke-width=\"1.5\"/><path d=\"M66 132l18-16 18 16v24h-36z\" fill=\"#F4E3B5\" stroke=\"#8C6A12\" stroke-width=\"2.5\" stroke-linejoin=\"round\"/><rect x=\"78\" y=\"138\" width=\"12\" height=\"10\" fill=\"#FFE08A\" stroke=\"#8C6A12\" stroke-width=\"1.5\"/><path d=\"M108 132l18-16 18 16v24h-36z\" fill=\"#F4E3B5\" stroke=\"#8C6A12\" stroke-width=\"2.5\" stroke-linejoin=\"round\"/><rect x=\"120\" y=\"138\" width=\"12\" height=\"10\" fill=\"#FFE08A\" stroke=\"#8C6A12\" stroke-width=\"1.5\"/><path d=\"M196 104a14 14 0 1 0 10 24 12 12 0 0 1-10-24z\" fill=\"#F5D46A\"/><path d=\"M180 128v26M172 146l8 10 8-10\" fill=\"none\" stroke=\"#C0392B\" stroke-width=\"3.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"180\" y=\"174\" text-anchor=\"middle\" font-size=\"14\" font-weight=\"700\" fill=\"#C0392B\" font-family=\"Prompt,sans-serif\">ไฟตก</text></svg>"
+    }
   ]
 }

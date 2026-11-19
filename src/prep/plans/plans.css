@@ -24,6 +24,46 @@
 .lp-qr-t { font-size: 13px; line-height: 1.5; }
 .lp-qr-t span { color: #333; }
 
+/* ---------- การ์ดเคสคนไข้ (บล็อก html จาก build.mjs) ---------- */
+.lp-html { margin: 0; }
+.lpc { --c: #B5531A; border: 2px solid var(--c); border-radius: 18px; overflow: hidden; background: #FBF6EE; color: #1F2A33; font-family: SarabunDoc, Sarabun, sans-serif; }
+.lpc b, .lpc-h b, .lpc-sym b, .lpc-steps b, .lpc-key h3 { font-family: PromptDoc, Prompt, SarabunDoc, sans-serif; }
+.lpc-h { display: flex; justify-content: space-between; align-items: center; background: var(--c); color: #fff; padding: 14px 22px; }
+.lpc-h small { display: block; font-size: 13px; font-weight: 700; opacity: .92; line-height: 1.2; }
+.lpc-h b { display: block; font-size: 30px; line-height: 1.15; }
+.lpc-team { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.2); padding: 5px 14px; border-radius: 99px; font-size: 13px; font-weight: 700; }
+.lpc-b { display: grid; grid-template-columns: 228px 1fr; gap: 16px; padding: 18px 22px 14px; }
+.lpc-art { background: #fff; border: 1px solid #E8DCCB; border-radius: 14px; padding: 8px 8px 6px; text-align: center; }
+.lpc-art svg { width: 100%; height: auto; display: block; }
+.lpc-cap { font-size: 12.5px; font-weight: 700; color: var(--c); margin-top: 2px; }
+.lpc-info { display: grid; gap: 9px; align-content: start; font-size: 14.5px; line-height: 1.45; }
+.lpc-place { display: flex; align-items: center; gap: 6px; color: var(--c); }
+.lpc-place span { color: #1F2A33; }
+.lpc-sym { background: #fff; border-left: 5px solid var(--c); border-radius: 8px; padding: 6px 12px; }
+.lpc-sym small, .lpc-his small { display: block; font-size: 11.5px; font-weight: 700; color: var(--c); }
+.lpc-sym b { display: block; font-size: 20px; line-height: 1.3; }
+.lpc-his div { display: flex; gap: 8px; align-items: flex-start; margin-top: 3px; }
+.lpc-his span { flex: none; width: 18px; height: 18px; border-radius: 50%; background: var(--c); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; margin-top: 1px; }
+.lpc-lv { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #5A6670; }
+.lpc-lv span { display: inline-flex; gap: 3px; }
+.lpc-lv i { width: 11px; height: 11px; border-radius: 50%; background: #E3D8C5; display: inline-block; }
+.lpc-lv i.on { background: var(--c); }
+.lpc-lv b { color: #1F2A33; font-size: 13px; }
+.lpc-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0 22px 14px; }
+.lpc-steps > div { display: flex; gap: 8px; align-items: center; background: #fff; border: 1px solid #E8DCCB; border-radius: 12px; padding: 9px 10px; }
+.lpc-steps span { flex: none; width: 24px; height: 24px; border-radius: 50%; background: #22303A; color: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 700; }
+.lpc-steps p { margin: 0; font-size: 12px; line-height: 1.3; color: #5A6670; }
+.lpc-steps b { display: block; font-size: 13.5px; color: #1F2A33; }
+.lpc-f { display: flex; align-items: center; justify-content: center; gap: 8px; background: #22303A; color: #fff; padding: 11px 14px; font-size: 13px; font-weight: 700; }
+.lpc-cut { position: relative; margin: 16px -40px 16px; border-top: 1.5px dashed #9A948C; }
+.lpc-cut span { position: absolute; left: 40px; top: -10px; background: #fff; padding: 0 6px; font-size: 11px; color: #7A746C; }
+.lpc-key h3 { font-size: 22px; margin: 0 0 10px; }
+.lpc-key table { width: 100%; border-collapse: collapse; font-size: 13.5px; line-height: 1.45; }
+.lpc-key th { background: #22303A; color: #fff; text-align: left; padding: 8px 10px; }
+.lpc-key td { padding: 8px 10px; border-bottom: 1px solid #E8DCCB; vertical-align: top; }
+.lpc-key td.n { font-weight: 700; font-size: 16px; text-align: center; width: 44px; }
+.lpc-tip { margin-top: 14px; background: #FBF6EE; border-left: 5px solid #B5531A; border-radius: 8px; padding: 10px 14px; font-size: 13.5px; line-height: 1.55; }
+
 /* ---------- พรีวิวบนจอ ---------- */
 .lp-pages { display: grid; gap: 14px; justify-items: center; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .lp-fit { position: relative; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.18), 0 8px 24px rgba(0,0,0,.08); border-radius: 2px; background: #fff; }

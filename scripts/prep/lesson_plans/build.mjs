@@ -32,7 +32,7 @@ const fill = (s, L) => s.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in L && typeof L
 
 // "  ข้อความ" → ย่อหน้าระดับ 1; "!c " = กึ่งกลาง; {table} → ตาราง; {br} → ขึ้นหน้าใหม่
 function lines(arr, L, base = 0) {
-  return arr.map(item => {
+  return arr.flatMap(item => {
     if (typeof item === "string") {
       let s = item, c = false;
       const lead = s.match(/^ */)[0].length;
@@ -46,6 +46,7 @@ function lines(arr, L, base = 0) {
       return b;
     }
     if (item.br) return { t: "br" };
+    if (item.cases) return caseBlocks(L);
     if (item.table) {
       const t = item.table;
       const cell = v => (typeof v === "string" ? fill(v, L) : v);
@@ -130,6 +131,41 @@ function modelForm(F, S) {
   ];
 }
 const opinion = (who, role) => [h(`ความคิดเห็นของ${who}`), ...dots(3, 1), { t: "sign", role, blank: 1 }];   // ผู้ลงนามอื่น: เว้นชื่อว่าง
+
+// ---------- การ์ดเคสคนไข้ (การ์ดสีมีภาพ พิมพ์หน้าละ 2 ใบ) + เฉลยสำหรับครู ----------
+// ภาพ (SVG) และข้อความมาจาก content/lesson-plans/<slug>.json → cases[] (เนื้อหาที่เราเขียนเอง ไม่ใช่ข้อมูลผู้ใช้)
+const ICON_PIN = '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z" fill="currentColor"/></svg>';
+const ICON_STETH = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M6 3v6a5 5 0 0 0 10 0V3"/><path d="M11 14v2a4 4 0 0 0 8 0v-3"/><circle cx="19" cy="11" r="2"/></svg>';
+const ICON_BOLT = '<svg viewBox="0 0 22 22" width="16" height="16"><path d="M13 1 3 13h7l-2 8 11-13h-7z" fill="#F0A04B"/></svg>';
+const LEVEL = ["", "ง่าย", "ปานกลาง", "ท้าทาย"];
+function caseCard(c, n, L) {
+  const e = x => esc(fill(x, L));
+  const dots = [1, 2, 3].map(k => `<i${k <= c.level ? ' class="on"' : ""}></i>`).join("");
+  return `<div class="lpc" style="--c:${c.color}">`
+    + `<div class="lpc-h"><div><small>การ์ดเคสคนไข้</small><b>เคสที่ ${n}</b></div><span class="lpc-team">${ICON_STETH}ทีมหมอหลอดไฟ</span></div>`
+    + `<div class="lpc-b"><div class="lpc-art">${c.art.replaceAll('font-family="Prompt,', 'font-family="PromptDoc,Prompt,').replaceAll('font-family="Sarabun,', 'font-family="SarabunDoc,Sarabun,')}<div class="lpc-cap">${e(c.caption)}</div></div>`
+    + `<div class="lpc-info"><div class="lpc-place">${ICON_PIN}<span>สถานที่: <b>${e(c.place)}</b></span></div>`
+    + `<div class="lpc-sym"><small>อาการสำคัญ</small><b>${e(c.symptom)}</b></div>`
+    + `<div class="lpc-his"><small>ประวัติจากผู้แจ้ง</small>${c.history.map((x, k) => `<div><span>${k + 1}</span>${e(x)}</div>`).join("")}</div>`
+    + `<div class="lpc-lv">ระดับความยาก <span>${dots}</span> <b>${LEVEL[c.level]}</b></div></div></div>`
+    + `<div class="lpc-steps">${[["วินิจฉัย", "สาเหตุน่าจะเป็นอะไร"], ["วางแผนตรวจ", "จากจุดง่ายไปจุดยาก"], ["ตัดสินใจ", "ซ่อม หรือ เปลี่ยนใหม่"]]
+      .map(([a, b], k) => `<div><span>${k + 1}</span><p><b>${a}</b>${b}</p></div>`).join("")}</div>`
+    + `<div class="lpc-f">${ICON_BOLT}ตัดไฟหรือถอดปลั๊กก่อนตรวจทุกครั้ง · บันทึกคำตอบลงใบงาน "หมอหลอดไฟ" ส่วนที่ 2</div></div>`;
+}
+function caseBlocks(L) {
+  const cards = L.cases.map((c, k) => ({ t: "html", x: caseCard(c, k + 1, L) }));
+  const cut = { t: "html", x: '<div class="lpc-cut"><span>ตัดตามเส้นประ</span></div>' };
+  const out = [];
+  cards.forEach((c, k) => { out.push(k % 2 ? cut : { t: "br" }, c); });
+  const rows = L.cases.map((c, k) => `<tr><td class="n">${k + 1}</td><td>${esc(c.cause)}</td><td>${esc(c.fix)}</td></tr>`).join("");
+  out.push({ t: "br" }, {
+    t: "html", x: `<div class="lpc-key"><h3>เฉลยการ์ดเคสคนไข้ (สำหรับครู)</h3>`
+      + `<table><thead><tr><th>เคส</th><th>สาเหตุที่น่าจะเป็น</th><th>แนวทางแก้ไข</th></tr></thead><tbody>${rows}</tbody></table>`
+      + `<div class="lpc-tip"><b>วิธีใช้:</b> พิมพ์การ์ดบนกระดาษ A4 สี ตัดตามเส้นประ ได้การ์ดขนาดประมาณ A5 แจกกลุ่มละ 1 ใบ ถ้ามีมากกว่า ${L.cases.length} กลุ่มให้ใช้เคสซ้ำได้ `
+      + `เคสระดับ "ท้าทาย" เหมาะกับกลุ่มที่ทำงานเสร็จเร็ว</div></div>`,
+  });
+  return out;
+}
 
 // ---------- รูปแบบที่ 1: PhenoBL (ตามไฟล์ต้นฉบับของเจ้าของ) ----------
 function phenobl(L, F, S, X) {

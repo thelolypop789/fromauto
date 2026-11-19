@@ -32,25 +32,28 @@ export async function pagesToPdf(pages: HTMLElement[], meta: PdfMeta, onProgress
   return new Blob([bytes as BlobPart], { type: "application/pdf" });
 }
 
-async function pageToCanvas(page: HTMLElement, css: string, ratio: number) {
-  const xhtml = new XMLSerializer().serializeToString(page);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PAGE_W * ratio}" height="${PAGE_H * ratio}" viewBox="0 0 ${PAGE_W} ${PAGE_H}">`
-    + `<foreignObject x="0" y="0" width="${PAGE_W}" height="${PAGE_H}"><div xmlns="http://www.w3.org/1999/xhtml">`
+// วาด element เป็นภาพ (SVG foreignObject → canvas) ด้วย CSS ชุดเดียวกับบนจอ ใช้ทั้งหน้า PDF และภาพการ์ดในไฟล์ Word
+export async function nodeToCanvas(node: HTMLElement, w: number, h: number, css: string, ratio: number) {
+  const xhtml = new XMLSerializer().serializeToString(node);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w * ratio}" height="${h * ratio}" viewBox="0 0 ${w} ${h}">`
+    + `<foreignObject x="0" y="0" width="${w}" height="${h}"><div xmlns="http://www.w3.org/1999/xhtml">`
     + `<style><![CDATA[${css}]]></style>${xhtml}</div></foreignObject></svg>`;
   // data URL (ไม่ใช่ blob URL): Chrome ถือว่า SVG ที่มี foreignObject จาก blob URL ทำให้ canvas "tainted" ส่งออกไม่ได้
   const img = new Image();
   img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  {
-    await img.decode();
-    const c = document.createElement("canvas");
-    c.width = PAGE_W * ratio; c.height = PAGE_H * ratio;
-    const ctx = c.getContext("2d")!;
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, c.width, c.height);
-    ctx.drawImage(img, 0, 0, c.width, c.height);
-    return c;
-  }
+  await img.decode();
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * ratio); c.height = Math.round(h * ratio);
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.drawImage(img, 0, 0, c.width, c.height);
+  return c;
 }
+
+export async function docCss() { return `${await docFontCss()}\n${planCss}`; }
+
+const pageToCanvas = (page: HTMLElement, css: string, ratio: number) => nodeToCanvas(page, PAGE_W, PAGE_H, css, ratio);
 
 export function saveBlob(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);

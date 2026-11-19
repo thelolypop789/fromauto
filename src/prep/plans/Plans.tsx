@@ -15,14 +15,15 @@ type Format = { key: string; name: string; full: string; desc: string; steps: { 
 type Plan = {
   id: number; slug: string; grp: string; subject: string; course_code: string | null; grade: string;
   unit_no: number | null; unit_title: string | null; plan_no: number | null; title: string; periods: number; minutes: number;
-  summary: string | null; price: number; media_url: string | null; formats: Format[];
+  summary: string | null; price: number; price_word: number; media_url: string | null; formats: Format[];
   published: boolean;
   access: "admin" | "pack" | null;     // สิทธิ์ทุกรูปแบบ (แอดมิน / แพ็กครบทุกภาค)
   owned: string[];                     // รูปแบบที่ซื้อแยกแล้ว
+  owned_word: string[];                // รูปแบบที่ซื้อแบบมี Word
   pending: string[];                   // รูปแบบที่ส่งสลิปรอตรวจ
 };
 type List = { full_name: string | null; plans: Plan[] };
-type Doc = { id: number; format: string; access: "admin" | "pack" | "purchase" | null; preview: Block[]; locked: Block[] | null; locked_blocks: number };
+type Doc = { id: number; format: string; access: "admin" | "pack" | "purchase" | null; word: boolean; preview: Block[]; locked: Block[] | null; locked_blocks: number };
 
 // ภาคเรียน/ปีการศึกษาตั้งต้นตามวันนี้ (ภาค 1 = พ.ค.–ต.ค., ภาค 2 = พ.ย.–มี.ค.)
 function defaultTerm() {
@@ -82,7 +83,7 @@ export default function Plans({ onBack, onBuyPack }: { onBack: () => void; onBuy
                         <span className="lp-chip">{p.periods * p.minutes} นาที</span>
                         {p.access ? <span className="lp-chip own">โหลดได้ทุกรูปแบบ</span>
                           : p.pending.length ? <span className="lp-chip wait">รอตรวจสลิป</span>
-                          : <span className="lp-chip price">รูปแบบละ {p.price} บาท</span>}
+                          : <span className="lp-chip price">PDF {p.price} · PDF + Word {p.price_word} บาท</span>}
                       </span>
                     </button>
                   ))}
@@ -176,23 +177,31 @@ function Detail({ plan, fullName, onBack, onBuyPack, onChanged }: { plan: Plan; 
     });
   }, [scale, nPages, key]);
 
-  // ---------- โหลด PDF ----------
+  // ---------- โหลด PDF / Word ----------
   const [busy, setBusy] = useState<string>("");
-  const download = async () => {
-    if (!owned || busy || !doc?.locked) return;
+  const download = async (kind: "pdf" | "docx") => {
+    if (!owned || busy || !doc?.locked || !blocks) return;
     if (!name) { notify("กรอกชื่อ-สกุลก่อนโหลดแผน"); return; }
     setBusy("กำลังเตรียมไฟล์...");
     try {
-      const r = await rpc<{ id: number; full_name: string; email: string | null }>("prep_lesson_plan_download", { p_id: plan.id, p_format: fmt });
+      const r = await rpc<{ id: number; full_name: string; email: string | null }>("prep_lesson_plan_download", { p_id: plan.id, p_format: fmt, p_kind: kind });
+      const title = `แผนการจัดการเรียนรู้ที่ ${plan.plan_no} เรื่อง ${plan.title} (${format?.name ?? fmt})`;
       const { pagesToPdf, saveBlob } = await import("./planPdf");
-      const blob = await pagesToPdf(pagesRef.current, {
-        title: `แผนการจัดการเรียนรู้ที่ ${plan.plan_no} เรื่อง ${plan.title} (${format?.name ?? fmt})`,
-        author: r.full_name,
-        subject: `${plan.subject} ${plan.course_code ?? ""} ${plan.grade} หน่วยที่ ${plan.unit_no} · SOBPREP`,
-        keywords: ["SOBPREP", `dl-${r.id}`, r.email ?? "", r.full_name],
-      }, (d, t) => setBusy(`กำลังสร้าง PDF ${d}/${t} หน้า`));
+      let blob: Blob;
+      if (kind === "pdf") {
+        blob = await pagesToPdf(pagesRef.current, {
+          title, author: r.full_name,
+          subject: `${plan.subject} ${plan.course_code ?? ""} ${plan.grade} หน่วยที่ ${plan.unit_no} · SOBPREP`,
+          keywords: ["SOBPREP", `dl-${r.id}`, r.email ?? "", r.full_name],
+        }, (d, t) => setBusy(`กำลังสร้าง PDF ${d}/${t} หน้า`));
+      } else {
+        const { blocksToDocx } = await import("./planDocx");
+        blob = await blocksToDocx(blocks, { ...vars, teacher: r.full_name }, {
+          title, author: r.full_name, description: `SOBPREP dl-${r.id} ${r.email ?? ""}`, keywords: `SOBPREP dl-${r.id} ${r.full_name}`,
+        }, (d, t) => setBusy(`กำลังสร้างไฟล์ Word ${Math.round((d / t) * 100)}%`));
+      }
       // ชื่อไฟล์ภาษาอังกฤษ: Chrome บางรุ่นเปลี่ยนชื่อไฟล์ภาษาไทยเป็น "download"
-      saveBlob(blob, `SOBPREP-${plan.slug}-${fmt}.pdf`);
+      saveBlob(blob, `SOBPREP-${plan.slug}-${fmt}.${kind}`);
       notify("โหลดแผนแล้ว ดูได้ในโฟลเดอร์ดาวน์โหลด");
     } catch (e) { notify(thaiError(e)); }
     setBusy("");
@@ -228,8 +237,16 @@ function Detail({ plan, fullName, onBack, onBuyPack, onChanged }: { plan: Plan; 
         {owned
           ? (name
               ? <>
-                  <button className="pp-btn pp-btn-primary" disabled={!!busy || !nPages} onClick={download}>{busy || `ดาวน์โหลด PDF · ${format?.name ?? ""} (${nPages} หน้า)`}</button>
-                  <span className="pp-muted small">ผู้สอน: <b>{name}</b> · ไฟล์ PDF สำหรับพิมพ์และยื่นสัมภาษณ์ได้ทันที{doc?.access === "pack" ? " · สิทธิ์จากแพ็กครบทุกภาค" : doc?.access === "purchase" ? ` · ซื้อรูปแบบ ${format?.name ?? ""} แล้ว` : ""}</span>
+                  {busy
+                    ? <button className="pp-btn pp-btn-primary" disabled>{busy}</button>
+                    : <div className="lp-dl">
+                        <button className="pp-btn pp-btn-primary" disabled={!nPages} onClick={() => download("pdf")}>ดาวน์โหลด PDF ({nPages} หน้า)</button>
+                        {doc?.word
+                          ? <button className="pp-btn pp-btn-outline" disabled={!nPages} onClick={() => download("docx")}>ดาวน์โหลด Word (แก้ไขได้)</button>
+                          : null}
+                      </div>}
+                  <span className="pp-muted small">ผู้สอน: <b>{name}</b> · รูปแบบ {format?.name ?? ""}{doc?.access === "pack" ? " · สิทธิ์จากแพ็กครบทุกภาค" : doc?.access === "purchase" ? (doc.word ? " · ซื้อ PDF + Word แล้ว" : " · ซื้อ PDF แล้ว") : ""}</span>
+                  {doc?.access === "purchase" && !doc.word && format && <WordUpgrade plan={plan} format={format} onChanged={onChanged} />}
                 </>
               : <NameForm onSaved={n => { setName(n); onChanged(); }} />)
           : <Unlock plan={plan} format={format} onBuyPack={onBuyPack} onChanged={onChanged} />}
@@ -308,24 +325,29 @@ function Publish({ plan, onChanged }: { plan: Plan; onChanged: () => void }) {
   );
 }
 
-function Unlock({ plan, format, onBuyPack, onChanged }: { plan: Plan; format: Format | undefined; onBuyPack: () => void; onChanged: () => void }) {
+// ซื้อเพิ่มไฟล์ Word ให้รูปแบบที่ซื้อ PDF ไว้แล้ว (จ่ายส่วนต่าง)
+function WordUpgrade({ plan, format, onChanged }: { plan: Plan; format: Format; onChanged: () => void }) {
   const [open, setOpen] = useState(false);
+  const diff = plan.price_word - plan.price;
+  if (plan.pending.includes(format.key)) return <span className="pp-muted small">ส่งสลิปเพิ่มไฟล์ Word แล้ว รอตรวจ</span>;
+  return (
+    <div className="lp-buy-opt">
+      <b>อยากได้ไฟล์ Word ไว้แก้ต่อ? เพิ่มอีก {diff} บาท</b>
+      <span className="pp-muted small">ได้ไฟล์ .docx ของรูปแบบ {format.name} แก้ชื่อโรงเรียน กิจกรรม ตาราง ได้เองใน Word</span>
+      {open ? <Pay plan={plan} format={format} tier="word" amount={diff} onChanged={onChanged} />
+        : <button className="pp-btn pp-btn-outline" onClick={() => setOpen(true)}>เพิ่ม Word {diff} บาท</button>}
+    </div>
+  );
+}
+
+// QR + แนบสลิป สำหรับซื้อแผนรายรูปแบบ
+function Pay({ plan, format, tier, amount, onChanged }: { plan: Plan; format: Format; tier: "pdf" | "word"; amount: number; onChanged: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
   const [busy, setBusy] = useState(false);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
-  const qr = SHOP.qrByAmount[plan.price] || SHOP.qrImage;
-  const fixed = !!SHOP.qrByAmount[plan.price];
-
-  if (!format) return null;
-  if (plan.pending.includes(format.key)) return (
-    <>
-      <b>ส่งสลิปซื้อแผนนี้ (รูปแบบ {format.name}) แล้ว · รอตรวจ</b>
-      <span className="pp-muted small">ตรวจเสร็จแล้วปุ่มดาวน์โหลดจะขึ้นที่นี่ ส่วนใหญ่ไม่กี่นาที</span>
-      <button className="pp-btn pp-btn-outline" onClick={onChanged}>ตรวจสถานะอีกครั้ง</button>
-    </>
-  );
-
+  const qr = SHOP.qrByAmount[amount] || SHOP.qrImage;
+  const fixed = !!SHOP.qrByAmount[amount];
   const send = async () => {
     if (!file || busy) return;
     setBusy(true);
@@ -337,40 +359,56 @@ function Unlock({ plan, format, onBuyPack, onChanged }: { plan: Plan; format: Fo
       const path = `${uid}/${crypto.randomUUID()}.${img.ext}`;
       const up = await supabase.storage.from("prep-slips").upload(path, img.blob, { contentType: img.type, upsert: false });
       if (up.error) throw up.error;
-      await rpc("prep_submit_plan_order", { p_plan: plan.id, p_format: format.key, p_slip_path: path });
-      notify("ส่งสลิปแล้ว ตรวจเสร็จจะเปิดให้โหลดแผนทันที");
+      await rpc("prep_submit_plan_order", { p_plan: plan.id, p_format: format.key, p_slip_path: path, p_tier: tier });
+      notify("ส่งสลิปแล้ว ตรวจเสร็จจะเปิดให้โหลดทันที");
       onChanged();
     } catch (e) { notify(thaiError(e)); }
     setBusy(false);
   };
+  return (
+    <div className="lp-qrpay">
+      <img src={qr} alt={`QR พร้อมเพย์ ${amount} บาท`} />
+      <span className="small">{fixed ? `สแกนจ่าย ${amount} บาท (ยอดล็อกใน QR แล้ว)` : `สแกนแล้วกรอกยอด ${amount} บาท`}</span>
+      <span className="pp-muted small">{SHOP.bankText}</span>
+      <a className="pp-btn pp-btn-outline" href={qr} download={`QR-${amount}.png`}>บันทึกรูป QR</a>
+      <label className="pp-btn pp-btn-outline">
+        {file ? "เปลี่ยนรูปสลิป" : "แนบสลิป"}
+        <input type="file" accept="image/*" hidden onChange={e => { const f = e.target.files?.[0]; if (f) { setFile(f); setPreview(URL.createObjectURL(f)); } }} />
+      </label>
+      {preview && <img className="lp-slip" src={preview} alt="สลิปที่เลือก" />}
+      <button className="pp-btn pp-btn-primary" disabled={!file || busy} onClick={send}>{busy ? "กำลังส่ง..." : `ส่งสลิป · ${amount} บาท`}</button>
+    </div>
+  );
+}
+
+function Unlock({ plan, format, onBuyPack, onChanged }: { plan: Plan; format: Format | undefined; onBuyPack: () => void; onChanged: () => void }) {
+  const [tier, setTier] = useState<"pdf" | "word" | null>(null);
+  if (!format) return null;
+  if (plan.pending.includes(format.key)) return (
+    <>
+      <b>ส่งสลิปซื้อแผนนี้ (รูปแบบ {format.name}) แล้ว · รอตรวจ</b>
+      <span className="pp-muted small">ตรวจเสร็จแล้วปุ่มดาวน์โหลดจะขึ้นที่นี่ ส่วนใหญ่ไม่กี่นาที</span>
+      <button className="pp-btn pp-btn-outline" onClick={onChanged}>ตรวจสถานะอีกครั้ง</button>
+    </>
+  );
 
   return (
     <div className="lp-buy">
       <b>ดูตัวอย่างได้ฟรี · ปลดล็อกเพื่อโหลดแผนเต็ม</b>
       <div className="lp-buy-opt">
         <b>แพ็กครบทุกภาค</b>
-        <span className="pp-muted small">โหลดแผนสำเร็จรูปได้ทุกแผน ทุกรูปแบบ (PhenoBL · Active Learning · 5E) + ข้อสอบภาค ก ภาค ข และวิชาเอกครบ</span>
+        <span className="pp-muted small">โหลดแผนสำเร็จรูปได้ทุกแผน ทุกรูปแบบ (PhenoBL · Active Learning · 5E) ทั้ง PDF และ Word + ข้อสอบภาค ก ภาค ข และวิชาเอกครบ</span>
         <button className="pp-btn pp-btn-gold" onClick={onBuyPack}>ดูแพ็กครบทุกภาค</button>
       </div>
       <div className="lp-buy-opt">
-        <b>ซื้อเฉพาะแผนนี้ รูปแบบ {format.name} · {plan.price} บาท</b>
+        <b>ซื้อเฉพาะแผนนี้ รูปแบบ {format.name}</b>
         <span className="pp-muted small">ได้แผนรูปแบบ {format.name} ที่ดูตัวอย่างอยู่ โหลดซ้ำได้ (อยากได้รูปแบบอื่น เลือกที่ปุ่มด้านบนแล้วซื้อแยก)</span>
-        {!open
-          ? <button className="pp-btn pp-btn-primary" onClick={() => setOpen(true)}>ซื้อรูปแบบ {format.name} {plan.price} บาท</button>
-          : (
-            <div className="lp-qrpay">
-              <img src={qr} alt={`QR พร้อมเพย์ ${plan.price} บาท`} />
-              <span className="small">{fixed ? `สแกนจ่าย ${plan.price} บาท (ยอดล็อกใน QR แล้ว)` : `สแกนแล้วกรอกยอด ${plan.price} บาท`}</span>
-              <span className="pp-muted small">{SHOP.bankText}</span>
-              <a className="pp-btn pp-btn-outline" href={qr} download={`QR-แผน-${plan.price}.png`}>บันทึกรูป QR</a>
-              <label className="pp-btn pp-btn-outline">
-                {file ? "เปลี่ยนรูปสลิป" : "แนบสลิป"}
-                <input type="file" accept="image/*" hidden onChange={e => { const f = e.target.files?.[0]; if (f) { setFile(f); setPreview(URL.createObjectURL(f)); } }} />
-              </label>
-              {preview && <img className="lp-slip" src={preview} alt="สลิปที่เลือก" />}
-              <button className="pp-btn pp-btn-primary" disabled={!file || busy} onClick={send}>{busy ? "กำลังส่ง..." : `ส่งสลิป · ${plan.price} บาท`}</button>
-            </div>
-          )}
+        <div className="lp-tiers">
+          <button className={tier === "pdf" ? "on" : ""} onClick={() => setTier("pdf")}><b>PDF</b><span>{plan.price} บาท</span><small>พิมพ์ / ยื่นสัมภาษณ์</small></button>
+          <button className={tier === "word" ? "on" : ""} onClick={() => setTier("word")}><b>PDF + Word</b><span>{plan.price_word} บาท</span><small>แก้ไขต่อได้ใน Word</small></button>
+        </div>
+        {tier && <Pay key={tier} plan={plan} format={format} tier={tier} amount={tier === "word" ? plan.price_word : plan.price} onChanged={onChanged} />}
+
       </div>
     </div>
   );

@@ -29,6 +29,7 @@ function defaultTerm() {
   const d = new Date(), m = d.getMonth() + 1, be = d.getFullYear() + 543;
   return { term: m >= 5 && m <= 10 ? "1" : "2", year: String(m >= 5 ? be : be - 1) };
 }
+const PREVIEW_PAGES = 2;
 const load = (k: string, d: string) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } };
 const save = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* storage blocked */ } };
 
@@ -142,7 +143,9 @@ function Detail({ plan, fullName, onBack, onBuyPack, onChanged }: { plan: Plan; 
       const measure = document.createElement("div");
       measure.className = "lp-measure";
       document.body.append(measure);
-      const pages = paginate(blocks, vars, measure);
+      // ผู้ที่ยังไม่มีสิทธิ์: ให้ดูตัวอย่างแค่ 2 หน้าแรก หน้าที่เหลือทิ้งไป (แสดงเป็นหน้าล็อกแทน)
+      const all = paginate(blocks, vars, measure);
+      const pages = owned ? all : all.slice(0, PREVIEW_PAGES);
       el.replaceChildren();
       pages.forEach((pg, i) => {
         const fit = document.createElement("div");
@@ -252,8 +255,8 @@ function LockPage({ scale, steps, blocks }: { scale: number; steps: Format["step
       <div className="bars">{Array.from({ length: 34 }, (_, i) => <i key={i} style={{ width: `${55 + ((i * 37) % 45)}%` }} />)}</div>
       <div className="lp-lockcta">
         <span className="ico" aria-hidden>🔒</span>
-        <b>ส่วนที่เหลือของแผน ({blocks} รายการ)</b>
-        <span className="small">ขั้นการจัดการเรียนรู้ พร้อมแนวคำตอบ</span>
+        <b>ตัวอย่างดูได้ {PREVIEW_PAGES} หน้าแรก · ที่เหลือล็อกอยู่</b>
+        <span className="small">ส่วนที่เหลือของแผนอีก {blocks} รายการ ได้แก่ ขั้นการจัดการเรียนรู้ พร้อมแนวคำตอบ</span>
         <ol>{steps.map(s => <li key={s.name}>{s.name} · {s.minutes} นาที</li>)}</ol>
         <span className="small">+ สื่อ · การวัดผล · บันทึกหลังสอน · แบบประเมิน 3 ชุดพร้อม rubric · ใบงาน · การ์ดกิจกรรมและเฉลย</span>
       </div>

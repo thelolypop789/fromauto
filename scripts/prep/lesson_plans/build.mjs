@@ -138,6 +138,19 @@ const ICON_PIN = '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 2
 const ICON_STETH = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M6 3v6a5 5 0 0 0 10 0V3"/><path d="M11 14v2a4 4 0 0 0 8 0v-3"/><circle cx="19" cy="11" r="2"/></svg>';
 const ICON_BOLT = '<svg viewBox="0 0 22 22" width="16" height="16"><path d="M13 1 3 13h7l-2 8 11-13h-7z" fill="#F0A04B"/></svg>';
 const LEVEL = ["", "ง่าย", "ปานกลาง", "ท้าทาย"];
+// ภาพการ์ดอาจมาจาก AI ตัวอื่น (Gem บน Gemini) → ยอมเฉพาะ SVG วาดล้วน ๆ: ไม่มีสคริปต์ ลิงก์ รูปภายนอก หรือ HTML ซ้อน
+// (บล็อกนี้ถูกใส่ลงหน้าเว็บตรง ๆ ด้วย innerHTML จึงต้องตรวจตอน build ไม่ใช่ปล่อยถึงเบราว์เซอร์)
+const SVG_TAGS = new Set(["svg", "g", "path", "rect", "circle", "ellipse", "line", "polyline", "polygon", "text", "tspan", "defs", "lineargradient", "radialgradient", "stop", "title"]);
+function checkArt(svg, where) {
+  if (!svg) return;
+  if (!/^<svg[\s>]/.test(svg.trim()) || !/<\/svg>\s*$/.test(svg)) throw new Error(`${where}: art ต้องเป็น <svg>...</svg> ก้อนเดียว`);
+  const bad = svg.match(/<script|<foreignobject|<image|<use|<a[\s>]|<iframe|<style|\son\w+\s*=|href\s*=|javascript:|url\(|<!entity|<!doctype/i);
+  if (bad) throw new Error(`${where}: art มีส่วนที่ไม่อนุญาต (${bad[0]})`);
+  for (const [, tag] of svg.matchAll(/<\s*([a-zA-Z][\w:-]*)/g)) {
+    if (!SVG_TAGS.has(tag.toLowerCase())) throw new Error(`${where}: art ใช้แท็ก <${tag}> ไม่ได้`);
+  }
+}
+
 function caseCard(c, n, L) {
   const e = x => esc(fill(x, L));
   const dots = [1, 2, 3].map(k => `<i${k <= c.level ? ' class="on"' : ""}></i>`).join("");
@@ -329,6 +342,9 @@ const TEMPLATES = { phenobl, active, "5e": fiveE };
 
 async function build(slug) {
   const L = JSON.parse(fs.readFileSync(path.join(DIR, `${slug}.json`), "utf8"));
+  (L.cases ?? []).forEach((c, k) => checkArt(c.art, `${slug} เคสที่ ${k + 1}`));
+  if (L.objectives.length !== 3) throw new Error(`${slug}: objectives ต้องมี 3 ข้อ`);
+  if (L.assessment.length !== 3) throw new Error(`${slug}: assessment ต้องมี 3 แถว`);
   const mediaUrl = `${SITE}/prep/media/${slug}/`;
   const qrSvg = await QRCode.toString(mediaUrl, { type: "svg", margin: 0, errorCorrectionLevel: "M" });
   const formats = {};
@@ -340,6 +356,8 @@ async function build(slug) {
     const total = S.steps.reduce((s, x) => s + x.minutes, 0);
     if (total !== L.minutes * L.periods) throw new Error(`${slug}/${key}: เวลารวม ${total} นาที ไม่เท่ากับ ${L.minutes * L.periods}`);
     if (S.rubric.length !== F.criteria.length) throw new Error(`${slug}/${key}: rubric ${S.rubric.length} ข้อ แต่รูปแบบมี ${F.criteria.length} เกณฑ์`);
+    if (S.rubric.some(r => r.length !== 3)) throw new Error(`${slug}/${key}: rubric ทุกแถวต้องมี 3 ระดับ`);
+    if (S.steps.length !== 5) throw new Error(`${slug}/${key}: ต้องมี 5 ขั้น (มี ${S.steps.length})`);
     const X = {
       total,
       time: L.periods > 1 ? `${L.periods} คาบเรียน (${total} นาที)` : `1 คาบเรียน (${L.minutes} นาที)`,

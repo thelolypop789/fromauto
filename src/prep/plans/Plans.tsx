@@ -29,6 +29,8 @@ function defaultTerm() {
 const load = (k: string, d: string) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } };
 const save = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* storage blocked */ } };
 
+const unitKey = (p: Plan) => `${p.course_code ?? p.subject}|${p.grade}|${p.unit_no}`;
+
 export default function Plans({ onBack, onBuyPack }: { onBack: () => void; onBuyPack: () => void }) {
   const path = usePath();
   const id = Number(path.match(/^\/prep\/plans\/(\d+)/)?.[1] ?? 0);
@@ -54,20 +56,33 @@ export default function Plans({ onBack, onBuyPack }: { onBack: () => void; onBuy
       {groups.map(g => (
         <section key={g}>
           <h3 className="lp-grp">{g}</h3>
-          <div className="lp-list">
-            {list.plans.filter(p => p.grp === g).map(p => (
-              <button key={p.id} className="lp-item" onClick={() => navigate(`/prep/plans/${p.id}`)}>
-                <span className="meta">{p.subject} {p.course_code ? `(${p.course_code}) ` : ""}{p.grade} · หน่วยที่ {p.unit_no} {p.unit_title}</span>
-                <span className="t">แผนที่ {p.plan_no} {p.title}</span>
-                {p.summary && <span className="pp-muted small">{p.summary}</span>}
-                <span className="lp-chips">
-                  {p.formats.map(f => <span key={f.key} className="lp-chip">{f.name}</span>)}
-                  <span className="lp-chip">{p.periods * p.minutes} นาที</span>
-                  {p.access ? <span className="lp-chip own">โหลดได้</span> : p.pending ? <span className="lp-chip wait">รอตรวจสลิป</span> : <span className="lp-chip price">{p.price} บาท</span>}
-                </span>
-              </button>
-            ))}
-          </div>
+          {/* หน่วยการเรียนรู้หนึ่งมีหลายแผน (เรื่องย่อย) → จัดกลุ่มตามรายวิชา + หน่วย */}
+          {[...new Set(list.plans.filter(p => p.grp === g).map(unitKey))].map(u => {
+            const ps = list.plans.filter(p => p.grp === g && unitKey(p) === u);
+            const f = ps[0];
+            return (
+              <div key={u} className="lp-unit">
+                <div className="lp-unit-h">
+                  <span className="meta">{f.subject} {f.course_code ? `(${f.course_code}) ` : ""}{f.grade}</span>
+                  <b>หน่วยที่ {f.unit_no} {f.unit_title}</b>
+                  <span className="meta">{ps.length} แผน</span>
+                </div>
+                <div className="lp-list">
+                  {ps.map(p => (
+                    <button key={p.id} className="lp-item" onClick={() => navigate(`/prep/plans/${p.id}`)}>
+                      <span className="t">แผนที่ {p.plan_no} {p.title}</span>
+                      {p.summary && <span className="pp-muted small">{p.summary}</span>}
+                      <span className="lp-chips">
+                        {p.formats.map(x => <span key={x.key} className="lp-chip">{x.name}</span>)}
+                        <span className="lp-chip">{p.periods * p.minutes} นาที</span>
+                        {p.access ? <span className="lp-chip own">โหลดได้</span> : p.pending ? <span className="lp-chip wait">รอตรวจสลิป</span> : <span className="lp-chip price">{p.price} บาท</span>}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </section>
       ))}
     </div>

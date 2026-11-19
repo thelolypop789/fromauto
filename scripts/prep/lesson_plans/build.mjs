@@ -107,6 +107,190 @@ function rubric(title, rows) {
 
 function sign(role) { return { t: "sign", role }; }
 
+const DOTLINE = "....................................................................................................................................................";
+const dots = (n, i = 1) => Array.from({ length: n }, () => p(DOTLINE, i));
+const stripKPA = x => x.replace(/\s*\((Knowledge|Process|Attitude)\)\s*$/, "");
+
+// ส่วนท้ายที่ใช้ร่วมกันทุกรูปแบบ: แบบประเมินใบงาน + แบบสังเกตพฤติกรรม
+function sharedForms(L) {
+  return [
+    { t: "br" },
+    ...scoreSheet(L.worksheet_rubric.title, "ให้ครูประเมินผลงานใบงานโดยให้คะแนนในช่องที่ตรงกับผลงานของนักเรียน", L.worksheet_rubric.criteria.map(c => c[0])),
+    ...rubric(`รายละเอียดเกณฑ์การให้คะแนน (Rubric) ${L.worksheet_rubric.title}`, L.worksheet_rubric.criteria),
+    { t: "br" },
+    ...scoreSheet("แบบสังเกตพฤติกรรมรายบุคคล", "ให้ครูสังเกตพฤติกรรมของนักเรียนระหว่างเรียนและลงคะแนนในช่องที่ตรงกับพฤติกรรมของนักเรียน", L.behavior_rubric.map(c => c[0])),
+    ...rubric("รายละเอียดเกณฑ์การให้คะแนน (Rubric) แบบสังเกตพฤติกรรมรายบุคคล", L.behavior_rubric),
+  ];
+}
+function modelForm(F, S) {
+  return [
+    { t: "br" },
+    ...scoreSheet(F.form, F.form_intro, F.criteria.map((c, k) => `${k + 1}. ${c}`)),
+    ...rubric(F.rubric_title, S.rubric.map((r, k) => [`${k + 1}. ${F.criteria[k]}`, ...r])),
+  ];
+}
+const opinion = (who, role) => [h(`ความคิดเห็นของ${who}`), ...dots(3, 1), sign(role)];
+
+// ---------- รูปแบบที่ 1: PhenoBL (ตามไฟล์ต้นฉบับของเจ้าของ) ----------
+function phenobl(L, F, S, X) {
+  const head = [
+    { t: "box", x: ["แผนการจัดการเรียนรู้ระดับปฏิบัติการ", F.title_line, `ของนักเรียนชั้น${L.grade_full}`] },
+    { t: "p", x: `**${L.learning_area} ชั้น${L.grade_full}**` },
+    { t: "p", x: `**หน่วยการเรียนรู้ที่ ${L.unit_no} ${L.unit_title} รายวิชา${L.subject} (${L.course_code})**` },
+    { t: "p", x: `**แผนการจัดการเรียนรู้ที่ ${L.plan_no} เรื่อง ${L.title} เวลา ${X.time}**` },
+    { t: "p", x: "**ผู้สอน {{teacher}} ภาคเรียนที่ {{term}} / {{year}}**" },
+  ];
+  const preview = [
+    ...head,
+    h("1. มาตรฐานการเรียนรู้"),
+    ...L.standards.flatMap(s => [p(s.std), p("ตัวชี้วัด", 1), ...s.indicators.map(x => p(x, 2))]),
+    h("2. สาระสำคัญ"), p(L.essence, 1),
+    h("3. จุดประสงค์การเรียนรู้"),
+    p(`เมื่อนักเรียนเรียนรู้เรื่อง "${L.title}" แล้ว นักเรียนสามารถ`, 1),
+    ...L.objectives.map((x, k) => p(`3.${k + 1} ${x}`, 1)),
+    h("4. สาระการเรียนรู้"),
+    p("4.1 ด้านองค์ความรู้ (Knowledge)", 1), ...lines(L.knowledge, L, 2),
+    p("4.2 ด้านทักษะและกระบวนการ (Process)", 1),
+    p(`1) ${F.process_head}`, 2), ...F.criteria.map((c, k) => p(`1.${k + 1} ${c}`, 3)),
+    ...L.process_extra.map((x, k) => p(`${k + 2}) ${x}`, 2)),
+    p("4.3 ด้านเจตคติ (Attitude)", 1), ...lines(L.attitude, L, 2),
+  ];
+  const locked = [
+    h(F.section5),
+    { t: "p", x: `**${X.periodLabel} (${X.total} นาที)**`, i: 1, b: 1 },
+    ...S.steps.flatMap(s => [{ t: "p", x: `**${s.label.join(" ")}** (${s.minutes} นาที)`, i: 1, b: 1 }, ...lines(s.lines, L, 1)]),
+    h("6. สื่อการเรียนรู้"),
+    ...X.materials.map((x, k) => p(`6.${k + 1} ${x}`, 1)), X.qr,
+    h("7. การวัดและประเมินผล"),
+    { t: "tbl", w: [34, 20, 28, 18], head: [["สิ่งที่จะวัด", "วิธีการวัด", "เครื่องมือที่ใช้วัด", "เกณฑ์วัด"]], rows: X.assess },
+    h("8. บันทึกหลังการจัดการเรียนรู้"),
+    ...["8.1 ด้านแผนการจัดการเรียนรู้", "8.2 ด้านพฤติกรรมครู", "8.3 ด้านพฤติกรรมนักเรียนและผลการเรียนรู้", "8.4 อุปสรรค ปัญหา และข้อเสนอแนะ"].flatMap(x => [p(x, 1), ...dots(2)]),
+    sign("ผู้สอน"),
+    ...sharedForms(L), ...modelForm(F, S),
+    { t: "br" },
+    { t: "p", x: "**แบบสรุปผลลัพธ์การเรียนรู้ของผู้เรียน**", c: 1, b: 1 },
+    {
+      t: "tbl", sm: 1, w: [6, 22, 11, 9, 11, 9, 11, 9, 6, 6],
+      head: [
+        [{ x: "เลขที่", rs: 2 }, { x: "ชื่อ-สกุล", rs: 2 }, { x: "ด้านความรู้ (K)", cs: 2 }, { x: "ด้านกระบวนการ (P)", cs: 2 }, { x: "ด้านเจตคติ (A)", cs: 2 }, { x: "สรุปผลการประเมิน", cs: 2 }],
+        ["พฤติกรรมรายบุคคล (15)", "ผลการประเมิน", "คะแนนใบงาน (12)", "ผลการประเมิน", "พฤติกรรมรายบุคคล (15)", "ผลการประเมิน", "ผ่าน", "ไม่ผ่าน"],
+      ],
+      rows: Array.from({ length: 20 }, (_, k) => [String(k + 1), "", "", "", "", "", "", "", "", ""]),
+    },
+    sign("ครูผู้สอน/ผู้ประเมิน"),
+    { t: "br" },
+    head[0],
+    { t: "p", x: "**แบบบันทึกกิจกรรมการเรียนการสอน**", c: 1, b: 1 },
+    { t: "p", x: `**แผนการจัดการเรียนรู้ที่ ${L.plan_no} เรื่อง ${L.title} เวลา ${X.total} นาที**` },
+    { t: "p", x: "**ผู้สอน {{teacher}} สอนวันที่....../......../{{year}}**" },
+    h("1. การจัดกิจกรรมการเรียนการสอนบรรลุเป้าหมายของบทเรียนในกิจกรรมนั้น (Aim of the Lesson)"), ...dots(2),
+    h(F.log_q2),
+    { t: "tbl", w: [30, 70], tall: 1, head: [["ขั้นตอนการจัดการเรียนรู้", "แนวคิดของนักเรียน"]], rows: S.steps.map(s => [s.label.join("\n"), ""]) },
+    h("3. แนวทางการพัฒนาชั้นเรียน/ข้อเสนอแนะ"), ...dots(2),
+    sign("ผู้สอน"),
+    ...X.appendix,
+  ];
+  return { preview, locked };
+}
+
+// ---------- รูปแบบที่ 2: Active Learning (ออกแบบย้อนกลับ: เป้าหมาย → หลักฐาน → กิจกรรมแยกบทบาทครู/นักเรียน) ----------
+function active(L, F, S, X) {
+  const info = {
+    t: "tbl", w: [22, 28, 22, 28], rows: [
+      ["**กลุ่มสาระการเรียนรู้**", L.learning_area.replace(/^กลุ่มสาระการเรียนรู้/, ""), "**รายวิชา / รหัสวิชา**", `${L.subject} / ${L.course_code}`],
+      ["**ชั้น**", L.grade_full, "**เวลา**", X.time],
+      ["**หน่วยการเรียนรู้ที่**", `${L.unit_no} ${L.unit_title}`, "**เรื่อง**", L.title],
+      ["**ผู้สอน**", "{{teacher}}", "**ภาคเรียน / ปีการศึกษา**", "{{term}} / {{year}}"],
+    ],
+  };
+  const preview = [
+    { t: "box", x: [`แผนการจัดการเรียนรู้ที่ ${L.plan_no}`, F.title_line, `เรื่อง ${L.title}`] },
+    info,
+    h("ส่วนที่ 1 เป้าหมายการเรียนรู้ (Learning Goals)"),
+    p("**1.1 มาตรฐานการเรียนรู้และตัวชี้วัด**", 1),
+    ...L.standards.flatMap(s => [p(s.std, 2), ...s.indicators.map(x => p(`- ${x}`, 2))]),
+    p("**1.2 สาระสำคัญ (Big Idea)**", 1), p(L.essence, 2),
+    p("**1.3 จุดประสงค์การเรียนรู้**", 1),
+    ...L.objectives.map((x, k) => p(`${["ด้านความรู้ (K)", "ด้านทักษะ/กระบวนการ (P)", "ด้านเจตคติ (A)"][k] ?? ""} : ${stripKPA(x)}`, 2)),
+    p("**1.4 สาระการเรียนรู้**", 1), ...lines(L.knowledge, L, 2),
+    p("**1.5 ทักษะที่มุ่งพัฒนา**", 1),
+    ...F.criteria.map(c => p(`- ${c}`, 2)), ...L.process_extra.map(c => p(`- ${c}`, 2)),
+    h("ส่วนที่ 2 หลักฐานการเรียนรู้ (Evidence of Learning)"),
+    {
+      t: "tbl", w: [22, 34, 44], head: [["ประเภท", "หลักฐาน", "เครื่องมือ / เกณฑ์"]],
+      rows: L.evidence.map(e => [e[0], e[1], e[2]]),
+    },
+  ];
+  const locked = [
+    h("ส่วนที่ 3 กิจกรรมการเรียนรู้เชิงรุก (Active Learning)"),
+    {
+      t: "tbl", w: [17, 33, 33, 17], head: [["ขั้นตอน / เวลา", "บทบาทครู", "บทบาทนักเรียน", "สื่อ / การประเมิน"]],
+      rows: S.steps.map(s => [`**${s.label[0]}**\n${s.label[1]}\n${s.label[2]}\n(${s.minutes} นาที)`, s.teacher.join("\n"), s.student.join("\n"), s.media.join("\n")]),
+    },
+    h("ส่วนที่ 4 สื่อและแหล่งเรียนรู้"),
+    ...X.materials.map((x, k) => p(`${k + 1}. ${x}`, 1)), X.qr,
+    h("ส่วนที่ 5 การวัดและประเมินผล"),
+    { t: "tbl", w: [34, 20, 28, 18], head: [["จุดประสงค์", "วิธีการ", "เครื่องมือ", "เกณฑ์การผ่าน"]], rows: X.assess },
+    h("ส่วนที่ 6 บันทึกหลังการสอน (After Action Review)"),
+    {
+      t: "tbl", w: [28, 72], tall: 1, head: [["ประเด็น", "ผลที่เกิดขึ้น"]],
+      rows: [["ผลการเรียนรู้ด้านความรู้ (K)", ""], ["ผลการเรียนรู้ด้านทักษะ/กระบวนการ (P)", ""], ["ผลการเรียนรู้ด้านเจตคติ (A)", ""],
+             ["สิ่งที่เป็นไปตามแผน / ไม่เป็นไปตามแผน", ""], ["ปัญหาและแนวทางพัฒนาครั้งต่อไป", ""]],
+    },
+    sign("ผู้สอน"),
+    ...opinion("หัวหน้ากลุ่มสาระการเรียนรู้", "หัวหน้ากลุ่มสาระการเรียนรู้"),
+    ...opinion("ผู้บริหารสถานศึกษา", "ผู้อำนวยการโรงเรียน"),
+    ...sharedForms(L), ...modelForm(F, S),
+    ...X.appendix,
+    ...lines(S.appendix ?? [], L),
+  ];
+  return { preview, locked };
+}
+
+// ---------- รูปแบบที่ 3: 5E (แบบฟอร์มแผนมาตรฐาน 10 หัวข้อ) ----------
+function fiveE(L, F, S, X) {
+  const preview = [
+    { t: "box", x: [`แผนการจัดการเรียนรู้ที่ ${L.plan_no}`, `หน่วยการเรียนรู้ที่ ${L.unit_no} ${L.unit_title}`] },
+    { t: "p", x: `**${L.learning_area}**   **รายวิชา${L.subject}**   **รหัสวิชา ${L.course_code}**` },
+    { t: "p", x: `**ชั้น${L.grade_full}**   **เรื่อง ${L.title}**   **เวลา ${X.time}**` },
+    { t: "p", x: "**ภาคเรียนที่ {{term}} ปีการศึกษา {{year}}**   **ผู้สอน {{teacher}}**" },
+    { t: "p", x: `**รูปแบบการสอน** ${F.full} (5E Inquiry-based Learning)` },
+    h("1. สาระสำคัญ / ความคิดรวบยอด"), p(L.essence, 1),
+    h("2. มาตรฐานการเรียนรู้ / ตัวชี้วัด"),
+    ...L.standards.flatMap(s => [p(s.std, 1), ...s.indicators.map(x => p(x, 2))]),
+    h("3. จุดประสงค์การเรียนรู้"),
+    ...L.objectives.map((x, k) => p(`3.${k + 1} ${["ด้านความรู้ (K)", "ด้านทักษะ/กระบวนการ (P)", "ด้านคุณลักษณะ (A)"][k] ?? ""} ${stripKPA(x)}`, 1)),
+    h("4. สาระการเรียนรู้"), ...lines(L.knowledge, L, 1),
+    h("5. สมรรถนะสำคัญของผู้เรียน"), ...L.competencies.map((c, k) => p(`5.${k + 1} ${c}`, 1)),
+    h("6. คุณลักษณะอันพึงประสงค์"), ...L.traits.map((c, k) => p(`6.${k + 1} ${c}`, 1)),
+  ];
+  const locked = [
+    h("7. กิจกรรมการเรียนรู้ (รูปแบบการสอนแบบสืบเสาะหาความรู้ 5E)"),
+    ...S.steps.flatMap(s => [{ t: "p", x: `**${s.label.join(" ")}** (${s.minutes} นาที)`, i: 1, b: 1 }, ...lines(s.lines, L, 1)]),
+    h("8. สื่อการเรียนรู้ / แหล่งเรียนรู้"),
+    ...X.materials.map((x, k) => p(`8.${k + 1} ${x}`, 1)), X.qr,
+    h("9. การวัดและประเมินผล"),
+    { t: "tbl", w: [34, 20, 28, 18], head: [["จุดประสงค์การเรียนรู้", "วิธีการวัด", "เครื่องมือที่ใช้", "เกณฑ์การประเมิน"]], rows: X.assess },
+    h("10. บันทึกหลังการจัดการเรียนรู้"),
+    p("10.1 ผลการจัดการเรียนรู้", 1),
+    p("นักเรียนทั้งหมด ........ คน ผ่านจุดประสงค์ ........ คน คิดเป็นร้อยละ ........ ไม่ผ่าน ........ คน คิดเป็นร้อยละ ........", 2),
+    p("10.2 ปัญหา / อุปสรรค", 1), ...dots(2, 2),
+    p("10.3 แนวทางแก้ไข / ข้อเสนอแนะ", 1), ...dots(2, 2),
+    sign("ผู้สอน"),
+    ...opinion("หัวหน้ากลุ่มสาระการเรียนรู้", "หัวหน้ากลุ่มสาระการเรียนรู้"),
+    ...opinion("รองผู้อำนวยการฝ่ายวิชาการ", "รองผู้อำนวยการฝ่ายวิชาการ"),
+    ...opinion("ผู้อำนวยการสถานศึกษา", "ผู้อำนวยการโรงเรียน"),
+    ...sharedForms(L), ...modelForm(F, S),
+    { t: "br" },
+    ...scoreSheet("แบบประเมินคุณลักษณะอันพึงประสงค์", "ให้ครูประเมินคุณลักษณะของนักเรียนระหว่างเรียนและลงคะแนนในช่องที่ตรงกับพฤติกรรมของนักเรียน", L.traits.map((t, k) => `${k + 1}. ${t.split(" ")[0]}`)),
+    ...X.appendix,
+    ...lines(S.appendix ?? [], L),
+  ];
+  return { preview, locked };
+}
+
+const TEMPLATES = { phenobl, active, "5e": fiveE };
+
 async function build(slug) {
   const L = JSON.parse(fs.readFileSync(path.join(DIR, `${slug}.json`), "utf8"));
   const mediaUrl = `${SITE}/prep/media/${slug}/`;
@@ -120,93 +304,19 @@ async function build(slug) {
     const total = S.steps.reduce((s, x) => s + x.minutes, 0);
     if (total !== L.minutes * L.periods) throw new Error(`${slug}/${key}: เวลารวม ${total} นาที ไม่เท่ากับ ${L.minutes * L.periods}`);
     if (S.rubric.length !== F.criteria.length) throw new Error(`${slug}/${key}: rubric ${S.rubric.length} ข้อ แต่รูปแบบมี ${F.criteria.length} เกณฑ์`);
-    const time = L.periods > 1 ? `${L.periods} คาบเรียน (${L.periods * L.minutes} นาที)` : `1 คาบเรียน (${L.minutes} นาที)`;
-    const head = [
-      { t: "box", x: ["แผนการจัดการเรียนรู้ระดับปฏิบัติการ", F.title_line, `ของนักเรียนชั้น${L.grade_full}`] },
-      { t: "p", x: `**${L.learning_area} ชั้น${L.grade_full}**` },
-      { t: "p", x: `**หน่วยการเรียนรู้ที่ ${L.unit_no} ${L.unit_title} รายวิชา${L.subject} (${L.course_code})**` },
-      { t: "p", x: `**แผนการจัดการเรียนรู้ที่ ${L.plan_no} เรื่อง ${L.title} เวลา ${time}**` },
-      { t: "p", x: "**ผู้สอน {{teacher}} ภาคเรียนที่ {{term}} / {{year}}**" },
-    ];
-
-    const preview = [
-      ...head,
-      h("1. มาตรฐานการเรียนรู้"),
-      ...L.standards.flatMap(s => [p(s.std), p("ตัวชี้วัด", 1), ...s.indicators.map(x => p(x, 2))]),
-      h("2. สาระสำคัญ"),
-      p(L.essence, 1),
-      h("3. จุดประสงค์การเรียนรู้"),
-      p(`เมื่อนักเรียนเรียนรู้เรื่อง "${L.title}" แล้ว นักเรียนสามารถ`, 1),
-      ...L.objectives.map((x, k) => p(`3.${k + 1} ${x}`, 1)),
-      h("4. สาระการเรียนรู้"),
-      p("4.1 ด้านองค์ความรู้ (Knowledge)", 1),
-      ...lines(L.knowledge, L, 2),
-      p("4.2 ด้านทักษะและกระบวนการ (Process)", 1),
-      p(`1) ${F.process_head}`, 2),
-      ...F.criteria.map((c, k) => p(`1.${k + 1} ${c}`, 3)),
-      ...L.process_extra.map((x, k) => p(`${k + 2}) ${x}`, 2)),
-      p("4.3 ด้านเจตคติ (Attitude)", 1),
-      ...lines(L.attitude, L, 2),
-    ];
-
-    const assess = L.assessment.map(r => r.map(c => c.replace("{{model_form}}", F.form)));
-    const locked = [
-      h(F.section5),
-      { t: "p", x: `**${L.periods > 1 ? `คาบที่ 1–${L.periods}` : "คาบที่ 1"} (${L.periods * L.minutes} นาที)**`, i: 1, b: 1 },
-      ...S.steps.flatMap(s => [
-        { t: "p", x: `**${s.label[0]} ${s.label[1]} ${s.label[2]}** (${s.minutes} นาที)`, i: 1, b: 1 },
-        ...lines(s.lines, L, 1),
-      ]),
-      h("6. สื่อการเรียนรู้"),
-      ...L.materials.map((x, k) => p(`6.${k + 1} ${fill(x, L)}`, 1)),
-      p(`6.${L.materials.length + 1} สื่อออนไลน์: ${L.media.title}`, 1),
-      { t: "qr", svg: qrSvg, x: L.media.caption, url: mediaUrl },
-      h("7. การวัดและประเมินผล"),
-      { t: "tbl", w: [34, 20, 28, 18], head: [["สิ่งที่จะวัด", "วิธีการวัด", "เครื่องมือที่ใช้วัด", "เกณฑ์วัด"]], rows: assess },
-      h("8. บันทึกหลังการจัดการเรียนรู้"),
-      ...["8.1 ด้านแผนการจัดการเรียนรู้", "8.2 ด้านพฤติกรรมครู", "8.3 ด้านพฤติกรรมนักเรียนและผลการเรียนรู้", "8.4 อุปสรรค ปัญหา และข้อเสนอแนะ"]
-        .flatMap(x => [p(x, 1), p("....................................................................................................................................................", 1), p("....................................................................................................................................................", 1)]),
-      sign("ผู้สอน"),
-      { t: "br" },
-      ...scoreSheet(L.worksheet_rubric.title, "ให้ครูประเมินผลงานใบงานโดยให้คะแนนในช่องที่ตรงกับผลงานของนักเรียน", L.worksheet_rubric.criteria.map(c => c[0])),
-      ...rubric(`รายละเอียดเกณฑ์การให้คะแนน (Rubric) ${L.worksheet_rubric.title}`, L.worksheet_rubric.criteria),
-      { t: "br" },
-      ...scoreSheet("แบบสังเกตพฤติกรรมรายบุคคล", "ให้ครูสังเกตพฤติกรรมของนักเรียนระหว่างเรียนและลงคะแนนในช่องที่ตรงกับพฤติกรรมของนักเรียน", L.behavior_rubric.map(c => c[0])),
-      ...rubric("รายละเอียดเกณฑ์การให้คะแนน (Rubric) แบบสังเกตพฤติกรรมรายบุคคล", L.behavior_rubric),
-      { t: "br" },
-      ...scoreSheet(F.form, F.form_intro, F.criteria.map((c, k) => `${k + 1}. ${c}`)),
-      ...rubric(F.rubric_title, S.rubric.map((r, k) => [`${k + 1}. ${F.criteria[k]}`, ...r])),
-      { t: "br" },
-      { t: "p", x: "**แบบสรุปผลลัพธ์การเรียนรู้ของผู้เรียน**", c: 1, b: 1 },
-      {
-        t: "tbl", sm: 1, w: [6, 22, 11, 9, 11, 9, 11, 9, 6, 6],
-        head: [
-          [{ x: "เลขที่", rs: 2 }, { x: "ชื่อ-สกุล", rs: 2 }, { x: "ด้านความรู้ (K)", cs: 2 }, { x: "ด้านกระบวนการ (P)", cs: 2 }, { x: "ด้านเจตคติ (A)", cs: 2 }, { x: "สรุปผลการประเมิน", cs: 2 }],
-          ["พฤติกรรมรายบุคคล (15)", "ผลการประเมิน", "คะแนนใบงาน (12)", "ผลการประเมิน", "พฤติกรรมรายบุคคล (15)", "ผลการประเมิน", "ผ่าน", "ไม่ผ่าน"],
-        ],
-        rows: Array.from({ length: 20 }, (_, k) => [String(k + 1), "", "", "", "", "", "", "", "", ""]),
-      },
-      sign("ครูผู้สอน/ผู้ประเมิน"),
-      { t: "br" },
-      head[0],
-      { t: "p", x: "**แบบบันทึกกิจกรรมการเรียนการสอน**", c: 1, b: 1 },
-      { t: "p", x: `**แผนการจัดการเรียนรู้ที่ ${L.plan_no} เรื่อง ${L.title} เวลา ${L.periods * L.minutes} นาที**` },
-      { t: "p", x: "**ผู้สอน {{teacher}} สอนวันที่....../......../{{year}}**" },
-      h("1. การจัดกิจกรรมการเรียนการสอนบรรลุเป้าหมายของบทเรียนในกิจกรรมนั้น (Aim of the Lesson)"),
-      p("....................................................................................................................................................", 1),
-      p("....................................................................................................................................................", 1),
-      h(F.log_q2),
-      { t: "tbl", w: [30, 70], tall: 1, head: [["ขั้นตอนการจัดการเรียนรู้", "แนวคิดของนักเรียน"]], rows: S.steps.map(s => [s.label.join("\n"), ""]) },
-      h("3. แนวทางการพัฒนาชั้นเรียน/ข้อเสนอแนะ"),
-      p("....................................................................................................................................................", 1),
-      p("....................................................................................................................................................", 1),
-      sign("ผู้สอน"),
-      ...lines(L.appendix, L),
-    ];
-
+    const X = {
+      total,
+      time: L.periods > 1 ? `${L.periods} คาบเรียน (${total} นาที)` : `1 คาบเรียน (${L.minutes} นาที)`,
+      periodLabel: L.periods > 1 ? `คาบที่ 1–${L.periods}` : "คาบที่ 1",
+      materials: [...L.materials.map(x => fill(x, L)), `สื่อออนไลน์: ${L.media.title}`],
+      qr: { t: "qr", svg: qrSvg, x: L.media.caption, url: mediaUrl },
+      assess: L.assessment.map(r => r.map(c => c.replace("{{model_form}}", F.form))),
+      appendix: lines(L.appendix, L),
+    };
+    const { preview, locked } = TEMPLATES[key](L, F, S, X);
     formats[key] = {
       name: F.name, full: F.full, desc: F.desc,
-      steps: S.steps.map(s => ({ name: `${s.label[0]} ${s.label[1]} ${s.label[2]}`, minutes: s.minutes })),
+      steps: S.steps.map(s => ({ name: s.label.join(" "), minutes: s.minutes })),
       preview, locked,
     };
   }
@@ -270,13 +380,13 @@ const q = s => (s == null ? "null" : `'${String(s).replace(/'/g, "''")}'`);
 const dollar = obj => { const j = JSON.stringify(obj); if (j.includes("$lp$")) throw new Error("$lp$ in content"); return `$lp$${j}$lp$::jsonb`; };
 
 const parts = [`-- สร้างโดย scripts/prep/lesson_plans/build.mjs — อย่าแก้มือ แก้ที่ content/lesson-plans/*.json แล้วรันใหม่
--- upsert ตาม slug: รันซ้ำได้; published ไม่ถูกเปลี่ยนเมื่ออัปเดตแผนเดิม (แผนใหม่ = เผยแพร่ทันที)
+-- upsert ตาม slug: รันซ้ำได้; แผนใหม่ = ยังไม่เผยแพร่ (แอดมินตรวจแล้วกดเผยแพร่ในแอป); อัปเดตแผนเดิมไม่เปลี่ยนสถานะเผยแพร่
 `];
 for (const slug of slugs) {
   const { L, formats, mediaUrl } = await build(slug);
   parts.push(`insert into prep.lesson_plans (slug, grp, subject, course_code, grade, unit_no, unit_title, plan_no, title, periods, minutes, summary, price, sort, media_url, formats, published)
 values (${q(slug)}, ${q(L.group)}, ${q(L.subject)}, ${q(L.course_code)}, ${q(L.grade)}, ${L.unit_no}, ${q(L.unit_title)}, ${L.plan_no}, ${q(L.title)}, ${L.periods}, ${L.minutes}, ${q(L.summary)}, ${L.price}, ${L.sort}, ${q(mediaUrl)},
-  ${dollar(formats)}, true)
+  ${dollar(formats)}, false)
 on conflict (slug) do update set grp = excluded.grp, subject = excluded.subject, course_code = excluded.course_code, grade = excluded.grade,
   unit_no = excluded.unit_no, unit_title = excluded.unit_title, plan_no = excluded.plan_no, title = excluded.title, periods = excluded.periods,
   minutes = excluded.minutes, summary = excluded.summary, price = excluded.price, sort = excluded.sort, media_url = excluded.media_url,

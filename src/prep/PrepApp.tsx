@@ -132,6 +132,11 @@ function PrepShell() {
   useEffect(() => {
     if (signedIn) rpc<string[]>("prep_summary_approved").then(ids => setSummaries(ids.length)).catch(() => { /* optional tab */ });
   }, [signedIn]);
+  // แผนสำเร็จรูป: ปุ่มในหน้าแรกขึ้นเมื่อมีแผนที่บัญชีนี้มองเห็น (แผนที่ยังไม่เผยแพร่เห็นเฉพาะแอดมิน)
+  const [plans, setPlans] = useState(0);
+  useEffect(() => {
+    if (signedIn) rpc<{ plans: unknown[] }>("prep_lesson_plans").then(r => setPlans(r.plans.length)).catch(() => { /* optional tile */ });
+  }, [signedIn]);
   useEffect(() => (signedIn ? startPing() : undefined), [signedIn]);
   const clearUnread = useCallback(() => setUnread(0), []);
 
@@ -261,7 +266,7 @@ function PrepShell() {
       <main className="pp-main" key={reloadKey}>
         <ErrorBoundary key={view.name} label={view.name}>
         <Suspense fallback={<Skeleton kind="cards" n={2} />}>
-        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onProfile={changeProfile} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onPast={() => go("past")} onCalendar={() => go("calendar")} onUpgrade={() => go("buy")} onStats={() => go("stats")} onBoard={() => go("board")} onTarot={() => go("tarot")} onPlans={() => go("plans")} joined={session.user.created_at} />}
+        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onProfile={changeProfile} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onPast={() => go("past")} onCalendar={() => go("calendar")} onUpgrade={() => go("buy")} onStats={() => go("stats")} onBoard={() => go("board")} onTarot={() => go("tarot")} onPlans={plans > 0 ? () => go("plans") : undefined} joined={session.user.created_at} />}
         {view.name === "create" && <CreateSet me={me} major={profile.major} preset={held.preset} onCancel={() => go("home")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} onUpgrade={() => go("buy")} />}
         {view.name === "result" && held.result && <RoundResult result={held.result} title={held.title ?? ""} me={me} majorName={profile.major_name} onStart={startRound}

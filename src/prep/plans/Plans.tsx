@@ -16,10 +16,13 @@ type Plan = {
   id: number; slug: string; grp: string; subject: string; course_code: string | null; grade: string;
   unit_no: number | null; unit_title: string | null; plan_no: number | null; title: string; periods: number; minutes: number;
   summary: string | null; price: number; media_url: string | null; formats: Format[];
-  access: "admin" | "pack" | "purchase" | null; pending: boolean;
+  published: boolean;
+  access: "admin" | "pack" | null;     // สิทธิ์ทุกรูปแบบ (แอดมิน / แพ็กครบทุกภาค)
+  owned: string[];                     // รูปแบบที่ซื้อแยกแล้ว
+  pending: string[];                   // รูปแบบที่ส่งสลิปรอตรวจ
 };
 type List = { full_name: string | null; plans: Plan[] };
-type Doc = { id: number; format: string; access: Plan["access"]; preview: Block[]; locked: Block[] | null; locked_blocks: number };
+type Doc = { id: number; format: string; access: "admin" | "pack" | "purchase" | null; preview: Block[]; locked: Block[] | null; locked_blocks: number };
 
 // ภาคเรียน/ปีการศึกษาตั้งต้นตามวันนี้ (ภาค 1 = พ.ค.–ต.ค., ภาค 2 = พ.ย.–มี.ค.)
 function defaultTerm() {
@@ -73,9 +76,12 @@ export default function Plans({ onBack, onBuyPack }: { onBack: () => void; onBuy
                       <span className="t">แผนที่ {p.plan_no} {p.title}</span>
                       {p.summary && <span className="pp-muted small">{p.summary}</span>}
                       <span className="lp-chips">
-                        {p.formats.map(x => <span key={x.key} className="lp-chip">{x.name}</span>)}
+                        {!p.published && <span className="lp-chip wait">ยังไม่เผยแพร่ (แอดมินเห็นคนเดียว)</span>}
+                        {p.formats.map(x => <span key={x.key} className={`lp-chip${p.access || p.owned.includes(x.key) ? " own" : ""}`}>{x.name}</span>)}
                         <span className="lp-chip">{p.periods * p.minutes} นาที</span>
-                        {p.access ? <span className="lp-chip own">โหลดได้</span> : p.pending ? <span className="lp-chip wait">รอตรวจสลิป</span> : <span className="lp-chip price">{p.price} บาท</span>}
+                        {p.access ? <span className="lp-chip own">โหลดได้ทุกรูปแบบ</span>
+                          : p.pending.length ? <span className="lp-chip wait">รอตรวจสลิป</span>
+                          : <span className="lp-chip price">รูปแบบละ {p.price} บาท</span>}
                       </span>
                     </button>
                   ))}
@@ -199,7 +205,7 @@ function Detail({ plan, fullName, onBack, onBuyPack, onChanged }: { plan: Plan; 
       </div>
 
       <div className="lp-tabs" role="tablist" aria-label="รูปแบบแผน">
-        {plan.formats.map(f => <button key={f.key} role="tab" aria-selected={f.key === fmt} className={f.key === fmt ? "on" : ""} onClick={() => pickFmt(f.key)}>{f.name}</button>)}
+        {plan.formats.map(f => <button key={f.key} role="tab" aria-selected={f.key === fmt} className={f.key === fmt ? "on" : ""} onClick={() => pickFmt(f.key)}>{!plan.access && plan.owned.includes(f.key) ? "✓ " : ""}{f.name}</button>)}
       </div>
       {format && <p className="lp-desc"><b>{format.full}</b> · {format.desc}</p>}
 
@@ -220,11 +226,12 @@ function Detail({ plan, fullName, onBack, onBuyPack, onChanged }: { plan: Plan; 
           ? (name
               ? <>
                   <button className="pp-btn pp-btn-primary" disabled={!!busy || !nPages} onClick={download}>{busy || `ดาวน์โหลด PDF · ${format?.name ?? ""} (${nPages} หน้า)`}</button>
-                  <span className="pp-muted small">ผู้สอน: <b>{name}</b> · ไฟล์ PDF สำหรับพิมพ์และยื่นสัมภาษณ์ได้ทันที{doc?.access === "pack" ? " · สิทธิ์จากแพ็กครบทุกภาค" : ""}</span>
+                  <span className="pp-muted small">ผู้สอน: <b>{name}</b> · ไฟล์ PDF สำหรับพิมพ์และยื่นสัมภาษณ์ได้ทันที{doc?.access === "pack" ? " · สิทธิ์จากแพ็กครบทุกภาค" : doc?.access === "purchase" ? ` · ซื้อรูปแบบ ${format?.name ?? ""} แล้ว` : ""}</span>
                 </>
               : <NameForm onSaved={n => { setName(n); onChanged(); }} />)
-          : <Unlock plan={plan} onBuyPack={onBuyPack} onChanged={onChanged} />}
+          : <Unlock plan={plan} format={format} onBuyPack={onBuyPack} onChanged={onChanged} />}
       </div>
+      {plan.access === "admin" && <Publish plan={plan} onChanged={onChanged} />}
 
       {err && <div className="pp-error">{err}</div>}
       {!doc && !err && <Skeleton kind="cards" n={1} />}
@@ -278,7 +285,27 @@ function NameForm({ onSaved }: { onSaved: (n: string) => void }) {
   );
 }
 
-function Unlock({ plan, onBuyPack, onChanged }: { plan: Plan; onBuyPack: () => void; onChanged: () => void }) {
+function Publish({ plan, onChanged }: { plan: Plan; onChanged: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const toggle = async () => {
+    const on = !plan.published;
+    if (!(await ask(on
+      ? { title: "เผยแพร่แผนนี้?", body: "ลูกค้าทุกคนจะเห็นแผนนี้ในหน้าแผนสำเร็จรูป ดูตัวอย่างได้ และซื้อได้", ok: "เผยแพร่" }
+      : { title: "ซ่อนแผนนี้?", body: "ลูกค้าจะไม่เห็นแผนนี้ (คนที่ซื้อแล้วก็โหลดไม่ได้จนกว่าจะเผยแพร่อีกครั้ง)", ok: "ซ่อน", danger: true }))) return;
+    setBusy(true);
+    try { await rpc("prep_admin_plan_publish", { p_id: plan.id, p_on: on }); notify(on ? "เผยแพร่แล้ว" : "ซ่อนแล้ว"); onChanged(); }
+    catch (e) { notify(thaiError(e)); }
+    setBusy(false);
+  };
+  return (
+    <div className="pp-card lp-admin">
+      <b>แอดมิน · {plan.published ? "เผยแพร่อยู่ ลูกค้าเห็นแล้ว" : "ยังไม่เผยแพร่ ลูกค้ายังไม่เห็น"}</b>
+      <button className={`pp-btn ${plan.published ? "pp-btn-ghost" : "pp-btn-gold"}`} disabled={busy} onClick={toggle}>{plan.published ? "ซ่อนจากลูกค้า" : "ตรวจแล้ว เผยแพร่ให้ลูกค้าเห็น"}</button>
+    </div>
+  );
+}
+
+function Unlock({ plan, format, onBuyPack, onChanged }: { plan: Plan; format: Format | undefined; onBuyPack: () => void; onChanged: () => void }) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
@@ -287,9 +314,10 @@ function Unlock({ plan, onBuyPack, onChanged }: { plan: Plan; onBuyPack: () => v
   const qr = SHOP.qrByAmount[plan.price] || SHOP.qrImage;
   const fixed = !!SHOP.qrByAmount[plan.price];
 
-  if (plan.pending) return (
+  if (!format) return null;
+  if (plan.pending.includes(format.key)) return (
     <>
-      <b>ส่งสลิปซื้อแผนนี้แล้ว · รอตรวจ</b>
+      <b>ส่งสลิปซื้อแผนนี้ (รูปแบบ {format.name}) แล้ว · รอตรวจ</b>
       <span className="pp-muted small">ตรวจเสร็จแล้วปุ่มดาวน์โหลดจะขึ้นที่นี่ ส่วนใหญ่ไม่กี่นาที</span>
       <button className="pp-btn pp-btn-outline" onClick={onChanged}>ตรวจสถานะอีกครั้ง</button>
     </>
@@ -306,7 +334,7 @@ function Unlock({ plan, onBuyPack, onChanged }: { plan: Plan; onBuyPack: () => v
       const path = `${uid}/${crypto.randomUUID()}.${img.ext}`;
       const up = await supabase.storage.from("prep-slips").upload(path, img.blob, { contentType: img.type, upsert: false });
       if (up.error) throw up.error;
-      await rpc("prep_submit_plan_order", { p_plan: plan.id, p_slip_path: path });
+      await rpc("prep_submit_plan_order", { p_plan: plan.id, p_format: format.key, p_slip_path: path });
       notify("ส่งสลิปแล้ว ตรวจเสร็จจะเปิดให้โหลดแผนทันที");
       onChanged();
     } catch (e) { notify(thaiError(e)); }
@@ -318,14 +346,14 @@ function Unlock({ plan, onBuyPack, onChanged }: { plan: Plan; onBuyPack: () => v
       <b>ดูตัวอย่างได้ฟรี · ปลดล็อกเพื่อโหลดแผนเต็ม</b>
       <div className="lp-buy-opt">
         <b>แพ็กครบทุกภาค</b>
-        <span className="pp-muted small">โหลดแผนสำเร็จรูปได้ทุกแผน ทุกรูปแบบ + ข้อสอบภาค ก ภาค ข และวิชาเอกครบ</span>
+        <span className="pp-muted small">โหลดแผนสำเร็จรูปได้ทุกแผน ทุกรูปแบบ (PhenoBL · Active Learning · 5E) + ข้อสอบภาค ก ภาค ข และวิชาเอกครบ</span>
         <button className="pp-btn pp-btn-gold" onClick={onBuyPack}>ดูแพ็กครบทุกภาค</button>
       </div>
       <div className="lp-buy-opt">
-        <b>ซื้อเฉพาะแผนนี้ {plan.price} บาท</b>
-        <span className="pp-muted small">ได้ทั้ง 3 รูปแบบ ({plan.formats.map(f => f.name).join(" · ")}) โหลดซ้ำได้</span>
+        <b>ซื้อเฉพาะแผนนี้ รูปแบบ {format.name} · {plan.price} บาท</b>
+        <span className="pp-muted small">ได้แผนรูปแบบ {format.name} ที่ดูตัวอย่างอยู่ โหลดซ้ำได้ (อยากได้รูปแบบอื่น เลือกที่ปุ่มด้านบนแล้วซื้อแยก)</span>
         {!open
-          ? <button className="pp-btn pp-btn-primary" onClick={() => setOpen(true)}>ซื้อแผนนี้ {plan.price} บาท</button>
+          ? <button className="pp-btn pp-btn-primary" onClick={() => setOpen(true)}>ซื้อรูปแบบ {format.name} {plan.price} บาท</button>
           : (
             <div className="lp-qrpay">
               <img src={qr} alt={`QR พร้อมเพย์ ${plan.price} บาท`} />

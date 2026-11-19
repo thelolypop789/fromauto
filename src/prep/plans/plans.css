@@ -68,6 +68,7 @@
 .lp-actions { display: grid; gap: 8px; margin: 12px 0; padding: 12px;
   border-radius: var(--pp-radius); background: var(--pp-glass); border: 1px solid var(--pp-line); box-shadow: 0 6px 20px rgba(0,0,0,.08); }
 .lp-actions.sticky { position: sticky; bottom: calc(64px + env(safe-area-inset-bottom)); z-index: 5; }
+.lp-admin { display: grid; gap: 8px; margin: 0 0 12px; }
 .lp-buy { display: grid; gap: 10px; }
 .lp-buy-opt { display: grid; gap: 4px; padding: 12px; border-radius: 12px; border: 1px solid var(--pp-line); background: var(--pp-card); }
 .lp-qrpay { display: grid; justify-items: center; gap: 8px; }

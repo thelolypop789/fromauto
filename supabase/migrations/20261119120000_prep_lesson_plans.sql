@@ -2,8 +2,9 @@
 -- * เนื้อหาเป็นพรีเซต (ไม่ใช้ AI ตอนใช้งาน): content/lesson-plans/*.json → scripts/prep/lesson_plans/build.mjs → migration เนื้อหา
 --   แผนหนึ่ง (เรื่องหนึ่ง) มีหลายรูปแบบ (formats: phenobl / active / 5e) แต่ละรูปแบบเก็บบล็อกเอกสาร 2 ส่วน
 --   preview = ส่วนที่ทุกคนเห็น (หัวแผน ข้อ 1–4)  ·  locked = ส่วนที่เหลือ ส่งให้เฉพาะผู้มีสิทธิ์ (ไม่ส่งลงเครื่องผู้ไม่มีสิทธิ์เลย)
--- * สิทธิ์โหลด: แพ็กครบทุกภาค (ALL หรือมีทั้ง A และ B ที่ยังไม่หมดอายุ) หรือซื้อรายแผน (orders.package = 'PLAN', term = 'item')
---   หรือแอดมิน
+-- * สิทธิ์โหลด: แพ็กครบทุกภาค (ALL หรือมีทั้ง A และ B ที่ยังไม่หมดอายุ) = ทุกแผนทุกรูปแบบ
+--   ซื้อรายแผน = ได้เฉพาะรูปแบบที่เลือก (orders.package = 'PLAN', term = 'item', plan_id + plan_format) · แอดมินเห็นทุกอย่าง
+-- * แผนใหม่ยังไม่เผยแพร่ (published = false): ลูกค้าไม่เห็น แอดมินตรวจแล้วกดเผยแพร่ในแอป (prep_admin_plan_publish)
 -- * โหลดเป็น PDF เท่านั้น ต้องตั้งชื่อ-สกุลก่อน (ล็อกกับบัญชี แก้เองไม่ได้ ให้แอดมินแก้) ชื่อไปอยู่ในช่องผู้สอน/ลงชื่อ
 --   ไม่มีลายน้ำบนหน้า (ลูกค้าใช้ยื่นสัมภาษณ์ภาค ค) — ติดตามด้วย log การโหลด + metadata ในไฟล์ PDF แทน
 
@@ -35,9 +36,10 @@ alter table prep.lesson_plans enable row level security;
 create table prep.plan_purchases (
   user_id    uuid not null references auth.users(id) on delete cascade,
   plan_id    int not null references prep.lesson_plans(id) on delete cascade,
+  format     text not null,                  -- รูปแบบที่ซื้อ ('phenobl' | 'active' | '5e')
   order_id   int references prep.orders(id) on delete set null,
   created_at timestamptz not null default now(),
-  primary key (user_id, plan_id)
+  primary key (user_id, plan_id, format)
 );
 alter table prep.plan_purchases enable row level security;
 
@@ -59,23 +61,38 @@ alter table prep.profiles add column if not exists full_name_at timestamptz;
 
 -- ---------- คำสั่งซื้อรายแผน ----------
 alter table prep.orders add column if not exists plan_id int references prep.lesson_plans(id) on delete set null;
+alter table prep.orders add column if not exists plan_format text;
 alter table prep.orders drop constraint if exists orders_package_check;
 alter table prep.orders add  constraint orders_package_check check (package in ('A', 'B', 'ALL', 'PLAN'));
 alter table prep.orders drop constraint if exists orders_term_check;
 alter table prep.orders add  constraint orders_term_check check (term in ('round', 'lifetime', 'year', 'item'));
-alter table prep.orders add  constraint orders_plan_check check ((package = 'PLAN') = (plan_id is not null and term = 'item')) not valid;
+alter table prep.orders add  constraint orders_plan_check check ((package = 'PLAN') = (plan_id is not null and plan_format is not null and term = 'item')) not valid;
 
 -- ---------- สิทธิ์ ----------
--- 'admin' | 'pack' | 'purchase' | null
-create or replace function prep.plan_access(u uuid, p_plan int) returns text
+-- สิทธิ์ทั้งแผน: 'admin' | 'pack' | null
+create or replace function prep.plan_pack(u uuid) returns text
 language sql stable set search_path = '' as $$
   select case
     when prep.is_admin(u) then 'admin'
     when 'ALL' = any (prep.active_packages(u)) or prep.active_packages(u) @> array['A', 'B'] then 'pack'
-    when exists (select 1 from prep.plan_purchases pp where pp.user_id = u and pp.plan_id = p_plan) then 'purchase'
   end
 $$;
-revoke execute on function prep.plan_access(uuid, int) from public;
+revoke execute on function prep.plan_pack(uuid) from public;
+
+-- สิทธิ์รูปแบบหนึ่งของแผน: 'admin' | 'pack' | 'purchase' | null
+create or replace function prep.plan_access(u uuid, p_plan int, p_format text) returns text
+language sql stable set search_path = '' as $$
+  select coalesce(prep.plan_pack(u),
+    case when exists (select 1 from prep.plan_purchases pp where pp.user_id = u and pp.plan_id = p_plan and pp.format = p_format) then 'purchase' end)
+$$;
+revoke execute on function prep.plan_access(uuid, int, text) from public;
+
+-- ชื่อแผนพร้อมรูปแบบ สำหรับรายการคำสั่งซื้อ
+create or replace function prep.plan_label(p_plan int, p_format text) returns text
+language sql stable set search_path = '' as $$
+  select lp.title || coalesce(' · ' || (lp.formats->p_format->>'name'), '') from prep.lesson_plans lp where lp.id = p_plan
+$$;
+revoke execute on function prep.plan_label(int, text) from public;
 
 -- ---------- รายการแผน ----------
 create or replace function public.prep_lesson_plans() returns jsonb
@@ -93,8 +110,11 @@ begin
                                                                'desc', f.value->>'desc', 'steps', f.value->'steps')
                                             order by case f.key when 'phenobl' then 1 when 'active' then 2 when '5e' then 3 else 4 end)
                              from jsonb_each(p.formats) f),
-               'access', prep.plan_access(u, p.id),
-               'pending', exists (select 1 from prep.orders o where o.user_id = u and o.plan_id = p.id and o.status = 'pending'))
+               'published', p.published,
+               'access', prep.plan_pack(u),
+               'owned', coalesce((select jsonb_agg(pp.format) from prep.plan_purchases pp where pp.user_id = u and pp.plan_id = p.id), '[]'::jsonb),
+               'pending', coalesce((select jsonb_agg(distinct o.plan_format) from prep.orders o
+                                     where o.user_id = u and o.plan_id = p.id and o.status = 'pending'), '[]'::jsonb))
              order by p.grp, p.sort, p.id)
         from prep.lesson_plans p
        where p.published or prep.is_admin(u)), '[]'::jsonb));
@@ -113,7 +133,7 @@ begin
   if not found then raise exception 'not_found'; end if;
   f := p.formats->p_format;
   if f is null then raise exception 'not_found'; end if;
-  acc := prep.plan_access(u, p.id);
+  acc := prep.plan_access(u, p.id, p_format);
   return jsonb_build_object(
     'id', p.id, 'format', p_format, 'access', acc,
     'preview', f->'preview',
@@ -159,7 +179,7 @@ begin
   if not exists (select 1 from prep.lesson_plans where id = p_id and formats ? p_format and (published or prep.is_admin(u))) then
     raise exception 'not_found';
   end if;
-  acc := prep.plan_access(u, p_id);
+  acc := prep.plan_access(u, p_id, p_format);
   if acc is null then raise exception 'plan_locked'; end if;
   select full_name into nm from prep.profiles where user_id = u;
   if nm is null then raise exception 'full_name_required'; end if;
@@ -170,25 +190,27 @@ begin
   return jsonb_build_object('id', did, 'full_name', nm, 'email', (select email from auth.users where id = u));
 end $$;
 
--- ซื้อรายแผน: ราคาจาก DB เท่านั้น (ไม่ใช้โค้ดส่วนลด/เครดิต)
-create or replace function public.prep_submit_plan_order(p_plan int, p_slip_path text, p_note text default null) returns int
+-- ซื้อรายแผน (รูปแบบเดียว): ราคาจาก DB เท่านั้น (ไม่ใช้โค้ดส่วนลด/เครดิต)
+create or replace function public.prep_submit_plan_order(p_plan int, p_format text, p_slip_path text, p_note text default null) returns int
 language plpgsql security definer set search_path = '' as $$
 declare
   u   uuid := prep.uid();
   p   prep.lesson_plans;
   oid int;
 begin
-  select * into p from prep.lesson_plans where id = p_plan and published;
+  select * into p from prep.lesson_plans where id = p_plan and published and formats ? p_format;
   if not found then raise exception 'not_found'; end if;
-  if prep.plan_access(u, p_plan) is not null then raise exception 'plan_owned'; end if;
+  if prep.plan_access(u, p_plan, p_format) is not null then raise exception 'plan_owned'; end if;
   if p_slip_path is null or split_part(p_slip_path, '/', 1) <> u::text then raise exception 'invalid_slip'; end if;
   if not exists (select 1 from storage.objects o where o.bucket_id = 'prep-slips' and o.name = p_slip_path) then
     raise exception 'invalid_slip';
   end if;
   if (select count(*) from prep.orders where user_id = u and status = 'pending') >= 3 then raise exception 'too_many_orders'; end if;
-  if exists (select 1 from prep.orders where user_id = u and plan_id = p_plan and status = 'pending') then raise exception 'plan_pending'; end if;
-  insert into prep.orders (user_id, package, term, amount, credit, slip_path, note, plan_id)
-  values (u, 'PLAN', 'item', p.price, 0, p_slip_path, nullif(left(trim(coalesce(p_note, '')), 300), ''), p_plan)
+  if exists (select 1 from prep.orders where user_id = u and plan_id = p_plan and plan_format = p_format and status = 'pending') then
+    raise exception 'plan_pending';
+  end if;
+  insert into prep.orders (user_id, package, term, amount, credit, slip_path, note, plan_id, plan_format)
+  values (u, 'PLAN', 'item', p.price, 0, p_slip_path, nullif(left(trim(coalesce(p_note, '')), 300), ''), p_plan, p_format)
   returning id into oid;
   return oid;
 end $$;
@@ -210,9 +232,9 @@ begin
      set status = 'approved', admin_note = nullif(trim(coalesce(p_note, '')), ''), reviewed_by = p_reviewer, reviewed_at = now()
    where id = p_id;
   if o.package = 'PLAN' then
-    insert into prep.plan_purchases (user_id, plan_id, order_id) values (o.user_id, o.plan_id, o.id)
-    on conflict (user_id, plan_id) do nothing;
-    return jsonb_build_object('ok', true, 'status', 'approved', 'kind', 'plan', 'plan_id', o.plan_id);
+    insert into prep.plan_purchases (user_id, plan_id, format, order_id) values (o.user_id, o.plan_id, o.plan_format, o.id)
+    on conflict (user_id, plan_id, format) do nothing;
+    return jsonb_build_object('ok', true, 'status', 'approved', 'kind', 'plan', 'plan_id', o.plan_id, 'format', o.plan_format);
   end if;
   if o.seats > 1 then
     perform prep.make_group_keys(o.id);
@@ -247,7 +269,7 @@ begin
     select jsonb_agg(jsonb_build_object(
              'id', o.id, 'package', o.package, 'term', o.term, 'amount', o.amount, 'status', o.status, 'seats', o.seats, 'group_name', o.group_name,
              'admin_note', o.admin_note, 'created_at', o.created_at, 'reviewed_at', o.reviewed_at,
-             'plan_id', o.plan_id, 'plan_title', (select lp.title from prep.lesson_plans lp where lp.id = o.plan_id),
+             'plan_id', o.plan_id, 'plan_title', prep.plan_label(o.plan_id, o.plan_format),
              'access_until', (select e.expires_at from prep.entitlements e where e.order_id = o.id limit 1))
            order by o.created_at desc)
       from (select * from prep.orders where user_id = u order by created_at desc limit 20) o), '[]'::jsonb);
@@ -263,7 +285,7 @@ begin
              'credit', o.credit, 'promo_code', o.promo_code, 'discount', o.discount, 'seats', o.seats, 'group_name', o.group_name,
              'list_price', coalesce((select pr.amount from prep.prices pr where pr.package = o.package and pr.term = o.term),
                                     (select lp.price from prep.lesson_plans lp where lp.id = o.plan_id)),
-             'plan_title', (select lp.title from prep.lesson_plans lp where lp.id = o.plan_id),
+             'plan_title', prep.plan_label(o.plan_id, o.plan_format),
              'slip_path', o.slip_path, 'note', o.note, 'status', o.status, 'admin_note', o.admin_note,
              'created_at', o.created_at, 'reviewed_at', o.reviewed_at,
              'active_packages', to_jsonb(prep.active_packages(o.user_id)))
@@ -280,10 +302,20 @@ language sql stable security definer set search_path = '' as $$
   select jsonb_build_object('id', o.id, 'package', o.package, 'term', o.term, 'amount', o.amount, 'seats', o.seats,
                             'promo_code', o.promo_code, 'slip_path', o.slip_path, 'status', o.status,
                             'created_at', o.created_at, 'slip_checked_at', o.slip_checked_at,
-                            'plan_title', (select lp.title from prep.lesson_plans lp where lp.id = o.plan_id),
+                            'plan_title', prep.plan_label(o.plan_id, o.plan_format),
                             'email', (select u.email from auth.users u where u.id = o.user_id))
     from prep.orders o where o.id = p_id;
 $$;
+
+-- เผยแพร่ / ซ่อนแผน (แอดมิน)
+create or replace function public.prep_admin_plan_publish(p_id int, p_on boolean) returns boolean
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform prep.require_admin();
+  update prep.lesson_plans set published = p_on, updated_at = now() where id = p_id;
+  if not found then raise exception 'not_found'; end if;
+  return p_on;
+end $$;
 
 -- ---------- สิทธิ์เรียกฟังก์ชัน (ไม่มี anon) ----------
 do $$
@@ -292,7 +324,7 @@ begin
   for f in select unnest(array[
     'public.prep_lesson_plans()', 'public.prep_lesson_plan(integer,text)', 'public.prep_set_full_name(text)',
     'public.prep_admin_set_full_name(uuid,text)', 'public.prep_lesson_plan_download(integer,text)',
-    'public.prep_submit_plan_order(integer,text,text)', 'public.prep_my_orders()', 'public.prep_admin_orders(text,integer)']) loop
+    'public.prep_submit_plan_order(integer,text,text,text)', 'public.prep_admin_plan_publish(integer,boolean)', 'public.prep_my_orders()', 'public.prep_admin_orders(text,integer)']) loop
     execute format('revoke execute on function %s from public, anon', f);
     execute format('grant execute on function %s to authenticated', f);
   end loop;

@@ -392,6 +392,7 @@ function writeMedia(slug, L, url) {
     fs.copyFileSync(custom, path.join(dir, "index.html"));
     return;
   }
+  if (L.media?.sections?.length) { writeIllustrated(slug, L, url); return; }
   const body = L.knowledge.map(item => {
     if (typeof item === "string") {
       const lead = item.match(/^ */)[0].length;
@@ -430,6 +431,62 @@ th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-ali
 <div class="meta">หน่วยการเรียนรู้ที่ ${L.unit_no} ${esc(L.unit_title)} · รายวิชา${esc(L.subject)} (${esc(L.course_code)})</div>
 ${body}
 </main></body></html>
+`;
+  const dir = path.join(ROOT, "public/prep/media", slug);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, "index.html"), html);
+}
+
+// ---------- ใบความรู้แบบมีภาพ จากแม่แบบ (content/lesson-plans/<slug>.json → media.hero / media.sections / media.quiz) ----------
+// หน้าตาเดียวกับหน้าหลอดไฟที่ออกแบบมือ (CSS ร่วม content/lesson-plans/media/_style.css) · ภาพทุกชิ้นผ่าน checkArt
+const COLORS = { orange: "var(--orange)", red: "var(--red)", green: "var(--green)", blue: "var(--blue)", purple: "var(--purple)", gold: "var(--gold)" };
+const ORDER = ["red", "blue", "green", "orange", "purple", "gold"];
+const ICON_STETH_M = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M6 3v6a5 5 0 0 0 10 0V3"/><path d="M11 14v2a4 4 0 0 0 8 0v-3"/><circle cx="19" cy="11" r="2"/></svg>';
+const ICON_WARN = '<svg viewBox="0 0 28 28"><path d="M14 2 1 26h26z" fill="#F0A04B" stroke="#22303A" stroke-width="1.5" stroke-linejoin="round"/><path d="M14 10v8" stroke="#22303A" stroke-width="2.5" stroke-linecap="round"/><circle cx="14" cy="22" r="1.6" fill="#22303A"/></svg>';
+const ICON_BOLT_M = '<svg viewBox="0 0 22 22"><path d="M13 1 3 13h7l-2 8 11-13h-7z" fill="#F0A04B"/></svg>';
+function writeIllustrated(slug, L, url) {
+  const M = L.media, where = `${slug} media`;
+  const art = (a, w) => { checkArt(a, w); return a || ""; };
+  const color = (c, k) => COLORS[c] ?? COLORS[ORDER[k % ORDER.length]];
+  const sec = (S, k) => {
+    const c = color(S.color, k);
+    const head = `<div class="sec-h"><span class="n" style="background:${c}">${k + 1}</span><h2>${inline(S.title)}</h2></div>${S.lead ? `<p class="lead">${inline(S.lead)}</p>` : ""}`;
+    const items = S.items ?? [];
+    let body = "";
+    if (S.type === "rules") body = `<div class="rules">${items.map((it, j) => `<div class="rule">${art(it.art, `${where} ${S.title} ${j + 1}`)}<div><b>${inline(it.title)}</b><span>${inline(it.text ?? "")}</span></div></div>`).join("")}</div>`;
+    else if (S.type === "parts") body = `<div class="parts">${items.map((it, j) => `<div class="part">${art(it.art, `${where} ${S.title} ${j + 1}`)}<b>${inline(it.title)}</b><p>${inline(it.text ?? "")}</p></div>`).join("")}</div>`;
+    else if (S.type === "tips") body = `<div class="safe">${items.map((it, j) => `<div class="do">${art(it.art, `${where} ${S.title} ${j + 1}`)}<b>${inline(it.title)}</b><span>${inline(it.text ?? "")}</span></div>`).join("")}</div>`;
+    else if (S.type === "symptoms") body = `<div class="sym">${items.map((it, j) => `<article class="s" style="--c:${color(it.color, j)}"><div class="s-top">${inline(it.title)}${it.tag ? `<small>${inline(it.tag)}</small>` : ""}</div><div class="s-body"><div class="s-art">${art(it.art, `${where} ${S.title} ${j + 1}`)}</div><dl>${(it.rows ?? []).map(([a, b]) => `<dt>${inline(a)}</dt><dd>${inline(b)}</dd>`).join("")}</dl></div></article>`).join("")}</div>`;
+    else if (S.type === "steps") body = `<div class="steps">${items.map((it, j) => `<div class="step">${art(it.art, `${where} ${S.title} ${j + 1}`)}<div><h3>${j + 1}. ${inline(it.title)}</h3><p>${inline(it.text ?? "")}</p><div class="res">${it.ok ? `<span class="chip ok">${inline(it.ok)}</span>` : ""}${it.bad ? `<span class="chip bad">${inline(it.bad)}</span>` : ""}</div></div></div>`).join("")}</div>`;
+    else throw new Error(`${where}: ไม่รู้จัก section type "${S.type}" (ใช้ rules / parts / symptoms / steps / tips)`);
+    const note = S.note ? `<div class="note">${ICON_WARN}<div>${inline(S.note)}</div></div>` : "";
+    return `<section>${head}${body}${note}</section>`;
+  };
+  const H = M.hero ?? {};
+  const quiz = (M.quiz ?? []).length ? `<section><div class="sec-h"><span class="n" style="background:var(--gold)">${M.sections.length + 1}</span><h2>ทดสอบตัวเอง</h2></div><p class="lead">คิดคำตอบก่อน แล้วแตะเพื่อดูเฉลย</p>${M.quiz.map(q => `<details><summary>${inline(q.q)}</summary><p>${inline(q.a)}</p></details>`).join("")}</section>` : "";
+  const html = `<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(M.title)}</title>
+<meta name="description" content="${esc(`ใบความรู้ ${L.subject} ${L.grade} หน่วยที่ ${L.unit_no} ${L.unit_title} เรื่อง ${L.title}`)}">
+<link rel="canonical" href="${url}">
+<meta name="color-scheme" content="light">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@600;700&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+${fs.readFileSync(path.join(DIR, "media", "_style.css"), "utf8")}</style></head><body>
+<main>
+  <header class="hero" style="background:${color(H.color ?? "orange", 3)}">
+    <div class="k">ใบความรู้ · ${esc(L.subject)} ${esc(L.grade)} · หน่วยที่ ${L.unit_no} ${esc(L.unit_title)}</div>
+    <h1>${inline(H.headline ?? L.title)}</h1>
+    <p>${inline(H.sub ?? `ประกอบแผนการเรียนรู้เรื่อง "${L.title}"`)}</p>
+    ${H.pill ? `<span class="pill">${ICON_STETH_M}${inline(H.pill)}</span>` : ""}
+    ${H.art ? `<div class="hero-art">${art(H.art, `${where} hero`)}${H.art_caption ? `<p class="cap">${inline(H.art_caption)}</p>` : ""}</div>` : ""}
+  </header>
+  ${M.sections.map(sec).join("\n  ")}
+  ${quiz}
+  ${M.bar ? `<div class="bar">${ICON_BOLT_M}${inline(M.bar)}</div>` : ""}
+</main>
+</body></html>
 `;
   const dir = path.join(ROOT, "public/prep/media", slug);
   fs.mkdirSync(dir, { recursive: true });

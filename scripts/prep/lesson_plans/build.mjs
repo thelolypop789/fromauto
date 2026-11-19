@@ -129,7 +129,7 @@ function modelForm(F, S) {
     ...rubric(F.rubric_title, S.rubric.map((r, k) => [`${k + 1}. ${F.criteria[k]}`, ...r])),
   ];
 }
-const opinion = (who, role) => [h(`ความคิดเห็นของ${who}`), ...dots(3, 1), sign(role)];
+const opinion = (who, role) => [h(`ความคิดเห็นของ${who}`), ...dots(3, 1), { t: "sign", role, blank: 1 }];   // ผู้ลงนามอื่น: เว้นชื่อว่าง
 
 // ---------- รูปแบบที่ 1: PhenoBL (ตามไฟล์ต้นฉบับของเจ้าของ) ----------
 function phenobl(L, F, S, X) {

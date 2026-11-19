@@ -7,7 +7,7 @@ export type Block =
   | { t: "box"; x: string[] }
   | { t: "p"; x: string; i?: number; c?: number; b?: number }
   | { t: "tbl"; w: number[]; head?: Cell[][]; rows: Cell[][]; sm?: number; tall?: number; cards?: number; i?: number }
-  | { t: "sign"; role: string }
+  | { t: "sign"; role: string; blank?: number }   // blank = ผู้ลงนามคนอื่น (หัวหน้ากลุ่มสาระ/ผู้บริหาร): เว้นชื่อและปีให้เขียนเอง
   | { t: "qr"; svg: string; x: string; url: string }
   | { t: "br" };
 
@@ -51,8 +51,10 @@ function block(b: Exclude<Block, { t: "br" } | { t: "tbl" }>, v: Vars): HTMLElem
       return e;
     }
     case "sign": {
-      const name = v.teacher.trim() ? `(${esc(v.teacher.trim())})` : `(${DOTS})`;
-      return el("div", "lp-sign", `<div>ลงชื่อ${DOTS}${esc(b.role)}</div><div>${name}</div><div>วันที่.......เดือน................ พ.ศ. ${esc(v.year.trim() || "..........")}</div>`);
+      const line = "........................................";
+      const name = !b.blank && v.teacher.trim() ? `(${esc(v.teacher.trim())})` : `(${line})`;
+      const year = b.blank ? ".........." : esc(v.year.trim() || "..........");
+      return el("div", "lp-sign", `<div>ลงชื่อ${line}${esc(b.role)}</div><div>${name}</div><div>วันที่.......เดือน................ พ.ศ. ${year}</div>`);
     }
     case "qr": {
       const e = el("div", "lp-qr");

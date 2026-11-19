@@ -32,6 +32,7 @@ Browser (React SPA, lazy chunk ต่อแอป)
 - `content/prep/*.json` — คลังข้อสอบ; `content/summaries/*.ts` — สรุปเนื้อหา; `docs/` — คู่มือเปิดระบบ + blueprint วิชาเอก/อาชีวะ
 - `scripts/prep/` — generator (landing, หน้า sample, ข้อสอบเชิงปริมาณ, QR, bundle prep-import เป็นไฟล์เดียว)
 - `content/news/*.html` → `python3 scripts/prep/gen_news.py` — หน้าข่าว/บทความ static `/prep/news/` (+ sitemap/RSS ของข่าว, บล็อกข่าวล่าสุดในหน้า landing); เนื้อหาต้องตรวจสอบได้ ห้ามอ้างประกาศที่ยังไม่ออก
+- **แผนการสอนสำเร็จรูป** (`/prep/plans`, `src/prep/plans/`): เนื้อหาพรีเซต `content/lesson-plans/<slug>.json` + รูปแบบ `_formats.json` (PhenoBL / Active Learning / 5E) → `node scripts/prep/lesson_plans/build.mjs --out supabase/migrations/<ts>_prep_lesson_plans_content.sql` (upsert + หน้าสื่อ static `public/prep/media/<slug>/`); ดูตัวอย่างฟรี (ข้อ 1–4), โหลด PDF (ภาพ ไม่มีลายน้ำ ชื่อผู้สอนล็อกกับบัญชี) เมื่อมีแพ็กครบทุกภาคหรือซื้อรายแผน (`orders.package='PLAN'`)
 - `scripts/prep/video/` — คลิปสรุปแนวตั้ง (storyboard → Gemini TTS ผ่าน edge function `prep-media` → mp4); วิธีใช้อยู่ใน skill `.claude/skills/prep-summary-clip`
 - `vercel.json` — rewrite `/prep*` → `prep.html`, header ความปลอดภัย, redirect `sobprep.com` → `/prep/welcome/`
 - `.env` (ไม่อยู่ใน repo) — `VITE_SUPABASE_URL`, `VITE_SUPABASE_KEY`, `VITE_SCRIPT_URL`; ตัวเลือก `VITE_GEMINI_API_KEY`, `VITE_PREP_EMAIL_LOGIN=off` (ซ่อนล็อกอินอีเมล, ต้อง redeploy เพราะฝังตอน build)

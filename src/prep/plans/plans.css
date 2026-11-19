@@ -1,0 +1,73 @@
+/* ---------- เอกสาร A4 (พรีวิว + ต้นฉบับ PDF) — สีคงที่ขาว-ดำแบบกระดาษ ไม่ตามธีมมืด ---------- */
+.lp-page { width: 794px; height: 1123px; padding: 87px 72px 73px 96px; box-sizing: border-box; background: #fff; color: #000;
+  font: 400 14.5px/1.58 SarabunDoc, Sarabun, sans-serif; overflow: hidden; }
+.lp-body { position: relative; height: 100%; overflow: hidden; }
+.lp-page b { font-weight: 700; }
+.lp-p { margin: 0 0 2px; text-align: left; overflow-wrap: anywhere; }
+.lp-p.i1 { padding-left: 28px; } .lp-p.i2 { padding-left: 52px; } .lp-p.i3 { padding-left: 76px; } .lp-p.i4 { padding-left: 100px; }
+.lp-p.c { text-align: center; }
+.lp-p[data-kwn] { margin-top: 6px; }
+.lp-box { border: 1.5px solid #000; padding: 8px 12px; margin: 0 0 12px; text-align: center; font-weight: 700; font-size: 16px; line-height: 1.5; }
+.lp-t { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 4px 0 8px; font-size: 13.5px; line-height: 1.45; }
+.lp-t.i1 { width: calc(100% - 28px); margin-left: 28px; } .lp-t.i2 { width: calc(100% - 52px); margin-left: 52px; }
+.lp-t th, .lp-t td { border: 1px solid #000; padding: 3px 6px; vertical-align: top; overflow-wrap: anywhere; }
+.lp-t th { font-weight: 700; text-align: center; vertical-align: middle; }
+.lp-t.sm { font-size: 11.5px; line-height: 1.35; }
+.lp-t.sm td { height: 21px; padding: 1px 4px; }
+.lp-t.sm td:first-child { text-align: center; }
+.lp-t.tall td { height: 54px; }
+.lp-t.cards td { border: 1.5px dashed #000; padding: 14px 16px; height: 128px; font-size: 15px; line-height: 1.6; }
+.lp-sign { margin: 22px 0 4px 45%; text-align: center; line-height: 1.8; }
+.lp-qr { display: flex; align-items: center; gap: 14px; margin: 4px 0 8px 52px; }
+.lp-qr-img { width: 84px; height: 84px; flex: none; }
+.lp-qr-img svg { width: 100%; height: 100%; display: block; }
+.lp-qr-t { font-size: 13px; line-height: 1.5; }
+.lp-qr-t span { color: #333; }
+
+/* ---------- พรีวิวบนจอ ---------- */
+.lp-pages { display: grid; gap: 14px; justify-items: center; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.lp-fit { position: relative; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.18), 0 8px 24px rgba(0,0,0,.08); border-radius: 2px; background: #fff; }
+.lp-fit > .lp-scale { transform-origin: 0 0; position: absolute; top: 0; left: 0; }
+.lp-measure { position: fixed; left: -10000px; top: 0; pointer-events: none; }
+.lp-pageno { text-align: center; font-size: 12px; color: var(--pp-muted); margin-top: -8px; }
+
+.lp-lockpage { position: relative; overflow: hidden; border-radius: 2px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.18); }
+.lp-lockpage .bars { position: absolute; inset: 8% 9% 6% 11%; display: grid; align-content: start; gap: 9px; filter: blur(2.5px); opacity: .55; }
+.lp-lockpage .bars i { display: block; height: 9px; border-radius: 4px; background: #9a9a9a; }
+.lp-lockcta { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 10px; padding: 18px; text-align: center;
+  background: linear-gradient(180deg, rgba(255,255,255,.2), rgba(255,255,255,.88) 40%); color: #2A1418; }
+.lp-lockcta .ico { font-size: 34px; }
+.lp-lockcta ol { margin: 0; padding: 0 0 0 1.2em; text-align: left; font-size: 13.5px; }
+
+/* ---------- หน้ารายการ / รายละเอียด ---------- */
+.lp-grp { margin: 18px 2px 8px; font-size: 17px; color: var(--pp-brand-ink); }
+.lp-list { display: grid; gap: 10px; }
+.lp-item { display: grid; gap: 6px; text-align: left; width: 100%; padding: 14px; border-radius: var(--pp-radius); border: 1px solid var(--pp-line);
+  background: var(--pp-card); color: var(--pp-ink); font: inherit; cursor: pointer; }
+.lp-item:hover { border-color: var(--pp-line-strong); }
+.lp-item .meta { font-size: 12.5px; color: var(--pp-muted); }
+.lp-item .t { font-weight: 700; font-size: 16px; line-height: 1.4; }
+.lp-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.lp-chip { font-size: 12px; padding: 2px 9px; border-radius: 99px; background: var(--pp-surface-2); color: var(--pp-ink-2); }
+.lp-chip.own { background: var(--pp-ok-soft); color: var(--pp-ok-ink); }
+.lp-chip.price { background: var(--pp-gold-soft); color: var(--pp-gold-ink); }
+.lp-chip.wait { background: var(--pp-primary-soft); color: var(--pp-primary); }
+.lp-hero { display: grid; gap: 4px; margin-bottom: 12px; }
+.lp-hero h2 { margin: 0; font-size: 20px; line-height: 1.35; }
+.lp-tabs { display: flex; gap: 6px; overflow-x: auto; margin: 10px 0; }
+.lp-tabs button { flex: none; padding: 8px 14px; border-radius: 99px; border: 1px solid var(--pp-line); background: var(--pp-card); color: var(--pp-ink); font: inherit; font-size: 14px; cursor: pointer; }
+.lp-tabs button.on { background: var(--pp-primary); border-color: var(--pp-primary); color: #fff; }
+.lp-desc { font-size: 13.5px; color: var(--pp-ink-2); margin: 0 0 10px; }
+.lp-opts { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin: 8px 0 12px; }
+.lp-opts label { display: grid; gap: 4px; font-size: 12.5px; color: var(--pp-muted); }
+.lp-opts select, .lp-opts input { min-width: 96px; }
+.lp-actions { display: grid; gap: 8px; margin: 12px 0; padding: 12px;
+  border-radius: var(--pp-radius); background: var(--pp-glass); border: 1px solid var(--pp-line); box-shadow: 0 6px 20px rgba(0,0,0,.08); }
+.lp-actions.sticky { position: sticky; bottom: calc(64px + env(safe-area-inset-bottom)); z-index: 5; }
+.lp-buy { display: grid; gap: 10px; }
+.lp-buy-opt { display: grid; gap: 4px; padding: 12px; border-radius: 12px; border: 1px solid var(--pp-line); background: var(--pp-card); }
+.lp-qrpay { display: grid; justify-items: center; gap: 8px; }
+.lp-qrpay img { width: min(260px, 70vw); border-radius: 10px; background: #fff; }
+.lp-slip { max-width: 180px; border-radius: 8px; border: 1px solid var(--pp-line); }
+.lp-progress { height: 6px; border-radius: 99px; background: var(--pp-surface-2); overflow: hidden; }
+.lp-progress i { display: block; height: 100%; background: var(--pp-primary); transition: width .2s; }

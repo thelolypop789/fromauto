@@ -126,6 +126,13 @@ const ERRORS: Record<string, string> = {
   promo_bad_code: "โค้ดใช้ได้เฉพาะ A–Z, 0–9, - และ _ ยาว 3–30 ตัว",
   promo_bad_value: "ส่วนลดไม่ถูกต้อง (เปอร์เซ็นต์ได้ 1–90)",
   nothing_to_review: "ยังไม่มีข้อให้ทวน ทำชุดฝึกก่อน ข้อที่ตอบผิดจะมารอทวนที่นี่",
+  bad_full_name: "กรอกชื่อและนามสกุลจริง (มีเว้นวรรคระหว่างชื่อกับนามสกุล ไม่มีตัวเลข)",
+  full_name_locked: "ตั้งชื่อ-สกุลไปแล้ว ถ้าต้องการแก้ ติดต่อทีมงานทาง LINE @701pvghq",
+  full_name_required: "กรุณากรอกชื่อ-สกุลก่อนโหลดแผน",
+  plan_locked: "แผนนี้ต้องมีแพ็กครบทุกภาค หรือซื้อรายแผนก่อน",
+  plan_owned: "คุณมีสิทธิ์โหลดแผนนี้อยู่แล้ว",
+  plan_pending: "ส่งสลิปซื้อแผนนี้ไปแล้ว รอทีมงานตรวจสักครู่",
+  too_many_downloads: "วันนี้โหลดแผนครบ 30 ครั้งแล้ว ลองใหม่พรุ่งนี้",
   network_timeout: "เครือข่ายช้าหรือหลุด ลองใหม่อีกครั้ง",
   mock_locked: "วิชานี้ต้องมีแพ็กที่ครอบคลุม (ทดลองฟรีได้เฉพาะภาษาอังกฤษ 1 ครั้ง)",
   no_major: "กรุณาเลือกวิชาเอกในหน้าบัญชีก่อน",
@@ -234,7 +241,7 @@ export const TRACK_LABEL: Record<Track, string> = { obec: "สพฐ.", vec: "�
 export type Profile = { major: string | null; major_name: string | null; track?: Track; track_chosen?: boolean; returning?: boolean };
 
 export type PackageKey = "A" | "B" | "ALL";
-export const PACKAGE_LABEL: Record<PackageKey, string> = { A: "ภาค ก", B: "ภาค ข + วิชาเอก", ALL: "ครบทุกภาค" };
+export const PACKAGE_LABEL: Record<PackageKey | "PLAN", string> = { A: "ภาค ก", B: "ภาค ข + วิชาเอก", ALL: "ครบทุกภาค", PLAN: "แผนสำเร็จรูป" };
 
 // True when the user's packages cover every section in the list ("A" / "B").
 export function covers(me: Me, sections: string[]): boolean {
@@ -259,7 +266,7 @@ export const fmtUntil = (iso: string | null) =>
   iso ? `ถึง ${new Date(new Date(iso).getTime() - 1).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}` : "ตลอดชีพ";
 
 export type Order = {
-  id: number; package: PackageKey; term: Term; amount: number | null;
+  id: number; package: PackageKey | "PLAN"; term: Term | "item"; amount: number | null; plan_id?: number | null; plan_title?: string | null;
   status: "pending" | "approved" | "rejected"; admin_note: string | null; seats?: number; group_name?: string | null;
   created_at: string; reviewed_at: string | null; access_until?: string | null;
 };
@@ -341,7 +348,7 @@ export type MockPayload = {
   attempt_id: string; subject: string; name: string; minutes: number; started_at: string; deadline: string;
   server_now: string; submitted: boolean; free_trial: boolean; items: MockItem[]; result: MockResultData | null;
 };
-export const TERM_LABEL: Record<Term, string> = { round: "รายรอบ 3 เดือน", year: "รายปี 12 เดือน", lifetime: "ซื้อขาด" };
+export const TERM_LABEL: Record<Term | "item", string> = { round: "รายรอบ 3 เดือน", year: "รายปี 12 เดือน", lifetime: "ซื้อขาด", item: "รายแผน" };
 
 // ---- Usage events: only three, one per user per day, no content. The link's ?src= (e.g. /prep?src=fb-post1) is kept so the
 // first visit after Google sign-in can still say where the user came from.

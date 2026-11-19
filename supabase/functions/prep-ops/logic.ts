@@ -111,8 +111,8 @@ export function parseSlip(raw: unknown): SlipRead | null {
   };
 }
 
-const PACK: Record<string, string> = { A: "ภาค ก", B: "ภาค ข+เอก", ALL: "ครบทุกภาค" };
-const TERM: Record<string, string> = { round: "รายรอบ", year: "รายปี", lifetime: "ตลอดชีพ" };
+const PACK: Record<string, string> = { A: "ภาค ก", B: "ภาค ข+เอก", ALL: "ครบทุกภาค", PLAN: "แผนสำเร็จรูป" };
+const TERM: Record<string, string> = { round: "รายรอบ", year: "รายปี", lifetime: "ตลอดชีพ", item: "รายแผน" };
 
 // แจ้งเจ้าของ 1 บรรทัดเมื่ออนุมัติเอง (เจ้าของขอ 10 พ.ย. 69 — ให้เห็นทันทีว่าระบบอนุมัติอะไรไป)
 export function approvedText(d: { order_id: number; amount: number; package: string; term: string; seats?: number }): string {

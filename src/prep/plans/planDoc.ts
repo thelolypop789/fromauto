@@ -20,11 +20,16 @@ export const PAGE_W = 794, PAGE_H = 1123;
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const DOTS = "..................................................";
 
-function text(s: string, v: Vars) {
-  const filled = s
+// แทนค่าตัวแปรในข้อความ (ยังมี **ตัวหนา** อยู่) — ใช้ร่วมกับตัวสร้างไฟล์ Word
+export function fillVars(s: string, v: Vars) {
+  return s
     .replace(/\{\{teacher\}\}/g, v.teacher.trim() || DOTS)
     .replace(/\{\{term\}\}/g, v.term.trim() || "......")
     .replace(/\{\{year\}\}/g, v.year.trim() || "..........");
+}
+
+function text(s: string, v: Vars) {
+  const filled = fillVars(s, v);
   return esc(filled).replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br>");
 }
 

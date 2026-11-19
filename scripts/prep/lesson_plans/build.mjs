@@ -328,7 +328,16 @@ async function build(slug) {
 // ---------- หน้าสื่อออนไลน์ (static) ----------
 const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const inline = s => esc(s).replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+// หน้าสื่อที่ออกแบบเอง (มีภาพประกอบ) อยู่ที่ content/lesson-plans/media/<slug>.html → คัดลอกตามนั้น
+// ถ้าไม่มี สร้างหน้าข้อความธรรมดาจากหัวข้อ knowledge ให้
 function writeMedia(slug, L, url) {
+  const custom = path.join(DIR, "media", `${slug}.html`);
+  if (fs.existsSync(custom)) {
+    const dir = path.join(ROOT, "public/prep/media", slug);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.copyFileSync(custom, path.join(dir, "index.html"));
+    return;
+  }
   const body = L.knowledge.map(item => {
     if (typeof item === "string") {
       const lead = item.match(/^ */)[0].length;
@@ -361,13 +370,11 @@ h2{font-size:19px;margin:26px 0 8px;padding-top:14px;border-top:1px solid var(--
 p{margin:6px 0}.i1{padding-left:18px}.i2{padding-left:36px}
 .tw{overflow-x:auto;margin:10px 0}table{border-collapse:collapse;width:100%;min-width:520px;background:var(--card);font-size:15px}
 th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}th{background:color-mix(in srgb,var(--brand) 10%,var(--card))}
-footer{margin-top:36px;font-size:13px;color:var(--muted)}footer a{color:var(--brand)}
 </style></head><body><main>
 <div class="k">ใบความรู้ · ${esc(L.subject)} ${esc(L.grade)}</div>
 <h1>${esc(L.title)}</h1>
 <div class="meta">หน่วยการเรียนรู้ที่ ${L.unit_no} ${esc(L.unit_title)} · รายวิชา${esc(L.subject)} (${esc(L.course_code)})</div>
 ${body}
-<footer>สื่อประกอบแผนการจัดการเรียนรู้สำเร็จรูปจาก <a href="${SITE}/prep/welcome/">SOBPREP</a></footer>
 </main></body></html>
 `;
   const dir = path.join(ROOT, "public/prep/media", slug);

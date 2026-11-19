@@ -1,0 +1,84 @@
+:root{
+  --bg:#F6EFE4;--paper:#FBF6EE;--card:#FFFFFF;--line:#E8DCCB;--ink:#1F2A33;--muted:#6B6158;
+  --orange:#B5531A;--red:#C0392B;--green:#2E6B3A;--blue:#2C5876;--purple:#6A3FA0;--gold:#8C6A12;--dark:#22303A;
+  --tube:#D5DBE0;--glow:#FFF3C4;--meter:#F0A04B;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.7 Sarabun,system-ui,sans-serif}
+main{max-width:760px;margin:0 auto;padding:16px 16px 40px}
+h1,h2,h3,.disp{font-family:Prompt,Sarabun,sans-serif;line-height:1.3}
+svg{display:block;max-width:100%;height:auto}
+
+/* ---------- หัวเรื่อง ---------- */
+.hero{background:var(--orange);color:#fff;border-radius:22px;padding:20px 20px 0;overflow:hidden;position:relative}
+.hero .k{font-size:13px;opacity:.9;font-weight:600}
+.hero h1{font-size:clamp(24px,6.5vw,34px);margin:2px 0 4px}
+.hero p{margin:0 0 12px;font-size:14.5px;opacity:.92}
+.hero .pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.18);padding:4px 12px;border-radius:99px;font-size:13px;font-weight:600}
+.hero-art{background:var(--paper);margin:16px -20px 0;padding:14px 12px 6px;border-top:1px solid rgba(0,0,0,.06)}
+.cap{font-size:13px;color:var(--muted);text-align:center;margin:4px 0 0}
+
+/* ---------- ส่วน ---------- */
+section{margin-top:26px}
+.sec-h{display:flex;align-items:center;gap:10px;margin:0 0 12px}
+.sec-h .n{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font:700 16px Prompt,sans-serif}
+.sec-h h2{font-size:21px;margin:0}
+.lead{margin:-4px 0 12px;color:var(--muted);font-size:15px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+
+/* หลัก 6 ข้อ */
+.rules{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.rule{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
+.rule svg{flex:none;width:44px;height:44px}
+.rule b{display:block;font-family:Prompt,sans-serif;font-weight:600;font-size:15.5px;line-height:1.35}
+.rule span{font-size:14px;color:var(--muted);line-height:1.5}
+
+/* ส่วนประกอบ */
+.parts{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.part{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center}
+.part svg{width:100%;max-width:150px;height:80px;margin:0 auto 6px}
+.part b{font-family:Prompt,sans-serif;font-size:16px;display:block}
+.part p{margin:2px 0 0;font-size:14px;line-height:1.5;color:var(--muted);text-align:left}
+
+/* อาการเสีย */
+.sym{display:grid;gap:12px}
+.s{background:var(--card);border-radius:16px;border:1.5px solid var(--c);overflow:hidden}
+.s-top{background:var(--c);color:#fff;padding:8px 14px;font:600 16px Prompt,sans-serif;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.s-top small{font:600 12px Sarabun,sans-serif;background:rgba(255,255,255,.2);padding:2px 9px;border-radius:99px;white-space:nowrap}
+.s-body{display:grid;grid-template-columns:140px 1fr;gap:12px;padding:12px;align-items:center}
+.s-art{background:var(--paper);border-radius:12px;padding:6px}
+.s dl{margin:0;display:grid;gap:6px}
+.s dt{font-size:12.5px;font-weight:700;color:var(--c)}
+.s dd{margin:0;font-size:15px;line-height:1.5}
+@media (max-width:420px){.s-body{grid-template-columns:1fr}.s-art{max-width:220px;margin:0 auto;width:100%}}
+
+/* มัลติมิเตอร์ */
+.steps{display:grid;gap:12px}
+.step{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
+.step h3{margin:0 0 4px;font-size:17px}
+.step p{margin:0 0 8px;font-size:15px;line-height:1.55}
+.res{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:13px;font-weight:700;padding:3px 10px;border-radius:99px}
+.ok{background:#E3F1E5;color:#1E6B35}.bad{background:#FBE3E0;color:#A32020}
+@media (max-width:420px){.step{grid-template-columns:1fr}.step svg{max-width:200px;margin:0 auto}}
+.note{display:flex;gap:10px;align-items:flex-start;background:#FFF4E5;border:1px solid #F2D2A8;border-radius:14px;padding:12px;margin-top:12px;font-size:15px;line-height:1.55}
+.note svg{flex:none;width:28px;height:28px}
+
+/* ความปลอดภัย */
+.safe{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.do{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center}
+.do svg{width:84px;height:84px;margin:0 auto 6px}
+.do b{display:block;font-family:Prompt,sans-serif;font-size:15.5px}
+.do span{font-size:13.5px;color:var(--muted);line-height:1.45;display:block}
+
+/* ทดสอบตัวเอง */
+details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+summary{cursor:pointer;font-weight:700;list-style:none;display:flex;gap:10px;align-items:flex-start}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"?";flex:none;width:24px;height:24px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;font:700 14px Prompt,sans-serif;margin-top:2px}
+details[open] summary::before{content:"✓";background:var(--green)}
+details p{margin:8px 0 0 34px;font-size:15.5px}
+
+.bar{margin-top:28px;background:var(--dark);color:#fff;border-radius:14px;padding:12px 16px;display:flex;gap:10px;align-items:center;font-size:14.5px;font-weight:600}
+.bar svg{flex:none;width:22px;height:22px}

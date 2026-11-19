@@ -35,10 +35,11 @@ type Props = {
   onStats: () => void;
   onBoard: () => void;
   onTarot: () => void;
+  onPlans?: () => void;
   joined?: string;   // account creation time: notices about past problems skip newer accounts
 };
 
-export default function Home({ me, profile, onMajor, onProfile, onCreate, onStart, onReview, onDaily, onMock, onPast, onCalendar, onUpgrade, onStats, onBoard, onTarot, joined }: Props) {
+export default function Home({ me, profile, onMajor, onProfile, onCreate, onStart, onReview, onDaily, onMock, onPast, onCalendar, onUpgrade, onStats, onBoard, onTarot, onPlans, joined }: Props) {
   const [picking, setPicking] = useState(false);
   const [allSets, setAllSets] = useState(false);
   const [sets, setSets] = useState<SetSummary[] | null>(null);
@@ -198,6 +199,12 @@ export default function Home({ me, profile, onMajor, onProfile, onCreate, onStar
           {counts && counts.wrong > 0 && <span className="pp-quick-badge count">{counts.wrong.toLocaleString()}</span>}
         </button>
       </div>
+
+      {onPlans && <button className="pp-quick-tile pp-plans-tile" onClick={onPlans}>
+        <span className="pp-quick-ico" aria-hidden>📝</span>
+        <span className="pp-quick-t"><b>แผนการสอนสำเร็จรูป</b><small>เตรียมสัมภาษณ์ภาค ค · PhenoBL · Active Learning · 5E พร้อมใบงานและแบบประเมิน</small></span>
+        <span className="pp-quick-badge">ใหม่</span>
+      </button>}
 
       <button className="pp-tarot-link" onClick={onTarot}>
         <span aria-hidden>🔮</span><span><b>เปิดไพ่ดวงสอบ</b> ไพ่ยิปซี 3 ใบ อดีต ปัจจุบัน อนาคต</span><span aria-hidden>›</span>

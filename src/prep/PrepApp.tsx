@@ -40,6 +40,7 @@ const Admin = lazy(() => import("./Admin"));
 const Summary = lazy(() => import("./Summary"));
 const Tarot = lazy(() => import("./Tarot"));   // fortune page: its card pictures load only when opened
 const ExamRecap = lazy(() => import("./ExamRecap"));
+const Plans = lazy(() => import("./plans/Plans"));   // แผนการสอนสำเร็จรูป: ตัวสร้าง PDF โหลดเมื่อกดโหลดเท่านั้น
 
 setupPwa();
 applyReadScale();
@@ -50,13 +51,14 @@ const PATHS = {
   home: "/prep", create: "/prep/create", play: "/prep/play", result: "/prep/result", stats: "/prep/stats", daily: "/prep/daily",
   board: "/prep/board", mock: "/prep/mock", mockplay: "/prep/mock/play", mockresult: "/prep/mock/result", calendar: "/prep/calendar",
   feedback: "/prep/feedback", account: "/prep/me", buy: "/prep/buy", summary: "/prep/summary", past: "/prep/past", admin: "/prep/admin",
-  tarot: "/prep/tarot", recap: "/prep/recap",
+  tarot: "/prep/tarot", recap: "/prep/recap", plans: "/prep/plans",
 } as const;
 type ViewName = keyof typeof PATHS;
 function viewFromPath(path: string): ViewName {
   const p = path.replace(/\/+$/, "") || "/prep";
   if (p === "/prep/account") return "account";   // the old name of /prep/me
   if (p.startsWith("/prep/summary")) return "summary";
+  if (p.startsWith("/prep/plans")) return "plans";
   const hit = (Object.entries(PATHS) as [ViewName, string][]).find(([, v]) => v === p);
   return hit ? hit[0] : "home";
 }
@@ -129,6 +131,11 @@ function PrepShell() {
   const [summaries, setSummaries] = useState(0);
   useEffect(() => {
     if (signedIn) rpc<string[]>("prep_summary_approved").then(ids => setSummaries(ids.length)).catch(() => { /* optional tab */ });
+  }, [signedIn]);
+  // แผนสำเร็จรูป: ปุ่มในหน้าแรกขึ้นเมื่อมีแผนที่บัญชีนี้มองเห็น (แผนที่ยังไม่เผยแพร่เห็นเฉพาะแอดมิน)
+  const [plans, setPlans] = useState(0);
+  useEffect(() => {
+    if (signedIn) rpc<{ plans: unknown[] }>("prep_lesson_plans").then(r => setPlans(r.plans.length)).catch(() => { /* optional tile */ });
   }, [signedIn]);
   useEffect(() => (signedIn ? startPing() : undefined), [signedIn]);
   const clearUnread = useCallback(() => setUnread(0), []);
@@ -223,7 +230,7 @@ function PrepShell() {
     { key: "account", label: "ฉัน", icon: <IconUser /> },
     ...(me.is_admin ? [{ key: "admin" as const, label: "แอดมิน", icon: <IconShield /> }] : []),
   ];
-  const active = (k: ViewName) => view.name === k || (k === "home" && (view.name === "create" || view.name === "result" || view.name === "daily" || view.name === "board" || view.name === "mock" || view.name === "mockresult" || view.name === "past" || view.name === "recap"))
+  const active = (k: ViewName) => view.name === k || (k === "home" && (view.name === "create" || view.name === "result" || view.name === "daily" || view.name === "board" || view.name === "mock" || view.name === "mockresult" || view.name === "past" || view.name === "recap" || view.name === "plans"))
     || (k === "account" && (view.name === "buy" || view.name === "feedback"));
   const freeLeft = Math.max(0, me.free_sets_limit - me.free_sets_used);
   const go = (k: ViewName) => navigate(PATHS[k]);
@@ -259,7 +266,7 @@ function PrepShell() {
       <main className="pp-main" key={reloadKey}>
         <ErrorBoundary key={view.name} label={view.name}>
         <Suspense fallback={<Skeleton kind="cards" n={2} />}>
-        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onProfile={changeProfile} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onPast={() => go("past")} onCalendar={() => go("calendar")} onUpgrade={() => go("buy")} onStats={() => go("stats")} onBoard={() => go("board")} onTarot={() => go("tarot")} joined={session.user.created_at} />}
+        {view.name === "home" && <Home me={me} profile={profile} onMajor={setMajor} onProfile={changeProfile} onCreate={practice} onStart={startRound} onReview={startReview} onDaily={() => go("daily")} onMock={() => go("mock")} onPast={() => go("past")} onCalendar={() => go("calendar")} onUpgrade={() => go("buy")} onStats={() => go("stats")} onBoard={() => go("board")} onTarot={() => go("tarot")} onPlans={plans > 0 ? () => go("plans") : undefined} joined={session.user.created_at} />}
         {view.name === "create" && <CreateSet me={me} major={profile.major} preset={held.preset} onCancel={() => go("home")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} onUpgrade={() => go("buy")} />}
         {view.name === "result" && held.result && <RoundResult result={held.result} title={held.title ?? ""} me={me} majorName={profile.major_name} onStart={startRound}
@@ -272,6 +279,7 @@ function PrepShell() {
         {view.name === "calendar" && <Calendar onBack={() => back("home")} />}
         {view.name === "tarot" && <Tarot onBack={() => back("home")} onPractice={() => go("create")} />}
         {view.name === "recap" && <ExamRecap onBack={() => back("home")} />}
+        {view.name === "plans" && <Plans onBack={() => back("home")} onBuyPack={() => go("buy")} />}
         {view.name === "feedback" && <Feedback page="tab" />}
         {view.name === "past" && <PastExams onBack={() => back("home")} onUpgrade={() => go("buy")}
           onCreated={async id => { await refreshMe(); startRound(id, "full"); }} />}

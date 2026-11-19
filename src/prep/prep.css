@@ -1642,6 +1642,7 @@ div.pp-todo-item { cursor: default; }
 .pp-varak.in { padding-left: 1em; box-sizing: border-box; }
 
 /* Home: link to the tarot page (/prep/tarot) */
+.pp-plans-tile { width: 100%; margin: 0 0 10px; }
 .pp-tarot-link { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; padding: 11px 14px; border-radius: var(--pp-radius);
   text-decoration: none; color: #fff; background: linear-gradient(90deg, #2A0F45, #4A0B16); font-size: 14px; }
 .pp-tarot-link b { color: #F3D98A; margin-right: 4px; }

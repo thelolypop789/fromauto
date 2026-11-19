@@ -3,31 +3,12 @@ import { PACKAGE_LABEL, TERM_LABEL, fmtUntil, rpc, supabase, thaiError, track, t
 import { LIFETIME_LAST_DAY, PACKAGES, SHOP, lifetimeOpen } from "./config";
 import { IconCheck } from "./icons";
 import { ask } from "./dialog";
+import { shrink } from "./slip";
 
 const ORDER_STATUS: Record<Order["status"], [string, string]> = {
   pending: ["รอตรวจสอบ", "warn"], approved: ["อนุมัติแล้ว", "ok"], rejected: ["ไม่ผ่าน", "bad"],
 };
 const fmt = (s: string) => new Date(s).toLocaleString("th-TH", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-
-// Phone photos are large: re-encode to a JPEG of at most 1600px. Formats the browser cannot
-// decode (HEIC outside Safari) are uploaded as they are.
-async function shrink(file: File): Promise<{ blob: Blob; type: string; ext: string }> {
-  try {
-    const bmp = await createImageBitmap(file);
-    const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
-    const c = document.createElement("canvas");
-    c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
-    const ctx = c.getContext("2d")!;
-    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
-    ctx.drawImage(bmp, 0, 0, c.width, c.height);
-    bmp.close();
-    const blob = await new Promise<Blob>((ok, bad) => c.toBlob(b => (b ? ok(b) : bad(new Error("encode"))), "image/jpeg", 0.85));
-    return { blob, type: "image/jpeg", ext: "jpg" };
-  } catch {
-    const heic = /heic|heif/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
-    return { blob: file, type: heic ? "image/heic" : file.type || "image/jpeg", ext: heic ? "heic" : "jpg" };
-  }
-}
 
 const TERM_ORDER: Term[] = ["year", "round", "lifetime"];
 // ใช้เมื่อโหลดราคาจากเซิร์ฟเวอร์ไม่ได้: ถึง 15 พ.ย. 69 รายรอบ + ซื้อขาด, ตั้งแต่ 16 พ.ย. รายปี + รายรอบ
@@ -261,7 +242,7 @@ export default function PayForm({ email, onApproved, initial = null }: {
             <div key={o.id} className="pp-myrep">
               <div className="pp-myrep-h">
                 <span className={`pp-badge ${ORDER_STATUS[o.status][1]}`}>{o.status === "approved" && <IconCheck size={13} />}{ORDER_STATUS[o.status][0]}</span>
-                <span>{(o.seats ?? 1) > 1 ? `${o.group_name ?? "แพ็กกลุ่ม"} ${o.seats} คน · ` : ""}{PACKAGE_LABEL[o.package]} · {TERM_LABEL[o.term]}{o.amount ? ` · ${o.amount} บาท` : ""}</span>
+                <span>{(o.seats ?? 1) > 1 ? `${o.group_name ?? "แพ็กกลุ่ม"} ${o.seats} คน · ` : ""}{o.plan_title ? `แผน: ${o.plan_title}` : `${PACKAGE_LABEL[o.package]} · ${TERM_LABEL[o.term]}`}{o.amount ? ` · ${o.amount} บาท` : ""}</span>
               </div>
               <div className="pp-muted small">ส่งเมื่อ {fmt(o.created_at)}{o.status === "approved" ? ` · สิทธิ์${fmtUntil(o.access_until ?? null)}` : ""}</div>
               {o.admin_note && <div className="pp-myrep-note"><b>ทีมงาน:</b> {o.admin_note}</div>}

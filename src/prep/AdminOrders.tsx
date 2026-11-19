@@ -4,7 +4,7 @@ import AdminPrices from "./AdminPrices";
 import { IconCheck, IconX } from "./icons";
 
 type Row = {
-  id: number; email: string | null; package: PackageKey; term: Term; amount: number | null; credit: number; list_price: number | null; promo_code?: string | null; discount?: number; seats?: number; group_name?: string | null;
+  id: number; email: string | null; package: PackageKey | "PLAN"; term: Term | "item"; plan_title?: string | null; amount: number | null; credit: number; list_price: number | null; promo_code?: string | null; discount?: number; seats?: number; group_name?: string | null;
   slip_path: string; note: string | null; status: "pending" | "approved" | "rejected"; admin_note: string | null;
   created_at: string; reviewed_at: string | null; active_packages: PackageKey[];
 };
@@ -75,11 +75,11 @@ function OrderCard({ r, onDone }: { r: Row; onDone: (id: number) => void }) {
         <div className="pp-order-info">
           <div className="pp-order-h">
             <span className="pp-pkg-badge">{PACKAGE_LABEL[r.package]}</span>
-            <b>{TERM_LABEL[r.term]}{r.amount ? ` · ${r.amount} บาท` : ""}</b>
+            <b>{r.plan_title ? `แผน: ${r.plan_title}` : TERM_LABEL[r.term]}{r.amount ? ` · ${r.amount} บาท` : ""}</b>
           </div>
           <div>{r.email ?? "-"}</div>
           <div className={r.credit ? "pp-note" : "pp-muted small"}>
-            {r.credit ? `อัปเกรด: ราคาเต็ม ${r.list_price ?? "-"} − หักแพ็กเดิม ${r.credit} = ${r.amount} บาท` : `ราคาแพ็ก ${r.list_price ?? "-"} บาท`} · ยอดในสลิปต้องเป็น {r.amount} บาท
+            {r.credit ? `อัปเกรด: ราคาเต็ม ${r.list_price ?? "-"} − หักแพ็กเดิม ${r.credit} = ${r.amount} บาท` : `ราคา${r.plan_title ? "แผน" : "แพ็ก"} ${r.list_price ?? "-"} บาท`} · ยอดในสลิปต้องเป็น {r.amount} บาท
           </div>
           {(r.seats ?? 1) > 1 && <div className="pp-note">แพ็กกลุ่ม <b>{r.group_name}</b> {r.seats} คน · ยอดในสลิปต้องเป็น {r.amount} บาท · เมื่ออนุมัติ ระบบสร้างคีย์ {r.seats} ชุดให้ผู้ซื้อในแอปเอง (ไม่ต้องส่งคีย์ให้)</div>}
           {r.promo_code && <div className="pp-note">โค้ด <b>{r.promo_code}</b> ลด {r.discount} บาท · ยอดในสลิปต้องเป็น {r.amount} บาท</div>}
